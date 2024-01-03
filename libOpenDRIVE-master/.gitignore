@@ -1,0 +1,8 @@
+*.wasm
+*.so
+settings.json
+compile_commands.json
+.vscode/
+build/
+build-wasm/
+viewer/
