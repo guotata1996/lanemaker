@@ -30,6 +30,8 @@
 #include <utility>
 #include <vector>
 
+#include <iostream>
+
 namespace odr
 {
 std::vector<LaneValidityRecord> extract_lane_validity_records(const pugi::xml_node& xml_node)
@@ -406,6 +408,10 @@ OpenDriveMap::OpenDriveMap(const std::string& xodr_file,
 
                     CHECK_AND_REPAIR(s_offset >= 0, "lane::width::sOffset < 0", s_offset = 0);
                     lane.lane_width.s0_to_poly[s0 + s_offset] = Poly3(s0 + s_offset, a, b, c, d);
+
+                    if (road.id == "55" && lane.id == -3) {
+                        std::cout << s_offset << " :: " << a << std::endl;
+                    }
                 }
 
                 if (with_lane_height)
@@ -857,6 +863,240 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
     }
 
     return routing_graph;
+}
+
+void OpenDriveMap::export_file(const std::string& fpath) const
+{
+    pugi::xml_document doc;
+    pugi::xml_node     main = doc.append_child("OpenDRIVE");
+    pugi::xml_node     header = main.append_child("header");
+    header.append_attribute("revMajor").set_value("1");
+    header.append_attribute("revMinor").set_value("4");
+
+    for (auto rit : id_to_road) 
+    {
+        const odr::Road&      road = rit.second;
+        pugi::xml_node road_node = main.append_child("road");
+        road_node.append_attribute("name").set_value(road.name.c_str());
+        road_node.append_attribute("length").set_value(road.length);
+        road_node.append_attribute("id").set_value(rit.first.c_str());
+        road_node.append_attribute("junction").set_value(road.junction.c_str());
+
+        // link
+        pugi::xml_node link = road_node.append_child("link");
+        if (road.predecessor.type != odr::RoadLink::Type_None) 
+        {
+            pugi::xml_node pred = link.append_child("predecessor");
+            roadNodeToXML(road.predecessor, pred);
+        }
+        if (road.successor.type != odr::RoadLink::Type_None) 
+        {
+            pugi::xml_node succ = link.append_child("successor");
+            roadNodeToXML(road.successor, succ);
+        }
+
+        // type
+        for (auto it : road.s_to_type) 
+        {
+            pugi::xml_node type = road_node.append_child("type");
+            type.append_attribute("s").set_value(it.first);
+            type.append_attribute("type").set_value(it.second.c_str());
+        }
+
+        // planView
+        pugi::xml_node planView = road_node.append_child("planView");
+        for (auto it = road.ref_line.s0_to_geometry.begin(); it != road.ref_line.s0_to_geometry.end(); ++it) 
+        {
+            pugi::xml_node geometry = planView.append_child("geometry");
+            geometry.append_attribute("s").set_value(it->first);
+            geometry.append_attribute("x").set_value(it->second->x0);
+            geometry.append_attribute("y").set_value(it->second->y0);
+            geometry.append_attribute("hdg").set_value(it->second->hdg0);
+            geometry.append_attribute("length").set_value(it->second->length);
+
+            if (dynamic_cast<odr::Line*>(it->second.get()))
+            {
+                geometry.append_child("line");
+            }
+            else if (odr::Arc* geo = dynamic_cast<odr::Arc*>(it->second.get()))
+            {
+                geometry.append_child("arc").append_attribute("curvature").set_value(geo->curvature);
+            }
+            else if (odr::Spiral* geo = dynamic_cast<odr::Spiral*>(it->second.get()))
+            {
+                pugi::xml_node spiral = geometry.append_child("spiral");
+                spiral.append_attribute("curvStart").set_value(geo->curv_start);
+                spiral.append_attribute("curvEnd").set_value(geo->curv_end);
+            }
+            else 
+            {
+                throw;
+            }
+        }
+
+        // lanes
+        pugi::xml_node lanes = road_node.append_child("lanes");
+        for (auto it : road.lane_offset.s0_to_poly) 
+        {
+            pugi::xml_node laneOffset = lanes.append_child("laneOffset");
+            laneOffset.append_attribute("s").set_value(it.first);
+            laneOffset.append_attribute("a").set_value(it.second.raw_a);
+            laneOffset.append_attribute("b").set_value(it.second.raw_b);
+            laneOffset.append_attribute("c").set_value(it.second.raw_c);
+            laneOffset.append_attribute("d").set_value(it.second.raw_d);
+        }
+        for (auto sectionIt : road.s_to_lanesection) 
+        {
+            pugi::xml_node laneSection = lanes.append_child("laneSection");
+            laneSection.append_attribute("s").set_value(sectionIt.first);
+            bool leftCreated = false, rightCreated = false;
+
+            pugi::xml_node left, right;
+
+            for (auto laneIt : sectionIt.second.id_to_lane) 
+            {
+                pugi::xml_node lane;
+                odr::Lane      l = laneIt.second;
+                if (laneIt.first > 0) 
+                {   
+                    if (!leftCreated) 
+                    {
+                        left = laneSection.append_child("left");
+                        leftCreated = true;
+                    }
+                    lane = left.append_child("lane");
+                }
+                else if (laneIt.first == 0)
+                {
+                    pugi::xml_node center = laneSection.append_child("center");
+                    lane = center.append_child("lane");
+                }
+                else
+                {
+                    if (!rightCreated) 
+                    {
+                        right = laneSection.append_child("right");
+                        rightCreated = true;
+                    }
+                    lane = right.append_child("lane");
+                }
+                lane.append_attribute("id").set_value(laneIt.first);
+                lane.append_attribute("type").set_value(l.type.c_str());
+                lane.append_attribute("level").set_value(l.level ? "true" : "false");
+                if (l.predecessor != 0 || l.successor != 0) 
+                {
+                    pugi::xml_node link = lane.append_child("link");
+                    if (l.predecessor != 0)
+                    {
+                        link.append_child("predecessor").append_attribute("id").set_value(l.predecessor);
+                    }
+                    if (l.successor != 0)
+                    {
+                        link.append_child("successor").append_attribute("id").set_value(l.successor);
+                    }
+                }
+                for (auto laneWidthIt : l.lane_width.s0_to_poly) 
+                {
+                    pugi::xml_node width = lane.append_child("width");
+                    width.append_attribute("sOffset").set_value(laneWidthIt.first - sectionIt.first);
+                    width.append_attribute("a").set_value(laneWidthIt.second.raw_a);
+                    width.append_attribute("b").set_value(laneWidthIt.second.raw_b);
+                    width.append_attribute("c").set_value(laneWidthIt.second.raw_c);
+                    width.append_attribute("d").set_value(laneWidthIt.second.raw_d);
+                }
+                // Not sorted
+                for (auto roadMarkIt : l.roadmark_groups) 
+                {
+                    pugi::xml_node roadMark = lane.append_child("roadMark");
+                    roadMark.append_attribute("sOffset").set_value(roadMarkIt.s_offset);
+                    roadMark.append_attribute("type").set_value(roadMarkIt.type.c_str());
+                    roadMark.append_attribute("color").set_value(roadMarkIt.color.c_str());
+                    if (roadMarkIt.height != 0) 
+                        roadMark.append_attribute("height").set_value(roadMarkIt.height);
+                    if (roadMarkIt.lane_change != "both")
+                        roadMark.append_attribute("laneChange").set_value(roadMarkIt.lane_change.c_str());
+                    if (roadMarkIt.material != "standard")
+                        roadMark.append_attribute("material").set_value(roadMarkIt.material.c_str());
+                    if (roadMarkIt.weight != "standard")
+                        roadMark.append_attribute("weight").set_value(roadMarkIt.weight.c_str());
+                    if (roadMarkIt.width >= 0)
+                        roadMark.append_attribute("width").set_value(roadMarkIt.width);
+                }
+                // Missing user data
+            }
+        }
+    }
+
+    for (auto j : get_junctions()) 
+    {
+        pugi::xml_node junction = main.append_child("junction");
+        junction.append_attribute("id").set_value(j.id.c_str());
+        junction.append_attribute("name").set_value(j.name.c_str());
+        for (auto c : j.id_to_connection) 
+        {
+            auto connection = junction.append_child("connection");
+            connection.append_attribute("id").set_value(c.first.c_str());
+
+            std::string incomingRoad = c.second.incoming_road;
+            if (incomingRoad.size() > 0)
+                connection.append_attribute("incomingRoad").set_value(incomingRoad.c_str());
+            connection.append_attribute("connectingRoad").set_value(c.second.connecting_road.c_str());
+
+            std::string contectPoint;
+            switch (c.second.contact_point)
+            {
+            case odr::JunctionConnection::ContactPoint_Start:
+                contectPoint = "start";
+                break;
+            case odr::JunctionConnection::ContactPoint_End:
+                contectPoint = "end";
+                break;
+            default:
+                break;
+            }
+            if (contectPoint.size() > 0)
+                connection.append_attribute("contactPoint").set_value(contectPoint.c_str());
+            for (auto ll : c.second.lane_links) 
+            {
+                pugi::xml_node laneLink = connection.append_child("laneLink");
+                laneLink.append_attribute("from").set_value(ll.from);
+                laneLink.append_attribute("to").set_value(ll.to);
+            }
+        }
+    }
+    // junctions
+    doc.save_file(fpath.c_str());
+}
+
+void OpenDriveMap::roadNodeToXML(const odr::RoadLink& roadLink, pugi::xml_node& out) const 
+{ 
+    std::string type_s;
+    switch (roadLink.type)
+    {
+    case odr::RoadLink::Type_Road:
+        type_s = "road";
+        break;
+    case odr::RoadLink::Type_Junction:
+        type_s = "junction";
+        break;
+    default:
+        break;
+    }
+    out.append_attribute("elementType").set_value(type_s.c_str());
+    out.append_attribute("elementId").set_value(roadLink.id.c_str());
+    std::string contact_s;
+    switch (roadLink.contact_point)
+    {
+    case odr::RoadLink::ContactPoint::ContactPoint_Start:
+        contact_s = "start";
+        break;
+    case odr::RoadLink::ContactPoint::ContactPoint_End:
+        contact_s = "end";
+        break;
+    default:
+        break;
+    }
+    out.append_attribute("contactPoint").set_value(contact_s.c_str());
 }
 
 } // namespace odr

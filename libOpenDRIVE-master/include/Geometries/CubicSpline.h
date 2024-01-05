@@ -23,6 +23,11 @@ struct Poly3
     double b = 0;
     double c = 0;
     double d = 0;
+
+    double raw_a = 0;
+    double raw_b = 0;
+    double raw_c = 0;
+    double raw_d = 0;
 };
 
 struct CubicSpline

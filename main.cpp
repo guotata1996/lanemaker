@@ -12,8 +12,8 @@
 
 int main(int argc, char** argv)
 {
-    odr::OpenDriveMap odr_map("C:\\Users\\guota\\Downloads\\Town06.xodr");
-
+    odr::OpenDriveMap odr_map("C:\\Users\\guota\\Downloads\\Town01.xodr");
+    odr_map.export_file("C:\\Users\\guota\\Downloads\\export.xodr");
 
     QApplication app(argc, argv);
     //QPushButton button(std::to_string(edges).c_str());
