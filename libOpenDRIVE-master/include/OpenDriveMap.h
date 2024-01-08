@@ -16,6 +16,8 @@ namespace odr
 class OpenDriveMap
 {
 public:
+    OpenDriveMap();
+
     OpenDriveMap(const std::string& xodr_file,
                  const bool         center_map = false,
                  const bool         with_road_objects = true,

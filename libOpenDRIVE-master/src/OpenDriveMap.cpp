@@ -56,6 +56,8 @@ std::vector<LaneValidityRecord> extract_lane_validity_records(const pugi::xml_no
     return lane_validities;
 }
 
+OpenDriveMap::OpenDriveMap() {}
+
 OpenDriveMap::OpenDriveMap(const std::string& xodr_file,
                            const bool         center_map,
                            const bool         with_road_objects,
@@ -408,10 +410,6 @@ OpenDriveMap::OpenDriveMap(const std::string& xodr_file,
 
                     CHECK_AND_REPAIR(s_offset >= 0, "lane::width::sOffset < 0", s_offset = 0);
                     lane.lane_width.s0_to_poly[s0 + s_offset] = Poly3(s0 + s_offset, a, b, c, d);
-
-                    if (road.id == "55" && lane.id == -3) {
-                        std::cout << s_offset << " :: " << a << std::endl;
-                    }
                 }
 
                 if (with_lane_height)
@@ -1021,6 +1019,18 @@ void OpenDriveMap::export_file(const std::string& fpath) const
                         roadMark.append_attribute("weight").set_value(roadMarkIt.weight.c_str());
                     if (roadMarkIt.width >= 0)
                         roadMark.append_attribute("width").set_value(roadMarkIt.width);
+
+                    for (auto roadMarkLineIt : roadMarkIt.roadmark_lines) 
+                    {
+                        pugi::xml_node roadMarkLine = roadMark.append_child("line");
+                        roadMarkLine.append_attribute("length").set_value(roadMarkLineIt.length);
+                        roadMarkLine.append_attribute("space").set_value(roadMarkLineIt.space);
+                        roadMarkLine.append_attribute("width").set_value(roadMarkLineIt.width);
+                        roadMarkLine.append_attribute("sOffset").set_value(roadMarkLineIt.s_offset);
+                        roadMarkLine.append_attribute("tOffset").set_value(roadMarkLineIt.t_offset);
+                        if (!roadMarkLineIt.rule.empty() != 0)
+                            roadMarkLine.append_attribute("rule").set_value(roadMarkLineIt.rule.c_str());
+                    }
                 }
                 // Missing user data
             }
