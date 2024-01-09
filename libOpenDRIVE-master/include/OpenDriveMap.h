@@ -3,6 +3,7 @@
 #include "Road.h"
 #include "RoadNetworkMesh.h"
 #include "RoutingGraph.h"
+#include "LaneSection.h"
 
 #include <pugixml/pugixml.hpp>
 
@@ -44,8 +45,11 @@ public:
     std::map<std::string, Road>     id_to_road;
     std::map<std::string, Junction> id_to_junction;
 
+    void derive_lane_borders(const odr::Road& road, odr::LaneSection& lanesection); // TODO: convert to member var of Road; add a Apply() interface
+
 private:
     void roadNodeToXML(const odr::RoadLink& roadLink, pugi::xml_node& out) const;
+
 };
 
 } // namespace odr
