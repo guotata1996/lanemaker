@@ -5,6 +5,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 find_package(CGAL REQUIRED OPTIONAL_COMPONENTS Qt5)
 find_package(Qt5 REQUIRED COMPONENTS Widgets Core Gui)
+find_package(spdlog REQUIRED)
 
 add_subdirectory(libOpenDRIVE-master)
 add_executable(${CMAKE_PROJECT_NAME} main.cpp)
@@ -17,5 +18,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     Qt5::Core Qt5::Gui Qt5::Widgets 
     CGAL::CGAL 
     OpenDrive
+    spdlog::spdlog
 )
 

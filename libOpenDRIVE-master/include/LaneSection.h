@@ -11,6 +11,8 @@ namespace odr
 
 struct LaneSection : public XmlNode
 {
+    LaneSection(){};
+
     LaneSection(std::string road_id, double s0);
 
     std::vector<Lane> get_lanes() const;

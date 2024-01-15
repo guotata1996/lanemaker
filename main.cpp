@@ -7,21 +7,20 @@
 
 #include <string>
 
-#include "Geometries/Line.h"
+#include "road.h"
 
 #include "GameGraphicsScene.h"
 
 
 int main(int argc, char** argv)
 {
-    /*
-    odr::OpenDriveMap odr_map("C:\\Users\\guota\\Downloads\\lane_offset.xodr");
-    odr_map.export_file("C:\\Users\\guota\\Downloads\\export.xodr");
-    */
+    
+    // odr::OpenDriveMap odr_map("C:\\Users\\guota\\Downloads\\lane_offset.xodr");
+    // odr_map.export_file("C:\\Users\\guota\\Downloads\\export.xodr");
 
     
     odr::OpenDriveMap test_map;
-    
+    /*
     odr::Road road("road1", 150, "-1", "road 1");
 
     // geometry
@@ -89,16 +88,26 @@ int main(int argc, char** argv)
     }
     test_map.derive_lane_borders(road, section3);
     road.s_to_lanesection.insert({ 75, section3 });
+    */
 
-    test_map.id_to_road.insert({ "road1", road });
+    RoadRunnder::Road road;
+    RoadRunnder::LaneSection s1{ RoadRunnder::RoadProfile{0, 0, 2, 1}, 30 * 100 };
+    RoadRunnder::LaneSection s2{ RoadRunnder::RoadProfile{0, 0, 0, 1}, 60 * 100 };
+    road.AddSection(s1);
+    road.AddSection(s2);
+
+    odr::Road exportRoad = (odr::Road)road;
+
+    test_map.id_to_road.insert({ exportRoad.id, exportRoad });
     test_map.export_file("C:\\Users\\guota\\Downloads\\export.xodr");
-    
-    QApplication app(argc, argv);
-    MyGraphicsScene scene;
-    scene.DrawXodr(test_map);
-    QGraphicsView view(&scene);
-    view.scale(15, 15);
-    view.show();
 
-    return app.exec();
+
+    //QApplication app(argc, argv);
+    //MyGraphicsScene scene;
+    //scene.DrawXodr(test_map);
+    //QGraphicsView view(&scene);
+    //view.scale(15, 15);
+    //view.show();
+
+    // return app.exec();
 }
