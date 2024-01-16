@@ -90,11 +90,12 @@ int main(int argc, char** argv)
     road.s_to_lanesection.insert({ 75, section3 });
     */
 
-    RoadRunnder::Road road;
-    RoadRunnder::LaneSection s1{ RoadRunnder::RoadProfile{0, 0, 2, 1}, 30 * 100 };
-    RoadRunnder::LaneSection s2{ RoadRunnder::RoadProfile{0, 0, 0, 1}, 60 * 100 };
-    road.AddSection(s1);
-    road.AddSection(s2);
+    RoadRunnder::Road road("1");
+    road.SetLength(90 * 100);
+    RoadRunnder::LaneSection rs1{ RoadRunnder::RoadProfile{2, 1}, 0 * 100 };
+    RoadRunnder::LaneSection rs2{ RoadRunnder::RoadProfile{0, 2}, 30 * 100 };
+    road.AddRightSection(rs1);
+    road.AddRightSection(rs2);
 
     odr::Road exportRoad = (odr::Road)road;
 
