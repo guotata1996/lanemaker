@@ -26,6 +26,14 @@ Poly3::Poly3(double s0, double a, double b, double c, double d) : raw_a(a), raw_
     this->d = d;
 }
 
+void Poly3::ComputeRelative(double s0) 
+{ 
+    raw_d = d;
+    raw_c = c + 3 * raw_d * s0;
+    raw_b = b + 2 * raw_c * s0 - 3 * raw_d * s0 * s0;
+    raw_a = a + raw_b * s0 - raw_c * s0 * s0 + raw_d * s0 * s0 * s0;
+}
+
 double Poly3::get(double s) const { return a + b * s + c * s * s + d * s * s * s; }
 
 double Poly3::get_grad(double s) const { return b + 2 * c * s + 3 * d * s * s; }

@@ -45,6 +45,15 @@ std::set<K> get_map_keys(const std::map<K, V>& input_map)
 }
 
 template<class K, class V>
+std::vector<K> get_map_keys_sorted(const std::map<K, V>& input_map)
+{
+    std::set<K> unsorted = get_map_keys<K, V>(input_map);
+    std::vector<K> sorted(unsorted.begin(), unsorted.end());
+    std::sort(sorted.begin(), sorted.end());
+    return sorted;
+}
+
+template<class K, class V>
 std::vector<V> get_map_values(const std::map<K, V>& input_map)
 {
     std::vector<V> retval;

@@ -10,6 +10,7 @@ struct Poly3
 {
     Poly3() = default;
     Poly3(double s0, double a, double b, double c, double d);
+    void ComputeRelative(double s0);
 
     double get(double s) const;
     double get_grad(double s) const;
