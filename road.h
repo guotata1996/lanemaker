@@ -51,9 +51,14 @@ namespace RoadRunnder
         void _UpdateBoundary();
         void ConvertSide(bool rightSide, std::map<double, odr::LaneSection>& laneSectionResult, std::map<double, odr::Poly3>& laneOffsetResult) const;
 
-        static std::map<double, odr::Poly3> _MakeTransition(
+        std::map<double, odr::Poly3> _MakeTransition(
             type_s start_s, type_s end_s,
-            type_t start_t2, type_t end_t2);
+            type_t start_t2, type_t end_t2, bool rightSide) const;
+
+        std::map<double, odr::Poly3> _MakeStraight(type_s start_s, type_s end_s, type_t const_t, bool rightSide) const;
+
+        void FlipPoly(odr::Poly3& p) const;
+
         static double to_odr_unit(type_s l) { return (double)l / 100; }
         static double to_odr_unit(type_t l) { return (double)l / 2 * LaneWidth; }
 
@@ -66,7 +71,7 @@ namespace RoadRunnder
 
         struct TransitionInfo
         {
-            type_s cumulativeS;
+            type_s cumulativeS;  // front start (right:s=0, left: s=L)
             type_t oldCenter2, newCenter2; // right: positive
             int startLanes, newLanesOnLeft, newLanesOnRight;
             type_s transitionHalfLength;

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <sstream>
 
 #include "Geometries/Line.h"
 #include "Geometries/ParamPoly3.h"
@@ -31,8 +32,19 @@ namespace RoadRunnder
 
     std::map<double, odr::Poly3> Road::_MakeTransition(
         type_s start_s, type_s end_s,
-        type_t start_t2, type_t end_t2)
+        type_t start_t2, type_t end_t2, bool rightSide) const
     {
+        assert(start_s < end_s);
+
+        double odr_start_s = to_odr_unit(start_s);
+        if (!rightSide)
+        {
+            odr_start_s = to_odr_unit(Length() - end_s);
+            std::swap(start_s, end_s);
+            start_s = Length() - start_s;
+            end_s = Length() - end_s;
+            std::swap(start_t2, end_t2);
+        }
         double c_50 = 3.9e-3, d_50 = -5.2e-5;
         double xSpan = to_odr_unit(end_s - start_s);
         double xScale = 50 / xSpan;
@@ -51,12 +63,34 @@ namespace RoadRunnder
         c *= yScale;
         d *= yScale;
 
-        odr::Poly3 test(to_odr_unit(start_s), a, b, c, d);
+        return { std::make_pair(
+            odr_start_s,
+            odr::Poly3(odr_start_s, a, b, c, d))
+        };
+    }
+
+    std::map<double, odr::Poly3> Road::_MakeStraight(type_s start_s, type_s end_s, type_t const_t, bool rightSide) const
+    {
+        assert(start_s <= end_s);
+        double odr_start_s = rightSide ? to_odr_unit(start_s) : to_odr_unit(Length() - end_s);
 
         return { std::make_pair(
-            to_odr_unit(start_s),
-            odr::Poly3(to_odr_unit(start_s), a, b, c, d))
+            odr_start_s,
+            odr::Poly3(odr_start_s, to_odr_unit(const_t), 0, 0, 0)) 
         };
+    }
+
+    void Road::FlipPoly(odr::Poly3& p) const
+    {
+        double l = to_odr_unit(Length());
+        double a1 = p.a + p.b * l * p.c * l * l + p.d * l * l * l;
+        double b1 = -(p.b + 2 * p.c * l + 3 * p.d * l * l);
+        double c1 = p.c + 3 * p.d * l;
+        double d1 = -p.d;
+        p.a = a1;
+        p.b = b1;
+        p.c = c1;
+        p.d = d1;
     }
 
     void Road::ConvertSide(bool rightSide,
@@ -64,14 +98,11 @@ namespace RoadRunnder
         std::map<double, odr::Poly3>& laneOffsetResult) const
     {
         const std::list<LaneSection>& profiles = rightSide ? rightProfiles : leftProfiles;
-        const int laneIDMultiplier = rightSide ? -1 : 1;
 
-        std::list<LaneSection>::const_iterator pre = profiles.begin(), curr = profiles.begin(), next = profiles.begin();
+        std::list<LaneSection>::const_iterator pre = profiles.begin(), curr = profiles.begin();
         curr++;
-        next++;
-        if (next != profiles.end())next++;
 
-        std::vector<TransitionInfo> transitions(profiles.size());
+        std::vector<TransitionInfo> transitions(profiles.size() + 1);
         transitions[0] = TransitionInfo
         {
             0,
@@ -86,7 +117,8 @@ namespace RoadRunnder
             const LaneSection& currSection = *curr;
             const RoadProfile& preProfile = preSection.profile;
             const RoadProfile& currProfile = currSection.profile;
-
+            const int TSign = rightSide ? 1 : -1;
+            
             // pre->curr
             int newLanesOnLeft = 0, newLanesOnRight = 0;
             if (preProfile.laneCount > currProfile.laneCount)
@@ -94,18 +126,11 @@ namespace RoadRunnder
                 // lanes merging
                 int vanishedLanes = preProfile.laneCount - currProfile.laneCount;
                 type_t leftReduction2, rightReduction2;
-                if (rightSide)
-                {
-                    leftReduction2 = preProfile.offsetx2 + currProfile.offsetx2;
-                    rightReduction2 = (-preProfile.offsetx2 + preProfile.laneCount * 2) -
-                        (-currProfile.offsetx2 + currProfile.laneCount * 2);
-                }
-                else
-                {
-                    leftReduction2 = currProfile.offsetx2 - preProfile.offsetx2;
-                    rightReduction2 = (preProfile.offsetx2 + preProfile.laneCount * 2) -
-                        (currProfile.offsetx2 + currProfile.laneCount * 2);
-                }
+                
+                leftReduction2 = TSign * preProfile.offsetx2 - TSign * currProfile.offsetx2;
+                rightReduction2 = (TSign * currProfile.offsetx2 - currProfile.laneCount * 2)
+                    - (TSign * preProfile.offsetx2 - preProfile.laneCount * 2);
+
                 for (int i = 0; i != vanishedLanes; ++i)
                 {
                     if (leftReduction2 > rightReduction2)
@@ -125,18 +150,11 @@ namespace RoadRunnder
                 // lane expanding
                 int expandedLanes = currProfile.laneCount - preProfile.laneCount;
                 type_t leftExpansion2, rightExpansion2;
-                if (rightSide)
-                {
-                    leftExpansion2 = currProfile.offsetx2 - preProfile.offsetx2;
-                    rightExpansion2 = (-currProfile.offsetx2 + currProfile.laneCount * 2) -
-                        (-preProfile.offsetx2 + preProfile.laneCount * 2);
-                }
-                else
-                {
-                    leftExpansion2 = preProfile.offsetx2 - currProfile.offsetx2;
-                    rightExpansion2 = (currProfile.offsetx2 + currProfile.laneCount * 2) - 
-                        (preProfile.offsetx2 + preProfile.laneCount * 2);
-                }
+
+                leftExpansion2 = TSign * currProfile.offsetx2 - TSign * preProfile.offsetx2;
+                rightExpansion2 = (TSign * preProfile.offsetx2 - preProfile.laneCount * 2) -
+                    (TSign * currProfile.offsetx2 - currProfile.laneCount * 2);
+
                 for (int i = 0; i != expandedLanes; ++i)
                 {
                     if (leftExpansion2 > rightExpansion2)
@@ -152,8 +170,12 @@ namespace RoadRunnder
                 }
             }
 
+            std::list<LaneSection>::const_iterator next = curr;
+            next++;
+
             type_s preLength = currSection.s - preSection.s;
-            type_s nextLength = (next == profiles.end() ? Length() : next->s) - currSection.s;
+            type_s nextLength = (next == profiles.cend() ? Length() : next->s) - currSection.s;
+            SPDLOG_TRACE("PreS {} CurrS {} NextS {}", preSection.s, currSection.s, (next == profiles.cend() ? Length() : next->s));
             type_s preTransitionLength = std::min({ preLength / 2, nextLength / 2, MaxTransitionS });
 
             // write
@@ -165,104 +187,125 @@ namespace RoadRunnder
                 preTransitionLength
             };
         }
+        // last transition is dummy
+        transitions[profiles.size()] = TransitionInfo
+        {
+            Length(),
+            profiles.back().profile.offsetx2, profiles.back().profile.offsetx2,
+            profiles.back().profile.laneCount, 0, 0,
+            0
+        };  // last transition is dummy
 
         for (int i = 0; i != transitions.size(); ++i)
         {
             const TransitionInfo& transition = transitions[i];
             type_s tranS = transition.cumulativeS - transition.transitionHalfLength;
             type_s straightS = transition.cumulativeS + transition.transitionHalfLength;
+            type_s nextTranS = i == transitions.size() - 1 ? Length() :
+                transitions[i + 1].cumulativeS - transitions[i + 1].transitionHalfLength;
             // Lane offset
-            if (transition.oldCenter2 != transition.newCenter2)
+            // Transition MUST NOT happen at 0 or L
+            if (transition.cumulativeS != 0 && transition.cumulativeS != Length())
             {
-                for (auto laneOffsetTransition : _MakeTransition(
+                for (auto t : _MakeTransition(
                     tranS, straightS,
                     transition.oldCenter2, 
-                    transition.newCenter2))
+                    transition.newCenter2, rightSide))
                 {
-                    laneOffsetResult.insert(laneOffsetTransition);
+                    laneOffsetResult.insert(t);
                 }
             }
-            if (transition.oldCenter2 != transition.newCenter2 || i == 0)
+            for (auto st : _MakeStraight(straightS, nextTranS, transition.newCenter2, rightSide))
             {
-                odr::Poly3 straight(
-                    to_odr_unit(straightS),
-                    to_odr_unit(transition.newCenter2),
-                    0, 0, 0
-                );
-                laneOffsetResult.emplace(to_odr_unit(straightS), straight);
+                laneOffsetResult.insert(st);
             }
 
             // Lane section
-            if (rightSide)
-            SPDLOG_INFO("Right transition {}: s={}, {} | {} | {}",
-                i, transition.cumulativeS, transition.newLanesOnLeft, transition.startLanes, transition.newLanesOnRight);
+            SPDLOG_INFO("In {} Transition {}-{}-{}:", rightSide ? "Right" : "Left", tranS, straightS, nextTranS);
+            SPDLOG_INFO("L+={} | Lanes={} | R+={}",  transition.newLanesOnLeft, transition.startLanes, transition.newLanesOnRight);
 
-            if (transition.newLanesOnLeft != 0 || transition.newLanesOnRight != 0)
+            const int laneIDMultiplier = rightSide ? -1 : 1;
+            if (transition.cumulativeS != 0 && transition.cumulativeS != Length())
             {
+                // varying section
+                auto varyWidthL = _MakeTransition(
+                    tranS, straightS,
+                    transition.newLanesOnLeft > 0 ? 0 : 2,
+                    transition.newLanesOnLeft > 0 ? 2 : 0, rightSide);
+                auto constWidth = _MakeStraight(tranS, straightS, 2, rightSide);
+                auto varyWidthR = _MakeTransition(
+                    tranS, straightS,
+                    transition.newLanesOnRight > 0 ? 0 : 2,
+                    transition.newLanesOnRight > 0 ? 2 : 0, rightSide);
+                double tran_s_odr = varyWidthL.begin()->first;
+
+                uint32_t laneIndex = 0;
+                odr::LaneSection transitionSection(roadID, tran_s_odr);
+                odr::Lane center(roadID, tran_s_odr, laneIDMultiplier * laneIndex++, false, "");
+                transitionSection.id_to_lane.emplace(center.id, center);
+
+                for (int i = 0; i != std::abs(transition.newLanesOnLeft); ++i)
                 {
-                    // varying section
-                    uint32_t laneIndex = 0;
-                    odr::LaneSection transitionSection(roadID, to_odr_unit(tranS));
-                    odr::Lane center(roadID, to_odr_unit(tranS), laneIDMultiplier * laneIndex++, false, "");
-                    transitionSection.id_to_lane.emplace(center.id, center);
+                    odr::Lane leftVarying(roadID, tran_s_odr, laneIDMultiplier * laneIndex++, false, "driving");
 
-                    for (int i = 0; i != std::abs(transition.newLanesOnLeft); ++i)
+                    for (auto tr : varyWidthL)
                     {
-                        odr::Lane leftVarying(roadID, to_odr_unit(tranS), laneIDMultiplier * laneIndex++, false, "driving");
-
-                        for (auto transitionWidth : _MakeTransition(
-                            tranS, straightS,
-                            transition.newLanesOnLeft > 0 ? 0 : 2,
-                            transition.newLanesOnLeft > 0 ? 2 : 0))
-                        {
-                            leftVarying.lane_width.s0_to_poly.insert(transitionWidth);
-                        }
-                        transitionSection.id_to_lane.emplace(leftVarying.id, leftVarying);
+                        leftVarying.lane_width.s0_to_poly.insert(tr);
                     }
-
-                    odr::Poly3 nonVaryingWidth(to_odr_unit(tranS), LaneWidth, 0, 0, 0);
-                    for (int i = 0; i != std::min(transition.startLanes,
-                        transition.startLanes + transition.newLanesOnLeft + transition.newLanesOnRight);
-                        ++i)
-                    {
-                        odr::Lane nonVarying(roadID, to_odr_unit(tranS), laneIDMultiplier * laneIndex++, false, "driving");
-                        nonVarying.lane_width.s0_to_poly.emplace(to_odr_unit(tranS), nonVaryingWidth);
-                        transitionSection.id_to_lane.emplace(nonVarying.id, nonVarying);
-                    }
-
-                    for (int i = 0; i != std::abs(transition.newLanesOnRight); ++i)
-                    {
-                        odr::Lane rightVarying(roadID, to_odr_unit(tranS), laneIDMultiplier * laneIndex++, false, "driving");
-                        for (auto transitionWidth : _MakeTransition(
-                            tranS, straightS,
-                            transition.newLanesOnRight > 0 ? 0 : 2,
-                            transition.newLanesOnRight > 0 ? 2 : 0
-                        ))
-                        {
-                            rightVarying.lane_width.s0_to_poly.insert(transitionWidth);
-                        }
-                        transitionSection.id_to_lane.emplace(rightVarying.id, rightVarying);
-                    }
-                    laneSectionResult[to_odr_unit(tranS)] = transitionSection;
+                    transitionSection.id_to_lane.emplace(leftVarying.id, leftVarying);
                 }
+
+                for (int i = 0; i != std::min(transition.startLanes,
+                    transition.startLanes + transition.newLanesOnLeft + transition.newLanesOnRight);
+                    ++i)
+                {
+                    odr::Lane nonVarying(roadID, tran_s_odr, laneIDMultiplier * laneIndex++, false, "driving");
+                    for (auto tr : constWidth)
+                    {
+                        nonVarying.lane_width.s0_to_poly.insert(tr);
+                    }
+                    transitionSection.id_to_lane.emplace(nonVarying.id, nonVarying);
+                }
+
+                for (int i = 0; i != std::abs(transition.newLanesOnRight); ++i)
+                {
+                    odr::Lane rightVarying(roadID, tran_s_odr, laneIDMultiplier * laneIndex++, false, "driving");
+                    for (auto tr : varyWidthR)
+                    {
+                        rightVarying.lane_width.s0_to_poly.insert(tr);
+                    }
+                    transitionSection.id_to_lane.emplace(rightVarying.id, rightVarying);
+                }
+                laneSectionResult[tran_s_odr] = transitionSection;
+                    
+                // TODO: calc link with prev section, if newLanesOnLeft > 0
+                // else, mapping is identical
+                
             }
 
-            if (i == 0 || transition.newLanesOnLeft != 0 || transition.newLanesOnRight != 0)
             {
+                auto constWidth = _MakeStraight(straightS, nextTranS, 2, rightSide);
+                double straight_s_odr = constWidth.begin()->first;
+
                 uint32_t laneIndex = 0;
-                odr::LaneSection straightSection(roadID, to_odr_unit(straightS));
-                odr::Lane center(roadID, to_odr_unit(straightS), laneIDMultiplier * laneIndex++, false, "");
+                odr::LaneSection straightSection(roadID, straight_s_odr);
+                odr::Lane center(roadID, straight_s_odr, laneIDMultiplier * laneIndex++, false, "");
                 straightSection.id_to_lane.emplace(center.id, center);
 
-                odr::Poly3 constWidth(to_odr_unit(straightS), LaneWidth, 0, 0, 0);
                 for (int i = 0; i < transition.startLanes + transition.newLanesOnLeft + transition.newLanesOnRight; ++i)
                 {
-                    odr::Lane nonVarying(roadID, to_odr_unit(straightS), laneIDMultiplier * laneIndex++, false, "driving");
-                    nonVarying.lane_width.s0_to_poly.emplace(to_odr_unit(straightS), constWidth);
+                    odr::Lane nonVarying(roadID, straight_s_odr, laneIDMultiplier * laneIndex++, false, "driving");
+                    for (auto sr : constWidth)
+                    {
+                        nonVarying.lane_width.s0_to_poly.insert(sr);
+                    }
                     straightSection.id_to_lane.emplace(nonVarying.id, nonVarying);
                 }
-                laneSectionResult[to_odr_unit(straightS)] = straightSection;
+                laneSectionResult[straight_s_odr] = straightSection;
             }
+
+            // TODO: calc link with prev section, if newLanesOnLeft < 0
+            // else, mapping is identical
         }
     }
 
@@ -278,6 +321,17 @@ namespace RoadRunnder
 
         ConvertSide(true, rightSections, rightOffsets);
         ConvertSide(false, leftSections, leftOffsets);
+        // from this point, s keys align with road coordinate
+
+        std::stringstream SPDLOG_LKEYS, SPDLOG_RKEYS;
+        std::for_each(rightSections.cbegin(), rightSections.cend(),
+            [&SPDLOG_RKEYS](auto s) {SPDLOG_RKEYS << s.first << " "; });
+
+        std::for_each(leftSections.cbegin(), leftSections.cend(),
+            [&SPDLOG_LKEYS](auto s) {SPDLOG_LKEYS << s.first << " "; });
+        
+        SPDLOG_INFO("Right Keys: {}", SPDLOG_RKEYS.str());
+        SPDLOG_INFO("Left Keys:  {}", SPDLOG_RKEYS.str());
 
         // Convert difference in L/R lane offset into median center lane
         {
@@ -285,7 +339,7 @@ namespace RoadRunnder
             auto rightKeys = odr::get_map_keys_sorted(rightOffsets);
             int leftIndex = 0, rightIndex = 0;
 
-            while (leftIndex < leftKeys.size() || rightIndex < rightKeys.size())
+            while (leftIndex + 1 < leftKeys.size() || rightIndex + 1 < rightKeys.size())
             {
                 double nextLeft = leftIndex + 1 == leftKeys.size() ? rtnLength : leftKeys[leftIndex + 1];
                 double nextRight = rightIndex + 1 == rightKeys.size() ? rtnLength : rightKeys[rightIndex + 1];
@@ -311,10 +365,6 @@ namespace RoadRunnder
                 {
                     centerWidths.emplace(sectionStart, median);
                     SPDLOG_INFO("Merged Center: L=({}, {}), R=({}, {})", keyLeft, nextLeft, keyRight, nextRight);
-                    SPDLOG_INFO("    Width at {}: a={};b={};c={};d={}\n from l:a={};b={};c={};d={}\n from r:a={};b={};c={};d={}",
-                        sectionStart, median.a, median.b, median.c, median.d
-                    , leftOffset.a, leftOffset.b, leftOffset.c, leftOffset.d,
-                        rightOffset.a, rightOffset.b, rightOffset.c, rightOffset.d);
                 }
 
                 if (sectionEnd == nextRight)
@@ -334,7 +384,7 @@ namespace RoadRunnder
             auto centerKeys = odr::get_map_keys_sorted(centerWidths);
             auto rightKeys = odr::get_map_keys_sorted(rightSections);
             int leftIndex = 0, centerIndex = 0, rightIndex = 0;
-            while (leftIndex < leftKeys.size() || centerIndex < centerKeys.size() || rightIndex < rightKeys.size())
+            while (leftIndex + 1 < leftKeys.size() || centerIndex + 1 < centerKeys.size() || rightIndex + 1 < rightKeys.size())
             {
                 double nextLeft = leftIndex + 1 == leftKeys.size() ? rtnLength : leftKeys[leftIndex + 1];
                 double nextCenter = centerIndex + 1 == centerKeys.size() ? rtnLength : centerKeys[centerIndex + 1];
@@ -371,7 +421,7 @@ namespace RoadRunnder
                 if (std::abs(centerWidth.a) + std::abs(centerWidth.b) + std::abs(centerWidth.c) + std::abs(centerWidth.d) > 1e-3)
                 {
                     centerWidth.ComputeRelative(sectionStart);
-                    SPDLOG_INFO("Center width at s = {}: a={} d={}", keyCenter, centerWidth.raw_a, centerWidth.raw_d);
+                    SPDLOG_TRACE("Center width at s = {}: a={} d={}", keyCenter, centerWidth.raw_a, centerWidth.raw_d);
                     odr::Lane medianLane(roadID, sectionStart, -1, false, "median");
                     medianLane.lane_width.s0_to_poly.emplace(sectionStart, centerWidth);
                     section.id_to_lane.emplace(1, medianLane);
