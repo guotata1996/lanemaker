@@ -49,6 +49,8 @@ namespace RoadRunnder
 
     private:
         void _UpdateBoundary();
+
+        // Includes center Lane (ID=0)
         void ConvertSide(bool rightSide, std::map<double, odr::LaneSection>& laneSectionResult, std::map<double, odr::Poly3>& laneOffsetResult) const;
 
         std::map<double, odr::Poly3> _MakeTransition(

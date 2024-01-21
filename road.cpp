@@ -86,6 +86,9 @@ namespace RoadRunnder
     {
         const std::list<LaneSection>& profiles = rightSide ? rightProfiles : leftProfiles;
 
+        /*
+        Prepare transitionInfo
+        */
         std::list<LaneSection>::const_iterator pre = profiles.begin(), curr = profiles.begin();
         curr++;
 
@@ -183,6 +186,11 @@ namespace RoadRunnder
             0
         };  // last transition is dummy
 
+        /*
+        Make odr::Road::LaneOffset & odr::LaneSection out of TransitionInfo
+        */
+        // Temporarily store zero-length straight section, to assist computing lane linkage between transition sections
+        std::shared_ptr<odr::LaneSection> vanishedStraight = nullptr;
         for (int i = 0; i != transitions.size(); ++i)
         {
             const TransitionInfo& transition = transitions[i];
@@ -190,6 +198,9 @@ namespace RoadRunnder
             type_s straightS = transition.cumulativeS + transition.transitionHalfLength;
             type_s nextTranS = i == transitions.size() - 1 ? Length() :
                 transitions[i + 1].cumulativeS - transitions[i + 1].transitionHalfLength;
+            SPDLOG_INFO("In {} Transition {}-{}-{}:", rightSide ? "Right" : "Left", tranS, straightS, nextTranS);
+            SPDLOG_INFO("L+={} | Lanes={} | R+={}", transition.newLanesOnLeft, transition.startLanes, transition.newLanesOnRight);
+
             // Lane offset
             // Transition MUST NOT happen at 0 or L
             if (transition.cumulativeS != 0 && transition.cumulativeS != Length())
@@ -202,14 +213,16 @@ namespace RoadRunnder
                     laneOffsetResult[t.first] = t.second;
                 }
             }
-            for (auto st : _MakeStraight(straightS, nextTranS, transition.newCenter2, rightSide))
+
+            if (straightS != nextTranS)
             {
-                laneOffsetResult[st.first] = st.second;
+                for (auto st : _MakeStraight(straightS, nextTranS, transition.newCenter2, rightSide))
+                {
+                    laneOffsetResult[st.first] = st.second;
+                }
             }
 
             // Lane section
-            SPDLOG_INFO("In {} Transition {}-{}-{}:", rightSide ? "Right" : "Left", tranS, straightS, nextTranS);
-            SPDLOG_INFO("L+={} | Lanes={} | R+={}",  transition.newLanesOnLeft, transition.startLanes, transition.newLanesOnRight);
 
             const int laneIDMultiplier = rightSide ? -1 : 1;
             if (transition.cumulativeS != 0 && transition.cumulativeS != Length())
@@ -263,21 +276,62 @@ namespace RoadRunnder
                     }
                     transitionSection.id_to_lane.emplace(rightVarying.id, rightVarying);
                 }
-                laneSectionResult[tran_s_odr] = transitionSection;
-                    
-                // TODO: calc link with prev section, if newLanesOnLeft > 0
-                // else, mapping is identical
-                
-            }
 
+                double prevS = rightSide ? laneSectionResult.rbegin()->first : laneSectionResult.begin()->first;
+                odr::LaneSection prevSection = laneSectionResult.at(prevS);
+
+                if (vanishedStraight.get() != nullptr)
+                {
+                    assert(vanishedStraight->id_to_lane.size() <= transitionSection.id_to_lane.size());
+                    for (int laneID = 1; laneID < vanishedStraight->id_to_lane.size(); ++laneID)
+                    {
+                        int vanishedLaneNext = laneIDMultiplier * (laneID + std::max(0, transition.newLanesOnLeft));
+                        int vanishedLanePrev = vanishedStraight->id_to_lane.at(laneIDMultiplier * laneID).predecessor;
+                        odr::Lane prevLane = prevSection.id_to_lane.at(vanishedLanePrev);
+                        prevLane.successor = vanishedLaneNext;
+
+                        odr::Lane& successorLane = transitionSection.id_to_lane.at(prevLane.successor);
+                        successorLane.predecessor = vanishedLanePrev;
+
+                        laneSectionResult.at(prevS).id_to_lane.erase(vanishedLanePrev);
+                        laneSectionResult.at(prevS).id_to_lane.emplace(vanishedLanePrev, prevLane);
+
+                        SPDLOG_TRACE(" Write succ at s={} vanished {}",
+                            prevS, 
+                            laneSectionResult.at(prevS).id_to_lane.at(vanishedLanePrev).successor);
+                    }
+                    vanishedStraight = nullptr;
+                }
+                else
+                {
+                    assert(prevSection.id_to_lane.size() <= transitionSection.id_to_lane.size());
+                    for (int laneID = 1; laneID < prevSection.id_to_lane.size(); ++laneID)
+                    {
+                        odr::Lane preLane = prevSection.id_to_lane.at(laneIDMultiplier * laneID);
+
+                        preLane.successor = laneIDMultiplier * (laneID + std::max(0, transition.newLanesOnLeft));
+
+                        odr::Lane& successorLane = transitionSection.id_to_lane.at(preLane.successor);
+                        successorLane.predecessor = laneIDMultiplier * laneID;
+
+                        laneSectionResult.at(prevS).id_to_lane.erase(laneIDMultiplier * laneID);
+                        laneSectionResult.at(prevS).id_to_lane.emplace(laneIDMultiplier * laneID, preLane);
+                    }
+                }
+
+                laneSectionResult[tran_s_odr] = transitionSection;
+            }
+            
             {
+                // constant section
                 auto constWidth = _MakeStraight(straightS, nextTranS, 2, rightSide);
                 double straight_s_odr = constWidth.begin()->first;
 
                 uint32_t laneIndex = 0;
-                odr::LaneSection straightSection(roadID, straight_s_odr);
+                assert(vanishedStraight.get() == nullptr);
+                vanishedStraight = std::make_shared<odr::LaneSection>(roadID, straight_s_odr);
                 odr::Lane center(roadID, straight_s_odr, laneIDMultiplier * laneIndex++, false, "");
-                straightSection.id_to_lane.emplace(center.id, center);
+                vanishedStraight->id_to_lane.emplace(center.id, center);
 
                 for (int i = 0; i < transition.startLanes + transition.newLanesOnLeft + transition.newLanesOnRight; ++i)
                 {
@@ -286,13 +340,41 @@ namespace RoadRunnder
                     {
                         nonVarying.lane_width.s0_to_poly.insert(sr);
                     }
-                    straightSection.id_to_lane.emplace(nonVarying.id, nonVarying);
+                    vanishedStraight->id_to_lane.emplace(nonVarying.id, nonVarying);
                 }
-                laneSectionResult[straight_s_odr] = straightSection;
-            }
+                
+                if (!laneSectionResult.empty())
+                {
+                    double prevS = rightSide ? laneSectionResult.rbegin()->first : laneSectionResult.begin()->first;
+                    auto prevSection = laneSectionResult.at(prevS);
+                    assert(prevSection.id_to_lane.size() >= vanishedStraight->id_to_lane.size());
 
-            // TODO: calc link with prev section, if newLanesOnLeft < 0
-            // else, mapping is identical
+                    for (int laneID = 1; laneID < vanishedStraight->id_to_lane.size(); ++laneID)
+                    {
+                        odr::Lane& nextLane = vanishedStraight->id_to_lane.at(laneIDMultiplier * laneID);
+                        nextLane.predecessor = laneIDMultiplier * (laneID + std::max(0, -transition.newLanesOnLeft));
+
+                        if (straightS != nextTranS)
+                        {
+                            odr::Lane& predecessorLane = prevSection.id_to_lane.at(nextLane.predecessor);
+                            predecessorLane.successor = laneIDMultiplier * laneID;
+                        
+                            laneSectionResult.at(prevS).id_to_lane.erase(nextLane.predecessor);
+                            laneSectionResult.at(prevS).id_to_lane.emplace(nextLane.predecessor, predecessorLane);
+                        }
+                    }
+                }
+                
+                if (straightS != nextTranS)
+                {
+                    laneSectionResult[straight_s_odr] = *vanishedStraight;
+                    vanishedStraight = nullptr;
+                }
+                else
+                {
+                    SPDLOG_TRACE("Generate vanishedStraight");
+                }
+            }
         }
     }
 
@@ -307,7 +389,7 @@ namespace RoadRunnder
         auto rightKeys = odr::get_map_keys_sorted(rightOffsets);
         int leftIndex = 0, rightIndex = 0;
 
-        while (leftIndex + 1 < leftKeys.size() || rightIndex + 1 < rightKeys.size())
+        while (leftIndex + 1 <= leftKeys.size() || rightIndex + 1 <= rightKeys.size())
         {
             double nextLeft = leftIndex + 1 == leftKeys.size() ? rtnLength : leftKeys[leftIndex + 1];
             double nextRight = rightIndex + 1 == rightKeys.size() ? rtnLength : rightKeys[rightIndex + 1];
@@ -358,7 +440,7 @@ namespace RoadRunnder
         auto centerKeys = odr::get_map_keys_sorted(centerWidths);
         auto rightKeys = odr::get_map_keys_sorted(rightSections);
         int leftIndex = 0, centerIndex = 0, rightIndex = 0;
-        while (leftIndex + 1 < leftKeys.size() || centerIndex + 1 < centerKeys.size() || rightIndex + 1 < rightKeys.size())
+        while (leftIndex + 1 <= leftKeys.size() || centerIndex + 1 <= centerKeys.size() || rightIndex + 1 <= rightKeys.size())
         {
             double nextLeft = leftIndex + 1 == leftKeys.size() ? rtnLength : leftKeys[leftIndex + 1];
             double nextCenter = centerIndex + 1 == centerKeys.size() ? rtnLength : centerKeys[centerIndex + 1];
@@ -386,35 +468,97 @@ namespace RoadRunnder
 
             for (const auto& idToLane : rightSection.id_to_lane)
             {
-                odr::Lane newLane(roadID, sectionStart, idToLane.first, false, "driving");
-                for (auto s0_poly : idToLane.second.lane_width.s0_to_poly)
+                const odr::Lane& rightLane = idToLane.second;
+                int newLaneID = idToLane.first;
+                if (newLaneID == 0) continue; // Skip center lane
+
+                odr::Lane newLane(roadID, sectionStart, newLaneID, false, "driving");
+                for (auto s0_poly : rightLane.lane_width.s0_to_poly)
                 {
                     s0_poly.second.ComputeRelative(sectionStart);
                     newLane.lane_width.s0_to_poly.emplace(s0_poly.first - keyRight + sectionStart, s0_poly.second);
+                    if (sectionStart != 0)
+                    {
+                        if (sectionStart == keyRight)
+                        {
+                            newLane.predecessor = rightLane.predecessor;
+                        }
+                        else
+                        {
+                            newLane.predecessor = newLaneID; // Identical
+                        }
+                    }
+                    if (sectionEnd != rtnLength)
+                    {
+                        if (sectionEnd == nextRight)
+                        {
+                            newLane.successor = rightLane.successor;
+
+                        }
+                        else
+                        {
+                            newLane.successor = newLaneID; // Identical
+                        }
+                    }
                 }
-                section.id_to_lane.emplace(idToLane.first, newLane);
+                section.id_to_lane.emplace(newLaneID, newLane);
             }
 
-            int leftIDStart = 0;
-            if (std::abs(centerWidth.a) + std::abs(centerWidth.b) + std::abs(centerWidth.c) + std::abs(centerWidth.d) > 1e-3)
+            const int leftIDStart = 1;
+            
             {
                 centerWidth.ComputeRelative(sectionStart);
-                odr::Lane medianLane(roadID, sectionStart, -1, false, "median");
-                medianLane.lane_width.s0_to_poly.emplace(keyCenter, centerWidth);
+                odr::Lane medianLane(roadID, sectionStart, leftIDStart, false, "median");
+                if (std::abs(centerWidth.a) + std::abs(centerWidth.b) + std::abs(centerWidth.c) + std::abs(centerWidth.d) > 1e-3)
+                    medianLane.lane_width.s0_to_poly.emplace(keyCenter, centerWidth);
                 section.id_to_lane.emplace(1, medianLane);
-
-                leftIDStart = 1;
             }
 
             for (const auto& idToLane : leftSection.id_to_lane)
             {
-                odr::Lane newLane(roadID, sectionStart, idToLane.first, false, "driving");
-                for (auto s0_poly : idToLane.second.lane_width.s0_to_poly)
+                const odr::Lane& leftLane = idToLane.second;
+                int newLaneID = idToLane.first + leftIDStart;
+                if (newLaneID == 1) continue; // Skip center lane
+
+                odr::Lane newLane(roadID, sectionStart, newLaneID, false, "driving");
+                for (auto s0_poly : leftLane.lane_width.s0_to_poly)
                 {
                     s0_poly.second.ComputeRelative(sectionStart);
                     newLane.lane_width.s0_to_poly.emplace(s0_poly.first - keyLeft + sectionStart, s0_poly.second);
                 }
-                section.id_to_lane.emplace(idToLane.first + leftIDStart, newLane);
+
+                if (sectionEnd != rtnLength)
+                {
+                    if (sectionEnd == nextLeft)
+                    {
+                        if (leftLane.predecessor != 0)
+                        {
+                            newLane.predecessor = leftLane.predecessor + leftIDStart;
+
+                        }
+                    }
+                    else
+                    {
+                        newLane.predecessor = newLaneID; // Identical
+                    }
+                }
+
+                if (sectionStart != 0)
+                {
+                    if (sectionStart == keyLeft)
+                    {
+                        if (leftLane.successor != 0)
+                        {
+                            newLane.successor = leftLane.successor + leftIDStart;
+                        }
+                    }
+                    else
+                    {
+                        newLane.successor = newLaneID;  // Identical
+                    }
+                }
+
+                section.id_to_lane.emplace(newLaneID, newLane);
             }
 
             rtn.s_to_lanesection.emplace(sectionStart, section);
