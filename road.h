@@ -57,6 +57,15 @@ namespace RoadRunnder
 
         std::map<double, odr::Poly3> _MakeStraight(type_s start_s, type_s end_s, type_t const_t, bool rightSide) const;
 
+        // Convert difference in L/R lane offset into median center lane
+        std::map<double, odr::Poly3> _ComputeMedian(const std::map<double, odr::Poly3>& leftOffsets,
+            const std::map<double, odr::Poly3> rightOffsets) const;
+
+        void _MergeSides(odr::Road& rtn,
+            const std::map<double, odr::LaneSection>& leftSections,
+            const std::map<double, odr::Poly3>& centerWidths,
+            const std::map<double, odr::LaneSection>& rightSections) const;
+
         static double to_odr_unit(type_s l) { return (double)l / 100; }
         static double to_odr_unit(type_t l) { return (double)l / 2 * LaneWidth; }
 
