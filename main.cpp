@@ -21,14 +21,16 @@ int main(int argc, char** argv)
     odr::OpenDriveMap test_map;
 
     RoadRunnder::Road road("1");
-    road.SetLength(300 * 100);
+    road.SetLength(120 * 100);
     road.AddRightSection({ RoadRunnder::RoadProfile{-1, 1}, 0 * 100 });
-    road.AddRightSection({ RoadRunnder::RoadProfile{1, 2}, 120 * 100 });
-    road.AddRightSection({ RoadRunnder::RoadProfile{-1, 1}, 180 * 100 });
+    road.AddRightSection({ RoadRunnder::RoadProfile{1, 2}, 45 * 100 });
+    road.AddRightSection({ RoadRunnder::RoadProfile{-1, 1}, 75 * 100 });
+
 
     road.AddLeftSection({ RoadRunnder::RoadProfile{-1, 2}, 0 * 100 });
-    road.AddLeftSection({ RoadRunnder::RoadProfile{1, 1}, 60 * 100 });
-    road.AddLeftSection({ RoadRunnder::RoadProfile{-1, 2}, 240 * 100 });
+    road.AddLeftSection({ RoadRunnder::RoadProfile{1, 1}, 30 * 100 });
+    road.AddLeftSection({ RoadRunnder::RoadProfile{-1, 2}, 90 * 100 });
+
 
     odr::Road exportRoad = (odr::Road)road;
     test_map.id_to_road.insert({ exportRoad.id, exportRoad });

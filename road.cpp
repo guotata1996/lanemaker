@@ -80,19 +80,6 @@ namespace RoadRunnder
         };
     }
 
-    void Road::FlipPoly(odr::Poly3& p) const
-    {
-        double l = to_odr_unit(Length());
-        double a1 = p.a + p.b * l * p.c * l * l + p.d * l * l * l;
-        double b1 = -(p.b + 2 * p.c * l + 3 * p.d * l * l);
-        double c1 = p.c + 3 * p.d * l;
-        double d1 = -p.d;
-        p.a = a1;
-        p.b = b1;
-        p.c = c1;
-        p.d = d1;
-    }
-
     void Road::ConvertSide(bool rightSide,
         std::map<double, odr::LaneSection>& laneSectionResult,
         std::map<double, odr::Poly3>& laneOffsetResult) const
@@ -212,12 +199,12 @@ namespace RoadRunnder
                     transition.oldCenter2, 
                     transition.newCenter2, rightSide))
                 {
-                    laneOffsetResult.insert(t);
+                    laneOffsetResult[t.first] = t.second;
                 }
             }
             for (auto st : _MakeStraight(straightS, nextTranS, transition.newCenter2, rightSide))
             {
-                laneOffsetResult.insert(st);
+                laneOffsetResult[st.first] = st.second;
             }
 
             // Lane section
@@ -331,7 +318,7 @@ namespace RoadRunnder
             [&SPDLOG_LKEYS](auto s) {SPDLOG_LKEYS << s.first << " "; });
         
         SPDLOG_INFO("Right Keys: {}", SPDLOG_RKEYS.str());
-        SPDLOG_INFO("Left Keys:  {}", SPDLOG_RKEYS.str());
+        SPDLOG_INFO("Left Keys:  {}", SPDLOG_LKEYS.str());
 
         // Convert difference in L/R lane offset into median center lane
         {
@@ -364,7 +351,7 @@ namespace RoadRunnder
                     std::abs(centerWidths.rbegin()->second.d - median.d) > 1e-3)
                 {
                     centerWidths.emplace(sectionStart, median);
-                    SPDLOG_INFO("Merged Center: L=({}, {}), R=({}, {})", keyLeft, nextLeft, keyRight, nextRight);
+                    SPDLOG_TRACE("Merged Center: L=({}, {}), R=({}, {})", keyLeft, nextLeft, keyRight, nextRight);
                 }
 
                 if (sectionEnd == nextRight)
@@ -377,6 +364,11 @@ namespace RoadRunnder
                 }
             }
         }
+
+        std::stringstream SPDLOG_CKEYS;
+        std::for_each(centerWidths.cbegin(), centerWidths.cend(),
+            [&SPDLOG_CKEYS](auto s) {SPDLOG_CKEYS << s.first << " "; });
+        SPDLOG_INFO("Center Keys:  {}", SPDLOG_CKEYS.str());
 
         // Merge LaneSections
         {
@@ -404,7 +396,7 @@ namespace RoadRunnder
 
                 const odr::LaneSection& leftSection = leftSections.at(keyLeft);
                 const odr::LaneSection& rightSection = rightSections.at(keyRight);
-                odr::Poly3 centerWidth = centerWidths[keyCenter];
+                odr::Poly3 centerWidth = centerWidths.at(keyCenter);
 
                 odr::LaneSection section(roadID, sectionStart);
                 odr::Lane center(roadID, sectionStart, 0, false, "");
@@ -413,7 +405,11 @@ namespace RoadRunnder
                 for (const auto& idToLane : rightSection.id_to_lane)
                 {
                     odr::Lane newLane(roadID, sectionStart, idToLane.first, false, "driving");
-                    newLane.lane_width.s0_to_poly = idToLane.second.lane_width.s0_to_poly;
+                    for (auto s0_poly : idToLane.second.lane_width.s0_to_poly)
+                    {
+                        s0_poly.second.ComputeRelative(sectionStart);
+                        newLane.lane_width.s0_to_poly.emplace(s0_poly.first - keyRight + sectionStart, s0_poly.second);
+                    }
                     section.id_to_lane.emplace(idToLane.first, newLane);
                 }
 
@@ -421,9 +417,8 @@ namespace RoadRunnder
                 if (std::abs(centerWidth.a) + std::abs(centerWidth.b) + std::abs(centerWidth.c) + std::abs(centerWidth.d) > 1e-3)
                 {
                     centerWidth.ComputeRelative(sectionStart);
-                    SPDLOG_TRACE("Center width at s = {}: a={} d={}", keyCenter, centerWidth.raw_a, centerWidth.raw_d);
                     odr::Lane medianLane(roadID, sectionStart, -1, false, "median");
-                    medianLane.lane_width.s0_to_poly.emplace(sectionStart, centerWidth);
+                    medianLane.lane_width.s0_to_poly.emplace(keyCenter, centerWidth);
                     section.id_to_lane.emplace(1, medianLane);
 
                     leftIDStart = 1;
@@ -432,7 +427,11 @@ namespace RoadRunnder
                 for (const auto& idToLane : leftSection.id_to_lane)
                 {
                     odr::Lane newLane(roadID, sectionStart, idToLane.first, false, "driving");
-                    newLane.lane_width.s0_to_poly = idToLane.second.lane_width.s0_to_poly;
+                    for (auto s0_poly : idToLane.second.lane_width.s0_to_poly)
+                    {
+                        s0_poly.second.ComputeRelative(sectionStart);
+                        newLane.lane_width.s0_to_poly.emplace(s0_poly.first - keyLeft + sectionStart, s0_poly.second);
+                    }
                     section.id_to_lane.emplace(idToLane.first + leftIDStart, newLane);
                 }
 

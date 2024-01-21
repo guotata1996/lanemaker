@@ -46,3 +46,24 @@ TEST(SingleRoad, LeftTurnLane)
     test_map.id_to_road.insert({ exportRoad.id, exportRoad });
     test_map.export_file("C:\\Users\\guota\\Downloads\\test_left_turn_lane_1.xodr");
 }
+
+TEST(SingleRoad, LeftTurnLaneCompact)
+{
+    odr::OpenDriveMap test_map;
+
+    RoadRunnder::Road road("1");
+    road.SetLength(120 * 100);
+    road.AddRightSection({ RoadRunnder::RoadProfile{-1, 1}, 0 * 100 });
+    road.AddRightSection({ RoadRunnder::RoadProfile{1, 2}, 45 * 100 });
+    road.AddRightSection({ RoadRunnder::RoadProfile{-1, 1}, 75 * 100 });
+
+
+    road.AddLeftSection({ RoadRunnder::RoadProfile{-1, 2}, 0 * 100 });
+    road.AddLeftSection({ RoadRunnder::RoadProfile{1, 1}, 30 * 100 });
+    road.AddLeftSection({ RoadRunnder::RoadProfile{-1, 2}, 90 * 100 });
+
+
+    odr::Road exportRoad = (odr::Road)road;
+    test_map.id_to_road.insert({ exportRoad.id, exportRoad });
+    test_map.export_file("C:\\Users\\guota\\Downloads\\test_left_turn_lane_2.xodr");
+}

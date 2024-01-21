@@ -57,8 +57,6 @@ namespace RoadRunnder
 
         std::map<double, odr::Poly3> _MakeStraight(type_s start_s, type_s end_s, type_t const_t, bool rightSide) const;
 
-        void FlipPoly(odr::Poly3& p) const;
-
         static double to_odr_unit(type_s l) { return (double)l / 100; }
         static double to_odr_unit(type_t l) { return (double)l / 2 * LaneWidth; }
 
