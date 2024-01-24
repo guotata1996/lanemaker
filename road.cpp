@@ -9,7 +9,7 @@
 
 #include "spdlog/spdlog.h"
 
-namespace RoadRunnder
+namespace RoadRunner
 {
     void Road::AddLeftSection(const LaneSection& section)
     {
@@ -84,7 +84,15 @@ namespace RoadRunnder
         std::map<double, odr::LaneSection>& laneSectionResult,
         std::map<double, odr::Poly3>& laneOffsetResult) const
     {
-        const std::list<LaneSection>& profiles = rightSide ? rightProfiles : leftProfiles;
+        std::list<LaneSection> profiles = rightSide ? rightProfiles : leftProfiles;
+        if (!rightSide)
+        {
+            // Use uniform s that follows traffic direction
+            for (auto& section : profiles)
+            {
+                section.s = Length() - section.s;
+            }
+        }
 
         /*
         Prepare transitionInfo

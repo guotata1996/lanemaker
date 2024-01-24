@@ -1,14 +1,17 @@
+#pragma once
+
 #include <list>
 #include "OpenDriveMap.h"
 
-namespace RoadRunnder
+namespace RoadRunner
 {
     typedef int8_t type_t;
     typedef uint32_t type_s;
 
     struct RoadProfile
     {
-        type_t offsetx2, laneCount;
+        type_t offsetx2; // follows XODR s definition
+        type_t laneCount; // non-negative value
 
         bool operator == (const RoadProfile& another) const
         {
@@ -23,7 +26,7 @@ namespace RoadRunnder
 
     struct LaneSection
     {
-        RoadProfile profile;
+        RoadProfile profile; // follows XODR t definition
         type_s s; // cm
 
         // odr::Line3D boundary; // for highlight
@@ -47,7 +50,7 @@ namespace RoadRunnder
         // Export
         explicit operator odr::Road() const;
 
-    private:
+    protected:
         void _UpdateBoundary();
 
         // Includes center Lane (ID=0)
