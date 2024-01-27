@@ -133,15 +133,156 @@ void VerifySingleRoadLinkage(const odr::Road& road)
     } // For each section
 }
 
-class RoadForRest : public RoadRunner::Road
+class RoadForTest : public RoadRunner::Road
 {
 public:
-    std::list<RoadRunner::LaneSection> GetLeftProfiles() { return leftProfiles; }
-    std::list<RoadRunner::LaneSection> GetRightProfiles() { return rightProfiles; }
+    const std::list<RoadRunner::LaneSection>& GetLeftProfiles() { return leftProfiles; }
+    const std::list<RoadRunner::LaneSection>& GetRightProfiles() { return rightProfiles; }
 };
 
-void VerifySingleRoadIntegrity(RoadRunner::Road config, const odr::Road& gen)
+void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
 {
-    RoadForRest* rt = reinterpret_cast<RoadForRest*>(&config);
-    
-}
+    RoadForTest* rt = reinterpret_cast<RoadForTest*>(&configs);
+
+    std::set<double> laneSectionKeys = odr::get_map_keys(gen.s_to_lanesection);
+    std::set<double> laneOffsetKeys = odr::get_map_keys(gen.lane_offset.s0_to_poly);
+    laneSectionKeys.insert(laneOffsetKeys.begin(), laneOffsetKeys.end());
+    laneSectionKeys.insert(gen.length);
+    std::vector<double> allKeys(laneSectionKeys.begin(), laneSectionKeys.end());
+    std::sort(allKeys.begin(), allKeys.end());
+    auto probe = allKeys.begin();
+    auto sToSectionIt = rt->GetRightProfiles().begin();
+
+    decltype(gen.s_to_lanesection) inverse_s_to_laneSection;
+    for (auto it : gen.s_to_lanesection)
+    {
+        inverse_s_to_laneSection.emplace(-it.first, it.second);
+    }
+
+    for (auto probe = allKeys.begin(); 
+        probe != allKeys.end() && sToSectionIt != rt->GetRightProfiles().end(); 
+        probe++ )
+    {
+        type_s s = sToSectionIt->s;
+        double odr_s = RoadRunner::Road::to_odr_unit(s);
+        auto config = sToSectionIt->profile;
+        while (*probe < odr_s)
+        {
+            // probe location must exceed s
+            probe++;
+        }
+        double rightRim = gen.lane_offset.get(*probe);
+        double expectedRightRim = RoadRunner::Road::to_odr_unit(config.offsetx2);
+        bool rightRimSatisfy = std::abs(rightRim - expectedRightRim) < epsilon;
+        odr::LaneSection probeSection = inverse_s_to_laneSection.lower_bound(-*probe)->second;
+        auto rightMost = probeSection.id_to_lane.begin();
+        assert(rightMost->first <= 0);
+        int fullLanes = 0;
+
+        for (int laneID = -1; laneID >= rightMost->first; laneID--)
+        {
+            odr::Lane lane = probeSection.id_to_lane.at(laneID);
+            if (std::abs(lane.lane_width.get(*probe) - RoadRunner::Road::LaneWidth) < epsilon)
+            {
+                fullLanes++;
+            }
+            else if (std::abs(lane.lane_width.get(*probe)) > epsilon)
+            {
+                // partial lane is not allowed!
+                fullLanes = -1;
+                break;
+            }
+        }
+
+        bool rightLaneSatisfy = fullLanes == config.laneCount;
+        if (rightRimSatisfy && rightLaneSatisfy)
+        {
+            SPDLOG_INFO("Right spec {} is satisfied at {}", odr_s, *probe);
+            sToSectionIt++;
+        }
+        else
+        {
+            SPDLOG_INFO("Right spec {} is not satisfied at{} (section {}). Expected offset {} actual {}; Expected lanes {} actual {}",
+                odr_s, *probe, probeSection.s0,
+                expectedRightRim, rightRim,
+                config.laneCount, fullLanes);
+        }
+    }
+
+    if (sToSectionIt != rt->GetRightProfiles().end())
+    {
+        SPDLOG_ERROR("Right side probing fails!");
+    }
+    else
+    {
+        SPDLOG_INFO("Right side probing done!");
+    }
+
+    //////////////////////
+    // Left side
+    //////////////////////
+    sToSectionIt = rt->GetLeftProfiles().begin();
+
+    for (auto probe = allKeys.rbegin();
+        probe != allKeys.rend() && sToSectionIt != rt->GetLeftProfiles().end();
+        probe++)
+    {
+        type_s s = sToSectionIt->s;
+        double odr_s = RoadRunner::Road::to_odr_unit(s);
+        auto config = sToSectionIt->profile;
+        while (*probe > odr_s)
+        {
+            probe++;
+        }
+        double rightRim = gen.lane_offset.get(*probe);
+
+        odr::LaneSection probeSection = inverse_s_to_laneSection.lower_bound(-*probe)->second;
+        double medianWidth = probeSection.id_to_lane.at(1).lane_width.get(*probe);
+        double leftRim = rightRim + medianWidth;
+        double expectedLeftRim = RoadRunner::Road::to_odr_unit(config.offsetx2);
+        bool leftRimSatisfy = std::abs(leftRim - expectedLeftRim) < epsilon;
+
+        auto leftMost = probeSection.id_to_lane.rbegin();
+        int fullLanes = 0;
+
+        for (int laneID = 2; laneID <= leftMost->first; laneID++)
+        {
+            odr::Lane lane = probeSection.id_to_lane.at(laneID);
+            if (std::abs(lane.lane_width.get(*probe) - RoadRunner::Road::LaneWidth) < epsilon)
+            {
+                fullLanes++;
+            }
+            else if (std::abs(lane.lane_width.get(*probe)) > epsilon)
+            {
+                // partial lane is not allowed!
+                fullLanes = -1;
+                break;
+            }
+        }
+
+        bool leftLaneSatisfy = fullLanes == config.laneCount;
+
+        if (leftRimSatisfy && leftLaneSatisfy)
+        {
+            SPDLOG_INFO("Left spec {} is satisfied at {}", odr_s, *probe);
+            sToSectionIt++;
+        }
+        else
+        {
+            SPDLOG_INFO("Left spec {} is not satisfied at{} (section {}). Expected offset {} actual {}; Expected lanes {} actual {}",
+                odr_s, *probe, probeSection.s0,
+                expectedLeftRim, leftRim,
+                config.laneCount, fullLanes);
+        }
+
+    }
+
+    if (sToSectionIt != rt->GetLeftProfiles().end())
+    {
+        SPDLOG_ERROR("Left side probing fails!");
+    }
+    else
+    {
+        SPDLOG_INFO("Left side probing done!");
+    }
+}        

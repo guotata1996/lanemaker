@@ -11,15 +11,15 @@ TEST(SingleRoad, MedianWidening) {
 
     odr::OpenDriveMap test_map;
 
-    RoadRunnder::Road road("1");
+    RoadRunner::Road road("1");
     road.SetLength(90 * 100);
-    RoadRunnder::LaneSection rs1{ RoadRunnder::RoadProfile{0, 1}, 0 * 100 };
-    RoadRunnder::LaneSection rs2{ RoadRunnder::RoadProfile{-1, 1}, 30 * 100 };
+    RoadRunner::LaneSection rs1{ RoadRunner::RoadProfile{0, 1}, 0 * 100 };
+    RoadRunner::LaneSection rs2{ RoadRunner::RoadProfile{-1, 1}, 30 * 100 };
     road.AddRightSection(rs1);
     road.AddRightSection(rs2);
 
-    RoadRunnder::LaneSection ls1{ RoadRunnder::RoadProfile{1, 1}, 0 * 100 };
-    RoadRunnder::LaneSection ls2{ RoadRunnder::RoadProfile{0, 1}, 60 * 100 };
+    RoadRunner::LaneSection ls1{ RoadRunner::RoadProfile{1, 1}, 90 * 100 };
+    RoadRunner::LaneSection ls2{ RoadRunner::RoadProfile{0, 1}, 30 * 100 };
     road.AddLeftSection(ls1);
     road.AddLeftSection(ls2);
 
@@ -32,15 +32,15 @@ TEST(SingleRoad, LeftTurnLane)
 {
     odr::OpenDriveMap test_map;
 
-    RoadRunnder::Road road("1");
+    RoadRunner::Road road("1");
     road.SetLength(150 * 100);
-    road.AddRightSection({ RoadRunnder::RoadProfile{-1, 1}, 0 * 100 });
-    road.AddRightSection({ RoadRunnder::RoadProfile{1, 2}, 60 * 100 });
-    road.AddRightSection({ RoadRunnder::RoadProfile{-1, 1}, 90 * 100 });
+    road.AddRightSection({ RoadRunner::RoadProfile{-1, 1}, 0 * 100 });
+    road.AddRightSection({ RoadRunner::RoadProfile{1, 2}, 60 * 100 });
+    road.AddRightSection({ RoadRunner::RoadProfile{-1, 1}, 90 * 100 });
 
-    road.AddLeftSection({ RoadRunnder::RoadProfile{-1, 2}, 0 * 100 });
-    road.AddLeftSection({ RoadRunnder::RoadProfile{1, 1}, 30 * 100 });
-    road.AddLeftSection({ RoadRunnder::RoadProfile{-1, 2}, 120 * 100 });
+    road.AddLeftSection({ RoadRunner::RoadProfile{-1, 2}, 150 * 100 });
+    road.AddLeftSection({ RoadRunner::RoadProfile{1, 1}, 120 * 100 });
+    road.AddLeftSection({ RoadRunner::RoadProfile{-1, 2}, 30 * 100 });
 
     odr::Road exportRoad = (odr::Road)road;
     test_map.id_to_road.insert({ exportRoad.id, exportRoad });
@@ -51,16 +51,16 @@ TEST(SingleRoad, LeftTurnLaneCompact)
 {
     odr::OpenDriveMap test_map;
 
-    RoadRunnder::Road road("1");
+    RoadRunner::Road road("1");
     road.SetLength(120 * 100);
-    road.AddRightSection({ RoadRunnder::RoadProfile{-1, 1}, 0 * 100 });
-    road.AddRightSection({ RoadRunnder::RoadProfile{1, 2}, 45 * 100 });
-    road.AddRightSection({ RoadRunnder::RoadProfile{-1, 1}, 75 * 100 });
+    road.AddRightSection({ RoadRunner::RoadProfile{-1, 1}, 0 * 100 });
+    road.AddRightSection({ RoadRunner::RoadProfile{1, 2}, 45 * 100 });
+    road.AddRightSection({ RoadRunner::RoadProfile{-1, 1}, 75 * 100 });
 
 
-    road.AddLeftSection({ RoadRunnder::RoadProfile{-1, 2}, 0 * 100 });
-    road.AddLeftSection({ RoadRunnder::RoadProfile{1, 1}, 30 * 100 });
-    road.AddLeftSection({ RoadRunnder::RoadProfile{-1, 2}, 90 * 100 });
+    road.AddLeftSection({ RoadRunner::RoadProfile{-1, 2}, 120 * 100 });
+    road.AddLeftSection({ RoadRunner::RoadProfile{1, 1}, 90 * 100 });
+    road.AddLeftSection({ RoadRunner::RoadProfile{-1, 2}, 30 * 100 });
 
 
     odr::Road exportRoad = (odr::Road)road;

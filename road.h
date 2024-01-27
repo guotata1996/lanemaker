@@ -50,6 +50,11 @@ namespace RoadRunner
         // Export
         explicit operator odr::Road() const;
 
+        static double LaneWidth;
+
+        static double to_odr_unit(type_s l) { return (double)l / 100; }
+        static double to_odr_unit(type_t l) { return (double)l / 2 * LaneWidth; }
+
     protected:
         void _UpdateBoundary();
 
@@ -71,13 +76,10 @@ namespace RoadRunner
             const std::map<double, odr::Poly3>& centerWidths,
             const std::map<double, odr::LaneSection>& rightSections) const;
 
-        static double to_odr_unit(type_s l) { return (double)l / 100; }
-        static double to_odr_unit(type_t l) { return (double)l / 2 * LaneWidth; }
-
         std::string roadID;
         type_s length;
         const type_s MaxTransitionS = 20 * 100;
-        static double LaneWidth;
+        
         std::list<LaneSection> leftProfiles, rightProfiles;
         //std::list<odr::Vec3D> boundary;
 
