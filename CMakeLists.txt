@@ -62,3 +62,5 @@ target_link_libraries(
 
 include(GoogleTest)
 gtest_discover_tests(RoadRunnerTest)
+
+target_compile_definitions(RoadRunnerTest PRIVATE G_TEST)

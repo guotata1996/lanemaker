@@ -588,6 +588,18 @@ namespace RoadRunner
 
     Road::operator odr::Road() const
     {
+        // Fail if either side is undefined
+        assert(Length() > 0);
+        assert(!leftProfiles.empty() || !rightProfiles.empty());
+        if (rightProfiles.empty())
+        {
+            // TODO: lane_offset = left_offset
+        }
+        else if (leftProfiles.empty())
+        {
+            // TODO: do not generate median
+        }
+
         double rtnLength = to_odr_unit(Length());
         odr::Road rtn(roadID, rtnLength, "-1", "road " + roadID);
         rtn.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, 0, 0, 0, rtnLength);

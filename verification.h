@@ -4,6 +4,10 @@
 
 #include "spdlog/spdlog.h"
 
+#ifdef G_TEST
+#include <gtest/gtest.h>
+#endif
+
 using namespace odr;
 using namespace RoadRunner;
 
@@ -28,7 +32,9 @@ void VerifyLaneWidthinBound(const odr::Road& road)
                 {
                     double s = sStart + (sEnd - sStart) * (double)i / checkPoints;
                     double width = idToLane.second.lane_width.get(s);
-                    assert(width == 0);
+#ifdef G_TEST
+                    EXPECT_EQ(width, 0);
+#endif
                 }
             }
             else if (idToLane.first == 1)
@@ -37,7 +43,9 @@ void VerifyLaneWidthinBound(const odr::Road& road)
                 {
                     double s = sStart + (sEnd - sStart) * (double)i / checkPoints;
                     double width = idToLane.second.lane_width.get(s);
-                    assert(-epsilon < width);
+#ifdef G_TEST
+                    EXPECT_LT(-epsilon, width);
+#endif
                 }
             }
             else
@@ -46,13 +54,14 @@ void VerifyLaneWidthinBound(const odr::Road& road)
                 {
                     double s = sStart + (sEnd - sStart) * (double)i / checkPoints;
                     double width = idToLane.second.lane_width.get(s);
-                    assert(-epsilon < width);
-                    assert(width < RoadRunner::Road::LaneWidth + epsilon);
+#ifdef G_TEST
+                    EXPECT_LT(-epsilon, width);
+                    EXPECT_LT(width, RoadRunner::Road::LaneWidth + epsilon);
+#endif
                 }
             }
         }
     }
-    SPDLOG_INFO("Passed Lane width verification");
 }
 
 void VerifySingleRoadLinkage(const odr::Road& road)
@@ -133,18 +142,21 @@ void VerifySingleRoadLinkage(const odr::Road& road)
             int partnerID = currLaneID < 0 ? currLane.successor : currLane.predecessor;
             if (partnerID == 0)
             {
-                assert(std::abs(width) < epsilon);
+#ifdef G_TEST
+                EXPECT_NEAR(width, 0, epsilon);
+#endif
             }
             else
             {
                 SPDLOG_TRACE("Now at transition{} lane{} whose ptn={}",
                     transitionS, currLaneID, partnerID);
-
-                assert(currLaneID * partnerID > 0);
                 double partnerWidth = laneIDToWidth_Next.at(partnerID);
                 double partnerSBegin = laneIDToS_Next.at(partnerID);
-                assert(std::abs(width - partnerWidth) < epsilon);
-                assert(std::abs(sMin - partnerSBegin) < epsilon);
+#ifdef G_TEST
+                EXPECT_GT(currLaneID * partnerID, 0);
+                EXPECT_NEAR(width, partnerWidth, epsilon);
+                EXPECT_NEAR(sMin, partnerSBegin, epsilon);
+#endif
             }
         }
 
@@ -160,22 +172,28 @@ void VerifySingleRoadLinkage(const odr::Road& road)
             int partnerID = nextLaneID < 0 ? nextLane.predecessor : nextLane.successor;
             if (partnerID == 0)
             {
-                assert(std::abs(width) < epsilon);
+#ifdef G_TEST
+                EXPECT_NEAR(width, 0, epsilon);
+#endif
             }
             else
             {
-                assert(nextLaneID * partnerID > 0);
                 double partnerWidth = laneIDToWidth_Curr.at(partnerID);
                 double partnerSBegin = laneIDToS_Curr.at(partnerID);
-                assert(std::abs(width - partnerWidth) < epsilon);
-                assert(std::abs(sMin - partnerSBegin) < epsilon);
+#ifdef G_TEST
+                EXPECT_GT(nextLaneID* partnerID, 0);
+                EXPECT_NEAR(width, partnerWidth, epsilon);
+                EXPECT_NEAR(sMin, partnerSBegin, epsilon);
+#endif
             }
         }
 
         // Verify median lane integrity
         double currMedianWidth = laneIDToS_Curr.at(1);
         double nextMedianWidth = laneIDToS_Next.at(1);
-        assert(std::abs(currMedianWidth - nextMedianWidth) < epsilon);
+#ifdef G_TEST
+        EXPECT_NEAR(currMedianWidth, nextMedianWidth, epsilon);
+#endif
 
     } // For each section
 }
@@ -226,7 +244,6 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
         bool rightRimSatisfy = std::abs(rightRim - expectedRightRim) < epsilon;
         odr::LaneSection probeSection = inverse_s_to_laneSection.lower_bound(-*probe)->second;
         auto rightMost = probeSection.id_to_lane.begin();
-        assert(rightMost->first <= 0);
         int fullLanes = 0;
 
         for (int laneID = -1; laneID >= rightMost->first; laneID--)
@@ -259,14 +276,9 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
         }
     }
 
-    if (sToSectionIt != rt->GetRightProfiles().end())
-    {
-        SPDLOG_ERROR("Right side probing fails!");
-    }
-    else
-    {
-        SPDLOG_INFO("Right side probing done!");
-    }
+#ifdef G_TEST
+    EXPECT_EQ(sToSectionIt, rt->GetRightProfiles().end());
+#endif
 
     //////////////////////
     // Left side
@@ -324,15 +336,9 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
                 expectedLeftRim, leftRim,
                 config.laneCount, fullLanes);
         }
-
     }
 
-    if (sToSectionIt != rt->GetLeftProfiles().end())
-    {
-        SPDLOG_ERROR("Left side probing fails!");
-    }
-    else
-    {
-        SPDLOG_INFO("Left side probing done!");
-    }
+#ifdef G_TEST
+    EXPECT_EQ(sToSectionIt, rt->GetLeftProfiles().end());
+#endif
 }

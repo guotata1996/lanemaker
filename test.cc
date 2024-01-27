@@ -1,17 +1,27 @@
 #include <gtest/gtest.h>
 
 #include "road.h"
+#include "verification.h"
 
-// Demonstrate some basic assertions.
-TEST(SingleRoad, MedianWidening) {
-    // Expect two strings not to be equal.
-    //EXPECT_STRNE("hello", "world");
-    //// Expect equality.
-    //EXPECT_EQ(7 * 6, 42);
+void GenerateAndVerify(const RoadRunner::Road& configs)
+{
+    const testing::TestInfo* const test_info =
+        testing::UnitTest::GetInstance()->current_test_info();
+
+    odr::Road gen = (odr::Road)configs;
 
     odr::OpenDriveMap test_map;
+    test_map.id_to_road.insert({ gen.id, gen });
+    test_map.export_file("C:\\Users\\guota\\Downloads\\" + std::string(test_info->name()) + ".xodr");
 
-    RoadRunner::Road road("1");
+    VerifyLaneWidthinBound(gen);
+    VerifySingleRoadLinkage(gen);
+    VerifySingleRoadIntegrity(configs, gen);
+}
+
+TEST(SingleRoad, MedianWidening) {
+
+    RoadRunner::Road road("");
     road.SetLength(90 * 100);
     RoadRunner::LaneSection rs1{ RoadRunner::RoadProfile{0, 1}, 0 * 100 };
     RoadRunner::LaneSection rs2{ RoadRunner::RoadProfile{-1, 1}, 30 * 100 };
@@ -23,16 +33,12 @@ TEST(SingleRoad, MedianWidening) {
     road.AddLeftSection(ls1);
     road.AddLeftSection(ls2);
 
-    odr::Road exportRoad = (odr::Road)road;
-    test_map.id_to_road.insert({ exportRoad.id, exportRoad });
-    test_map.export_file("C:\\Users\\guota\\Downloads\\test_median_widen.xodr");
+    GenerateAndVerify(road);
 }
 
 TEST(SingleRoad, LeftTurnLane)
 {
-    odr::OpenDriveMap test_map;
-
-    RoadRunner::Road road("1");
+    RoadRunner::Road road("");
     road.SetLength(150 * 100);
     road.AddRightSection({ RoadRunner::RoadProfile{-1, 1}, 0 * 100 });
     road.AddRightSection({ RoadRunner::RoadProfile{1, 2}, 60 * 100 });
@@ -42,16 +48,12 @@ TEST(SingleRoad, LeftTurnLane)
     road.AddLeftSection({ RoadRunner::RoadProfile{1, 1}, 120 * 100 });
     road.AddLeftSection({ RoadRunner::RoadProfile{-1, 2}, 30 * 100 });
 
-    odr::Road exportRoad = (odr::Road)road;
-    test_map.id_to_road.insert({ exportRoad.id, exportRoad });
-    test_map.export_file("C:\\Users\\guota\\Downloads\\test_left_turn_lane_1.xodr");
+    GenerateAndVerify(road);
 }
 
 TEST(SingleRoad, LeftTurnLaneCompact)
 {
-    odr::OpenDriveMap test_map;
-
-    RoadRunner::Road road("1");
+    RoadRunner::Road road("");
     road.SetLength(120 * 100);
     road.AddRightSection({ RoadRunner::RoadProfile{-1, 1}, 0 * 100 });
     road.AddRightSection({ RoadRunner::RoadProfile{1, 2}, 45 * 100 });
@@ -62,8 +64,5 @@ TEST(SingleRoad, LeftTurnLaneCompact)
     road.AddLeftSection({ RoadRunner::RoadProfile{1, 1}, 90 * 100 });
     road.AddLeftSection({ RoadRunner::RoadProfile{-1, 2}, 30 * 100 });
 
-
-    odr::Road exportRoad = (odr::Road)road;
-    test_map.id_to_road.insert({ exportRoad.id, exportRoad });
-    test_map.export_file("C:\\Users\\guota\\Downloads\\test_left_turn_lane_2.xodr");
+    GenerateAndVerify(road);
 }
