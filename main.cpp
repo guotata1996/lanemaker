@@ -34,6 +34,7 @@ int main(int argc, char** argv)
     test_map.id_to_road.insert({ exportRoad.id, exportRoad });
     test_map.export_file("C:\\Users\\guota\\Downloads\\test_left_turn_lane_1.xodr");
 
+    VerifyLaneWidthinBound(exportRoad);
     VerifySingleRoadLinkage(exportRoad);
     VerifySingleRoadIntegrity(road, exportRoad);
     //QApplication app(argc, argv);

@@ -8,6 +8,53 @@ using namespace odr;
 using namespace RoadRunner;
 
 const double epsilon = 1e-6;
+
+void VerifyLaneWidthinBound(const odr::Road& road)
+{
+    constexpr int checkPoints = 15;
+    auto sectionStart = road.s_to_lanesection.begin();
+    for (;sectionStart != road.s_to_lanesection.end(); sectionStart++)
+    {
+        double sStart = sectionStart->first;
+        decltype(sectionStart) sectionEnd = sectionStart;
+        sectionEnd++;
+        double sEnd = sectionEnd == road.s_to_lanesection.end() ? road.length : sectionEnd->first;
+        auto section = sectionStart->second;
+        for (auto idToLane : section.id_to_lane)
+        {
+            if (idToLane.first == 0)
+            {
+                for (int i = 0; i <= checkPoints; ++i)
+                {
+                    double s = sStart + (sEnd - sStart) * (double)i / checkPoints;
+                    double width = idToLane.second.lane_width.get(s);
+                    assert(width == 0);
+                }
+            }
+            else if (idToLane.first == 1)
+            {
+                for (int i = 0; i <= checkPoints; ++i)
+                {
+                    double s = sStart + (sEnd - sStart) * (double)i / checkPoints;
+                    double width = idToLane.second.lane_width.get(s);
+                    assert(-epsilon < width);
+                }
+            }
+            else
+            {
+                for (int i = 0; i <= checkPoints; ++i)
+                {
+                    double s = sStart + (sEnd - sStart) * (double)i / checkPoints;
+                    double width = idToLane.second.lane_width.get(s);
+                    assert(-epsilon < width);
+                    assert(width < RoadRunner::Road::LaneWidth + epsilon);
+                }
+            }
+        }
+    }
+    SPDLOG_INFO("Passed Lane width verification");
+}
+
 void VerifySingleRoadLinkage(const odr::Road& road)
 {
     auto curr = road.s_to_lanesection.cbegin();
@@ -90,7 +137,7 @@ void VerifySingleRoadLinkage(const odr::Road& road)
             }
             else
             {
-                SPDLOG_INFO("Now at transition{} lane{} whose ptn={}",
+                SPDLOG_TRACE("Now at transition{} lane{} whose ptn={}",
                     transitionS, currLaneID, partnerID);
 
                 assert(currLaneID * partnerID > 0);
@@ -148,10 +195,8 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
     std::set<double> laneOffsetKeys = odr::get_map_keys(gen.lane_offset.s0_to_poly);
     laneSectionKeys.insert(laneOffsetKeys.begin(), laneOffsetKeys.end());
     laneSectionKeys.insert(gen.length);
-    std::vector<double> allKeys(laneSectionKeys.begin(), laneSectionKeys.end());
-    std::sort(allKeys.begin(), allKeys.end());
-    auto probe = allKeys.begin();
-    auto sToSectionIt = rt->GetRightProfiles().begin();
+    std::vector<double> allProbeS(laneSectionKeys.begin(), laneSectionKeys.end());
+    std::sort(allProbeS.begin(), allProbeS.end());
 
     decltype(gen.s_to_lanesection) inverse_s_to_laneSection;
     for (auto it : gen.s_to_lanesection)
@@ -159,8 +204,13 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
         inverse_s_to_laneSection.emplace(-it.first, it.second);
     }
 
-    for (auto probe = allKeys.begin(); 
-        probe != allKeys.end() && sToSectionIt != rt->GetRightProfiles().end(); 
+    //////////////////////
+    // Right side
+    //////////////////////
+    auto sToSectionIt = rt->GetRightProfiles().begin();
+
+    for (auto probe = allProbeS.begin(); 
+        probe != allProbeS.end() && sToSectionIt != rt->GetRightProfiles().end(); 
         probe++ )
     {
         type_s s = sToSectionIt->s;
@@ -197,12 +247,12 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
         bool rightLaneSatisfy = fullLanes == config.laneCount;
         if (rightRimSatisfy && rightLaneSatisfy)
         {
-            SPDLOG_INFO("Right spec {} is satisfied at {}", odr_s, *probe);
+            SPDLOG_TRACE("Right spec {} is satisfied at {}", odr_s, *probe);
             sToSectionIt++;
         }
         else
         {
-            SPDLOG_INFO("Right spec {} is not satisfied at{} (section {}). Expected offset {} actual {}; Expected lanes {} actual {}",
+            SPDLOG_TRACE("Right spec {} is not satisfied at{} (section {}). Expected offset {} actual {}; Expected lanes {} actual {}",
                 odr_s, *probe, probeSection.s0,
                 expectedRightRim, rightRim,
                 config.laneCount, fullLanes);
@@ -223,8 +273,8 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
     //////////////////////
     sToSectionIt = rt->GetLeftProfiles().begin();
 
-    for (auto probe = allKeys.rbegin();
-        probe != allKeys.rend() && sToSectionIt != rt->GetLeftProfiles().end();
+    for (auto probe = allProbeS.rbegin();
+        probe != allProbeS.rend() && sToSectionIt != rt->GetLeftProfiles().end();
         probe++)
     {
         type_s s = sToSectionIt->s;
@@ -264,12 +314,12 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
 
         if (leftRimSatisfy && leftLaneSatisfy)
         {
-            SPDLOG_INFO("Left spec {} is satisfied at {}", odr_s, *probe);
+            SPDLOG_TRACE("Left spec {} is satisfied at {}", odr_s, *probe);
             sToSectionIt++;
         }
         else
         {
-            SPDLOG_INFO("Left spec {} is not satisfied at{} (section {}). Expected offset {} actual {}; Expected lanes {} actual {}",
+            SPDLOG_TRACE("Left spec {} is not satisfied at{} (section {}). Expected offset {} actual {}; Expected lanes {} actual {}",
                 odr_s, *probe, probeSection.s0,
                 expectedLeftRim, leftRim,
                 config.laneCount, fullLanes);
@@ -285,4 +335,4 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
     {
         SPDLOG_INFO("Left side probing done!");
     }
-}        
+}
