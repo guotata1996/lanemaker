@@ -10,29 +10,16 @@
 #include "GameGraphicsScene.h"
 
 #include "verification.h"
+#include "test_randomization.h"
 
 
 int main(int argc, char** argv)
 {
     
-    // odr::OpenDriveMap odr_map("C:\\Users\\guota\\Downloads\\lane_offset.xodr");
-    // odr_map.export_file("C:\\Users\\guota\\Downloads\\export.xodr");
     spdlog::set_level(spdlog::level::debug);
-    odr::OpenDriveMap test_map;
 
-    RoadRunner::Road road("");
-    road.SetLength(90 * 100);
-
-    RoadRunner::LaneSection ls1{ RoadRunner::RoadProfile{1, 1}, 90 * 100 };
-    RoadRunner::LaneSection ls2{ RoadRunner::RoadProfile{0, 1}, 30 * 100 };
-    road.AddLeftSection(ls1);
-    road.AddLeftSection(ls2);
-
-    odr::Road gen = (odr::Road)road;
-
-    VerifyLaneWidthinBound(gen);
-    VerifySingleRoadLinkage(gen);
-    VerifySingleRoadIntegrity(road, gen);
+    RoadRunner::Road road = GenerateConfig(1);
+    GenerateAndVerify(road);
 
     //QApplication app(argc, argv);
     //MyGraphicsScene scene;

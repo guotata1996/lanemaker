@@ -346,3 +346,28 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
     EXPECT_EQ(sToSectionIt, rt->GetLeftProfiles().end());
 #endif
 }
+
+
+void GenerateAndVerify(const RoadRunner::Road& configs)
+{
+#ifdef G_TEST
+    const testing::TestInfo* const test_info =
+        testing::UnitTest::GetInstance()->current_test_info();
+    std::string outName = test_info->name();
+    if (test_info->value_param() != NULL)
+    {
+        outName = std::string(test_info->value_param());
+    }
+#else
+    std::string outName("output");
+#endif
+    odr::Road gen = (odr::Road)configs;
+
+    odr::OpenDriveMap test_map;
+    test_map.id_to_road.insert({ gen.id, gen });
+    test_map.export_file("C:\\Users\\guota\\Downloads\\" + outName + ".xodr");
+
+    VerifyLaneWidthinBound(gen);
+    VerifySingleRoadLinkage(gen);
+    VerifySingleRoadIntegrity(configs, gen);
+}

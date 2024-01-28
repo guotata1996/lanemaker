@@ -2,22 +2,7 @@
 
 #include "road.h"
 #include "verification.h"
-
-void GenerateAndVerify(const RoadRunner::Road& configs)
-{
-    const testing::TestInfo* const test_info =
-        testing::UnitTest::GetInstance()->current_test_info();
-
-    odr::Road gen = (odr::Road)configs;
-
-    odr::OpenDriveMap test_map;
-    test_map.id_to_road.insert({ gen.id, gen });
-    test_map.export_file("C:\\Users\\guota\\Downloads\\" + std::string(test_info->name()) + ".xodr");
-
-    VerifyLaneWidthinBound(gen);
-    VerifySingleRoadLinkage(gen);
-    VerifySingleRoadIntegrity(configs, gen);
-}
+#include "test_randomization.h"
 
 TEST(SingleRoad, RightSideOnly) {
 
@@ -74,3 +59,20 @@ TEST(SingleRoad, LeftTurnLaneCompact)
 
     GenerateAndVerify(road);
 }
+
+
+struct TestSeed
+    : public testing::TestWithParam<int> {};
+
+TEST_P(TestSeed, SingleRoad) {
+    auto seed = GetParam();
+    auto road = GenerateConfig(seed);
+    GenerateAndVerify(road);
+}
+
+std::vector<int> seeds(3);
+
+INSTANTIATE_TEST_SUITE_P(
+    RandomRoadGen,
+    TestSeed,
+    testing::Range(10, 30));
