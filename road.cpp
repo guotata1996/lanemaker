@@ -591,14 +591,6 @@ namespace RoadRunner
         // Fail if either side is undefined
         assert(Length() > 0);
         assert(!leftProfiles.empty() || !rightProfiles.empty());
-        if (rightProfiles.empty())
-        {
-            // TODO: lane_offset = left_offset
-        }
-        else if (leftProfiles.empty())
-        {
-            // TODO: do not generate median
-        }
 
         double rtnLength = to_odr_unit(Length());
         odr::Road rtn(roadID, rtnLength, "-1", "road " + roadID);
@@ -607,9 +599,33 @@ namespace RoadRunner
         std::map<double, odr::LaneSection> leftSections, rightSections;
         std::map<double, odr::Poly3> leftOffsets, rightOffsets;
 
-        ConvertSide(true, rightSections, rightOffsets);
-        ConvertSide(false, leftSections, leftOffsets);
+        if (!rightProfiles.empty())
+        {
+            ConvertSide(true, rightSections, rightOffsets);
+        }
+
+        if (!leftProfiles.empty())
+        {
+            ConvertSide(false, leftSections, leftOffsets);
+        }
         // from this point, s keys align with road coordinate
+
+        // Special cases: single-direction road
+        if (rightProfiles.empty())
+        {
+            rtn.lane_offset.s0_to_poly = leftOffsets;
+            rtn.s_to_lanesection = leftSections;
+            return rtn;
+        }
+        if (leftProfiles.empty())
+        {
+            rtn.lane_offset.s0_to_poly = rightOffsets;
+            rtn.s_to_lanesection = rightSections;
+            return rtn;
+        }
+
+        // General case
+        rtn.lane_offset.s0_to_poly = rightOffsets;
 
         std::stringstream SPDLOG_LKEYS, SPDLOG_RKEYS;
         std::for_each(rightSections.cbegin(), rightSections.cend(),
@@ -630,7 +646,6 @@ namespace RoadRunner
 
         _MergeSides(rtn, leftSections, centerWidths, rightSections);
 
-        rtn.lane_offset.s0_to_poly = rightOffsets;
         return rtn;
     } // class function
 } // namespace

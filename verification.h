@@ -148,7 +148,7 @@ void VerifySingleRoadLinkage(const odr::Road& road)
             }
             else
             {
-                SPDLOG_TRACE("Now at transition{} lane{} whose ptn={}",
+                spdlog::debug("Now at transition{} lane{} whose ptn={}",
                     transitionS, currLaneID, partnerID);
                 double partnerWidth = laneIDToWidth_Next.at(partnerID);
                 double partnerSBegin = laneIDToS_Next.at(partnerID);
@@ -189,12 +189,14 @@ void VerifySingleRoadLinkage(const odr::Road& road)
         }
 
         // Verify median lane integrity
-        double currMedianWidth = laneIDToS_Curr.at(1);
-        double nextMedianWidth = laneIDToS_Next.at(1);
+        if (laneIDToS_Curr.find(1) != laneIDToS_Curr.end())
+        {
+            double currMedianWidth = laneIDToS_Curr.at(1);
+            double nextMedianWidth = laneIDToS_Next.at(1);
 #ifdef G_TEST
-        EXPECT_NEAR(currMedianWidth, nextMedianWidth, epsilon);
+            EXPECT_NEAR(currMedianWidth, nextMedianWidth, epsilon);
 #endif
-
+        }
     } // For each section
 }
 
@@ -264,12 +266,12 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
         bool rightLaneSatisfy = fullLanes == config.laneCount;
         if (rightRimSatisfy && rightLaneSatisfy)
         {
-            SPDLOG_TRACE("Right spec {} is satisfied at {}", odr_s, *probe);
+            spdlog::debug("Right spec {} is satisfied at {}", odr_s, *probe);
             sToSectionIt++;
         }
         else
         {
-            SPDLOG_TRACE("Right spec {} is not satisfied at{} (section {}). Expected offset {} actual {}; Expected lanes {} actual {}",
+            spdlog::debug("Right spec {} is not satisfied at{} (section {}). Expected offset {} actual {}; Expected lanes {} actual {}",
                 odr_s, *probe, probeSection.s0,
                 expectedRightRim, rightRim,
                 config.laneCount, fullLanes);
@@ -279,6 +281,8 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
 #ifdef G_TEST
     EXPECT_EQ(sToSectionIt, rt->GetRightProfiles().end());
 #endif
+
+    bool hasMedianLane = !rt->GetRightProfiles().empty();
 
     //////////////////////
     // Left side
@@ -299,7 +303,7 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
         double rightRim = gen.lane_offset.get(*probe);
 
         odr::LaneSection probeSection = inverse_s_to_laneSection.lower_bound(-*probe)->second;
-        double medianWidth = probeSection.id_to_lane.at(1).lane_width.get(*probe);
+        double medianWidth = hasMedianLane ? probeSection.id_to_lane.at(1).lane_width.get(*probe) : 0;
         double leftRim = rightRim + medianWidth;
         double expectedLeftRim = RoadRunner::Road::to_odr_unit(config.offsetx2);
         bool leftRimSatisfy = std::abs(leftRim - expectedLeftRim) < epsilon;
@@ -307,7 +311,7 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
         auto leftMost = probeSection.id_to_lane.rbegin();
         int fullLanes = 0;
 
-        for (int laneID = 2; laneID <= leftMost->first; laneID++)
+        for (int laneID = hasMedianLane ? 2 : 1; laneID <= leftMost->first; laneID++)
         {
             odr::Lane lane = probeSection.id_to_lane.at(laneID);
             if (std::abs(lane.lane_width.get(*probe) - RoadRunner::Road::LaneWidth) < epsilon)
@@ -326,12 +330,12 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
 
         if (leftRimSatisfy && leftLaneSatisfy)
         {
-            SPDLOG_TRACE("Left spec {} is satisfied at {}", odr_s, *probe);
+            spdlog::debug("Left spec {} is satisfied at {}", odr_s, *probe);
             sToSectionIt++;
         }
         else
         {
-            SPDLOG_TRACE("Left spec {} is not satisfied at{} (section {}). Expected offset {} actual {}; Expected lanes {} actual {}",
+            spdlog::debug("Left spec {} is not satisfied at{} (section {}). Expected offset {} actual {}; Expected lanes {} actual {}",
                 odr_s, *probe, probeSection.s0,
                 expectedLeftRim, leftRim,
                 config.laneCount, fullLanes);

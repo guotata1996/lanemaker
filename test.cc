@@ -19,7 +19,7 @@ void GenerateAndVerify(const RoadRunner::Road& configs)
     VerifySingleRoadIntegrity(configs, gen);
 }
 
-TEST(SingleRoad, MedianWidening) {
+TEST(SingleRoad, RightSideOnly) {
 
     RoadRunner::Road road("");
     road.SetLength(90 * 100);
@@ -27,6 +27,14 @@ TEST(SingleRoad, MedianWidening) {
     RoadRunner::LaneSection rs2{ RoadRunner::RoadProfile{-1, 1}, 30 * 100 };
     road.AddRightSection(rs1);
     road.AddRightSection(rs2);
+
+    GenerateAndVerify(road);
+}
+
+TEST(SingleRoad, LeftSideOnly)
+{
+    RoadRunner::Road road("");
+    road.SetLength(90 * 100);
 
     RoadRunner::LaneSection ls1{ RoadRunner::RoadProfile{1, 1}, 90 * 100 };
     RoadRunner::LaneSection ls2{ RoadRunner::RoadProfile{0, 1}, 30 * 100 };
