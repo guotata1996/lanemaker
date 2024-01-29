@@ -173,7 +173,7 @@ namespace RoadRunner
 
             type_s preLength = currSection.s - preSection.s;
             type_s nextLength = (next == profiles.cend() ? Length() : next->s) - currSection.s;
-            SPDLOG_TRACE("PreS {} CurrS {} NextS {}", preSection.s, currSection.s, (next == profiles.cend() ? Length() : next->s));
+            spdlog::trace("PreS {} CurrS {} NextS {}", preSection.s, currSection.s, (next == profiles.cend() ? Length() : next->s));
             type_s preTransitionLength = std::min({ preLength / 2, nextLength / 2, MaxTransitionS });
 
             // write
@@ -206,8 +206,8 @@ namespace RoadRunner
             type_s straightS = transition.cumulativeS + transition.transitionHalfLength;
             type_s nextTranS = i == transitions.size() - 1 ? Length() :
                 transitions[i + 1].cumulativeS - transitions[i + 1].transitionHalfLength;
-            SPDLOG_INFO("In {} Transition {}-{}-{}:", rightSide ? "Right" : "Left", tranS, straightS, nextTranS);
-            SPDLOG_INFO("L+={} | Lanes={} | R+={}", transition.newLanesOnLeft, transition.startLanes, transition.newLanesOnRight);
+            spdlog::trace("In {} Transition {}-{}-{}:", rightSide ? "Right" : "Left", tranS, straightS, nextTranS);
+            spdlog::trace("L+={} | Lanes={} | R+={}", transition.newLanesOnLeft, transition.startLanes, transition.newLanesOnRight);
 
             // Lane offset
             // Transition MUST NOT happen at 0 or L
@@ -304,7 +304,7 @@ namespace RoadRunner
                         laneSectionResult.at(prevS).id_to_lane.erase(vanishedLanePrev);
                         laneSectionResult.at(prevS).id_to_lane.emplace(vanishedLanePrev, prevLane);
 
-                        SPDLOG_TRACE(" Write succ at s={} vanished {}",
+                        spdlog::trace(" Write succ at s={} vanished {}",
                             prevS, 
                             laneSectionResult.at(prevS).id_to_lane.at(vanishedLanePrev).successor);
                     }
@@ -380,7 +380,7 @@ namespace RoadRunner
                 }
                 else
                 {
-                    SPDLOG_TRACE("Generate vanishedStraight");
+                    spdlog::trace("Generate vanishedStraight");
                 }
             }
         }
@@ -422,7 +422,7 @@ namespace RoadRunner
                 std::abs(centerWidths.rbegin()->second.d - median.d) > 1e-3)
             {
                 centerWidths.emplace(sectionStart, median);
-                SPDLOG_TRACE("Merged Center: L=({}, {}), R=({}, {})", keyLeft, nextLeft, keyRight, nextRight);
+                spdlog::trace("Merged Center: L=({}, {}), R=({}, {})", keyLeft, nextLeft, keyRight, nextRight);
             }
 
             if (sectionEnd == nextRight)
@@ -460,7 +460,7 @@ namespace RoadRunner
             double sectionStart = std::max({ keyLeft, keyCenter, keyRight });
             double sectionEnd = std::min({ nextLeft, nextCenter, nextRight });
 
-            SPDLOG_INFO("Merged LaneSection:({}, {}) From: L=({}, {}), C=({}, {}) R=({}, {})",
+            spdlog::trace("Merged LaneSection:({}, {}) From: L=({}, {}), C=({}, {}) R=({}, {})",
                 sectionStart, sectionEnd,
                 keyLeft, nextLeft,
                 keyCenter, nextCenter,
@@ -634,15 +634,15 @@ namespace RoadRunner
         std::for_each(leftSections.cbegin(), leftSections.cend(),
             [&SPDLOG_LKEYS](auto s) {SPDLOG_LKEYS << s.first << " "; });
         
-        SPDLOG_INFO("Right Keys: {}", SPDLOG_RKEYS.str());
-        SPDLOG_INFO("Left Keys:  {}", SPDLOG_LKEYS.str());
+        spdlog::trace("Right Keys: {}", SPDLOG_RKEYS.str());
+        spdlog::trace("Left Keys:  {}", SPDLOG_LKEYS.str());
 
         std::map<double, odr::Poly3> centerWidths = _ComputeMedian(leftOffsets, rightOffsets);
 
         std::stringstream SPDLOG_CKEYS;
         std::for_each(centerWidths.cbegin(), centerWidths.cend(),
             [&SPDLOG_CKEYS](auto s) {SPDLOG_CKEYS << s.first << " "; });
-        SPDLOG_INFO("Center Keys:  {}", SPDLOG_CKEYS.str());
+        spdlog::trace("Center Keys:  {}", SPDLOG_CKEYS.str());
 
         _MergeSides(rtn, leftSections, centerWidths, rightSections);
 

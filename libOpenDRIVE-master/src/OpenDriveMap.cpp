@@ -928,7 +928,17 @@ void OpenDriveMap::export_file(const std::string& fpath) const
             }
             else 
             {
-                throw;
+                odr::ParamPoly3* g = dynamic_cast<odr::ParamPoly3*>(it->second.get());
+                pugi::xml_node   poly3 = geometry.append_child("paramPoly3");
+                poly3.append_attribute("aU").set_value(g->aU);
+                poly3.append_attribute("aV").set_value(g->aV);
+                poly3.append_attribute("bU").set_value(g->bU);
+                poly3.append_attribute("bV").set_value(g->bV);
+                poly3.append_attribute("cU").set_value(g->cU);
+                poly3.append_attribute("cV").set_value(g->cV);
+                poly3.append_attribute("dU").set_value(g->dU);
+                poly3.append_attribute("dV").set_value(g->dV);
+                poly3.append_attribute("pRange").set_value(g->pRange_normalized ? "normalized" : "arcLength");
             }
         }
 
