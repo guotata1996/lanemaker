@@ -23,7 +23,9 @@ struct RefLine
     const RoadGeometry* get_geometry(const double s) const;
     RoadGeometry*       get_geometry(const double s);
 
-    Vec3D            get_xyz(const double s) const;
+    Vec2D            get_xy(const double s, const double t = 0) const;
+    Vec3D            get_xyz(const double s, const double t=0) const;
+    Vec2D            get_grad_xy(const double s) const;
     Vec3D            get_grad(const double s) const;
     Line3D           get_line(const double s_start, const double s_end, const double eps) const;
     double           match(const double x, const double y) const;

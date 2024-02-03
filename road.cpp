@@ -11,6 +11,10 @@
 
 namespace RoadRunner
 {
+    double to_odr_unit(type_s l) { return (double)l / 100; }
+
+    double to_odr_unit(type_t l) { return (double)l / 2 * LaneWidth; }
+
     void Road::AddLeftSection(const LaneSection& section)
     {
         if (leftProfiles.empty() || leftProfiles.back().profile != section.profile)
@@ -28,7 +32,25 @@ namespace RoadRunner
         }
     }
 
-    double Road::LaneWidth = 3.25;
+    RoadProfile Road::LeftEntrance() const 
+    {
+        return leftProfiles.empty() ? RoadProfile{ 0, 0 } : leftProfiles.rbegin()->profile;
+    }
+
+    RoadProfile Road::LeftExit() const
+    {
+        return leftProfiles.empty() ? RoadProfile{ 0, 0 } : leftProfiles.begin()->profile;
+    }
+
+    RoadProfile Road::RightEntrance() const
+    {
+        return rightProfiles.empty() ? RoadProfile{ 0, 0 } : rightProfiles.begin()->profile;
+    }
+
+    RoadProfile Road::RightExit() const
+    {
+        return rightProfiles.empty() ? RoadProfile{ 0, 0 } : rightProfiles.rbegin()->profile;
+    }
 
     std::map<double, odr::Poly3> Road::_MakeTransition(
         type_s start_s, type_s end_s,

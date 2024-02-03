@@ -5,8 +5,13 @@
 
 namespace RoadRunner
 {
+    constexpr double LaneWidth = 3.25;
+
     typedef int8_t type_t;
     typedef uint32_t type_s;
+
+    double to_odr_unit(type_s l);
+    double to_odr_unit(type_t l);
 
     struct RoadProfile
     {
@@ -40,20 +45,18 @@ namespace RoadRunner
         void SetLength(type_s a) { length = a; }
         void AddLeftSection(const LaneSection& section);
         void AddRightSection(const LaneSection& section);
-        void InsertSection(type_s sBegin, type_s sEnd, const LaneSection& section);
-        void RemoveSectionAt(type_s s);
-        LaneSection GetSectionAt(type_s s);
+        
+        RoadProfile LeftEntrance() const;
+        RoadProfile LeftExit() const;
+        RoadProfile RightEntrance() const;
+        RoadProfile RightExit() const;
+
         type_s Length() const { return length; }
 
         // Draw
         //std::list<odr::Vec3D> GetBoundary();
         // Export
         explicit operator odr::Road() const;
-
-        static double LaneWidth;
-
-        static double to_odr_unit(type_s l) { return (double)l / 100; }
-        static double to_odr_unit(type_t l) { return (double)l / 2 * LaneWidth; }
 
     protected:
         void _UpdateBoundary();

@@ -56,7 +56,7 @@ void VerifyLaneWidthinBound(const odr::Road& road)
                     double width = idToLane.second.lane_width.get(s);
 #ifdef G_TEST
                     EXPECT_LT(-epsilon, width);
-                    EXPECT_LT(width, RoadRunner::Road::LaneWidth + epsilon);
+                    EXPECT_LT(width, RoadRunner::LaneWidth + epsilon);
 #endif
                 }
             }
@@ -234,7 +234,7 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
         probe++ )
     {
         type_s s = sToSectionIt->s;
-        double odr_s = RoadRunner::Road::to_odr_unit(s);
+        double odr_s = RoadRunner::to_odr_unit(s);
         auto config = sToSectionIt->profile;
         while (*probe < odr_s)
         {
@@ -242,7 +242,7 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
             probe++;
         }
         double rightRim = gen.lane_offset.get(*probe);
-        double expectedRightRim = RoadRunner::Road::to_odr_unit(config.offsetx2);
+        double expectedRightRim = RoadRunner::to_odr_unit(config.offsetx2);
         bool rightRimSatisfy = std::abs(rightRim - expectedRightRim) < epsilon;
         odr::LaneSection probeSection = inverse_s_to_laneSection.lower_bound(-*probe)->second;
         auto rightMost = probeSection.id_to_lane.begin();
@@ -251,7 +251,7 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
         for (int laneID = -1; laneID >= rightMost->first; laneID--)
         {
             odr::Lane lane = probeSection.id_to_lane.at(laneID);
-            if (std::abs(lane.lane_width.get(*probe) - RoadRunner::Road::LaneWidth) < epsilon)
+            if (std::abs(lane.lane_width.get(*probe) - RoadRunner::LaneWidth) < epsilon)
             {
                 fullLanes++;
             }
@@ -294,7 +294,7 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
         probe++)
     {
         type_s s = sToSectionIt->s;
-        double odr_s = RoadRunner::Road::to_odr_unit(s);
+        double odr_s = RoadRunner::to_odr_unit(s);
         auto config = sToSectionIt->profile;
         while (*probe > odr_s)
         {
@@ -305,7 +305,7 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
         odr::LaneSection probeSection = inverse_s_to_laneSection.lower_bound(-*probe)->second;
         double medianWidth = hasMedianLane ? probeSection.id_to_lane.at(1).lane_width.get(*probe) : 0;
         double leftRim = rightRim + medianWidth;
-        double expectedLeftRim = RoadRunner::Road::to_odr_unit(config.offsetx2);
+        double expectedLeftRim = RoadRunner::to_odr_unit(config.offsetx2);
         bool leftRimSatisfy = std::abs(leftRim - expectedLeftRim) < epsilon;
 
         auto leftMost = probeSection.id_to_lane.rbegin();
@@ -314,7 +314,7 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
         for (int laneID = hasMedianLane ? 2 : 1; laneID <= leftMost->first; laneID++)
         {
             odr::Lane lane = probeSection.id_to_lane.at(laneID);
-            if (std::abs(lane.lane_width.get(*probe) - RoadRunner::Road::LaneWidth) < epsilon)
+            if (std::abs(lane.lane_width.get(*probe) - RoadRunner::LaneWidth) < epsilon)
             {
                 fullLanes++;
             }

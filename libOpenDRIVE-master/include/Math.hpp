@@ -82,6 +82,17 @@ constexpr Vec<T, Dim> mut(const T& scalar, const Vec<T, Dim>& a)
 }
 
 template<typename T, std::size_t Dim, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
+constexpr T dot(const Vec<T, Dim>& a, const Vec<T, Dim>& b)
+{
+    T res{};
+    for (std::size_t idx = 0; idx < Dim; idx++) 
+    {
+        res += a[idx] * b[idx];
+    }
+    return res;
+}
+
+template<typename T, std::size_t Dim, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
 constexpr T euclDistance(const Vec<T, Dim> a, const Vec<T, Dim> b)
 {
     return std::sqrt(std::inner_product(a.begin(),
@@ -106,6 +117,15 @@ template<typename T, std::size_t Dim, typename std::enable_if_t<std::is_arithmet
 constexpr T norm(const Vec<T, Dim>& v)
 {
     return std::sqrt(squaredNorm<T, Dim>(v));
+}
+
+template<typename T, std::size_t Dim, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
+constexpr Vec<T, Dim> negate(const Vec<T, Dim>& v)
+{
+    Vec<T, Dim> res{};
+    for (std::size_t idx = 0; idx < Dim; idx++)
+        res[idx] = -v[idx];
+    return res;
 }
 
 template<typename T, std::size_t Dim, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
@@ -159,4 +179,13 @@ constexpr Mat<T, 3> EulerAnglesToMatrix(const T& r_x, const T& r_y, const T& r_z
     return RotMat;
 }
 
+template<typename T, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
+constexpr Vec<T, 2> toLocal(Vec<T, 2> p, const Vec<T, 2>& origin, const Vec<T, 2>& xAxis)
+{
+    Vec<T, 2> yAxis{-xAxis[1], xAxis[0]};
+    p = sub(p, origin);
+    T x = dot(p, xAxis);
+    T y = dot(p, yAxis);
+    return Vec<T, 2>{x, y};
+}
 } // namespace odr
