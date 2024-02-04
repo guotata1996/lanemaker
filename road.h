@@ -59,8 +59,6 @@ namespace RoadRunner
         explicit operator odr::Road() const;
 
     protected:
-        void _UpdateBoundary();
-
         // Includes center Lane (ID=0)
         void ConvertSide(bool rightSide, std::map<double, odr::LaneSection>& laneSectionResult, std::map<double, odr::Poly3>& laneOffsetResult) const;
 
@@ -84,7 +82,6 @@ namespace RoadRunner
         const type_s MaxTransitionS = 20 * 100;
         
         std::list<LaneSection> leftProfiles, rightProfiles;
-        //std::list<odr::Vec3D> boundary;
 
         struct TransitionInfo
         {

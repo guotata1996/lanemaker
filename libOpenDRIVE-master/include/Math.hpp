@@ -143,6 +143,12 @@ constexpr Vec<T, 3> crossProduct(const Vec<T, 3>& a, const Vec<T, 3>& b)
     return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
 }
 
+template<typename T, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
+constexpr T crossProduct(const Vec<T, 2>& a, const Vec<T, 2>& b)
+{
+    return a[0] * b[1] - a[1] * b[0];
+}
+
 template<typename T, std::size_t Dim, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
 constexpr Vec<T, Dim> MatVecMultiplication(const Mat<T, Dim>& m, const Vec<T, Dim>& v)
 {

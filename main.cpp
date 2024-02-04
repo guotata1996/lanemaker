@@ -41,12 +41,13 @@ int main(int argc, char** argv)
     RoadRunner::Road sourceCfg("source");
     sourceCfg.SetLength(50 * 100);
     sourceCfg.AddRightSection({ RoadRunner::RoadProfile{0, 2} , 0 * 100 });
+    sourceCfg.AddLeftSection({ RoadRunner::RoadProfile{0, 2} , 50 * 100 });
     odr::Road source = (odr::Road)sourceCfg;
 
     RoadRunner::Road sinkCfg("lsink");
     sinkCfg.SetLength(50 * 100);
     sinkCfg.AddRightSection({ RoadRunner::RoadProfile{-1, 1}, 0 * 100 });
-    sinkCfg.AddLeftSection({ RoadRunner::RoadProfile{1, 1}, 100 * 100 });
+    sinkCfg.AddLeftSection({ RoadRunner::RoadProfile{1, 1}, 50 * 100 });
 
     odr::Road leftSink = (odr::Road)sinkCfg;
     odr::Road rightSink = (odr::Road)sinkCfg;
@@ -58,9 +59,9 @@ int main(int argc, char** argv)
 
     std::vector< odr::Road> connectings;
     auto junction1 = GenerateConnections({ 
-        ConnectionInfo{sourceCfg, &source, source.length},
-        ConnectionInfo{sinkCfg, &rightSink, leftSink.length},
-        ConnectionInfo{sinkCfg, &leftSink, rightSink.length} },
+        ConnectionInfo{sourceCfg, &source, source.length, std::vector<double>{0, 1}},
+        ConnectionInfo{sinkCfg, &rightSink, leftSink.length, std::vector<double> {0, 0.5}},
+        ConnectionInfo{sinkCfg, &leftSink, rightSink.length, std::vector<double> {0, 0}} },
         connectings);
 
     odr::OpenDriveMap test_map;
