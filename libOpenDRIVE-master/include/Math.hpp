@@ -194,4 +194,13 @@ constexpr Vec<T, 2> toLocal(Vec<T, 2> p, const Vec<T, 2>& origin, const Vec<T, 2
     T y = dot(p, yAxis);
     return Vec<T, 2>{x, y};
 }
+
+template<typename T, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
+T angle(const Vec<T, 2>& from, const Vec<T, 2>& to)
+{
+    T c = crossProduct(from, to);
+    T d = dot(from, to);
+    return std::atan2(c, d);
+}
+
 } // namespace odr

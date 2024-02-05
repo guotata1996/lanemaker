@@ -60,8 +60,8 @@ int main(int argc, char** argv)
     std::vector< odr::Road> connectings;
     auto junction1 = GenerateConnections({ 
         ConnectionInfo{sourceCfg, &source, source.length, std::vector<double>{0, 1}},
-        ConnectionInfo{sinkCfg, &rightSink, leftSink.length, std::vector<double> {0, 0.5}},
-        ConnectionInfo{sinkCfg, &leftSink, rightSink.length, std::vector<double> {0, 0}} },
+        ConnectionInfo{sinkCfg, &rightSink, rightSink.length, std::vector<double> {0, 0.5}},
+        ConnectionInfo{sinkCfg, &leftSink, leftSink.length, std::vector<double> {0.5, 0.5}} },
         connectings);
 
     odr::OpenDriveMap test_map;
