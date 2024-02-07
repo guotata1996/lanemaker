@@ -22,52 +22,41 @@ int main(int argc, char** argv)
     
     spdlog::set_level(spdlog::level::info);
 
-    //odr::Line l1(0, 0, -50, M_PI / 2, 20);
-    //odr::Line l2(0, 30, -20, M_PI * 7 / 4, 20);
-    //// odr::Line l2(0, 50, -20, M_PI * 5 / 4, 20);
-    //auto connectingRefLine = ConnectLines(l1, l2);
-    //if (connectingRefLine.has_value())
-    //{
-    //    odr::OpenDriveMap test_map;
-    //    RoadRunner::Road connecting("conn");
-    //    connecting.SetLength(connectingRefLine.value().length * 100);
-    //    connecting.AddRightSection({ RoadRunner::RoadProfile{1, 1}, 0 });
-    //    odr::Road connectingRoad = (odr::Road)connecting;
-    //    connectingRoad.ref_line.s0_to_geometry[0] = connectingRefLine.value().clone();
-    //    test_map.id_to_road.insert({ "1", connectingRoad });
-    //    test_map.export_file("C:\\Users\\guota\\Downloads\\junction.xodr");
-    //}
+    RoadRunner::Road vConfig("bottom");
+    vConfig.SetLength(40 * 100);
+    vConfig.AddRightSection({ RoadRunner::RoadProfile{-1, 3} , 0 * 100 });
+    vConfig.AddLeftSection({ RoadRunner::RoadProfile{1, 2} , 40 * 100 });
+    RoadRunner::Road hConfig("left");
+    hConfig.SetLength(40 * 100);
+    hConfig.AddRightSection({ RoadRunner::RoadProfile{-1, 1}, 0 * 100 });
+    hConfig.AddLeftSection({ RoadRunner::RoadProfile{1, 2}, 40 * 100 });
 
-    RoadRunner::Road sourceCfg("source");
-    sourceCfg.SetLength(50 * 100);
-    sourceCfg.AddRightSection({ RoadRunner::RoadProfile{0, 2} , 0 * 100 });
-    sourceCfg.AddLeftSection({ RoadRunner::RoadProfile{0, 2} , 50 * 100 });
-    odr::Road source = (odr::Road)sourceCfg;
+    odr::Road bottom = (odr::Road)vConfig;
+    odr::Road upper = (odr::Road)vConfig;
+    upper.id = "upper";
 
-    RoadRunner::Road sinkCfg("lsink");
-    sinkCfg.SetLength(50 * 100);
-    sinkCfg.AddRightSection({ RoadRunner::RoadProfile{-1, 1}, 0 * 100 });
-    sinkCfg.AddLeftSection({ RoadRunner::RoadProfile{1, 1}, 50 * 100 });
+    odr::Road left = (odr::Road)hConfig;
+    odr::Road right = (odr::Road)hConfig;
+    right.id = "right";
 
-    odr::Road leftSink = (odr::Road)sinkCfg;
-    odr::Road rightSink = (odr::Road)sinkCfg;
-    rightSink.id = "rsink";
-
-    source.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, 0, -60, M_PI / 2, source.length);
-    leftSink.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, -60, 0, 0, leftSink.length);
-    rightSink.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, 60, 0, M_PI, rightSink.length);
+    bottom.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, 0, -60, M_PI / 2, bottom.length);
+    upper.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, 0, 20, M_PI / 2, upper.length);
+    left.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, -60, 0, 0, left.length);
+    right.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, 20, 0, 0, right.length);
 
     std::vector< odr::Road> connectings;
     auto junction1 = GenerateConnections({ 
-        ConnectionInfo{sourceCfg, &source, source.length, std::vector<double>{0, 1}},
-        ConnectionInfo{sinkCfg, &rightSink, rightSink.length, std::vector<double> {0, 0.5}},
-        ConnectionInfo{sinkCfg, &leftSink, leftSink.length, std::vector<double> {0.5, 0.5}} },
+        ConnectionInfo{vConfig, &bottom, bottom.length},
+        ConnectionInfo{vConfig, &upper, 0},
+        ConnectionInfo{hConfig, &left, left.length},
+        ConnectionInfo{hConfig, &right, 0} },
         connectings);
 
     odr::OpenDriveMap test_map;
-    test_map.id_to_road.insert({ source.id, source });
-    test_map.id_to_road.insert({ rightSink.id, rightSink });
-    test_map.id_to_road.insert({ leftSink.id, leftSink });
+    test_map.id_to_road.insert({ bottom.id, bottom });
+    test_map.id_to_road.insert({ upper.id, upper });
+    test_map.id_to_road.insert({ right.id, right });
+    test_map.id_to_road.insert({ left.id, left });
     for (auto connecting : connectings)
     {
         test_map.id_to_road.insert({ connecting.id, connecting });

@@ -41,15 +41,18 @@ namespace RoadRunner
         odr::Vec2D toOrigin, toForward;
 
         TurningSemantics direction;
+        int8_t toTotalLanes;
 
         int8_t fromLaneIDBase, toLaneIDBase; // e.g. For lane {-2,-3}, base = -2
         int8_t nLanes;
     };
 
     // @param: from center to right lanes
-    std::vector<double> assignIncomingLanes(int8_t nLanes, std::vector<int8_t> outgoingTotals);
+    std::vector<double> assignIncomingLanes(int8_t nLanes, const std::vector<TurningGroup>& outgoings);
+
+    std::vector<std::pair<int, int>> splitPointToLaneCount(int8_t nLanes, std::vector<double> splitPoints);
 
     // @param: from center to right lanes
     // @returns: Span = [rtn, rtn+lane_count-1]
-    void assignOutgoingLanes(int8_t nLanes, std::vector<TurningGroup>& incomingLanes);
+    void assignOutgoingLanes(std::vector<TurningGroup>& incomingLanes);
 }

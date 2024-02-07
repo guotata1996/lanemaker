@@ -111,34 +111,11 @@ namespace RoadRunner
                 return odr::crossProduct(va, incomingRoad.forward) < odr::crossProduct(vb, incomingRoad.forward);
             });
 
-            std::vector<double> dirSplit = incomingRoad.dirSplit;
-            if (dirSplit.size() != outgoingEndpoints.size() - 1)
+            std::vector<TurningGroup> allPossibleOutgoings;
+            allPossibleOutgoings.reserve(outgoingEndpoints.size());
+            
+            for (auto outgoingRoad :outgoingEndpoints)
             {
-                std::vector<int8_t> outgoingLaneCounts;
-                std::transform(
-                    outgoingEndpoints.begin(), outgoingEndpoints.end(), outgoingLaneCounts.begin(),
-                    [](const RoadEndpoint& a) {return a.nLanes; });
-                dirSplit = assignIncomingLanes(incomingRoad.nLanes, outgoingLaneCounts);
-                assert(dirSplit.size() == outgoingEndpoints.size() - 1);
-            }
-            dirSplit.insert(dirSplit.begin(), 0);
-            dirSplit.push_back(incomingRoad.nLanes);
-
-            int8_t outgoingIndex = 0;
-            for (auto dirBegin = dirSplit.begin(), dirEnd = ++dirSplit.begin();
-                dirEnd != dirSplit.end(); ++dirBegin, ++dirEnd, ++outgoingIndex)
-            {
-                const RoadEndpoint& outgoingRoad = outgoingEndpoints[outgoingIndex];
-                double beginLane = *dirBegin;
-                double endLane = *dirEnd;
-                assert(beginLane <= endLane);
-                if (beginLane == endLane)
-                {
-                    continue;
-                }
-                int8_t beginIndex = std::floor(beginLane);
-                int8_t endIndex = std::ceil(endLane);
-                int8_t nLane = endIndex - beginIndex;
                 double turnAngle = odr::angle(incomingRoad.forward, outgoingRoad.forward);
                 auto turningSemantics = TurningSemantics::No;
                 if (incomingRoad.roadID == outgoingRoad.roadID)
@@ -153,14 +130,37 @@ namespace RoadRunner
                 {
                     turningSemantics = TurningSemantics::Right;
                 }
-                turningGroups.emplace(
-                    std::make_pair(incomingRoad.roadID, outgoingRoad.roadID),
+                allPossibleOutgoings.emplace_back(
                     TurningGroup{
                         incomingRoad.origin, incomingRoad.forward,
                         outgoingRoad.origin, outgoingRoad.forward,
-                        turningSemantics,
-                        beginIndex, 0,
-                        nLane });
+                        turningSemantics, outgoingRoad.nLanes});
+            }
+
+            // Fetch or compute dir split
+            std::vector<double> dirSplit = incomingRoad.dirSplit;
+            if (dirSplit.size() != outgoingEndpoints.size() - 1)
+            {
+                dirSplit = assignIncomingLanes(incomingRoad.nLanes, allPossibleOutgoings);
+                assert(dirSplit.size() == outgoingEndpoints.size() - 1);
+            }
+
+            // Filter out true turns
+            int8_t outgoingIndex = 0;
+            for (std::pair<int, int>& beginAndCount : splitPointToLaneCount(incomingRoad.nLanes, dirSplit))
+            {
+                int nLanes = beginAndCount.second;
+                if (nLanes != 0)
+                {
+                    auto outgoingRoad = outgoingEndpoints[outgoingIndex];
+                    TurningGroup outgoingGroup = allPossibleOutgoings[outgoingIndex];
+                    outgoingGroup.fromLaneIDBase = beginAndCount.first;
+                    outgoingGroup.nLanes = nLanes;
+                    turningGroups.emplace(
+                        std::make_pair(incomingRoad.roadID, outgoingRoad.roadID),
+                        outgoingGroup);
+                }
+                outgoingIndex++;
             }
         }
 
@@ -195,7 +195,7 @@ namespace RoadRunner
                     existingIncomingGroups.push_back(turningGroups.at(inOutKey));
                 }
             }
-            assignOutgoingLanes(outgoingRoad.nLanes, existingIncomingGroups);
+            assignOutgoingLanes(existingIncomingGroups);
 
             auto assignResult = existingIncomingGroups.begin();
             for (const auto& incomingRoad : incomingEndpoints)
@@ -239,8 +239,22 @@ namespace RoadRunner
 
             if (connectLine.has_value())
             {
-                RoadRunner::Road connecting(std::to_string(connectingIndex++) + "_" + 
-                    std::to_string(turningGroup.direction));
+                std::string directionName;
+                switch (turningGroup.direction)
+                {
+                case TurningSemantics::U:
+                    directionName = "_u-turn";
+                    break;
+                case TurningSemantics::Left:
+                    directionName = "_left-turn";
+                    break;
+                case TurningSemantics::Right:
+                    directionName = "_right-turn";
+                    break;
+                default:
+                    break;
+                }
+                RoadRunner::Road connecting(std::to_string(connectingIndex++) + directionName);
                 connecting.SetLength(connectLine.value().length * 100);
                 connecting.AddRightSection({ RoadRunner::RoadProfile{turningGroup.nLanes, turningGroup.nLanes}, 0 });
                 odr::Road gen = (odr::Road)connecting;
@@ -258,14 +272,178 @@ namespace RoadRunner
         return odr::Junction("1", "junction 1"); // TODO: linkage
     }
 
-    std::vector<double> assignIncomingLanes(int8_t nLanes, std::vector<int8_t> outgoingTotals)
+    std::vector<std::pair<int, int>> splitPointToLaneCount(int8_t nLanes, std::vector<double> splitPoints)
     {
-        // TODO
-        assert(false);
+        splitPoints.insert(splitPoints.begin(), 0);
+        splitPoints.push_back(nLanes);
+        std::vector<std::pair<int, int>> rtn;
+
+        for (auto dirBegin = splitPoints.begin(), dirEnd = ++splitPoints.begin();
+            dirEnd != splitPoints.end(); ++dirBegin, ++dirEnd)
+        {
+            double beginLane = *dirBegin;
+            double endLane = *dirEnd;
+            int beginIndex, endIndex;
+            if (std::abs(beginLane - std::round(beginLane)) < 1e-4)
+            {
+                beginIndex = std::round(beginLane);
+            }
+            else
+            {
+                beginIndex = std::floor(beginLane);
+            }
+
+            if (std::abs(endLane - std::round(endLane)) < 1e-4)
+            {
+                endIndex = std::round(endLane);
+            }
+            else
+            {
+                endIndex = std::ceil(endLane);
+            }
+            int laneCount = std::abs(beginLane - endLane) < 1e-4 ? 0 : endIndex - beginIndex;
+            rtn.push_back(std::make_pair(beginIndex, laneCount));
+        }
+        return rtn;
+    }
+
+    std::vector<double> assignIncomingLanes(int8_t nLanes, const std::vector<TurningGroup>& outgoings)
+    {
+        int totalOutgoingLanes = 0;
+        std::for_each(outgoings.begin(), outgoings.end(), [&totalOutgoingLanes](const TurningGroup& group)
+            {totalOutgoingLanes += group.toTotalLanes; });
+        if (totalOutgoingLanes < nLanes)
+        {
+            spdlog::error("Not enough outgoing lanes for incomings to distribute!");
+            return {};
+        }
+
+        constexpr double idealSemanticsWeight[4]{1, 0.01, 0.99, 0.5}; // No, U, Left, Right
+
+        std::vector<double> rtn;
+        for (int semanticsFactor = 5; semanticsFactor >= 0; --semanticsFactor)
+        {
+            double factor01 = (double)semanticsFactor / 5;
+            double semanticsWeight[4]{
+                idealSemanticsWeight[0] * factor01 + 1.0 * (1 - factor01),
+                idealSemanticsWeight[1] * factor01 + 1.0 * (1 - factor01),
+                idealSemanticsWeight[2] * factor01 + 1.0 * (1 - factor01),
+                idealSemanticsWeight[3] * factor01 + 1.0 * (1 - factor01),
+            };
+            // Raw distribution by semantic_weight * inflated_nLanes
+            std::vector<double> weights(outgoings.size());
+            std::transform(outgoings.begin(), outgoings.end(), weights.begin(),
+                [&semanticsWeight](const TurningGroup& p) {
+                return p.toTotalLanes * semanticsWeight[(int)p.direction]; });
+            // Turn weight into normalized cumulative
+            double init = 0;
+            double sumWeight = std::accumulate(weights.begin(), weights.end(), init);
+            assert(sumWeight > 1e-4);
+            std::transform(weights.begin(), weights.end(), weights.begin(),
+                [nLanes, sumWeight](double w) {return w / sumWeight * nLanes; });
+            
+            rtn.clear();
+            for (double w : weights)
+            {
+                double cum = rtn.empty() ? w : rtn.back() + w;
+                rtn.push_back(cum);
+            }
+            rtn.pop_back();
+
+            std::stringstream sss;
+            std::for_each(rtn.begin(), rtn.end(), [&sss](double p) {sss << p << " "; });
+            spdlog::trace("Initial: {} lane assignment = {}", nLanes, sss.str());
+            
+            // Adjust result to obey out lane limit
+            for (int adjustment = 0; adjustment != 20; ++adjustment)
+            {
+                std::vector<std::pair<int, int>> proposal = splitPointToLaneCount(nLanes, rtn);
+                assert(proposal.size() == outgoings.size());
+
+                bool pass = true;
+                bool dead = false;
+                for (int i = 0; i != proposal.size(); ++i)
+                {
+                    int proposedLanes = proposal[i].second;
+                    int limit = outgoings[i].toTotalLanes;
+                    if (proposedLanes > limit)
+                    {
+                        pass = false;
+                        double moveLeftCost = 10, moveRightCost = 10;
+                        if (i != 0)
+                        {
+                            // left boundary can be moved right
+                            moveLeftCost = std::ceil(rtn[i - 1]) - rtn[i - 1];
+                        }
+                        if (i != proposal.size() - 1)
+                        {
+                            // right boundary can be moved left
+                            moveRightCost = rtn[i] - std::floor(rtn[i]);
+                        }
+                        
+                        if (1e-4 <= moveLeftCost && moveLeftCost <= moveRightCost)
+                        {
+                            // moving left boundary is easier
+                            rtn[i - 1] = std::ceil(rtn[i - 1]);
+                        }
+                        else if (1e-4 <= moveRightCost && moveRightCost <= moveLeftCost)
+                        {
+                            // moving right boundary is easier
+                            rtn[i] = std::floor(rtn[i]);
+                        }
+                        else
+                        {
+                            // No further adjustment can be made
+                            dead = true;
+                        }
+                    }
+                }
+                if (pass)
+                {
+                    // Prevent multi-direction lanes unless necessary
+                    std::vector<std::pair<int, int>> resulting = splitPointToLaneCount(nLanes, rtn);
+                    for (int lane = 0; lane != resulting.size(); ++lane)
+                    {
+                        int number = resulting[lane].second;
+                        if (number == 1)
+                        {
+                            // section cannot shrink
+                            continue;
+                        }
+                        
+                        // If there's an overlap with a higher-importance neighbor
+                        // Try shrinking self At the cost of -1 lane to eliminate overlap
+                        if (lane > 0 && std::ceil(rtn[lane - 1]) - rtn[lane - 1] > 1e-4
+                            && idealSemanticsWeight[outgoings[lane - 1].direction] > idealSemanticsWeight[outgoings[lane].direction])
+                        {
+                            // left boundary can be moved right, so that my section will not share lane with left neighbor
+                            rtn[lane - 1] = std::ceil(rtn[lane - 1]);
+                        }
+                        if (lane < resulting.size() - 1 && rtn[lane] - std::floor(rtn[lane])
+                            && idealSemanticsWeight[outgoings[lane + 1].direction] > idealSemanticsWeight[outgoings[lane].direction])
+                        {
+                            // right boundary can be moved left, so that my section will not share lane with right neighbor
+                            rtn[lane] = std::floor(rtn[lane]);
+                        }
+                    }
+
+                    std::stringstream ss;
+                    std::for_each(rtn.begin(), rtn.end(), [&ss](double p) {ss << p << " "; });
+                    spdlog::debug("{} lane final assignment = {} at semantics w = {}", nLanes, ss.str(), factor01);
+                    return rtn;
+                }
+                if (dead)
+                {
+                    break;
+                }
+            }
+        }
+
+        spdlog::error("Can't find a suitable incoming lane distribution. Algo failed!");
         return {};
     }
 
-    void assignOutgoingLanes(int8_t nLanes, std::vector<TurningGroup>& incomingLanes)
+    void assignOutgoingLanes(std::vector<TurningGroup>& incomingLanes)
     {
         for (TurningGroup& group : incomingLanes)
         {
@@ -280,7 +458,7 @@ namespace RoadRunner
                 group.toLaneIDBase = 0;
                 break;
             case TurningSemantics::Right:
-                group.toLaneIDBase = nLanes - group.nLanes;
+                group.toLaneIDBase = group.toTotalLanes - group.nLanes;
                 break;
             }
         }
