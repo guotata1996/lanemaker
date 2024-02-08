@@ -31,21 +31,19 @@ std::vector<int> RandomSortedVector(int low, int hi, uint32_t count)
     return std::vector<int>(_set.begin(), _set.end());
 }
 
-RoadRunner::Road GenerateConfig(int seed)
+RoadRunner::RoadProfile GenerateConfig(int seed)
 {
     srand(seed);
-    RoadRunner::Road road(std::to_string(seed));
 
     const uint32_t Length_M = 100;
     const uint32_t MinSection_M = 5;
-
-    road.SetLength(Length_M * 100);
+    RoadRunner::RoadProfile road(Length_M * 100);
 
     std::vector<int> rightS = RandomSortedVector(0, Length_M / MinSection_M, 7);
     rightS.pop_back();
     for (uint32_t s : rightS)
     {
-        RoadRunner::RoadProfile profile;
+        RoadRunner::SectionProfile profile;
         profile.offsetx2 = RandomIntBetween(-3, 0);
         profile.laneCount = RandomIntBetween(1, 4);
         auto s_cm = 100 * MinSection_M * s;
@@ -58,7 +56,7 @@ RoadRunner::Road GenerateConfig(int seed)
     leftS.pop_back();
     for (uint32_t s : leftS)
     {
-        RoadRunner::RoadProfile profile;
+        RoadRunner::SectionProfile profile;
         profile.offsetx2 = RandomIntBetween(0, 3);
         profile.laneCount = RandomIntBetween(1, 4);
         auto s_cm = 100 * (Length_M - MinSection_M * s);

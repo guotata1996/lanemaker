@@ -9,8 +9,10 @@
 
 #include "GameGraphicsScene.h"
 
-#include "verification.h"
-#include "test_randomization.h"
+// #include "verification.h"
+// #include "test_randomization.h"
+
+#include <spdlog/spdlog.h>
 
 #include "Geometries/Line.h"
 #include "Geometries/ParamPoly3.h"
@@ -22,41 +24,37 @@ int main(int argc, char** argv)
     
     spdlog::set_level(spdlog::level::info);
 
-    RoadRunner::Road vConfig("bottom");
-    vConfig.SetLength(40 * 100);
-    vConfig.AddRightSection({ RoadRunner::RoadProfile{-1, 3} , 0 * 100 });
-    vConfig.AddLeftSection({ RoadRunner::RoadProfile{1, 2} , 40 * 100 });
-    RoadRunner::Road hConfig("left");
-    hConfig.SetLength(40 * 100);
-    hConfig.AddRightSection({ RoadRunner::RoadProfile{-1, 1}, 0 * 100 });
-    hConfig.AddLeftSection({ RoadRunner::RoadProfile{1, 2}, 40 * 100 });
+    RoadRunner::RoadProfile vConfig(40 * 100);
+    vConfig.AddRightSection({ RoadRunner::SectionProfile{-1, 3} , 0 * 100 });
+    vConfig.AddLeftSection({ RoadRunner::SectionProfile{1, 2} , 40 * 100 });
+    RoadRunner::RoadProfile hConfig(40 * 100);
+    hConfig.AddRightSection({ RoadRunner::SectionProfile{-1, 1}, 0 * 100 });
+    hConfig.AddLeftSection({ RoadRunner::SectionProfile{1, 2}, 40 * 100 });
 
-    odr::Road bottom = (odr::Road)vConfig;
-    odr::Road upper = (odr::Road)vConfig;
-    upper.id = "upper";
+    RoadRunner::Road upper("upper", vConfig);
+    RoadRunner::Road bottom("bottom", vConfig);
 
-    odr::Road left = (odr::Road)hConfig;
-    odr::Road right = (odr::Road)hConfig;
-    right.id = "right";
+    RoadRunner::Road left("left", hConfig);
+    RoadRunner::Road right("right", hConfig);
 
-    bottom.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, 0, -60, M_PI / 2, bottom.length);
-    upper.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, 0, 20, M_PI / 2, upper.length);
-    left.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, -60, 0, 0, left.length);
-    right.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, 20, 0, 0, right.length);
+    bottom.Generate(odr::Line(0, 0, -60, M_PI / 2, bottom.Length()));
+    upper.Generate(odr::Line(0, 0, 20, M_PI / 2, upper.Length()));
+    left.Generate(odr::Line(0, -60, 0, 0, left.Length()));
+    right.Generate(odr::Line(0, 20, 0, 0, right.Length()));
 
     std::vector< odr::Road> connectings;
-    auto junction1 = GenerateConnections({ 
-        ConnectionInfo{vConfig, &bottom, bottom.length},
-        ConnectionInfo{vConfig, &upper, 0},
-        ConnectionInfo{hConfig, &left, left.length},
-        ConnectionInfo{hConfig, &right, 0} },
+    auto junction1 = RoadRunner::GenerateConnections({
+        RoadRunner::ConnectionInfo{&bottom, bottom.Length()},
+        RoadRunner::ConnectionInfo{&upper, 0},
+        RoadRunner::ConnectionInfo{&left, left.Length()},
+        RoadRunner::ConnectionInfo{&right, 0} },
         connectings);
 
     odr::OpenDriveMap test_map;
-    test_map.id_to_road.insert({ bottom.id, bottom });
-    test_map.id_to_road.insert({ upper.id, upper });
-    test_map.id_to_road.insert({ right.id, right });
-    test_map.id_to_road.insert({ left.id, left });
+    test_map.id_to_road.insert({ bottom.ID(), bottom.generated});
+    test_map.id_to_road.insert({ upper.ID(), upper.generated});
+    test_map.id_to_road.insert({ right.ID(), right.generated});
+    test_map.id_to_road.insert({ left.ID(), left.generated});
     for (auto connecting : connectings)
     {
         test_map.id_to_road.insert({ connecting.id, connecting });

@@ -12,15 +12,15 @@ namespace RoadRunner
         std::vector<RoadEndpoint> incomingEndpoints, outgoingEndpoints;
         for (auto& roadAndS : connected)
         {
-            odr::Road* road = roadAndS.gen;
+            odr::Road* road = &roadAndS.road->generated;
             double meetAt = roadAndS.s;
-            Road config = roadAndS.config;
+            RoadProfile config = roadAndS.road->profile;
             odr::LaneSection meetSection = meetAt == 0 ? 
                 road->s_to_lanesection.begin()->second : road->s_to_lanesection.rbegin()->second;
             
             if (meetAt == 0)
             {
-                RoadProfile rightEntrance = config.RightEntrance();
+                SectionProfile rightEntrance = config.RightEntrance();
                 if (rightEntrance.laneCount != 0)
                 {
                     double offset = to_odr_unit(rightEntrance.offsetx2);
@@ -34,7 +34,7 @@ namespace RoadRunner
                             rightEntrance.laneCount
                         });
                 }
-                RoadProfile leftExit = config.LeftExit();
+                SectionProfile leftExit = config.LeftExit();
                 if (leftExit.laneCount != 0)
                 {
                     double offset = to_odr_unit(leftExit.offsetx2);
@@ -52,7 +52,7 @@ namespace RoadRunner
             }
             else
             {
-                RoadProfile rightExit = config.RightExit();
+                SectionProfile rightExit = config.RightExit();
                 if (rightExit.laneCount != 0)
                 {
                     double offset = to_odr_unit(rightExit.offsetx2);
@@ -67,7 +67,7 @@ namespace RoadRunner
                             roadAndS.dirSplit
                         });
                 }
-                RoadProfile leftEntrance = config.LeftEntrance();
+                SectionProfile leftEntrance = config.LeftEntrance();
                 if (leftEntrance.laneCount != 0)
                 {
                     double offset = to_odr_unit(leftEntrance.offsetx2);
@@ -254,13 +254,11 @@ namespace RoadRunner
                 default:
                     break;
                 }
-                RoadRunner::Road connecting(std::to_string(connectingIndex++) + directionName);
-                connecting.SetLength(connectLine.value().length * 100);
-                connecting.AddRightSection({ RoadRunner::RoadProfile{turningGroup.nLanes, turningGroup.nLanes}, 0 });
-                odr::Road gen = (odr::Road)connecting;
-
-                gen.ref_line.s0_to_geometry[0] = connectLine.value().clone();
-                connectings.push_back(gen);
+                RoadRunner::RoadProfile connectingProfile;
+                connectingProfile.AddRightSection({ RoadRunner::SectionProfile{turningGroup.nLanes, turningGroup.nLanes}, 0 });
+                Road connecting(std::to_string(connectingIndex++) + directionName, connectingProfile);
+                connecting.Generate(connectLine.value());
+                connectings.push_back(connecting.generated);
             }
             else
             {

@@ -10,8 +10,7 @@ namespace RoadRunner
     // public
     struct ConnectionInfo
     {
-        Road config;
-        odr::Road* gen;
+        Road* road;
         double s;
         std::vector<double> dirSplit; // not needed for outgoing-only connection
     };

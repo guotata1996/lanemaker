@@ -15,7 +15,7 @@ namespace RoadRunner
 
     double to_odr_unit(type_t l) { return (double)l / 2 * LaneWidth; }
 
-    void Road::AddLeftSection(const LaneSection& section)
+    void RoadProfile::AddLeftSection(const LaneSection& section)
     {
         if (leftProfiles.empty() || leftProfiles.back().profile != section.profile)
         {
@@ -24,7 +24,7 @@ namespace RoadRunner
         // _UpdateBoundary();
     }
 
-    void Road::AddRightSection(const LaneSection& section)
+    void RoadProfile::AddRightSection(const LaneSection& section)
     {
         if (rightProfiles.empty() || rightProfiles.back().profile != section.profile)
         {
@@ -32,27 +32,27 @@ namespace RoadRunner
         }
     }
 
-    RoadProfile Road::LeftEntrance() const 
+    SectionProfile RoadProfile::LeftEntrance() const 
     {
-        return leftProfiles.empty() ? RoadProfile{ 0, 0 } : leftProfiles.rbegin()->profile;
+        return leftProfiles.empty() ? SectionProfile{ 0, 0 } : leftProfiles.rbegin()->profile;
     }
 
-    RoadProfile Road::LeftExit() const
+    SectionProfile RoadProfile::LeftExit() const
     {
-        return leftProfiles.empty() ? RoadProfile{ 0, 0 } : leftProfiles.begin()->profile;
+        return leftProfiles.empty() ? SectionProfile{ 0, 0 } : leftProfiles.begin()->profile;
     }
 
-    RoadProfile Road::RightEntrance() const
+    SectionProfile RoadProfile::RightEntrance() const
     {
-        return rightProfiles.empty() ? RoadProfile{ 0, 0 } : rightProfiles.begin()->profile;
+        return rightProfiles.empty() ? SectionProfile{ 0, 0 } : rightProfiles.begin()->profile;
     }
 
-    RoadProfile Road::RightExit() const
+    SectionProfile RoadProfile::RightExit() const
     {
-        return rightProfiles.empty() ? RoadProfile{ 0, 0 } : rightProfiles.rbegin()->profile;
+        return rightProfiles.empty() ? SectionProfile{ 0, 0 } : rightProfiles.rbegin()->profile;
     }
 
-    std::map<double, odr::Poly3> Road::_MakeTransition(
+    std::map<double, odr::Poly3> RoadProfile::_MakeTransition(
         type_s start_s, type_s end_s,
         type_t start_t2, type_t end_t2, bool rightSide) const
     {
@@ -91,7 +91,7 @@ namespace RoadRunner
         };
     }
 
-    std::map<double, odr::Poly3> Road::_MakeStraight(type_s start_s, type_s end_s, type_t const_t, bool rightSide) const
+    std::map<double, odr::Poly3> RoadProfile::_MakeStraight(type_s start_s, type_s end_s, type_t const_t, bool rightSide) const
     {
         assert(start_s <= end_s);
         double odr_start_s = rightSide ? to_odr_unit(start_s) : to_odr_unit(Length() - end_s);
@@ -102,7 +102,7 @@ namespace RoadRunner
         };
     }
 
-    void Road::ConvertSide(bool rightSide,
+    void RoadProfile::ConvertSide(bool rightSide, std::string roadID,
         std::map<double, odr::LaneSection>& laneSectionResult,
         std::map<double, odr::Poly3>& laneOffsetResult) const
     {
@@ -135,8 +135,8 @@ namespace RoadRunner
         {
             const LaneSection& preSection = *pre;
             const LaneSection& currSection = *curr;
-            const RoadProfile& preProfile = preSection.profile;
-            const RoadProfile& currProfile = currSection.profile;
+            const SectionProfile& preProfile = preSection.profile;
+            const SectionProfile& currProfile = currSection.profile;
             const int TSign = rightSide ? 1 : -1;
             
             // pre->curr
@@ -408,7 +408,7 @@ namespace RoadRunner
         }
     }
 
-    std::map<double, odr::Poly3> Road::_ComputeMedian(
+    std::map<double, odr::Poly3> RoadProfile::_ComputeMedian(
         const std::map<double, odr::Poly3>& leftOffsets,
         const std::map<double, odr::Poly3> rightOffsets) const
     {
@@ -459,7 +459,7 @@ namespace RoadRunner
         return centerWidths;
     }
 
-    void Road::_MergeSides(odr::Road& rtn,
+    void RoadProfile::_MergeSides(odr::Road& rtn,
         const std::map<double, odr::LaneSection>& leftSections,
         const std::map<double, odr::Poly3>& centerWidths,
         const std::map<double, odr::LaneSection>& rightSections) const
@@ -492,8 +492,8 @@ namespace RoadRunner
             const odr::LaneSection& rightSection = rightSections.at(keyRight);
             odr::Poly3 centerWidth = centerWidths.at(keyCenter);
 
-            odr::LaneSection section(roadID, sectionStart);
-            odr::Lane center(roadID, sectionStart, 0, false, "");
+            odr::LaneSection section(rtn.id, sectionStart);
+            odr::Lane center(rtn.id, sectionStart, 0, false, "");
             section.id_to_lane.emplace(0, center);
 
             for (const auto& idToLane : rightSection.id_to_lane)
@@ -502,7 +502,7 @@ namespace RoadRunner
                 int newLaneID = idToLane.first;
                 if (newLaneID == 0) continue; // Skip center lane
 
-                odr::Lane newLane(roadID, sectionStart, newLaneID, false, "driving");
+                odr::Lane newLane(rtn.id, sectionStart, newLaneID, false, "driving");
                 for (auto s0_poly : rightLane.lane_width.s0_to_poly)
                 {
                     s0_poly.second.ComputeRelative(sectionStart);
@@ -538,7 +538,7 @@ namespace RoadRunner
             
             {
                 centerWidth.ComputeRelative(sectionStart);
-                odr::Lane medianLane(roadID, sectionStart, leftIDStart, false, "median");
+                odr::Lane medianLane(rtn.id, sectionStart, leftIDStart, false, "median");
                 if (std::abs(centerWidth.a) + std::abs(centerWidth.b) + std::abs(centerWidth.c) + std::abs(centerWidth.d) > 1e-3)
                     medianLane.lane_width.s0_to_poly.emplace(keyCenter, centerWidth);
                 section.id_to_lane.emplace(1, medianLane);
@@ -550,7 +550,7 @@ namespace RoadRunner
                 int newLaneID = idToLane.first + leftIDStart;
                 if (newLaneID == 1) continue; // Skip center lane
 
-                odr::Lane newLane(roadID, sectionStart, newLaneID, false, "driving");
+                odr::Lane newLane(rtn.id, sectionStart, newLaneID, false, "driving");
                 for (auto s0_poly : leftLane.lane_width.s0_to_poly)
                 {
                     s0_poly.second.ComputeRelative(sectionStart);
@@ -608,27 +608,25 @@ namespace RoadRunner
         }
     }
 
-    Road::operator odr::Road() const
+    void RoadProfile::Apply(odr::Road& rtn) const
     {
         // Fail if either side is undefined
         assert(Length() > 0);
         assert(!leftProfiles.empty() || !rightProfiles.empty());
 
         double rtnLength = to_odr_unit(Length());
-        odr::Road rtn(roadID, rtnLength, "-1", "road " + roadID);
-        rtn.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, 0, 0, 0, rtnLength);
+        rtn.length = rtnLength;
 
         std::map<double, odr::LaneSection> leftSections, rightSections;
         std::map<double, odr::Poly3> leftOffsets, rightOffsets;
-
         if (!rightProfiles.empty())
         {
-            ConvertSide(true, rightSections, rightOffsets);
+            ConvertSide(true, rtn.id, rightSections, rightOffsets);
         }
 
         if (!leftProfiles.empty())
         {
-            ConvertSide(false, leftSections, leftOffsets);
+            ConvertSide(false, rtn.id, leftSections, leftOffsets);
         }
         // from this point, s keys align with road coordinate
 
@@ -637,13 +635,13 @@ namespace RoadRunner
         {
             rtn.lane_offset.s0_to_poly = leftOffsets;
             rtn.s_to_lanesection = leftSections;
-            return rtn;
+            return;
         }
         if (leftProfiles.empty())
         {
             rtn.lane_offset.s0_to_poly = rightOffsets;
             rtn.s_to_lanesection = rightSections;
-            return rtn;
+            return;
         }
 
         // General case
@@ -667,7 +665,5 @@ namespace RoadRunner
         spdlog::trace("Center Keys:  {}", SPDLOG_CKEYS.str());
 
         _MergeSides(rtn, leftSections, centerWidths, rightSections);
-
-        return rtn;
     } // class function
 } // namespace

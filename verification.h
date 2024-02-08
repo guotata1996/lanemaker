@@ -200,14 +200,14 @@ void VerifySingleRoadLinkage(const odr::Road& road)
     } // For each section
 }
 
-class RoadForTest : public RoadRunner::Road
+class RoadForTest : public RoadRunner::RoadProfile
 {
 public:
     const std::list<RoadRunner::LaneSection>& GetLeftProfiles() { return leftProfiles; }
     const std::list<RoadRunner::LaneSection>& GetRightProfiles() { return rightProfiles; }
 };
 
-void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
+void VerifySingleRoadIntegrity(RoadRunner::RoadProfile configs, const odr::Road& gen)
 {
     RoadForTest* rt = reinterpret_cast<RoadForTest*>(&configs);
 
@@ -348,7 +348,7 @@ void VerifySingleRoadIntegrity(RoadRunner::Road configs, const odr::Road& gen)
 }
 
 
-void GenerateAndVerify(const RoadRunner::Road& configs)
+void GenerateAndVerify(const RoadRunner::RoadProfile& configs)
 {
 #ifdef G_TEST
     const testing::TestInfo* const test_info =
@@ -361,7 +361,9 @@ void GenerateAndVerify(const RoadRunner::Road& configs)
 #else
     std::string outName("output");
 #endif
-    odr::Road gen = (odr::Road)configs;
+    RoadRunner::Road road("test", configs);
+    road.Generate();
+    const odr::Road& gen = road.generated;
 
     odr::OpenDriveMap test_map;
     test_map.id_to_road.insert({ gen.id, gen });
