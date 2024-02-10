@@ -15,9 +15,9 @@ namespace RoadRunner
         std::vector<double> dirSplit; // not needed for outgoing-only connection
     };
 
-    odr::Junction GenerateConnections(
+    void GenerateConnections(
         std::vector<ConnectionInfo> connected,
-        std::vector<odr::Road>& connectings);
+        std::vector<Road>& connectings);
 
     // internal
     // ALL lanes of a single direction, going into or coming from a junction
@@ -54,4 +54,29 @@ namespace RoadRunner
     // @param: from center to right lanes
     // @returns: Span = [rtn, rtn+lane_count-1]
     void assignOutgoingLanes(std::vector<TurningGroup>& incomingLanes);
+
+    struct Junction
+    {
+    public:
+        Junction(const std::vector<ConnectionInfo>&, std::string id="");
+
+        Junction(const Junction& another) = delete; // No copy costruct
+        Junction& operator=(const Junction& another) = delete; // No copy assignment
+
+        // Move constructor
+        Junction(Junction&& other) noexcept :
+            generated(other.generated)
+        {
+            for (int i = 0; i != connectingRoads.size(); ++i)
+            {
+                connectingRoads.push_back(Road(std::move(other.connectingRoads[i])));
+            }
+        }
+
+        std::string ID() { return generated.id; }
+
+        std::vector<Road> connectingRoads;
+
+        odr::Junction generated;
+    };
 }

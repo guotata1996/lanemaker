@@ -55,7 +55,8 @@ std::vector<RoadObject>  Road::get_road_objects() const { return get_map_values(
 std::vector<RoadSignal> Road::get_road_signals() const { return get_map_values(this->id_to_signal); }
 
 Road::Road(std::string id, double length, std::string junction, std::string name, bool left_hand_traffic) :
-    length(length), id(id), junction(junction), name(name), left_hand_traffic(left_hand_traffic), ref_line(id, length)
+    length(length), id(id), junction(junction), name(name.empty() ? "Road " + id : name), 
+    left_hand_traffic(left_hand_traffic), ref_line(id, length)
 {
 }
 

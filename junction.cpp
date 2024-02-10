@@ -2,11 +2,12 @@
 #include "curve_fitting.h"
 #include <cmath> // floor, ceil
 #include <map>
+#include <IDGenerator.h>
 
 namespace RoadRunner
 {
-    odr::Junction GenerateConnections(std::vector<ConnectionInfo> connected,
-        std::vector<odr::Road>& connectings)
+    void GenerateConnections(std::vector<ConnectionInfo> connected,
+        std::vector<Road>& connectings)
     {
         // Collect endpoint info of each connected road
         std::vector<RoadEndpoint> incomingEndpoints, outgoingEndpoints;
@@ -183,7 +184,7 @@ namespace RoadRunner
                     // B's UTurn, place in front
                     return false;
                 }
-                return odr::crossProduct(va, outgoingRoad.forward) < odr::crossProduct(vb, outgoingRoad.forward); // TODO: verify
+                return odr::crossProduct(va, outgoingRoad.forward) < odr::crossProduct(vb, outgoingRoad.forward);
             });
 
             std::vector<TurningGroup> existingIncomingGroups;
@@ -209,7 +210,6 @@ namespace RoadRunner
         }
 
         // Compute ref lines
-        int connectingIndex = 100; // TODO: indexing
         for (const auto& turningKv : turningGroups)
         {
             std::string incomingRoad = turningKv.first.first;
@@ -256,9 +256,9 @@ namespace RoadRunner
                 }
                 RoadRunner::RoadProfile connectingProfile;
                 connectingProfile.AddRightSection({ RoadRunner::SectionProfile{turningGroup.nLanes, turningGroup.nLanes}, 0 });
-                Road connecting(std::to_string(connectingIndex++) + directionName, connectingProfile);
+                Road connecting(connectingProfile);
                 connecting.Generate(connectLine.value());
-                connectings.push_back(connecting.generated);
+                connectings.push_back(std::move(connecting));
             }
             else
             {
@@ -266,8 +266,6 @@ namespace RoadRunner
             }
             
         } // For each turning direction
-
-        return odr::Junction("1", "junction 1"); // TODO: linkage
     }
 
     std::vector<std::pair<int, int>> splitPointToLaneCount(int8_t nLanes, std::vector<double> splitPoints)
@@ -461,4 +459,14 @@ namespace RoadRunner
             }
         }
     }
-}
+
+    Junction::Junction(const std::vector<ConnectionInfo>& connected, std::string id):
+        generated("", id.empty() ? IDGenerator::ForJunction()->GenerateID(this) : id)
+    {
+        generated.name = "Junction " + generated.id;
+
+        GenerateConnections(connected, connectingRoads);
+
+        // TODO: fill in generated
+    }
+} // namespace RoadRunner

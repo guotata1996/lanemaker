@@ -4,6 +4,7 @@
 #include <cassert>
 #include "OpenDriveMap.h"
 #include "Geometries/Line.h"
+#include "IDGenerator.h"
 
 namespace RoadRunner
 {
@@ -96,9 +97,26 @@ namespace RoadRunner
     class Road
     {
     public:
-        Road(std::string id, const RoadProfile& p) :
-            generated(id, 0, "", "Road " + id),
+        Road(const RoadProfile& p, std::string id="") :
+            generated(id.empty() ? IDGenerator::ForRoad()->GenerateID(this) : id, 0, "-1"),
             profile(p) {}
+
+        ~Road() 
+        { 
+            if (!ID().empty()) 
+                IDGenerator::ForRoad()->FreeID(ID()); 
+        }
+
+        Road(const Road& another) = delete; // No copy costruct
+        Road& operator=(const Road& another) = delete; // No copy assignment
+
+        // Move constructor
+        Road(Road&& other) noexcept :
+            generated(other.generated),
+            profile(other.profile)
+        {
+            other.generated.id = "";
+        }
 
         void Generate(const odr::RoadGeometry& refLine)
         {

@@ -361,7 +361,7 @@ void GenerateAndVerify(const RoadRunner::RoadProfile& configs)
 #else
     std::string outName("output");
 #endif
-    RoadRunner::Road road("test", configs);
+    RoadRunner::Road road(configs);
     road.Generate();
     const odr::Road& gen = road.generated;
 
