@@ -10,6 +10,19 @@ LaneSection::LaneSection(std::string road_id, double s0) : road_id(road_id), s0(
 
 std::vector<Lane> LaneSection::get_lanes() const { return get_map_values(this->id_to_lane); }
 
+std::vector<Lane> LaneSection::get_sorted_driving_lanes(int8_t side) {
+    int extremeID = side > 0 ? get_lanes().rbegin()->id : get_lanes().begin()->id;
+
+    std::vector<Lane> rtn;
+    for (int absolutedID = 1; absolutedID <= std::abs(extremeID); ++absolutedID) 
+    {
+        odr::Lane l = id_to_lane.at(absolutedID * side);
+        if (l.type != "driving") continue;
+        rtn.push_back(id_to_lane.at(absolutedID * side));
+    }
+    return rtn;
+}
+
 int LaneSection::get_lane_id(const double s, const double t) const
 {
     if (this->id_to_lane.at(0).outer_border.get(s) == t) // exactly on lane #0

@@ -16,6 +16,7 @@ namespace RoadRunner
     };
 
     void GenerateConnections(
+        std::string junctionID,
         std::vector<ConnectionInfo> connected,
         std::vector<Road>& connectings);
 
@@ -23,33 +24,39 @@ namespace RoadRunner
     // ALL lanes of a single direction, going into or coming from a junction
     struct RoadEndpoint
     {
-        std::string roadID;
+        odr::Road* road;
+        odr::RoadLink::ContactPoint contact;
+        int8_t side; //-1: right, +1: left
         odr::Vec2D origin;
         odr::Vec2D forward; // cross-section = origin ~ origin + rot_right(hdg) * nLanes * LaneWidth
-        int8_t nLanes;
+        uint8_t nLanes;
 
         std::vector<double> dirSplit; // Left empty for auto assignment.
     };
 
-    enum TurningSemantics {No, U, Left, Right};
+    enum TurningSemantics {Turn_No, Turn_U, Turn_Left, Turn_Right};
 
     // A group of neighboring lanes going from road A to B
     struct TurningGroup
     {
         odr::Vec2D fromOrigin, fromForward;
         odr::Vec2D toOrigin, toForward;
+        odr::RoadLink::ContactPoint fromContact, toContact;
+        int8_t fromSide, toSide;
 
         TurningSemantics direction;
-        int8_t toTotalLanes;
+        uint8_t toTotalLanes;
 
-        int8_t fromLaneIDBase, toLaneIDBase; // e.g. For lane {-2,-3}, base = -2
-        int8_t nLanes;
+        // e.g. For the first & second driving lanes (counted from center), base = 0
+        //      For the second driving lane, base = 1
+        uint8_t fromLaneIDBase, toLaneIDBase;
+        uint8_t nLanes;
     };
 
     // @param: from center to right lanes
     std::vector<double> assignIncomingLanes(int8_t nLanes, const std::vector<TurningGroup>& outgoings);
 
-    std::vector<std::pair<int, int>> splitPointToLaneCount(int8_t nLanes, std::vector<double> splitPoints);
+    std::vector<std::pair<uint8_t, uint8_t>> splitPointToLaneCount(int8_t nLanes, std::vector<double> splitPoints);
 
     // @param: from center to right lanes
     // @returns: Span = [rtn, rtn+lane_count-1]

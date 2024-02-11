@@ -6,7 +6,8 @@
 
 namespace RoadRunner
 {
-    void GenerateConnections(std::vector<ConnectionInfo> connected,
+    void GenerateConnections(std::string junctionID,
+        std::vector<ConnectionInfo> connected,
         std::vector<Road>& connectings)
     {
         // Collect endpoint info of each connected road
@@ -21,6 +22,7 @@ namespace RoadRunner
             
             if (meetAt == 0)
             {
+                road->predecessor = odr::RoadLink(junctionID, odr::RoadLink::Type_Junction, odr::RoadLink::ContactPoint_Start);
                 SectionProfile rightEntrance = config.RightEntrance();
                 if (rightEntrance.laneCount != 0)
                 {
@@ -29,10 +31,12 @@ namespace RoadRunner
                     odr::Vec2D forward = road->ref_line.get_grad_xy(meetAt);
                     outgoingEndpoints.push_back(RoadEndpoint
                         {
-                            road->id, 
+                            road,
+                            odr::RoadLink::ContactPoint_Start,
+                            -1,
                             origin,
                             forward,
-                            rightEntrance.laneCount
+                            static_cast<uint8_t>(rightEntrance.laneCount)
                         });
                 }
                 SectionProfile leftExit = config.LeftExit();
@@ -43,16 +47,19 @@ namespace RoadRunner
                     odr::Vec2D forward = odr::negate(road->ref_line.get_grad_xy(meetAt));
                     incomingEndpoints.push_back(RoadEndpoint
                         {
-                            road->id,
+                            road,
+                            odr::RoadLink::ContactPoint_Start,
+                            1,
                             origin,
                             forward,
-                            leftExit.laneCount,
+                            static_cast<uint8_t>(leftExit.laneCount),
                             roadAndS.dirSplit
                         });
                 }
             }
             else
             {
+                road->successor = odr::RoadLink(junctionID, odr::RoadLink::Type_Junction, odr::RoadLink::ContactPoint_End);
                 SectionProfile rightExit = config.RightExit();
                 if (rightExit.laneCount != 0)
                 {
@@ -61,10 +68,12 @@ namespace RoadRunner
                     odr::Vec2D forward = road->ref_line.get_grad_xy(meetAt);
                     incomingEndpoints.push_back(RoadEndpoint
                         {
-                            road->id,
+                            road,
+                            odr::RoadLink::ContactPoint_End,
+                            -1,
                             origin,
                             forward,
-                            rightExit.laneCount,
+                            static_cast<uint8_t>(rightExit.laneCount),
                             roadAndS.dirSplit
                         });
                 }
@@ -76,16 +85,18 @@ namespace RoadRunner
                     odr::Vec2D forward = odr::negate(road->ref_line.get_grad_xy(road->length));
                     outgoingEndpoints.push_back(RoadEndpoint
                         {
-                            road->id,
+                            road,
+                            odr::RoadLink::ContactPoint_End,
+                            1,
                             origin,
                             forward,
-                            leftEntrance.laneCount
+                            static_cast<uint8_t>(leftEntrance.laneCount)
                         });
                 }
             }
         }
 
-        std::map<std::pair<std::string, std::string>, TurningGroup> turningGroups;
+        std::map<std::pair<odr::Road*, odr::Road*>, TurningGroup> turningGroups;
 
         // Determine incoming info for turningGroups
         for (const RoadEndpoint& incomingRoad : incomingEndpoints)
@@ -118,23 +129,25 @@ namespace RoadRunner
             for (auto outgoingRoad :outgoingEndpoints)
             {
                 double turnAngle = odr::angle(incomingRoad.forward, outgoingRoad.forward);
-                auto turningSemantics = TurningSemantics::No;
-                if (incomingRoad.roadID == outgoingRoad.roadID)
+                auto turningSemantics = RoadRunner::Turn_No;
+                if (incomingRoad.road == outgoingRoad.road)
                 {
-                    turningSemantics = TurningSemantics::U;
+                    turningSemantics = TurningSemantics::Turn_U;
                 }
                 else if (turnAngle > M_PI / 4)
                 {
-                    turningSemantics = TurningSemantics::Left;
+                    turningSemantics = TurningSemantics::Turn_Left;
                 }
                 else if (turnAngle < -M_PI / 4)
                 {
-                    turningSemantics = TurningSemantics::Right;
+                    turningSemantics = TurningSemantics::Turn_Right;
                 }
                 allPossibleOutgoings.emplace_back(
                     TurningGroup{
                         incomingRoad.origin, incomingRoad.forward,
                         outgoingRoad.origin, outgoingRoad.forward,
+                        incomingRoad.contact,outgoingRoad.contact,
+                        incomingRoad.side,   outgoingRoad.side,
                         turningSemantics, outgoingRoad.nLanes});
             }
 
@@ -148,7 +161,7 @@ namespace RoadRunner
 
             // Filter out true turns
             int8_t outgoingIndex = 0;
-            for (std::pair<int, int>& beginAndCount : splitPointToLaneCount(incomingRoad.nLanes, dirSplit))
+            for (std::pair<uint8_t, uint8_t>& beginAndCount : splitPointToLaneCount(incomingRoad.nLanes, dirSplit))
             {
                 int nLanes = beginAndCount.second;
                 if (nLanes != 0)
@@ -158,7 +171,7 @@ namespace RoadRunner
                     outgoingGroup.fromLaneIDBase = beginAndCount.first;
                     outgoingGroup.nLanes = nLanes;
                     turningGroups.emplace(
-                        std::make_pair(incomingRoad.roadID, outgoingRoad.roadID),
+                        std::make_pair(incomingRoad.road, outgoingRoad.road),
                         outgoingGroup);
                 }
                 outgoingIndex++;
@@ -190,7 +203,7 @@ namespace RoadRunner
             std::vector<TurningGroup> existingIncomingGroups;
             for (const auto& incomingRoad : incomingEndpoints)
             {
-                auto inOutKey = std::make_pair(incomingRoad.roadID, outgoingRoad.roadID);
+                auto inOutKey = std::make_pair(incomingRoad.road, outgoingRoad.road);
                 if (turningGroups.find(inOutKey) != turningGroups.end())
                 {
                     existingIncomingGroups.push_back(turningGroups.at(inOutKey));
@@ -201,7 +214,7 @@ namespace RoadRunner
             auto assignResult = existingIncomingGroups.begin();
             for (const auto& incomingRoad : incomingEndpoints)
             {
-                auto inOutKey = std::make_pair(incomingRoad.roadID, outgoingRoad.roadID);
+                auto inOutKey = std::make_pair(incomingRoad.road, outgoingRoad.road);
                 if (turningGroups.find(inOutKey) != turningGroups.end())
                 {
                     turningGroups.at(inOutKey).toLaneIDBase = assignResult++->toLaneIDBase;
@@ -212,8 +225,6 @@ namespace RoadRunner
         // Compute ref lines
         for (const auto& turningKv : turningGroups)
         {
-            std::string incomingRoad = turningKv.first.first;
-            std::string outgoingRoad = turningKv.first.second;
             TurningGroup turningGroup = turningKv.second;
 
             odr::Vec2D incomingRight{ turningGroup.fromForward[1], -turningGroup.fromForward[0]};
@@ -237,42 +248,61 @@ namespace RoadRunner
                 incomingCenter, turningGroup.fromForward,
                 outgoingCenter, turningGroup.toForward);
 
-            if (connectLine.has_value())
-            {
-                std::string directionName;
-                switch (turningGroup.direction)
-                {
-                case TurningSemantics::U:
-                    directionName = "_u-turn";
-                    break;
-                case TurningSemantics::Left:
-                    directionName = "_left-turn";
-                    break;
-                case TurningSemantics::Right:
-                    directionName = "_right-turn";
-                    break;
-                default:
-                    break;
-                }
-                RoadRunner::RoadProfile connectingProfile;
-                connectingProfile.AddRightSection({ RoadRunner::SectionProfile{turningGroup.nLanes, turningGroup.nLanes}, 0 });
-                Road connecting(connectingProfile);
-                connecting.Generate(connectLine.value());
-                connectings.push_back(std::move(connecting));
-            }
-            else
+            if (!connectLine.has_value())
             {
                 spdlog::warn("Connecting lane has invalid shape");
+                continue;
             }
-            
+
+            RoadRunner::RoadProfile connectingProfile;
+            connectingProfile.AddRightSection({ RoadRunner::SectionProfile{
+                static_cast<type_t>(turningGroup.nLanes), 
+                static_cast<type_t>(turningGroup.nLanes)}, 0 });
+            Road connecting(connectingProfile);
+            connecting.Generate(connectLine.value());
+
+            // Assign linkage
+            odr::Road& connRoad = connecting.generated;
+            odr::Road* incomingRoad = turningKv.first.first;
+            odr::Road* outgoingRoad = turningKv.first.second;
+            connRoad.junction = junctionID;
+            connRoad.predecessor = odr::RoadLink(incomingRoad->id, odr::RoadLink::Type_Road, odr::RoadLink::ContactPoint_Start);
+            connRoad.successor = odr::RoadLink(outgoingRoad->id, odr::RoadLink::Type_Road, odr::RoadLink::ContactPoint_End);
+            odr::LaneSection& onlySection = connRoad.s_to_lanesection.begin()->second;
+
+            auto& connectingLanes = onlySection.get_sorted_driving_lanes(-1);
+            auto& incomingSection = turningGroup.fromContact == odr::RoadLink::ContactPoint_Start ?
+                incomingRoad->s_to_lanesection.begin()->second : incomingRoad->s_to_lanesection.rbegin()->second;
+            auto& incomingLanes = incomingSection.get_sorted_driving_lanes(turningGroup.fromSide);
+            auto& outgoingSection = turningGroup.toContact == odr::RoadLink::ContactPoint_Start ?
+                outgoingRoad->s_to_lanesection.begin()->second : outgoingRoad->s_to_lanesection.rbegin()->second;
+            auto& outgoingLanes = outgoingSection.get_sorted_driving_lanes(turningGroup.toSide);
+
+            for (int i = 0; i != connectingLanes.size(); ++i)
+            {
+                // from center to side
+                int connectingID = connectingLanes[i].id;
+                if (std::abs(turningGroup.fromLaneIDBase) + i >= incomingLanes.size())
+                {
+                    spdlog::error("{} plus {} exceeds {}", turningGroup.fromLaneIDBase, connectingLanes.size(), incomingLanes.size());
+                }
+                int incomingID = incomingLanes[std::abs(turningGroup.fromLaneIDBase) + i].id;
+                onlySection.id_to_lane.at(connectingID).predecessor = incomingID;
+                int outgoingID = outgoingLanes[std::abs(turningGroup.toLaneIDBase) + i].id;
+                onlySection.id_to_lane.at(connectingID).successor = outgoingID;
+            }
+
+            connectings.push_back(std::move(connecting));
         } // For each turning direction
+
+        // TODO: write connectings to Junction
     }
 
-    std::vector<std::pair<int, int>> splitPointToLaneCount(int8_t nLanes, std::vector<double> splitPoints)
+    std::vector<std::pair<uint8_t, uint8_t>> splitPointToLaneCount(int8_t nLanes, std::vector<double> splitPoints)
     {
         splitPoints.insert(splitPoints.begin(), 0);
         splitPoints.push_back(nLanes);
-        std::vector<std::pair<int, int>> rtn;
+        std::vector<std::pair<uint8_t, uint8_t>> rtn;
 
         for (auto dirBegin = splitPoints.begin(), dirEnd = ++splitPoints.begin();
             dirEnd != splitPoints.end(); ++dirBegin, ++dirEnd)
@@ -353,7 +383,7 @@ namespace RoadRunner
             // Adjust result to obey out lane limit
             for (int adjustment = 0; adjustment != 20; ++adjustment)
             {
-                std::vector<std::pair<int, int>> proposal = splitPointToLaneCount(nLanes, rtn);
+                std::vector<std::pair<uint8_t, uint8_t>> proposal = splitPointToLaneCount(nLanes, rtn);
                 assert(proposal.size() == outgoings.size());
 
                 bool pass = true;
@@ -397,7 +427,7 @@ namespace RoadRunner
                 if (pass)
                 {
                     // Prevent multi-direction lanes unless necessary
-                    std::vector<std::pair<int, int>> resulting = splitPointToLaneCount(nLanes, rtn);
+                    std::vector<std::pair<uint8_t, uint8_t>> resulting = splitPointToLaneCount(nLanes, rtn);
                     for (int lane = 0; lane != resulting.size(); ++lane)
                     {
                         int number = resulting[lane].second;
@@ -445,15 +475,15 @@ namespace RoadRunner
         {
             switch (group.direction)
             {
-            case TurningSemantics::U:
-            case TurningSemantics::Left:
+            case TurningSemantics::Turn_U:
+            case TurningSemantics::Turn_Left:
                 group.toLaneIDBase = 0;
                 break;
-            case TurningSemantics::No:
+            case TurningSemantics::Turn_No:
                 // TODO: make those as straight as possible
                 group.toLaneIDBase = 0;
                 break;
-            case TurningSemantics::Right:
+            case TurningSemantics::Turn_Right:
                 group.toLaneIDBase = group.toTotalLanes - group.nLanes;
                 break;
             }
@@ -465,8 +495,21 @@ namespace RoadRunner
     {
         generated.name = "Junction " + generated.id;
 
-        GenerateConnections(connected, connectingRoads);
+        GenerateConnections(generated.id, connected, connectingRoads);
 
-        // TODO: fill in generated
+        int junctionConnID = 0;
+        for (auto& connecting : connectingRoads)
+        {
+            auto incomingRoad = connecting.generated.predecessor.id;
+
+            odr::JunctionConnection conn(std::to_string(junctionConnID++), incomingRoad, 
+                connecting.ID(), odr::JunctionConnection::ContactPoint_Start);
+
+            for (odr::Lane connectinglane : connecting.generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(-1))
+            {
+                conn.lane_links.insert(odr::JunctionLaneLink(connectinglane.predecessor, connectinglane.id));
+            }
+            generated.id_to_connection.emplace(conn.id, conn);
+        }
     }
 } // namespace RoadRunner
