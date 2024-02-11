@@ -115,7 +115,10 @@ namespace RoadRunner
             generated(other.generated),
             profile(other.profile)
         {
+            IDGenerator::ForRoad()->FreeID(other.ID());
             other.generated.id = "";
+
+            generated.id = IDGenerator::ForRoad()->GenerateID(this);
         }
 
         void Generate(const odr::RoadGeometry& refLine)
@@ -142,4 +145,6 @@ namespace RoadRunner
         // TODO: ref line fitter
         odr::Road generated;
     };
+
+    Road* JoinRoads(const Road* const road1, type_s p1, const Road* const road2, type_s p2); // TODO:
 }

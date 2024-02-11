@@ -11,7 +11,7 @@ add_subdirectory(libOpenDRIVE-master)
 # TODO: make RoadRunner a library
 add_executable(${CMAKE_PROJECT_NAME} main.cpp 
     road.cpp junction.cpp
-    IDGenerator.cpp)
+    IDGenerator.cpp MapDrawer.cpp)
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE 
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/include

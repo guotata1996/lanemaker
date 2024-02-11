@@ -15,7 +15,14 @@ namespace RoadRunner
         std::vector<double> dirSplit; // not needed for outgoing-only connection
     };
 
-    void GenerateConnections(
+    enum JunctionError
+    {
+        Junction_TooManyIncomingLanes = 1,
+        Junction_ConnectionInvalidShape = 2,
+        Junction_AlgoFail = 4
+    };
+
+    int GenerateConnections(
         std::string junctionID,
         std::vector<ConnectionInfo> connected,
         std::vector<Road>& connectings);
@@ -54,7 +61,7 @@ namespace RoadRunner
     };
 
     // @param: from center to right lanes
-    std::vector<double> assignIncomingLanes(int8_t nLanes, const std::vector<TurningGroup>& outgoings);
+    std::vector<double> assignIncomingLanes(int8_t nLanes, const std::vector<TurningGroup>& outgoings, int& errorCode);
 
     std::vector<std::pair<uint8_t, uint8_t>> splitPointToLaneCount(int8_t nLanes, std::vector<double> splitPoints);
 
@@ -62,7 +69,8 @@ namespace RoadRunner
     // @returns: Span = [rtn, rtn+lane_count-1]
     void assignOutgoingLanes(std::vector<TurningGroup>& incomingLanes);
 
-    struct Junction
+    // TODO: inherit same class as Road to manage ID
+    class Junction
     {
     public:
         Junction(const std::vector<ConnectionInfo>&, std::string id="");
@@ -74,16 +82,24 @@ namespace RoadRunner
         Junction(Junction&& other) noexcept :
             generated(other.generated)
         {
+            IDGenerator::ForJunction()->FreeID(other.ID());
+            other.generated.id = "";
+            generated.id = IDGenerator::ForJunction()->GenerateID(this);
+
             for (int i = 0; i != connectingRoads.size(); ++i)
             {
                 connectingRoads.push_back(Road(std::move(other.connectingRoads[i])));
             }
         }
 
+        ~Junction() {}; // TODO: Disconnect lane linkage, destroy connecting roads
+
         std::string ID() { return generated.id; }
 
         std::vector<Road> connectingRoads;
 
         odr::Junction generated;
+
+        int generationError = 0; // TODO: Inform user if non-zero
     };
 }

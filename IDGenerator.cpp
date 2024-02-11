@@ -30,30 +30,37 @@ IDGenerator* IDGenerator::ForRoad()
 
 std::string IDGenerator::GenerateID(void* object)
 {
-    for (uint32_t i = 0; i != assigned.size(); ++i)
+    IDType newID = assigned.size();
+    for (IDType i = 0; i != assigned.size(); ++i)
     {
         if (!assigned[i])
         {
             assert(assignTo.find(i) == assignTo.end());
-            assigned[i] = true;
-            assignTo.emplace(i, object);
-            spdlog::trace("Geneated {} ID: {}", type, i);
-            return std::to_string(i);
+            newID = i;
         }
     }
 
-    uint32_t newID = assigned.size();
-    assigned.push_back(true);
-    assigned[newID] = true;
+    if (newID == assigned.size())
+    {
+        assigned.push_back(true);
+    }
+    else
+    {
+        assigned[newID] = true;
+    }
+
     assignTo.emplace(newID, object);
     spdlog::trace("Geneated {} ID: {}", type, newID);
+    changeList[newID] = object;
     return std::to_string(newID);
 }
 
 void* IDGenerator::GetByID(const std::string& sid)
 {
-    auto id = static_cast<uint32_t>(std::atoi(sid.c_str()));
-    return assignTo.at(id);
+    auto id = static_cast<IDType>(std::atoi(sid.c_str()));
+    auto objectPtr = assignTo.at(id);
+    changeList[id] = objectPtr;
+    return objectPtr;
 }
 
 bool IDGenerator::FreeID(const std::string& sid)
@@ -68,5 +75,13 @@ bool IDGenerator::FreeID(const std::string& sid)
     spdlog::trace("Free {} ID: {}", type, sid);
     assigned[id] = false;
     assignTo.erase(id);
+    changeList[id] = nullptr;
     return true;
+}
+
+std::map<IDGenerator::IDType, void*> IDGenerator::ConsumeChanges()
+{
+    auto copy = changeList;
+    changeList.clear();
+    return copy;
 }

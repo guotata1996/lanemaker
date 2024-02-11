@@ -6,10 +6,11 @@
 
 namespace RoadRunner
 {
-    void GenerateConnections(std::string junctionID,
+    int GenerateConnections(std::string junctionID,
         std::vector<ConnectionInfo> connected,
         std::vector<Road>& connectings)
     {
+        auto errorCode = 0;
         // Collect endpoint info of each connected road
         std::vector<RoadEndpoint> incomingEndpoints, outgoingEndpoints;
         for (auto& roadAndS : connected)
@@ -155,11 +156,15 @@ namespace RoadRunner
             std::vector<double> dirSplit = incomingRoad.dirSplit;
             if (dirSplit.size() != outgoingEndpoints.size() - 1)
             {
-                dirSplit = assignIncomingLanes(incomingRoad.nLanes, allPossibleOutgoings);
-                assert(dirSplit.size() == outgoingEndpoints.size() - 1);
+                dirSplit = assignIncomingLanes(incomingRoad.nLanes, allPossibleOutgoings, errorCode);
+                if (dirSplit.size() != outgoingEndpoints.size() - 1)
+                {
+                    // Generate dir split failed. Skip this incoming road.
+                    continue;
+                }
             }
 
-            // Filter out true turns
+            // Filter out vanishing out directions
             int8_t outgoingIndex = 0;
             for (std::pair<uint8_t, uint8_t>& beginAndCount : splitPointToLaneCount(incomingRoad.nLanes, dirSplit))
             {
@@ -250,7 +255,7 @@ namespace RoadRunner
 
             if (!connectLine.has_value())
             {
-                spdlog::warn("Connecting lane has invalid shape");
+                errorCode |= Junction_ConnectionInvalidShape;
                 continue;
             }
 
@@ -282,10 +287,6 @@ namespace RoadRunner
             {
                 // from center to side
                 int connectingID = connectingLanes[i].id;
-                if (std::abs(turningGroup.fromLaneIDBase) + i >= incomingLanes.size())
-                {
-                    spdlog::error("{} plus {} exceeds {}", turningGroup.fromLaneIDBase, connectingLanes.size(), incomingLanes.size());
-                }
                 int incomingID = incomingLanes[std::abs(turningGroup.fromLaneIDBase) + i].id;
                 onlySection.id_to_lane.at(connectingID).predecessor = incomingID;
                 int outgoingID = outgoingLanes[std::abs(turningGroup.toLaneIDBase) + i].id;
@@ -295,7 +296,7 @@ namespace RoadRunner
             connectings.push_back(std::move(connecting));
         } // For each turning direction
 
-        // TODO: write connectings to Junction
+        return errorCode;
     }
 
     std::vector<std::pair<uint8_t, uint8_t>> splitPointToLaneCount(int8_t nLanes, std::vector<double> splitPoints)
@@ -333,18 +334,19 @@ namespace RoadRunner
         return rtn;
     }
 
-    std::vector<double> assignIncomingLanes(int8_t nLanes, const std::vector<TurningGroup>& outgoings)
+    std::vector<double> assignIncomingLanes(int8_t nLanes, const std::vector<TurningGroup>& outgoings, int& errorCode)
     {
         int totalOutgoingLanes = 0;
         std::for_each(outgoings.begin(), outgoings.end(), [&totalOutgoingLanes](const TurningGroup& group)
-            {totalOutgoingLanes += group.toTotalLanes; });
+        {totalOutgoingLanes += group.toTotalLanes; });
         if (totalOutgoingLanes < nLanes)
         {
             spdlog::error("Not enough outgoing lanes for incomings to distribute!");
+            errorCode |= Junction_TooManyIncomingLanes;
             return {};
         }
 
-        constexpr double idealSemanticsWeight[4]{1, 0.01, 0.99, 0.5}; // No, U, Left, Right
+        constexpr double idealSemanticsWeight[4]{ 1, 0.01, 0.99, 0.5 }; // No, U, Left, Right
 
         std::vector<double> rtn;
         for (int semanticsFactor = 5; semanticsFactor >= 0; --semanticsFactor)
@@ -367,7 +369,7 @@ namespace RoadRunner
             assert(sumWeight > 1e-4);
             std::transform(weights.begin(), weights.end(), weights.begin(),
                 [nLanes, sumWeight](double w) {return w / sumWeight * nLanes; });
-            
+
             rtn.clear();
             for (double w : weights)
             {
@@ -379,7 +381,7 @@ namespace RoadRunner
             std::stringstream sss;
             std::for_each(rtn.begin(), rtn.end(), [&sss](double p) {sss << p << " "; });
             spdlog::trace("Initial: {} lane assignment = {}", nLanes, sss.str());
-            
+
             // Adjust result to obey out lane limit
             for (int adjustment = 0; adjustment != 20; ++adjustment)
             {
@@ -406,7 +408,7 @@ namespace RoadRunner
                             // right boundary can be moved left
                             moveRightCost = rtn[i] - std::floor(rtn[i]);
                         }
-                        
+
                         if (1e-4 <= moveLeftCost && moveLeftCost <= moveRightCost)
                         {
                             // moving left boundary is easier
@@ -436,7 +438,7 @@ namespace RoadRunner
                             // section cannot shrink
                             continue;
                         }
-                        
+
                         // If there's an overlap with a higher-importance neighbor
                         // Try shrinking self At the cost of -1 lane to eliminate overlap
                         if (lane > 0 && std::ceil(rtn[lane - 1]) - rtn[lane - 1] > 1e-4
@@ -466,6 +468,7 @@ namespace RoadRunner
         }
 
         spdlog::error("Can't find a suitable incoming lane distribution. Algo failed!");
+        errorCode |= Junction_AlgoFail;
         return {};
     }
 
@@ -495,7 +498,7 @@ namespace RoadRunner
     {
         generated.name = "Junction " + generated.id;
 
-        GenerateConnections(generated.id, connected, connectingRoads);
+        generationError = GenerateConnections(generated.id, connected, connectingRoads);
 
         int junctionConnID = 0;
         for (auto& connecting : connectingRoads)
