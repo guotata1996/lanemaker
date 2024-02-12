@@ -5,6 +5,7 @@
 #include <CGAL/Triangulation_2.h>
 
 #include "OpenDriveMap.h"
+#include <spdlog/spdlog.h>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef CGAL::Triangulation_2<K>                            Triangulation;
@@ -15,10 +16,15 @@ class MyGraphicsScene : public QGraphicsScene
 public:
     void DrawXodr(odr::OpenDriveMap& odr_map)
     {
-        std::map<std::string, odr::Road> id_2_road;
         for each (odr::Road road in odr_map.get_roads())
         {
-            id_2_road.insert({ road.id, road });
+            for (auto& laneSection : road.s_to_lanesection)
+            {
+                odr_map.derive_lane_borders(road, laneSection.second);
+            }
+
+            odr_map.id_to_road.erase(road.id);
+            odr_map.id_to_road.emplace(road.id, road);
         }
 
         QBrush solid;
@@ -34,7 +40,7 @@ public:
             for (auto it = conns.begin(); it != conns.end(); it++)
             {
                 std::string conn_road_id = it->second.connecting_road;
-                odr::Road conn_road = id_2_road.at(conn_road_id);
+                odr::Road conn_road = odr_map.id_to_road.at(conn_road_id);
                 DrawRoad(conn_road, noPen, solid);
 
             }
@@ -48,9 +54,6 @@ public:
             }
         }
     }
-
-
-
 
 private:
 

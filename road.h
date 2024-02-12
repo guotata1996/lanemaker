@@ -2,6 +2,8 @@
 
 #include <list>
 #include <cassert>
+#include "spdlog/spdlog.h"
+
 #include "OpenDriveMap.h"
 #include "Geometries/Line.h"
 #include "IDGenerator.h"
@@ -102,9 +104,13 @@ namespace RoadRunner
             profile(p) {}
 
         ~Road() 
-        { 
-            if (!ID().empty()) 
-                IDGenerator::ForRoad()->FreeID(ID()); 
+        {
+            if (!ID().empty())
+            {
+                spdlog::trace("del road {}", ID());
+                IDGenerator::ForRoad()->FreeID(ID());
+            }
+                
         }
 
         Road(const Road& another) = delete; // No copy costruct
@@ -119,6 +125,7 @@ namespace RoadRunner
             other.generated.id = "";
 
             generated.id = IDGenerator::ForRoad()->GenerateID(this);
+            generated.name = "Road " + generated.id;
         }
 
         void Generate(const odr::RoadGeometry& refLine)

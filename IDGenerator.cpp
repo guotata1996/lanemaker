@@ -58,9 +58,11 @@ std::string IDGenerator::GenerateID(void* object)
 void* IDGenerator::GetByID(const std::string& sid)
 {
     auto id = static_cast<IDType>(std::atoi(sid.c_str()));
-    auto objectPtr = assignTo.at(id);
-    changeList[id] = objectPtr;
-    return objectPtr;
+    auto it = assignTo.find(id);
+    if (it == assignTo.end())
+        return nullptr;
+    changeList[id] = it->second;
+    return it->second;
 }
 
 bool IDGenerator::FreeID(const std::string& sid)

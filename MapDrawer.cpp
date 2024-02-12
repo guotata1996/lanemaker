@@ -10,6 +10,7 @@ namespace RoadRunner
 {
     MapDrawer::MapDrawer(std::string fpath): export_path(fpath)
     {
+        setScene(&scene);
         Update();
     }
 
@@ -18,9 +19,10 @@ namespace RoadRunner
         for (auto& change : IDGenerator::ForRoad()->ConsumeChanges())
         {
             std::string id = std::to_string(change.first);
-            if (odrMap.id_to_road.find(id) == odrMap.id_to_road.end())
+            if (odrMap.id_to_road.find(id) != odrMap.id_to_road.end())
             {
                 odrMap.id_to_road.erase(id);
+                spdlog::trace("erase road {} from exportMap", id);
             }
             void* ptr = change.second;
             if (ptr != nullptr)
@@ -32,9 +34,10 @@ namespace RoadRunner
         for (auto& change : IDGenerator::ForJunction()->ConsumeChanges())
         {
             std::string id = std::to_string(change.first);
-            if (odrMap.id_to_junction.find(id) == odrMap.id_to_junction.end())
+            if (odrMap.id_to_junction.find(id) != odrMap.id_to_junction.end())
             {
                 odrMap.id_to_junction.erase(id);
+                spdlog::trace("erase junction {} from exportMap", id);
             }
             void* ptr = change.second;
             if (ptr != nullptr)
@@ -44,5 +47,7 @@ namespace RoadRunner
         }
 
         odrMap.export_file(export_path);
+        // TODO: draw incremantly
+        scene.DrawXodr(odrMap);
     }
 }

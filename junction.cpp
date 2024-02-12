@@ -504,15 +504,82 @@ namespace RoadRunner
         for (auto& connecting : connectingRoads)
         {
             auto incomingRoad = connecting.generated.predecessor.id;
+            auto outgoingRoad = connecting.generated.successor.id;
 
-            odr::JunctionConnection conn(std::to_string(junctionConnID++), incomingRoad, 
-                connecting.ID(), odr::JunctionConnection::ContactPoint_Start);
+            odr::JunctionConnection prevConn(std::to_string(junctionConnID++), 
+                incomingRoad, connecting.ID(),
+                odr::JunctionConnection::ContactPoint_Start,
+                outgoingRoad);
 
             for (odr::Lane connectinglane : connecting.generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(-1))
             {
-                conn.lane_links.insert(odr::JunctionLaneLink(connectinglane.predecessor, connectinglane.id));
+                prevConn.lane_links.insert(odr::JunctionLaneLink(connectinglane.predecessor, connectinglane.id, connectinglane.successor));
             }
-            generated.id_to_connection.emplace(conn.id, conn);
+            generated.id_to_connection.emplace(prevConn.id, prevConn);
         }
     }
+
+    void clearLinkage(std::string junctionID, std::string regularRoad)
+    {
+        auto road = IDGenerator::ForRoad()->GetByID(regularRoad);
+        if (road == nullptr)
+        {
+            return;
+        }
+        odr::Road& affectedRoad = static_cast<Road*>(road)->generated;
+        if (affectedRoad.successor.type == odr::RoadLink::Type_Junction && 
+            affectedRoad.successor.id == junctionID)
+        {
+            affectedRoad.successor.type = odr::RoadLink::Type_None;
+            affectedRoad.successor.id = "";
+            auto lastSection = affectedRoad.s_to_lanesection.rbegin()->second;
+            // right side loses next
+            for (auto& lane : lastSection.get_sorted_driving_lanes(-1))
+            {
+                lane.successor = 0;
+                lastSection.id_to_lane.find(lane.id)->second = lane;
+            }
+            // left side loses prev
+            for (auto& lane : lastSection.get_sorted_driving_lanes(1))
+            {
+                lane.predecessor = 0;
+                lastSection.id_to_lane.find(lane.id)->second = lane;
+            }
+        }
+        if (affectedRoad.predecessor.type == odr::RoadLink::Type_Junction &&
+            affectedRoad.predecessor.id == junctionID)
+        {
+            affectedRoad.predecessor.type = odr::RoadLink::Type_None;
+            affectedRoad.predecessor.id = "";
+            auto firstSection = affectedRoad.s_to_lanesection.begin()->second;
+            // right side loses prev
+            for (auto& lane : firstSection.get_sorted_driving_lanes(-1))
+            {
+                lane.predecessor = 0;
+                firstSection.id_to_lane.find(lane.id)->second = lane;
+            }
+            // left side loses next
+            for (auto& lane : firstSection.get_sorted_driving_lanes(1))
+            {
+                lane.successor = 0;
+                firstSection.id_to_lane.find(lane.id)->second = lane;
+            }
+        }
+    }
+
+    Junction::~Junction()
+    {
+        if (!ID().empty())
+        {
+            spdlog::trace("del junction {} w/ {} connections", ID(), connectingRoads.size());
+            for (auto& connectingRoad : connectingRoads)
+            {
+                clearLinkage(ID(), connectingRoad.generated.successor.id);
+                clearLinkage(ID(), connectingRoad.generated.predecessor.id);
+            }
+            connectingRoads.clear();
+            IDGenerator::ForJunction()->FreeID(ID());
+        }
+    }
+
 } // namespace RoadRunner

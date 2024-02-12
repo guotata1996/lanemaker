@@ -69,6 +69,9 @@ namespace RoadRunner
     // @returns: Span = [rtn, rtn+lane_count-1]
     void assignOutgoingLanes(std::vector<TurningGroup>& incomingLanes);
 
+    // Clear any connection of regularRoad towards junction
+    void clearLinkage(std::string junctionID, std::string regularRoad);
+
     // TODO: inherit same class as Road to manage ID
     class Junction
     {
@@ -86,13 +89,13 @@ namespace RoadRunner
             other.generated.id = "";
             generated.id = IDGenerator::ForJunction()->GenerateID(this);
 
-            for (int i = 0; i != connectingRoads.size(); ++i)
+            for (int i = 0; i != other.connectingRoads.size(); ++i)
             {
                 connectingRoads.push_back(Road(std::move(other.connectingRoads[i])));
             }
         }
 
-        ~Junction() {}; // TODO: Disconnect lane linkage, destroy connecting roads
+        ~Junction(); // TODO: Disconnect lane linkage, destroy connecting roads
 
         std::string ID() { return generated.id; }
 
