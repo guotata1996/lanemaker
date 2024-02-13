@@ -16,17 +16,6 @@ class MyGraphicsScene : public QGraphicsScene
 public:
     void DrawXodr(odr::OpenDriveMap& odr_map)
     {
-        for each (odr::Road road in odr_map.get_roads())
-        {
-            for (auto& laneSection : road.s_to_lanesection)
-            {
-                odr_map.derive_lane_borders(road, laneSection.second);
-            }
-
-            odr_map.id_to_road.erase(road.id);
-            odr_map.id_to_road.emplace(road.id, road);
-        }
-
         QBrush solid;
         solid.setColor(Qt::darkGreen);
         solid.setStyle(Qt::SolidPattern);

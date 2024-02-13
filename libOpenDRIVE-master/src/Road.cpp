@@ -559,4 +559,50 @@ Mesh3D Road::get_road_object_mesh(const RoadObject& road_object, const double ep
     return road_obj_mesh;
 }
 
+void Road::DeriveLaneBorders() 
+{
+    for (auto& sAndSection : s_to_lanesection) 
+    {
+        odr::LaneSection& lanesection = sAndSection.second;
+
+        auto id_lane_iter0 = lanesection.id_to_lane.find(0);
+
+        /* iterate from id #0 towards +inf */
+        auto id_lane_iter1 = std::next(id_lane_iter0);
+        for (auto iter = id_lane_iter1; iter != lanesection.id_to_lane.end(); iter++)
+        {
+            if (iter == id_lane_iter0)
+            {
+                iter->second.outer_border = iter->second.lane_width;
+            }
+            else
+            {
+                iter->second.inner_border = std::prev(iter)->second.outer_border;
+                iter->second.outer_border = std::prev(iter)->second.outer_border.add(iter->second.lane_width);
+            }
+        }
+
+        /* iterate from id #0 towards -inf */
+        std::map<int, Lane>::reverse_iterator r_id_lane_iter_1(id_lane_iter0);
+        for (auto r_iter = r_id_lane_iter_1; r_iter != lanesection.id_to_lane.rend(); r_iter++)
+        {
+            if (r_iter == r_id_lane_iter_1)
+            {
+                r_iter->second.outer_border = r_iter->second.lane_width.negate();
+            }
+            else
+            {
+                r_iter->second.inner_border = std::prev(r_iter)->second.outer_border;
+                r_iter->second.outer_border = std::prev(r_iter)->second.outer_border.add(r_iter->second.lane_width.negate());
+            }
+        }
+
+        for (auto& id_lane : lanesection.id_to_lane)
+        {
+            id_lane.second.inner_border = id_lane.second.inner_border.add(lane_offset);
+            id_lane.second.outer_border = id_lane.second.outer_border.add(lane_offset);
+        }
+    }
+}
+
 } // namespace odr

@@ -133,13 +133,12 @@ namespace RoadRunner
             profile.SetLength(refLine.length * 100);
             profile.Apply(generated);
             generated.ref_line.s0_to_geometry[0] = refLine.clone();
+            generated.DeriveLaneBorders();
         }
 
         void Generate()
         {
-            assert(profile.Length() > 0);
-            profile.Apply(generated);
-            generated.ref_line.s0_to_geometry[0] = std::make_unique<odr::Line>(0, 0, 0, 0, generated.length);
+            Generate(odr::Line(0, 0, 0, 0, profile.Length() / 100));
         }
 
         double Length() const { 

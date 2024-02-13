@@ -111,6 +111,8 @@ public:
     approximate_lane_border_linear(const Lane& lane, const double s_start, const double s_end, const double eps, const bool outer = true) const;
     std::set<double> approximate_lane_border_linear(const Lane& lane, const double eps, const bool outer = true) const;
 
+    void DeriveLaneBorders();
+
     double      length = 0;
     std::string id = "";
     std::string junction = "";
