@@ -365,9 +365,11 @@ void GenerateAndVerify(const RoadRunner::RoadProfile& configs)
     road.Generate();
     const odr::Road& gen = road.generated;
 
+#ifndef G_TEST
     odr::OpenDriveMap test_map;
     test_map.id_to_road.insert({ gen.id, gen });
     test_map.export_file("C:\\Users\\guota\\Downloads\\" + outName + ".xodr");
+#endif
 
     VerifyLaneWidthinBound(gen);
     VerifySingleRoadLinkage(gen);

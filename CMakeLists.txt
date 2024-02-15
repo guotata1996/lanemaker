@@ -45,8 +45,8 @@ enable_testing()
 
 add_executable(
   RoadRunnerTest
-  test.cc
-  road.cpp IDGenerator.cpp
+  test/test.cc
+  road.cpp IDGenerator.cpp junction.cpp
 )
 
 target_include_directories(RoadRunnerTest PRIVATE

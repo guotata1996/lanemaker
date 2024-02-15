@@ -7,9 +7,6 @@
 
 #include "junction.h"
 
-// #include "verification.h"
-// #include "test_randomization.h"
-
 #include <spdlog/spdlog.h>
 
 #include "Geometries/Line.h"

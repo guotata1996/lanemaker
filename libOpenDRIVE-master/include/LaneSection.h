@@ -17,7 +17,7 @@ struct LaneSection : public XmlNode
 
     std::vector<Lane> get_lanes() const;
 
-    std::vector<Lane> get_sorted_driving_lanes(int8_t side); // center to rim
+    std::vector<Lane> get_sorted_driving_lanes(int8_t side) const; // center to rim
 
     int  get_lane_id(const double s, const double t) const;
     Lane get_lane(const double s, const double t) const;

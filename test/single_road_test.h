@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
 #include "road.h"
-#include "verification.h"
-#include "test_randomization.h"
+#include "road_randomization.h"
+#include "road_verification.h"
 
-TEST(SingleRoad, RightSideOnly) {
-
+TEST(SingleRoad, RightSideOnly) 
+{
     RoadRunner::RoadProfile profile(90 * 100);
     RoadRunner::LaneSection rs1{ RoadRunner::SectionProfile{0, 1}, 0 * 100 };
     RoadRunner::LaneSection rs2{ RoadRunner::SectionProfile{-1, 1}, 30 * 100 };

@@ -133,6 +133,8 @@ namespace RoadRunner
             profile.SetLength(refLine.length * 100);
             profile.Apply(generated);
             generated.ref_line.s0_to_geometry[0] = refLine.clone();
+            generated.ref_line.length = refLine.length;
+            generated.length = refLine.length;  // TODO: remove this patch
             generated.DeriveLaneBorders();
         }
 
@@ -142,7 +144,7 @@ namespace RoadRunner
         }
 
         double Length() const { 
-            return to_odr_unit(profile.Length()); 
+            return to_odr_unit(profile.Length());  // TODO: return exact double length
         }
 
         std::string ID() const { return generated.id; }

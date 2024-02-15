@@ -10,7 +10,8 @@ LaneSection::LaneSection(std::string road_id, double s0) : road_id(road_id), s0(
 
 std::vector<Lane> LaneSection::get_lanes() const { return get_map_values(this->id_to_lane); }
 
-std::vector<Lane> LaneSection::get_sorted_driving_lanes(int8_t side) {
+std::vector<Lane> LaneSection::get_sorted_driving_lanes(int8_t side) const
+{
     int extremeID = side > 0 ? get_lanes().rbegin()->id : get_lanes().begin()->id;
 
     std::vector<Lane> rtn;
