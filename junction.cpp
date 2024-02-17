@@ -149,7 +149,7 @@ namespace RoadRunner
                         outgoingRoad.origin, outgoingRoad.forward,
                         incomingRoad.contact,outgoingRoad.contact,
                         incomingRoad.side,   outgoingRoad.side,
-                        turningSemantics, outgoingRoad.nLanes});
+                        turningSemantics, outgoingRoad.nLanes});                
             }
 
             // Fetch or compute dir split
@@ -157,6 +157,7 @@ namespace RoadRunner
             if (dirSplit.size() != outgoingEndpoints.size() - 1)
             {
                 dirSplit = assignIncomingLanes(incomingRoad.nLanes, allPossibleOutgoings, errorCode);
+
                 if (dirSplit.size() != outgoingEndpoints.size() - 1)
                 {
                     // Generate dir split failed. Skip this incoming road.
@@ -182,7 +183,6 @@ namespace RoadRunner
                 outgoingIndex++;
             }
         }
-
         // Determine outgoing lane for turningGroups
         for (const RoadEndpoint& outgoingRoad : outgoingEndpoints)
         {
@@ -249,11 +249,14 @@ namespace RoadRunner
                 turningGroup.toOrigin,
                 odr::mut(outgoingCenetrS, outgoingRight));
 
-            auto connectLine = ConnectLines(
+            boost::optional<odr::Line> lineOut;
+            boost::optional<odr::ParamPoly3> polyOut;
+            ConnectLines(
                 incomingCenter, turningGroup.fromForward,
-                outgoingCenter, turningGroup.toForward);
+                outgoingCenter, turningGroup.toForward,
+                lineOut, polyOut);
 
-            if (!connectLine.has_value())
+            if (!lineOut.has_value() && !polyOut.has_value())
             {
                 errorCode |= Junction_ConnectionInvalidShape;
                 continue;
@@ -264,7 +267,14 @@ namespace RoadRunner
                 static_cast<type_t>(turningGroup.nLanes), 
                 static_cast<type_t>(turningGroup.nLanes)}, 0 });
             Road connecting(connectingProfile);
-            connecting.Generate(connectLine.value());
+            if (lineOut.has_value())
+            {
+                connecting.Generate(lineOut.value());
+            }
+            else
+            {
+                connecting.Generate(polyOut.value());
+            }
 
             // Assign linkage
             odr::Road& connRoad = connecting.generated;
@@ -295,7 +305,6 @@ namespace RoadRunner
 
             connectings.push_back(std::move(connecting));
         } // For each turning direction
-
         return errorCode;
     }
 
@@ -441,23 +450,31 @@ namespace RoadRunner
 
                         // If there's an overlap with a higher-importance neighbor
                         // Try shrinking self At the cost of -1 lane to eliminate overlap
-                        if (lane > 0 && std::ceil(rtn[lane - 1]) - rtn[lane - 1] > 1e-4
-                            && idealSemanticsWeight[outgoings[lane - 1].direction] > idealSemanticsWeight[outgoings[lane].direction])
+                        if (lane > 0)
                         {
-                            // left boundary can be moved right, so that my section will not share lane with left neighbor
-                            rtn[lane - 1] = std::ceil(rtn[lane - 1]);
+                            double ceil = std::ceil(rtn[lane - 1]);
+                            if (std::abs(rtn[lane - 1] - std::round(rtn[lane - 1])) > 1e-4 && std::abs(rtn[lane - 1] > ceil) > 1e-4 &&
+                                idealSemanticsWeight[outgoings[lane - 1].direction] > idealSemanticsWeight[outgoings[lane].direction])
+                            {
+                                // left boundary can be moved right, so that my section will not share lane with left neighbor
+                                rtn[lane - 1] = ceil;
+                            }
                         }
-                        if (lane < resulting.size() - 1 && rtn[lane] - std::floor(rtn[lane])
-                            && idealSemanticsWeight[outgoings[lane + 1].direction] > idealSemanticsWeight[outgoings[lane].direction])
+
+                        if (lane < resulting.size() - 1)
                         {
-                            // right boundary can be moved left, so that my section will not share lane with right neighbor
-                            rtn[lane] = std::floor(rtn[lane]);
+                            double floor = std::floor(rtn[lane]);
+                            if (std::abs(rtn[lane] - std::round(rtn[lane])) > 1e-4 && rtn[lane] - floor > 1e-4
+                                && idealSemanticsWeight[outgoings[lane + 1].direction] > idealSemanticsWeight[outgoings[lane].direction])
+                            {
+                                // right boundary can be moved left, so that my section will not share lane with right neighbor
+                                rtn[lane] = floor;
+                            }
                         }
                     }
 
                     std::stringstream ss;
                     std::for_each(rtn.begin(), rtn.end(), [&ss](double p) {ss << p << " "; });
-                    spdlog::debug("{} lane final assignment = {} at semantics w = {}", nLanes, ss.str(), factor01);
                     return rtn;
                 }
                 if (dead)

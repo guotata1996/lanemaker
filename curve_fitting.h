@@ -7,15 +7,14 @@
 #include "Geometries/ParamPoly3.h"
 #include "CubicBezier.hpp"
 
-#include "spdlog/spdlog.h"
-
 using namespace CGAL;
 
 typedef Cartesian<double>  Kernel;
 
 // l1 --> conn --> l2
-boost::optional<odr::ParamPoly3> ConnectLines(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
-    const odr::Vec2D& endPos, const odr::Vec2D& endHdg)
+void ConnectLines(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
+    const odr::Vec2D& endPos, const odr::Vec2D& endHdg, 
+    boost::optional<odr::Line>& lineOut, boost::optional<odr::ParamPoly3>& polyOut)
 {
     double hdg = std::atan2(startHdg[1], startHdg[0]);
     Point_2 <Kernel> p1(startPos[0], startPos[1]), p2(endPos[0], endPos[1]);
@@ -25,8 +24,14 @@ boost::optional<odr::ParamPoly3> ConnectLines(const odr::Vec2D& startPos, const 
     Ray_2< Kernel > ray2(p2, -dir2);
 
     Object result = intersection(ray1, ray2);
-    boost::optional<odr::ParamPoly3> rtn;
     
+    if (squared_distance(ray1, p2) < std::pow(1e-4, 2) && squared_distance(ray2, p1) < std::pow(1e-4, 2))
+    {
+        // collinear case
+        lineOut.emplace(0, startPos[0], startPos[1], hdg, odr::euclDistance(startPos, endPos));
+        return;
+    }
+
     if (const CGAL::Point_2<Kernel>* pm = object_cast<Point_2<Kernel>>(&result)) 
     {
         // Converging case - 2nd order
@@ -35,15 +40,18 @@ boost::optional<odr::ParamPoly3> ConnectLines(const odr::Vec2D& startPos, const 
         odr_p1 = odr::toLocal(odr_p1, startPos, startHdg);
         odr::Vec2D odr_p2({ p2.x(), p2.y() });
         odr_p2 = odr::toLocal(odr_p2, startPos, startHdg);
-        odr::CubicBezier2D curve({ odr_p0, odr_p1, odr_p1, odr_p2 });
 
-        auto coefficients = odr::CubicBezier2D::get_coefficients(curve.control_points);
-        
-        rtn.emplace(0, startPos[0], startPos[1], hdg, curve.get_length(),
-            coefficients[0][0], coefficients[1][0], coefficients[2][0], coefficients[3][0],
-            coefficients[0][1], coefficients[1][1], coefficients[2][1], coefficients[3][1],
-            true);
-        return rtn;
+        if (odr::euclDistance(odr_p0, odr_p1) < odr::euclDistance(odr_p0, odr_p2) * 5)
+        {
+            // project against very far intersection point, i.e. nearly parallel hdg
+            odr::CubicBezier2D curve({ odr_p0, odr_p1, odr_p1, odr_p2 });
+            auto coefficients = odr::CubicBezier2D::get_coefficients(curve.control_points);
+            polyOut.emplace(0, startPos[0], startPos[1], hdg, curve.get_length(),
+                coefficients[0][0], coefficients[1][0], coefficients[2][0], coefficients[3][0],
+                coefficients[0][1], coefficients[1][1], coefficients[2][1], coefficients[3][1],
+                true);
+            return;
+        }
     }
     
     // diverging case - 3rd order
@@ -62,10 +70,8 @@ boost::optional<odr::ParamPoly3> ConnectLines(const odr::Vec2D& startPos, const 
     odr::CubicBezier2D curve({ odr_p0, odr_p1, odr_p2, odr_p3 });
 
     auto coefficients = odr::CubicBezier2D::get_coefficients(curve.control_points);
-    rtn.emplace(0, startPos[0], startPos[1], hdg, curve.get_length(),
+    polyOut.emplace(0, startPos[0], startPos[1], hdg, curve.get_length(),
         coefficients[0][0], coefficients[1][0], coefficients[2][0], coefficients[3][0],
         coefficients[0][1], coefficients[1][1], coefficients[2][1], coefficients[3][1],
         true);
-    return rtn;
-
 }

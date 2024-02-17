@@ -1,14 +1,6 @@
-#pragma once
+#include "randomization_utils.h"
+#include <math.h>
 
-#include "road.h"
-
-#include "spdlog/spdlog.h"
-
-#ifdef G_TEST
-#include <gtest/gtest.h>
-#endif
-
-// Inclusive
 int RandomIntBetween(int low, int hi)
 {
     if (low >= hi) return low;
@@ -16,7 +8,6 @@ int RandomIntBetween(int low, int hi)
     return raw % (hi + 1 - low) + low;
 }
 
-// Sorted, Containing low and hi
 std::vector<int> RandomSortedVector(int low, int hi, uint32_t count)
 {
     assert(count >= 2);

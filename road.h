@@ -96,6 +96,7 @@ namespace RoadRunner
         };
     };
 
+    // Find Road Pointer by IDGenerator::ForRoad()::GetByID(). Pointer is EXPECTED to change!!
     class Road
     {
     public:

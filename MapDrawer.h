@@ -3,24 +3,19 @@
 #include <QGraphicsView>
 #include "OpenDriveMap.h"
 #include "GameGraphicsScene.h"
+#include "MapExporter.h"
 
-//#include <set>
 #include <string>
 namespace RoadRunner
 {
-    class MapDrawer : public QGraphicsView
+    class MapDrawer : public MapUpdater, public QGraphicsView
     {
     public:
-        MapDrawer(std::string fpath);
-
+        MapDrawer();
         // Apply undrawn changes, if any
         void Update();
 
-        MyGraphicsScene scene;
-
     private:
-        odr::OpenDriveMap odrMap;
-
-        std::string export_path;
+        MyGraphicsScene scene;
     };
 }
