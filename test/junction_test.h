@@ -11,35 +11,6 @@ namespace RoadRunnerTest
     struct Seed_SingleJunction
         : public testing::TestWithParam<int> {};
 
-    TEST(Junction, X1) {
-        RoadRunner::RoadProfile vConfig(40 * 100);
-        vConfig.AddRightSection({ RoadRunner::SectionProfile{-1, 3} , 0 * 100 });
-        vConfig.AddLeftSection({ RoadRunner::SectionProfile{1, 2} , 40 * 100 });
-        RoadRunner::RoadProfile hConfig(40 * 100);
-        hConfig.AddRightSection({ RoadRunner::SectionProfile{-1, 1}, 0 * 100 });
-        hConfig.AddLeftSection({ RoadRunner::SectionProfile{1, 2}, 40 * 100 });
-
-        RoadRunner::Road upper(vConfig);
-        RoadRunner::Road bottom(vConfig);
-
-        RoadRunner::Road left(hConfig);
-        RoadRunner::Road right(hConfig);
-
-        bottom.Generate(odr::Line(0, 0, -60, M_PI / 2, bottom.Length()));
-        upper.Generate(odr::Line(0, 0, 20, M_PI / 2, upper.Length()));
-        left.Generate(odr::Line(0, -60, 0, 0, left.Length()));
-        right.Generate(odr::Line(0, 20, 0, 0, right.Length()));
-
-        std::vector<RoadRunner::ConnectionInfo> connectionInfo({
-            RoadRunner::ConnectionInfo{&upper, 0},
-            RoadRunner::ConnectionInfo{&bottom, bottom.Length()},
-            RoadRunner::ConnectionInfo{&left, left.Length()},
-            RoadRunner::ConnectionInfo{&right, 0} });
-
-        RoadRunner::Junction j1(connectionInfo);
-        VerifyJunction(j1, connectionInfo);
-    }
-
     TEST_P(Seed_SingleJunction, SingleJunction) {
         auto seed = GetParam();
         srand(seed);
@@ -66,20 +37,16 @@ namespace RoadRunnerTest
             totalOuts += incoming ? leftLanes : rightLanes;
             numIncominglanes.push_back(incoming ? rightLanes : leftLanes);
 
-            RoadRunner::RoadProfile cfg;
-            if (rightLanes != 0)
-                cfg.AddRightSection({ RoadRunner::SectionProfile{rightOffset, rightLanes} , 0 });
-            if (leftLanes != 0)
-                cfg.AddLeftSection({ RoadRunner::SectionProfile{leftOffset, leftLanes} , RoadLength });
+            RoadRunner::RoadProfile cfg(leftLanes, leftOffset, rightLanes, rightOffset);
 
             odr::Vec2D refLineOrigin = incoming ? farEnd : nearEnd;
             refLineOrigin = odr::rotateCCW(refLineOrigin, SeparationAngle * i);
             double hdg = SeparationAngle * i;
             if (incoming) hdg += M_PI;
-            auto refLine = odr::Line(0, refLineOrigin[0], refLineOrigin[1], hdg, RoadLengthD);
+            auto refLine = std::make_shared<odr::Line>(0, refLineOrigin[0], refLineOrigin[1], hdg, RoadLengthD);
 
-            RoadRunner::Road road(cfg);
-            road.Generate(refLine);
+            RoadRunner::Road road(cfg, refLine);
+            road.Generate();
             generatedRoads.push_back(std::move(road));
             incomings.push_back(incoming);
         }

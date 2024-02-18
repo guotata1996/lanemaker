@@ -249,32 +249,25 @@ namespace RoadRunner
                 turningGroup.toOrigin,
                 odr::mut(outgoingCenetrS, outgoingRight));
 
-            boost::optional<odr::Line> lineOut;
-            boost::optional<odr::ParamPoly3> polyOut;
+            std::shared_ptr<odr::Line> lineOut;
+            std::shared_ptr<odr::ParamPoly3> polyOut;
             ConnectLines(
                 incomingCenter, turningGroup.fromForward,
                 outgoingCenter, turningGroup.toForward,
                 lineOut, polyOut);
 
-            if (!lineOut.has_value() && !polyOut.has_value())
+            if (lineOut == nullptr && polyOut == nullptr)
             {
                 errorCode |= Junction_ConnectionInvalidShape;
                 continue;
             }
 
-            RoadRunner::RoadProfile connectingProfile;
-            connectingProfile.AddRightSection({ RoadRunner::SectionProfile{
-                static_cast<type_t>(turningGroup.nLanes), 
-                static_cast<type_t>(turningGroup.nLanes)}, 0 });
-            Road connecting(connectingProfile);
-            if (lineOut.has_value())
-            {
-                connecting.Generate(lineOut.value());
-            }
-            else
-            {
-                connecting.Generate(polyOut.value());
-            }
+            RoadRunner::RoadProfile connectingProfile(0, 0, turningGroup.nLanes, turningGroup.nLanes);
+
+            auto connecting = lineOut != nullptr ? 
+                Road(connectingProfile, lineOut) :
+                Road(connectingProfile, polyOut);
+            connecting.Generate();
 
             // Assign linkage
             odr::Road& connRoad = connecting.generated;

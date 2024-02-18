@@ -2,7 +2,6 @@
 
 #include <list>
 #include <cassert>
-#include <optional>
 #include "spdlog/spdlog.h"
 
 #include "OpenDriveMap.h"
@@ -34,12 +33,6 @@ namespace RoadRunner
             return offsetx2 != another.offsetx2 || laneCount != another.laneCount;
         }
     };
-
-    //struct LaneSection
-    //{
-    //    SectionProfile profile; // follows XODR t definition
-    //    type_s s; // cm
-    //};
 
     class RoadProfile 
     {
@@ -143,7 +136,6 @@ namespace RoadRunner
         std::string ID() const { return generated.id; }
         odr::Road generated;
 
-    private:
         RoadProfile profile;
         std::shared_ptr<odr::RoadGeometry> refLine;
     };
