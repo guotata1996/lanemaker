@@ -2,6 +2,7 @@
 
 #include <list>
 #include <cassert>
+#include <optional>
 #include "spdlog/spdlog.h"
 
 #include "OpenDriveMap.h"
@@ -34,58 +35,55 @@ namespace RoadRunner
         }
     };
 
-    struct LaneSection
-    {
-        SectionProfile profile; // follows XODR t definition
-        type_s s; // cm
-
-        // odr::Line3D boundary; // for highlight
-    };
+    //struct LaneSection
+    //{
+    //    SectionProfile profile; // follows XODR t definition
+    //    type_s s; // cm
+    //};
 
     class RoadProfile 
     {
     public:
-        RoadProfile(type_s l = 0) { length = l; }
-        void SetLength(type_s a) { length = a; }
+        RoadProfile(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right);
 
-        void AddLeftSection(const LaneSection& section);
-        void AddRightSection(const LaneSection& section);
+        void OverwriteSection(int side, double start, double end, uint8_t nLanes, int8_t offsetX2);
         
         SectionProfile LeftEntrance() const;
         SectionProfile LeftExit() const;
         SectionProfile RightEntrance() const;
         SectionProfile RightExit() const;
 
-        type_s Length() const { return length; }
-
-        void Apply(odr::Road&) const;
+        void Apply(double length, odr::Road&) const;
 
     protected:
-        // Includes center Lane (ID=0)
         void ConvertSide(bool rightSide,
             std::string roadID,
+            type_s length,
             std::map<double, odr::LaneSection>& laneSectionResult, 
             std::map<double, odr::Poly3>& laneOffsetResult) const;
 
         std::map<double, odr::Poly3> _MakeTransition(
             type_s start_s, type_s end_s,
-            type_t start_t2, type_t end_t2, bool rightSide) const;
+            type_t start_t2, type_t end_t2, bool rightSide, type_s length) const;
 
-        std::map<double, odr::Poly3> _MakeStraight(type_s start_s, type_s end_s, type_t const_t, bool rightSide) const;
+        std::map<double, odr::Poly3> _MakeStraight(type_s start_s, type_s end_s, type_t const_t, 
+            bool rightSide, type_s length) const;
 
         // Convert difference in L/R lane offset into median center lane
-        std::map<double, odr::Poly3> _ComputeMedian(const std::map<double, odr::Poly3>& leftOffsets,
-            const std::map<double, odr::Poly3> rightOffsets) const;
+        std::map<double, odr::Poly3> _ComputeMedian(
+            const std::map<double, odr::Poly3>& leftOffsets,
+            const std::map<double, odr::Poly3> rightOffsets, 
+            type_s length) const;
 
         void _MergeSides(odr::Road& rtn,
             const std::map<double, odr::LaneSection>& leftSections,
             const std::map<double, odr::Poly3>& centerWidths,
-            const std::map<double, odr::LaneSection>& rightSections) const;
+            const std::map<double, odr::LaneSection>& rightSections,
+            type_s length) const;
 
-        type_s length;
         const type_s MaxTransitionS = 20 * 100;
         
-        std::list<LaneSection> leftProfiles, rightProfiles;
+        std::map<type_s, SectionProfile> leftProfiles, rightProfiles;
 
         struct TransitionInfo
         {
@@ -100,9 +98,11 @@ namespace RoadRunner
     class Road
     {
     public:
-        Road(const RoadProfile& p, std::string id="") :
+        Road(const RoadProfile& p, std::shared_ptr<odr::RoadGeometry> l, std::string id="") :
             generated(id.empty() ? IDGenerator::ForRoad()->GenerateID(this) : id, 0, "-1"),
-            profile(p) {}
+            profile(p),
+            refLine(l)
+        {}
 
         ~Road() 
         {
@@ -110,8 +110,7 @@ namespace RoadRunner
             {
                 spdlog::trace("del road {}", ID());
                 IDGenerator::ForRoad()->FreeID(ID());
-            }
-                
+            }  
         }
 
         Road(const Road& another) = delete; // No copy costruct
@@ -122,6 +121,7 @@ namespace RoadRunner
             generated(other.generated),
             profile(other.profile)
         {
+            refLine.swap(other.refLine);
             IDGenerator::ForRoad()->FreeID(other.ID());
             other.generated.id = "";
 
@@ -129,30 +129,23 @@ namespace RoadRunner
             generated.name = "Road " + generated.id;
         }
 
-        void Generate(const odr::RoadGeometry& refLine)
+        void Generate()
         {
-            profile.SetLength(refLine.length * 100);
-            profile.Apply(generated);
-            generated.ref_line.s0_to_geometry[0] = refLine.clone();
-            generated.ref_line.length = refLine.length;
-            generated.length = refLine.length;  // TODO: remove this patch
+            profile.Apply(refLine->length, generated);
+            generated.ref_line.s0_to_geometry[0] = refLine->clone();
             generated.DeriveLaneBorders();
         }
 
-        void Generate()
-        {
-            Generate(odr::Line(0, 0, 0, 0, profile.Length() / 100));
-        }
-
         double Length() const { 
-            return to_odr_unit(profile.Length());  // TODO: return exact double length
+            return refLine->length;
         }
 
         std::string ID() const { return generated.id; }
-
-        RoadProfile profile;
-        // TODO: ref line fitter
         odr::Road generated;
+
+    private:
+        RoadProfile profile;
+        std::shared_ptr<odr::RoadGeometry> refLine;
     };
 
     Road* JoinRoads(const Road* const road1, type_s p1, const Road* const road2, type_s p2); // TODO:

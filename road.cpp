@@ -15,56 +15,108 @@ namespace RoadRunner
 
     double to_odr_unit(type_t l) { return (double)l / 2 * LaneWidth; }
 
-    void RoadProfile::AddLeftSection(const LaneSection& section)
+    RoadProfile::RoadProfile(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right)
     {
-        if (leftProfiles.empty() || leftProfiles.back().profile != section.profile)
+        if (nLanes_Right != 0)
         {
-            leftProfiles.push_back(section);
+            rightProfiles.emplace(0, 
+                SectionProfile{ offsetX2_Right, static_cast<int8_t>(nLanes_Right) });
         }
-        // _UpdateBoundary();
+        if (nLanes_Left != 0)
+        {
+            leftProfiles.emplace(std::numeric_limits<uint32_t>::max(), 
+                SectionProfile{ offsetX2_Left, static_cast<int8_t>(nLanes_Left) });
+        }
     }
 
-    void RoadProfile::AddRightSection(const LaneSection& section)
+    void RoadProfile::OverwriteSection(int side, double _start, double _end, uint8_t nLanes, int8_t offsetX2)
     {
-        if (rightProfiles.empty() || rightProfiles.back().profile != section.profile)
+        assert(_start >= 0);
+        assert(_end >= 0);
+        if (side < 0)
         {
-            rightProfiles.push_back(section);
+            assert(_start < _end);
         }
+        else
+        {
+            assert(_start > _end);
+        }
+
+        type_s start = std::round(_start * 100);
+        type_s end = std::round(_end * 100);
+
+        auto& profileToModify = side > 0 ? leftProfiles : rightProfiles;
+        assert(!profileToModify.empty());
+        auto existingKeys = odr::get_map_keys_sorted(profileToModify);
+
+        type_s largestElementEqualOrBefore;
+        if (side < 0)
+        {
+            for (auto it = existingKeys.rbegin(); it != existingKeys.rend(); ++it)
+            {
+                largestElementEqualOrBefore = *it;
+                if (largestElementEqualOrBefore <= end) break;
+            }
+        }
+        else
+        {
+            largestElementEqualOrBefore = profileToModify.lower_bound(end)->first;
+        }
+
+        auto existingProfileAtEnd = profileToModify.at(largestElementEqualOrBefore);
+
+        // Do overwrite
+        profileToModify[start] = SectionProfile{ offsetX2, static_cast<int8_t>(nLanes) };
+        for (auto it = existingKeys.rbegin(); it != existingKeys.rend(); ++it)
+        {
+            if (start < *it && *it < end || end < *it && *it < start)
+            {
+                profileToModify.erase(*it);
+            }
+        }
+        profileToModify[end] = existingProfileAtEnd;
+
+        spdlog::trace("====side {} ===", side);
+        for (auto s_section : profileToModify) {
+            spdlog::trace("s = {}: nLanes{} offset{}",
+                s_section.first, s_section.second.laneCount, s_section.second.offsetx2);
+        }
+        
     }
 
     SectionProfile RoadProfile::LeftEntrance() const 
     {
-        return leftProfiles.empty() ? SectionProfile{ 0, 0 } : leftProfiles.rbegin()->profile;
+        return leftProfiles.empty() ? SectionProfile{ 0, 0 } : leftProfiles.rbegin()->second;
     }
 
     SectionProfile RoadProfile::LeftExit() const
     {
-        return leftProfiles.empty() ? SectionProfile{ 0, 0 } : leftProfiles.begin()->profile;
+        return leftProfiles.empty() ? SectionProfile{ 0, 0 } : leftProfiles.begin()->second;
     }
 
     SectionProfile RoadProfile::RightEntrance() const
     {
-        return rightProfiles.empty() ? SectionProfile{ 0, 0 } : rightProfiles.begin()->profile;
+        return rightProfiles.empty() ? SectionProfile{ 0, 0 } : rightProfiles.begin()->second;
     }
 
     SectionProfile RoadProfile::RightExit() const
     {
-        return rightProfiles.empty() ? SectionProfile{ 0, 0 } : rightProfiles.rbegin()->profile;
+        return rightProfiles.empty() ? SectionProfile{ 0, 0 } : rightProfiles.rbegin()->second;
     }
 
     std::map<double, odr::Poly3> RoadProfile::_MakeTransition(
         type_s start_s, type_s end_s,
-        type_t start_t2, type_t end_t2, bool rightSide) const
+        type_t start_t2, type_t end_t2, bool rightSide, type_s length) const
     {
         assert(start_s < end_s);
 
         double odr_start_s = to_odr_unit(start_s);
         if (!rightSide)
         {
-            odr_start_s = to_odr_unit(Length() - end_s);
+            odr_start_s = to_odr_unit(length - end_s);
             std::swap(start_s, end_s);
-            start_s = Length() - start_s;
-            end_s = Length() - end_s;
+            start_s = length - start_s;
+            end_s = length - end_s;
             std::swap(start_t2, end_t2);
         }
         double c_50 = 3.9e-3, d_50 = -5.2e-5;
@@ -91,10 +143,11 @@ namespace RoadRunner
         };
     }
 
-    std::map<double, odr::Poly3> RoadProfile::_MakeStraight(type_s start_s, type_s end_s, type_t const_t, bool rightSide) const
+    std::map<double, odr::Poly3> RoadProfile::_MakeStraight(type_s start_s, type_s end_s, type_t const_t, 
+        bool rightSide, type_s length) const
     {
         assert(start_s <= end_s);
-        double odr_start_s = rightSide ? to_odr_unit(start_s) : to_odr_unit(Length() - end_s);
+        double odr_start_s = rightSide ? to_odr_unit(start_s) : to_odr_unit(length - end_s);
 
         return { std::make_pair(
             odr_start_s,
@@ -102,41 +155,60 @@ namespace RoadRunner
         };
     }
 
-    void RoadProfile::ConvertSide(bool rightSide, std::string roadID,
+    void RoadProfile::ConvertSide(bool rightSide, std::string roadID, type_s length,
         std::map<double, odr::LaneSection>& laneSectionResult,
         std::map<double, odr::Poly3>& laneOffsetResult) const
     {
-        std::list<LaneSection> profiles = rightSide ? rightProfiles : leftProfiles;
-        if (!rightSide)
+        decltype(rightProfiles) profiles;
+        
+        if (rightSide)
         {
-            // Use uniform s that follows traffic direction
-            for (auto& section : profiles)
+            for (const auto& s_and_section : rightProfiles)
             {
-                section.s = Length() - section.s;
+                if (s_and_section.first < length)
+                {
+                    profiles.emplace(s_and_section.first, s_and_section.second);
+                }
             }
         }
+        else
+        {
+            // Use uniform s that follows traffic direction
+            for (const auto& s_and_section : leftProfiles)
+            {
+                type_s clampedS = std::min(s_and_section.first, length); // filter out uint32_max value
+                type_s uniformS = length - clampedS;
+                if (uniformS < length)
+                {
+                    // Ignore impossible transition at the end
+                    profiles.emplace(uniformS, s_and_section.second);
+                }
+            }
+        }
+
+        // TODO: remove redundant keys from both side profiles
 
         /*
         Prepare transitionInfo
         */
-        std::list<LaneSection>::const_iterator pre = profiles.begin(), curr = profiles.begin();
+        std::map<type_s, SectionProfile>::const_iterator pre = profiles.begin(), curr = profiles.begin();
         curr++;
 
         std::vector<TransitionInfo> transitions(profiles.size() + 1);
         transitions[0] = TransitionInfo
         {
             0,
-            profiles.front().profile.offsetx2, profiles.front().profile.offsetx2,
-            profiles.front().profile.laneCount, 0, 0,
+            profiles.begin()->second.offsetx2, profiles.begin()->second.offsetx2,
+            profiles.begin()->second.laneCount, 0, 0,
             0
         };  // first element is dummy
         int transitionIndex = 1;
         for (; curr != profiles.end(); ++pre, ++curr, ++transitionIndex)
         {
-            const LaneSection& preSection = *pre;
-            const LaneSection& currSection = *curr;
-            const SectionProfile& preProfile = preSection.profile;
-            const SectionProfile& currProfile = currSection.profile;
+            type_s preSectionS = pre->first;
+            type_s currSectionS = curr->first;
+            const SectionProfile& preProfile = pre->second;
+            const SectionProfile& currProfile = curr->second;
             const int TSign = rightSide ? 1 : -1;
             
             // pre->curr
@@ -190,18 +262,18 @@ namespace RoadRunner
                 }
             }
 
-            std::list<LaneSection>::const_iterator next = curr;
+            auto next = curr;
             next++;
 
-            type_s preLength = currSection.s - preSection.s;
-            type_s nextLength = (next == profiles.cend() ? Length() : next->s) - currSection.s;
-            spdlog::trace("PreS {} CurrS {} NextS {}", preSection.s, currSection.s, (next == profiles.cend() ? Length() : next->s));
+            type_s preLength = currSectionS - preSectionS;
+            type_s nextLength = (next == profiles.cend() ? length : next->first) - currSectionS;
+            spdlog::trace("PreS {} CurrS {} NextS {}", preSectionS, currSectionS, (next == profiles.cend() ? length : next->first));
             type_s preTransitionLength = std::min({ preLength / 2, nextLength / 2, MaxTransitionS });
 
             // write
             transitions[transitionIndex] = TransitionInfo
             {
-                currSection.s,
+                currSectionS,
                 preProfile.offsetx2, currProfile.offsetx2,
                 preProfile.laneCount, newLanesOnLeft , newLanesOnRight,
                 preTransitionLength
@@ -210,9 +282,9 @@ namespace RoadRunner
         // last transition is dummy
         transitions[profiles.size()] = TransitionInfo
         {
-            Length(),
-            profiles.back().profile.offsetx2, profiles.back().profile.offsetx2,
-            profiles.back().profile.laneCount, 0, 0,
+            length,
+            profiles.rbegin()->second.offsetx2, profiles.rbegin()->second.offsetx2,
+            profiles.rbegin()->second.laneCount, 0, 0,
             0
         };  // last transition is dummy
 
@@ -226,19 +298,19 @@ namespace RoadRunner
             const TransitionInfo& transition = transitions[i];
             type_s tranS = transition.cumulativeS - transition.transitionHalfLength;
             type_s straightS = transition.cumulativeS + transition.transitionHalfLength;
-            type_s nextTranS = i == transitions.size() - 1 ? Length() :
+            type_s nextTranS = i == transitions.size() - 1 ? length :
                 transitions[i + 1].cumulativeS - transitions[i + 1].transitionHalfLength;
             spdlog::trace("In {} Transition {}-{}-{}:", rightSide ? "Right" : "Left", tranS, straightS, nextTranS);
             spdlog::trace("L+={} | Lanes={} | R+={}", transition.newLanesOnLeft, transition.startLanes, transition.newLanesOnRight);
 
             // Lane offset
             // Transition MUST NOT happen at 0 or L
-            if (transition.cumulativeS != 0 && transition.cumulativeS != Length())
+            if (transition.cumulativeS != 0 && transition.cumulativeS != length)
             {
                 for (auto t : _MakeTransition(
                     tranS, straightS,
                     transition.oldCenter2, 
-                    transition.newCenter2, rightSide))
+                    transition.newCenter2, rightSide, length))
                 {
                     laneOffsetResult[t.first] = t.second;
                 }
@@ -246,7 +318,7 @@ namespace RoadRunner
 
             if (straightS != nextTranS)
             {
-                for (auto st : _MakeStraight(straightS, nextTranS, transition.newCenter2, rightSide))
+                for (auto st : _MakeStraight(straightS, nextTranS, transition.newCenter2, rightSide, length))
                 {
                     laneOffsetResult[st.first] = st.second;
                 }
@@ -255,18 +327,18 @@ namespace RoadRunner
             // Lane section
 
             const int laneIDMultiplier = rightSide ? -1 : 1;
-            if (transition.cumulativeS != 0 && transition.cumulativeS != Length())
+            if (transition.cumulativeS != 0 && transition.cumulativeS != length)
             {
                 // varying section
                 auto varyWidthL = _MakeTransition(
                     tranS, straightS,
                     transition.newLanesOnLeft > 0 ? 0 : 2,
-                    transition.newLanesOnLeft > 0 ? 2 : 0, rightSide);
-                auto constWidth = _MakeStraight(tranS, straightS, 2, rightSide);
+                    transition.newLanesOnLeft > 0 ? 2 : 0, rightSide, length);
+                auto constWidth = _MakeStraight(tranS, straightS, 2, rightSide, length);
                 auto varyWidthR = _MakeTransition(
                     tranS, straightS,
                     transition.newLanesOnRight > 0 ? 0 : 2,
-                    transition.newLanesOnRight > 0 ? 2 : 0, rightSide);
+                    transition.newLanesOnRight > 0 ? 2 : 0, rightSide, length);
                 double tran_s_odr = varyWidthL.begin()->first;
 
                 uint32_t laneIndex = 0;
@@ -354,7 +426,7 @@ namespace RoadRunner
             
             {
                 // constant section
-                auto constWidth = _MakeStraight(straightS, nextTranS, 2, rightSide);
+                auto constWidth = _MakeStraight(straightS, nextTranS, 2, rightSide, length);
                 double straight_s_odr = constWidth.begin()->first;
 
                 uint32_t laneIndex = 0;
@@ -410,9 +482,9 @@ namespace RoadRunner
 
     std::map<double, odr::Poly3> RoadProfile::_ComputeMedian(
         const std::map<double, odr::Poly3>& leftOffsets,
-        const std::map<double, odr::Poly3> rightOffsets) const
+        const std::map<double, odr::Poly3> rightOffsets, type_s length) const
     {
-        const double rtnLength = to_odr_unit(Length());
+        const double rtnLength = to_odr_unit(length);
         std::map<double, odr::Poly3> centerWidths;
 
         auto leftKeys = odr::get_map_keys_sorted(leftOffsets);
@@ -462,9 +534,10 @@ namespace RoadRunner
     void RoadProfile::_MergeSides(odr::Road& rtn,
         const std::map<double, odr::LaneSection>& leftSections,
         const std::map<double, odr::Poly3>& centerWidths,
-        const std::map<double, odr::LaneSection>& rightSections) const
+        const std::map<double, odr::LaneSection>& rightSections,
+        type_s length) const
     {
-        double rtnLength = to_odr_unit(Length());
+        double rtnLength = to_odr_unit(length);
 
         auto leftKeys = odr::get_map_keys_sorted(leftSections);
         auto centerKeys = odr::get_map_keys_sorted(centerWidths);
@@ -608,25 +681,25 @@ namespace RoadRunner
         }
     }
 
-    void RoadProfile::Apply(odr::Road& rtn) const
+    void RoadProfile::Apply(double _length, odr::Road& rtn) const
     {
         // Fail if either side is undefined
-        assert(Length() > 0);
+        assert(_length > 0);
         assert(!leftProfiles.empty() || !rightProfiles.empty());
+        rtn.length = _length;
 
-        double rtnLength = to_odr_unit(Length());
-        rtn.length = rtnLength;
+        type_s length = std::floor(_length * 100);
 
         std::map<double, odr::LaneSection> leftSections, rightSections;
         std::map<double, odr::Poly3> leftOffsets, rightOffsets;
         if (!rightProfiles.empty())
         {
-            ConvertSide(true, rtn.id, rightSections, rightOffsets);
+            ConvertSide(true, rtn.id, length, rightSections, rightOffsets);
         }
 
         if (!leftProfiles.empty())
         {
-            ConvertSide(false, rtn.id, leftSections, leftOffsets);
+            ConvertSide(false, rtn.id, length, leftSections, leftOffsets);
         }
         // from this point, s keys align with road coordinate
 
@@ -657,13 +730,13 @@ namespace RoadRunner
         spdlog::trace("Right Keys: {}", SPDLOG_RKEYS.str());
         spdlog::trace("Left Keys:  {}", SPDLOG_LKEYS.str());
 
-        std::map<double, odr::Poly3> centerWidths = _ComputeMedian(leftOffsets, rightOffsets);
+        std::map<double, odr::Poly3> centerWidths = _ComputeMedian(leftOffsets, rightOffsets, length);
 
         std::stringstream SPDLOG_CKEYS;
         std::for_each(centerWidths.cbegin(), centerWidths.cend(),
             [&SPDLOG_CKEYS](auto s) {SPDLOG_CKEYS << s.first << " "; });
         spdlog::trace("Center Keys:  {}", SPDLOG_CKEYS.str());
 
-        _MergeSides(rtn, leftSections, centerWidths, rightSections);
+        _MergeSides(rtn, leftSections, centerWidths, rightSections, length);
     } // class function
 } // namespace
