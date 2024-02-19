@@ -27,39 +27,25 @@ namespace RoadRunnerTest
             auto section = sectionStart->second;
             for (auto idToLane : section.id_to_lane)
             {
-                if (idToLane.first == 0)
+                for (int i = 0; i <= checkPoints; ++i)
                 {
-                    for (int i = 0; i <= checkPoints; ++i)
-                    {
-                        double s = sStart + (sEnd - sStart) * (double)i / checkPoints;
-                        double width = idToLane.second.lane_width.get(s);
+                    double s = sStart + (sEnd - sStart) * (double)i / checkPoints;
+                    double width = idToLane.second.lane_width.get(s);
 #ifdef G_TEST
+                    if (idToLane.first == 0)
+                    {
                         EXPECT_EQ(width, 0);
-#endif
                     }
-                }
-                else if (idToLane.first == 1)
-                {
-                    for (int i = 0; i <= checkPoints; ++i)
+                    else if (idToLane.second.type == "median")
                     {
-                        double s = sStart + (sEnd - sStart) * (double)i / checkPoints;
-                        double width = idToLane.second.lane_width.get(s);
-#ifdef G_TEST
                         EXPECT_LT(-epsilon, width);
-#endif
                     }
-                }
-                else
-                {
-                    for (int i = 0; i <= checkPoints; ++i)
+                    else if (idToLane.second.type == "driving")
                     {
-                        double s = sStart + (sEnd - sStart) * (double)i / checkPoints;
-                        double width = idToLane.second.lane_width.get(s);
-#ifdef G_TEST
                         EXPECT_LT(-epsilon, width);
                         EXPECT_LT(width, RoadRunner::LaneWidth + epsilon);
-#endif
                     }
+#endif
                 }
             }
         }

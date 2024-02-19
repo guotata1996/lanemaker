@@ -55,6 +55,8 @@ namespace RoadRunner
             std::map<double, odr::LaneSection>& laneSectionResult, 
             std::map<double, odr::Poly3>& laneOffsetResult) const;
 
+        void RemoveRedundantProfileKeys(int side);
+
         std::map<double, odr::Poly3> _MakeTransition(
             type_s start_s, type_s end_s,
             type_t start_t2, type_t end_t2, bool rightSide, type_s length) const;

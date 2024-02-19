@@ -29,6 +29,47 @@ namespace RoadRunner
         }
     }
 
+    void RoadProfile::RemoveRedundantProfileKeys(int side)
+    {
+        std::set<type_s> toRemove;
+        if (side < 0 && rightProfiles.size() >= 2)
+        {
+            for (auto it = rightProfiles.begin(); ;++it)
+            {
+                auto end = it;
+                end++;
+                if (end == rightProfiles.end()) break;
+                if (it->second == end->second)
+                {
+                    toRemove.insert(end->first);
+                }
+            }
+
+            for (type_s s : toRemove)
+            {
+                rightProfiles.erase(s);
+            }
+        }
+        else if (side > 0 && leftProfiles.size() >= 2)
+        {
+            for (auto it = leftProfiles.rbegin(); ; ++it)
+            {
+                auto end = it;
+                end++;
+                if (end == leftProfiles.rend()) break;
+                if (it->second == end->second)
+                {
+                    toRemove.insert(end->first);
+                }
+            }
+
+            for (type_s s : toRemove)
+            {
+                leftProfiles.erase(s);
+            }
+        }
+    }
+
     void RoadProfile::OverwriteSection(int side, double _start, double _end, uint8_t nLanes, int8_t offsetX2)
     {
         assert(_start >= 0);
@@ -75,6 +116,8 @@ namespace RoadRunner
             }
         }
         profileToModify[end] = existingProfileAtEnd;
+
+        RemoveRedundantProfileKeys(side);
 
         spdlog::trace("====side {} ===", side);
         for (auto s_section : profileToModify) {
@@ -184,9 +227,7 @@ namespace RoadRunner
                     profiles.emplace(uniformS, s_and_section.second);
                 }
             }
-        }
-
-        // TODO: remove redundant keys from both side profiles
+        }        
 
         /*
         Prepare transitionInfo

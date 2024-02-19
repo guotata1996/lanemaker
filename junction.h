@@ -103,6 +103,6 @@ namespace RoadRunner
 
         odr::Junction generated;
 
-        int generationError = 0; // TODO: Inform user if non-zero
+        int generationError = 0;
     };
 }
