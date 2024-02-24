@@ -249,14 +249,11 @@ namespace RoadRunner
                 turningGroup.toOrigin,
                 odr::mut(outgoingCenetrS, outgoingRight));
 
-            std::shared_ptr<odr::Line> lineOut;
-            std::shared_ptr<odr::ParamPoly3> polyOut;
-            ConnectLines(
+            auto connectingRefLine = ConnectLines(
                 incomingCenter, turningGroup.fromForward,
-                outgoingCenter, turningGroup.toForward,
-                lineOut, polyOut);
+                outgoingCenter, turningGroup.toForward);
 
-            if (lineOut == nullptr && polyOut == nullptr)
+            if (connectingRefLine == nullptr)
             {
                 errorCode |= Junction_ConnectionInvalidShape;
                 continue;
@@ -264,9 +261,7 @@ namespace RoadRunner
 
             RoadRunner::RoadProfile connectingProfile(0, 0, turningGroup.nLanes, turningGroup.nLanes);
 
-            auto connecting = lineOut != nullptr ? 
-                Road(connectingProfile, lineOut) :
-                Road(connectingProfile, polyOut);
+            auto connecting = Road(connectingProfile, connectingRefLine);
             connecting.Generate();
 
             // Assign linkage

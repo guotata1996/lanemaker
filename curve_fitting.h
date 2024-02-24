@@ -12,9 +12,8 @@ using namespace CGAL;
 typedef Cartesian<double>  Kernel;
 
 // l1 --> conn --> l2
-void ConnectLines(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
-    const odr::Vec2D& endPos, const odr::Vec2D& endHdg, 
-    std::shared_ptr<odr::Line>& lineOut, std::shared_ptr<odr::ParamPoly3>& polyOut)
+std::shared_ptr<odr::RoadGeometry> ConnectLines(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
+    const odr::Vec2D& endPos, const odr::Vec2D& endHdg)
 {
     double hdg = std::atan2(startHdg[1], startHdg[0]);
     Point_2 <Kernel> p1(startPos[0], startPos[1]), p2(endPos[0], endPos[1]);
@@ -28,8 +27,7 @@ void ConnectLines(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
     if (squared_distance(ray1, p2) < std::pow(1e-4, 2) && squared_distance(ray2, p1) < std::pow(1e-4, 2))
     {
         // collinear case
-        lineOut = std::make_shared<odr::Line>(0, startPos[0], startPos[1], hdg, odr::euclDistance(startPos, endPos));
-        return;
+        return std::make_shared<odr::Line>(0, startPos[0], startPos[1], hdg, odr::euclDistance(startPos, endPos));
     }
 
     if (const CGAL::Point_2<Kernel>* pm = object_cast<Point_2<Kernel>>(&result)) 
@@ -46,11 +44,10 @@ void ConnectLines(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
             // project against very far intersection point, i.e. nearly parallel hdg
             odr::CubicBezier2D curve({ odr_p0, odr_p1, odr_p1, odr_p2 });
             auto coefficients = odr::CubicBezier2D::get_coefficients(curve.control_points);
-            polyOut = std::make_shared<odr::ParamPoly3>(0, startPos[0], startPos[1], hdg, curve.get_length(),
+            return std::make_shared<odr::ParamPoly3>(0, startPos[0], startPos[1], hdg, curve.get_length(),
                 coefficients[0][0], coefficients[1][0], coefficients[2][0], coefficients[3][0],
                 coefficients[0][1], coefficients[1][1], coefficients[2][1], coefficients[3][1],
                 true);
-            return;
         }
     }
     
@@ -70,7 +67,7 @@ void ConnectLines(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
     odr::CubicBezier2D curve({ odr_p0, odr_p1, odr_p2, odr_p3 });
 
     auto coefficients = odr::CubicBezier2D::get_coefficients(curve.control_points);
-    polyOut = std::make_shared<odr::ParamPoly3>(0, startPos[0], startPos[1], hdg, curve.get_length(),
+    return std::make_shared<odr::ParamPoly3>(0, startPos[0], startPos[1], hdg, curve.get_length(),
         coefficients[0][0], coefficients[1][0], coefficients[2][0], coefficients[3][0],
         coefficients[0][1], coefficients[1][1], coefficients[2][1], coefficients[3][1],
         true);
