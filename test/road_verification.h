@@ -372,7 +372,6 @@ namespace RoadRunnerTest
 #endif
         auto refLine = std::make_shared<odr::Line>(0, 0, 0, 0, refLineLength);
         RoadRunner::Road road(configs, refLine);
-        road.Generate();
         const odr::Road& gen = road.generated;
 
 #ifndef G_TEST

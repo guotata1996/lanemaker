@@ -4,6 +4,7 @@
 #include "road.h"
 #include <map>
 #include <vector>
+#include <functional>
 
 namespace RoadRunner
 {
@@ -39,6 +40,16 @@ namespace RoadRunner
         uint8_t nLanes;
 
         std::vector<double> dirSplit; // Left empty for auto assignment.
+
+        bool operator==(const RoadEndpoint& other) const
+        {
+            return other.road == road && other.contact == contact;
+        }
+
+        bool operator <(const RoadEndpoint& rhs) const
+        {
+            return road < rhs.road || road == rhs.road && contact < rhs.contact;
+        }
     };
 
     enum TurningSemantics {Turn_No, Turn_U, Turn_Left, Turn_Right};
@@ -95,7 +106,7 @@ namespace RoadRunner
             }
         }
 
-        ~Junction(); // TODO: Disconnect lane linkage, destroy connecting roads
+        ~Junction();
 
         std::string ID() { return generated.id; }
 
@@ -106,3 +117,21 @@ namespace RoadRunner
         int generationError = 0;
     };
 }
+
+//template <>
+//struct std::hash<RoadRunner::RoadEndpoint>
+//{
+//    std::size_t operator()(const RoadRunner::RoadEndpoint& k) const
+//    {
+//        using std::size_t;
+//        using std::hash;
+//        using std::string;
+//
+//        // Compute individual hash values for first,
+//        // second and third and combine them using XOR
+//        // and bit shifting:
+//
+//        return (hash<odr::Road*>()(k.road)
+//            ^ (hash<int>()(k.contact) << 1));
+//    }
+//};

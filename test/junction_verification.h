@@ -82,25 +82,31 @@ namespace RoadRunnerTest
         }
 
         // Make sure all connecting roads have matching outgoing lanes
-        for (auto& conneting : junction.connectingRoads)
+        for (auto& connecting : junction.connectingRoads)
         {
-            auto outLink = conneting.generated.successor;
+            auto outLink = connecting.generated.successor;
 #ifdef G_TEST
-            EXPECT_EQ(conneting.generated.junction, junction.generated.id);
+            EXPECT_EQ(connecting.generated.junction, junction.generated.id);
             EXPECT_EQ(outLink.type, odr::RoadLink::Type_Road);
 #endif
             std::string outgoingID = outLink.id;
-            std::string connectingID = conneting.ID();
+            std::string connectingID = connecting.ID();
             auto connection = std::find_if(allConnections.begin(), allConnections.end(),
                 [connectingID](auto& connection) {return connectingID == connection.connecting_road; });
 #ifdef G_TEST
             EXPECT_EQ(connection->outgoing_road, outgoingID);
 #endif
+            auto contactPointOnNext = connection->lane_links.begin()->next < 0 ?
+                odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End;
             auto outgoingItr = std::find_if(connectionInfo.begin(), connectionInfo.end(),
-                [outgoingID](const RoadRunner::ConnectionInfo& info) {return info.road->ID() == outgoingID; });
+                [outgoingID, contactPointOnNext](const RoadRunner::ConnectionInfo& info) 
+            {
+                auto specifiedContactPoint = info.s == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End;
+                return info.road->ID() == outgoingID && specifiedContactPoint == contactPointOnNext;
+            });
             for (const auto& ll : connection->lane_links)
             {
-                EnsureEndsMeet(conneting.generated, conneting.generated.length, ll.to,
+                EnsureEndsMeet(connecting.generated, connecting.generated.length, ll.to,
                     outgoingItr->road->generated, outgoingItr->s, ll.next);
             }
         }

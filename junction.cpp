@@ -97,7 +97,7 @@ namespace RoadRunner
             }
         }
 
-        std::map<std::pair<odr::Road*, odr::Road*>, TurningGroup> turningGroups;
+        std::map<std::pair<RoadEndpoint, RoadEndpoint>, TurningGroup> turningGroups;
 
         // Determine incoming info for turningGroups
         for (const RoadEndpoint& incomingRoad : incomingEndpoints)
@@ -131,7 +131,7 @@ namespace RoadRunner
             {
                 double turnAngle = odr::angle(incomingRoad.forward, outgoingRoad.forward);
                 auto turningSemantics = RoadRunner::Turn_No;
-                if (incomingRoad.road == outgoingRoad.road)
+                if (incomingRoad.road == outgoingRoad.road && incomingRoad.contact == outgoingRoad.contact)
                 {
                     turningSemantics = TurningSemantics::Turn_U;
                 }
@@ -177,7 +177,7 @@ namespace RoadRunner
                     outgoingGroup.fromLaneIDBase = beginAndCount.first;
                     outgoingGroup.nLanes = nLanes;
                     turningGroups.emplace(
-                        std::make_pair(incomingRoad.road, outgoingRoad.road),
+                        std::make_pair(incomingRoad, outgoingRoad),
                         outgoingGroup);
                 }
                 outgoingIndex++;
@@ -208,7 +208,7 @@ namespace RoadRunner
             std::vector<TurningGroup> existingIncomingGroups;
             for (const auto& incomingRoad : incomingEndpoints)
             {
-                auto inOutKey = std::make_pair(incomingRoad.road, outgoingRoad.road);
+                auto inOutKey = std::make_pair(incomingRoad, outgoingRoad);
                 if (turningGroups.find(inOutKey) != turningGroups.end())
                 {
                     existingIncomingGroups.push_back(turningGroups.at(inOutKey));
@@ -219,7 +219,7 @@ namespace RoadRunner
             auto assignResult = existingIncomingGroups.begin();
             for (const auto& incomingRoad : incomingEndpoints)
             {
-                auto inOutKey = std::make_pair(incomingRoad.road, outgoingRoad.road);
+                auto inOutKey = std::make_pair(incomingRoad, outgoingRoad);
                 if (turningGroups.find(inOutKey) != turningGroups.end())
                 {
                     turningGroups.at(inOutKey).toLaneIDBase = assignResult++->toLaneIDBase;
@@ -271,8 +271,8 @@ namespace RoadRunner
 
             // Assign linkage
             odr::Road& connRoad = connecting.generated;
-            odr::Road* incomingRoad = turningKv.first.first;
-            odr::Road* outgoingRoad = turningKv.first.second;
+            odr::Road* incomingRoad = turningKv.first.first.road;
+            odr::Road* outgoingRoad = turningKv.first.second.road;
             connRoad.junction = junctionID;
             connRoad.predecessor = odr::RoadLink(incomingRoad->id, odr::RoadLink::Type_Road, odr::RoadLink::ContactPoint_Start);
             connRoad.successor = odr::RoadLink(outgoingRoad->id, odr::RoadLink::Type_Road, odr::RoadLink::ContactPoint_End);

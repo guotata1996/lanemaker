@@ -97,7 +97,9 @@ namespace RoadRunner
             generated(id.empty() ? IDGenerator::ForRoad()->GenerateID(this) : id, 0, "-1"),
             profile(p),
             refLine(l)
-        {}
+        {
+            Generate();
+        }
 
         ~Road() 
         {
