@@ -52,4 +52,6 @@ std::set<double> Spiral::approximate_linear(double eps) const
     return s_vals;
 }
 
+void Spiral::reverse() { throw; }
+
 } // namespace odr

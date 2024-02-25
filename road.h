@@ -17,6 +17,7 @@ namespace RoadRunner
 
     double to_odr_unit(type_s l);
     double to_odr_unit(type_t l);
+    type_s from_odr_unit(double l);
 
     struct SectionProfile
     {
@@ -34,10 +35,15 @@ namespace RoadRunner
         }
     };
 
+    class Road;
+
     class RoadProfile 
     {
+        friend class Road;
     public:
         RoadProfile(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right);
+
+        RoadProfile& operator=(const RoadProfile& other);
 
         void OverwriteSection(int side, double start, double end, uint8_t nLanes, int8_t offsetX2);
         
@@ -87,6 +93,8 @@ namespace RoadRunner
             int startLanes, newLanesOnLeft, newLanesOnRight;
             type_s transitionHalfLength;
         };
+
+        void OverwriteSection(int side, type_s start, type_s end, uint8_t nLanes, int8_t offsetX2);
     };
 
     // Find Road Pointer by IDGenerator::ForRoad()::GetByID(). Pointer is EXPECTED to change!!
@@ -128,10 +136,15 @@ namespace RoadRunner
 
         void Generate()
         {
-            profile.Apply(refLine->length, generated);
+            profile.Apply(Length(), generated);
             generated.ref_line.s0_to_geometry[0] = refLine->clone();
             generated.DeriveLaneBorders();
         }
+
+        /*Without visible change to shape
+        * Caller is responsible for re-generate junction
+        */
+        void ReverseRefLine();
 
         double Length() const { 
             return refLine->length;
@@ -144,5 +157,14 @@ namespace RoadRunner
         std::shared_ptr<odr::RoadGeometry> refLine;
     };
 
-    Road* JoinRoads(const Road* const road1, type_s p1, const Road* const road2, type_s p2); // TODO:
+    enum RoadJoinError;
+
+    // generate refLine: ConnectLines
+    // middle section half/half
+    // manage start1 / end2 links, if road1 != road2
+    /*Returns: error code*/
+    int JoinRoads(Road* const road1AsDst, odr::RoadLink::ContactPoint c1,
+                   Road* const road2ToDel, odr::RoadLink::ContactPoint c2);
+
+    Road* SplitRoad(Road* const roadAsPrev, double s);
 }

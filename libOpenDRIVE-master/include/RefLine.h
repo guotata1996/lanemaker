@@ -16,6 +16,9 @@ struct RefLine
     RefLine(std::string road_id, double length);
     RefLine(const RefLine& other);
 
+    //RefLine(const std::shared_ptr<RoadGeometry>);
+    //void reverse();
+
     std::set<const RoadGeometry*> get_geometries() const;
     std::set<RoadGeometry*>       get_geometries();
 

@@ -12,7 +12,7 @@ namespace RoadRunnerTest
     TEST(SingleRoad, RightSideOnly)
     {
         RoadRunner::RoadProfile profile(0, 0, 1, 0);
-        profile.OverwriteSection(-1, 30, 100, 1, -1);
+        profile.OverwriteSection(-1, 30.0, 100.0, 1, -1);
 
         GenerateAndVerify(profile, 100);
     }
@@ -20,7 +20,7 @@ namespace RoadRunnerTest
     TEST(SingleRoad, LeftSideOnly)
     {
         RoadRunner::RoadProfile profile(1, 0, 0, 0);
-        profile.OverwriteSection(1, 30, 0, 1, 1);
+        profile.OverwriteSection(1, 30.0, 0.0, 1, 1);
 
         GenerateAndVerify(profile, 100);
     }

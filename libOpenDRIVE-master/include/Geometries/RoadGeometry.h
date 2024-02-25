@@ -28,6 +28,8 @@ struct RoadGeometry : public XmlNode
 
     virtual std::set<double> approximate_linear(double eps) const = 0;
 
+    virtual void reverse() = 0;
+
     double       s0 = 0;
     double       x0 = 0;
     double       y0 = 0;

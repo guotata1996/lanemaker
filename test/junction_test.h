@@ -18,7 +18,7 @@ namespace RoadRunnerTest
 
         const int NumRoads = RandomIntBetween(3, 6);
         const double SeparationAngle = M_PI * 2 / NumRoads;
-        const uint32_t RoadLength = 30 * 100;
+        const type_s RoadLength = 30 * 100;
         const double RoadLengthD = RoadRunner::to_odr_unit(RoadLength);
         const odr::Vec2D nearEnd{ 25, 0 };
         const odr::Vec2D farEnd{ 55, 0 };

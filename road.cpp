@@ -15,6 +15,8 @@ namespace RoadRunner
 
     double to_odr_unit(type_t l) { return (double)l / 2 * LaneWidth; }
 
+    type_s from_odr_unit(double l) { return std::floor(l * 100); }
+
     RoadProfile::RoadProfile(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right)
     {
         if (nLanes_Right != 0)
@@ -27,6 +29,13 @@ namespace RoadRunner
             leftProfiles.emplace(std::numeric_limits<uint32_t>::max(), 
                 SectionProfile{ offsetX2_Left, static_cast<int8_t>(nLanes_Left) });
         }
+    }
+
+    RoadProfile& RoadProfile::operator=(const RoadProfile& other)
+    {
+        leftProfiles = other.leftProfiles;
+        rightProfiles = other.rightProfiles;
+        return *this;
     }
 
     void RoadProfile::RemoveRedundantProfileKeys(int side)
@@ -70,21 +79,16 @@ namespace RoadRunner
         }
     }
 
-    void RoadProfile::OverwriteSection(int side, double _start, double _end, uint8_t nLanes, int8_t offsetX2)
+    void RoadProfile::OverwriteSection(int side, type_s start, type_s end, uint8_t nLanes, int8_t offsetX2)
     {
-        assert(_start >= 0);
-        assert(_end >= 0);
         if (side < 0)
         {
-            assert(_start < _end);
+            assert(start < end);
         }
         else
         {
-            assert(_start > _end);
+            assert(start > end);
         }
-
-        type_s start = std::round(_start * 100);
-        type_s end = std::round(_end * 100);
 
         auto& profileToModify = side > 0 ? leftProfiles : rightProfiles;
         assert(!profileToModify.empty());
@@ -124,7 +128,17 @@ namespace RoadRunner
             spdlog::trace("s = {}: nLanes{} offset{}",
                 s_section.first, s_section.second.laneCount, s_section.second.offsetx2);
         }
-        
+    }
+
+    void RoadProfile::OverwriteSection(int side, double _start, double _end, uint8_t nLanes, int8_t offsetX2)
+    {
+        assert(_start >= 0);
+        assert(_end >= 0);
+
+        type_s start = from_odr_unit(_start);
+        type_s end = from_odr_unit(_end);
+
+        OverwriteSection(side, start, end, nLanes, offsetX2);
     }
 
     SectionProfile RoadProfile::LeftEntrance() const 
@@ -729,7 +743,9 @@ namespace RoadRunner
         assert(!leftProfiles.empty() || !rightProfiles.empty());
         rtn.length = _length;
 
-        type_s length = std::floor(_length * 100);
+        rtn.s_to_lanesection.clear();
+
+        type_s length = from_odr_unit(_length);
 
         std::map<double, odr::LaneSection> leftSections, rightSections;
         std::map<double, odr::Poly3> leftOffsets, rightOffsets;
@@ -780,4 +796,60 @@ namespace RoadRunner
 
         _MergeSides(rtn, leftSections, centerWidths, rightSections, length);
     } // class function
+
+    void Road::ReverseRefLine()
+    {
+        refLine->reverse();
+
+        type_s length = from_odr_unit(Length());
+        decltype(profile) newProfile(
+            profile.RightEntrance().laneCount, -profile.RightEntrance().offsetx2,
+            profile.LeftEntrance().laneCount,  -profile.LeftEntrance().offsetx2);
+        if (!profile.leftProfiles.empty())
+        {
+            auto oldLeftKeys = odr::get_map_keys_sorted(profile.leftProfiles);
+            if (std::find(oldLeftKeys.begin(), oldLeftKeys.end(), 0) == oldLeftKeys.end())
+            {
+                oldLeftKeys.insert(oldLeftKeys.begin(), 0);
+                std::sort(oldLeftKeys.begin(), oldLeftKeys.end());
+            }
+            for (int i = 0; i < oldLeftKeys.size() - 1; ++i)
+            {
+                int j = i + 1;
+                if (oldLeftKeys[i] >= length) break;
+                auto section = profile.leftProfiles.at(oldLeftKeys[j]);
+
+                type_s overwriteStart = oldLeftKeys[j] < length ? length - oldLeftKeys[j] : 0;
+                type_s overWriteEnd = length - oldLeftKeys[i];
+                newProfile.OverwriteSection(-1, overwriteStart, overWriteEnd, section.laneCount, -section.offsetx2);
+            }
+        }
+
+        if (!profile.rightProfiles.empty())
+        {
+            auto oldRightKeys = odr::get_map_keys_sorted(profile.rightProfiles);
+            if (std::find(oldRightKeys.begin(), oldRightKeys.end(), length) == oldRightKeys.end())
+            {
+                oldRightKeys.push_back(length);
+                std::sort(oldRightKeys.begin(), oldRightKeys.end());
+            }
+            for (int i = 0; i < oldRightKeys.size() - 1; ++i)
+            {
+                int j = i + 1;
+                if (oldRightKeys[i] >= length) break;
+                auto section = profile.rightProfiles.at(oldRightKeys[i]);
+
+                type_s overwriteStart = length - oldRightKeys[i];
+                type_s overwriteEnd = oldRightKeys[j] < length ? length - oldRightKeys[j] : 0;
+
+                newProfile.OverwriteSection(1, overwriteStart, overwriteEnd, section.laneCount, -section.offsetx2);
+            }
+        }
+        
+        profile = newProfile;
+        Generate();
+        
+        generated.predecessor.type = odr::RoadLink::Type_None;
+        generated.successor.type = odr::RoadLink::Type_None;
+    }
 } // namespace

@@ -43,49 +43,8 @@ RoadRunner::RoadProfile GenerateConfig(int seed, uint32_t length)
         {
             std::swap(mBegin, mEnd);
         }
-        road.OverwriteSection(side, mBegin, mEnd, nLanes, offsetX2);
+        road.OverwriteSection(side, static_cast<double>(mBegin), static_cast<double>(mEnd), nLanes, offsetX2);
     }
-
-    //std::vector<int> rightS = RandomSortedVector(0, Length_M / MinSection_M, 7);
-    //// rightS.pop_back();
-    //for (auto sectionBeginIt = rightS.begin();; sectionBeginIt++)
-    //{
-    //    auto sectionEndIt = sectionBeginIt;
-    //    sectionEndIt++;
-    //    if (sectionEndIt == rightS.end())
-    //    {
-    //        break;
-    //    }
-
-    //    auto sBegin_cm = 100 * *sectionBeginIt;
-    //    auto sEnd_cm = 100 * *sectionEndIt;
-
-    //    road.OverwriteSection(-1, sBegin_cm, sEnd_cm,
-    //        RandomIntBetween(1, 4), RandomIntBetween(-3, 0));
-    //};
-
-    //std::vector<int> leftS = RandomSortedVector(0, Length_M / MinSection_M, 5);
-    //// leftS.pop_back();
-    //for (auto sectionBeginIt = leftS.begin();; sectionBeginIt++)
-    //{
-    //    auto sectionEndIt = sectionBeginIt;
-    //    sectionEndIt++;
-    //    if (sectionEndIt == leftS.end())
-    //    {
-    //        break;
-    //    }
-
-    //    auto sBegin_cm = 100 * *sectionBeginIt;
-    //    auto sEnd_cm = 100 * *sectionEndIt;
-
-    //    RoadRunner::SectionProfile profile;
-    //    profile.offsetx2 = RandomIntBetween(0, 3);
-    //    profile.laneCount = RandomIntBetween(1, 4);
-    //    auto s_cm = 100 * (Length_M - MinSection_M * s);
-    //    road.AddLeftSection(RoadRunner::LaneSection{ profile, s_cm });
-    //    spdlog::debug("L section at {}: offset={}, lanes={}",
-    //        s_cm, profile.offsetx2, profile.laneCount);
-    //}
 
     return road;
 }

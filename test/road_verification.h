@@ -376,12 +376,23 @@ namespace RoadRunnerTest
 
 #ifndef G_TEST
         odr::OpenDriveMap test_map;
-        test_map.id_to_road.insert({ gen.id, gen });
-        test_map.export_file("C:\\Users\\guota\\Downloads\\" + outName + ".xodr");
+        test_map.id_to_road.insert({ road.ID(), road .generated});
+        test_map.export_file("C:\\Users\\guota\\Downloads\\normal_" + outName + ".xodr");
 #endif
 
-        VerifyLaneWidthinBound(gen);
-        VerifySingleRoadLinkage(gen);
-        VerifySingleRoadIntegrity(configs, gen);
+        VerifyLaneWidthinBound(road.generated);
+        VerifySingleRoadLinkage(road.generated);
+        VerifySingleRoadIntegrity(configs, road.generated);
+
+        road.ReverseRefLine();
+        road.ReverseRefLine();
+#ifndef G_TEST
+        odr::OpenDriveMap test_map2;
+        test_map2.id_to_road.insert({ road.ID(), road.generated });
+        test_map2.export_file("C:\\Users\\guota\\Downloads\\reverse_" + outName + ".xodr");
+#endif
+        VerifyLaneWidthinBound(road.generated);
+        VerifySingleRoadLinkage(road.generated);
+        VerifySingleRoadIntegrity(configs, road.generated);
     }
 }

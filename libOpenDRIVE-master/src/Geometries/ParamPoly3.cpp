@@ -80,4 +80,8 @@ std::set<double> ParamPoly3::approximate_linear(double eps) const
     return s_vals;
 }
 
+void ParamPoly3::reverse() 
+{ 
+    throw; 
+}
 } // namespace odr

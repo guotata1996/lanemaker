@@ -375,10 +375,6 @@ namespace RoadRunner
             }
             rtn.pop_back();
 
-            std::stringstream sss;
-            std::for_each(rtn.begin(), rtn.end(), [&sss](double p) {sss << p << " "; });
-            spdlog::trace("Initial: {} lane assignment = {}", nLanes, sss.str());
-
             // Adjust result to obey out lane limit
             for (int adjustment = 0; adjustment != 20; ++adjustment)
             {
@@ -461,8 +457,6 @@ namespace RoadRunner
                         }
                     }
 
-                    std::stringstream ss;
-                    std::for_each(rtn.begin(), rtn.end(), [&ss](double p) {ss << p << " "; });
                     return rtn;
                 }
                 if (dead)

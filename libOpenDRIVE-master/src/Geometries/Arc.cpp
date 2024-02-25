@@ -40,4 +40,6 @@ std::set<double> Arc::approximate_linear(double eps) const
     return s_vals;
 }
 
+void Arc::reverse() { throw; }
+
 } // namespace odr

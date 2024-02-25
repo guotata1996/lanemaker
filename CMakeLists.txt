@@ -10,8 +10,7 @@ find_package(spdlog REQUIRED)
 add_subdirectory(libOpenDRIVE-master)
 # TODO: make RoadRunner a library
 add_executable(${CMAKE_PROJECT_NAME} main.cpp 
-    road.cpp 
-    junction.cpp
+    road.cpp junction.cpp road_operation.cpp curve_fitting.cpp
     IDGenerator.cpp MapExporter.cpp MapDrawer.cpp
     test/randomization_utils.cpp
 )
@@ -48,10 +47,9 @@ enable_testing()
 
 add_executable(
   RoadRunnerTest
-  test/test.cc
-  road.cpp IDGenerator.cpp junction.cpp
-  test/randomization_utils.cpp
-  MapExporter.cpp
+  test/test.cc test/randomization_utils.cpp
+  road.cpp junction.cpp road_operation.cpp curve_fitting.cpp
+  IDGenerator.cpp MapExporter.cpp
 )
 
 target_include_directories(RoadRunnerTest PRIVATE

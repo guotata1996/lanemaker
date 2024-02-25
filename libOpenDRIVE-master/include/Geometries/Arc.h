@@ -19,6 +19,8 @@ struct Arc : public RoadGeometry
 
     std::set<double> approximate_linear(double eps) const override;
 
+    void reverse() override;
+
     double curvature = 0;
 };
 

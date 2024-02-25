@@ -19,6 +19,8 @@ struct Spiral : public RoadGeometry
 
     std::set<double> approximate_linear(double eps) const override;
 
+    void reverse() override;
+
     double curv_start = 0;
     double curv_end = 0;
     double s_start = 0;

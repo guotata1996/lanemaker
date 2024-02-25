@@ -22,4 +22,12 @@ Vec2D Line::get_grad(double s) const { return {{std::cos(hdg0), std::sin(hdg0)}}
 
 std::set<double> Line::approximate_linear(double eps) const { return {s0, s0 + length}; }
 
+void Line::reverse() 
+{ 
+    const auto pos_end = get_xy(length);
+    x0 = pos_end.at(0);
+    y0 = pos_end.at(1);
+    hdg0 += M_PI;
+}
+
 } // namespace odr
