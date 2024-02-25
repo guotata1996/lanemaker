@@ -103,9 +103,10 @@ namespace RoadRunner
     public:
         Road(const RoadProfile& p, std::shared_ptr<odr::RoadGeometry> l, std::string id="") :
             generated(id.empty() ? IDGenerator::ForRoad()->GenerateID(this) : id, 0, "-1"),
-            profile(p),
-            refLine(l)
+            profile(p)
         {
+            generated.ref_line.length = l->length;
+            generated.ref_line.s0_to_geometry.emplace(0, l->clone());
             Generate();
         }
 
@@ -126,7 +127,6 @@ namespace RoadRunner
             generated(other.generated),
             profile(other.profile)
         {
-            refLine.swap(other.refLine);
             IDGenerator::ForRoad()->FreeID(other.ID());
             other.generated.id = "";
 
@@ -137,7 +137,6 @@ namespace RoadRunner
         void Generate()
         {
             profile.Apply(Length(), generated);
-            generated.ref_line.s0_to_geometry[0] = refLine->clone();
             generated.DeriveLaneBorders();
         }
 
@@ -147,14 +146,13 @@ namespace RoadRunner
         void ReverseRefLine();
 
         double Length() const { 
-            return refLine->length;
+            return generated.ref_line.length;
         }
 
         std::string ID() const { return generated.id; }
         odr::Road generated;
 
         RoadProfile profile;
-        std::shared_ptr<odr::RoadGeometry> refLine;
     };
 
     enum RoadJoinError;

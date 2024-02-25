@@ -799,7 +799,7 @@ namespace RoadRunner
 
     void Road::ReverseRefLine()
     {
-        refLine->reverse();
+        generated.ref_line.reverse();
 
         type_s length = from_odr_unit(Length());
         decltype(profile) newProfile(

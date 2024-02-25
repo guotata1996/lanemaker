@@ -20,24 +20,19 @@ RefLine::RefLine(const RefLine& other) : road_id(other.road_id), length(other.le
     for (const auto& s0_geometry : other.s0_to_geometry)
         this->s0_to_geometry.emplace(s0_geometry.first, s0_geometry.second->clone());
 }
-/*
-RefLine::RefLine(const std::shared_ptr<RoadGeometry> single_geo) 
-{ 
-    s0_to_geometry.emplace(0, single_geo->clone());
-    length = single_geo->length;
-}
 
 void RefLine::reverse()
 {
-    // odr::reverse_s_map(s0_to_geometry, length); 
     decltype(s0_to_geometry) new_s0_to_geo;
+    
     std::vector<double> keys = get_map_keys_sorted(s0_to_geometry);
+    
     if (std::find(keys.begin(), keys.end(), length) == keys.end())
     {
         keys.push_back(length);
         std::sort(keys.begin(), keys.end());
     }
-
+    
     for (int i = 0; i < keys.size() - 1; ++i)
     {
         if (keys[i] >= length)
@@ -49,9 +44,9 @@ void RefLine::reverse()
         double newMile = length - keys[i + 1];
         new_s0_to_geo.emplace(newMile, std::move(section));
     }
-    s0_to_geometry = new_s0_to_geo;
+
+    s0_to_geometry = std::move(new_s0_to_geo);
 }
-*/
 
 std::set<const RoadGeometry*> RefLine::get_geometries() const
 {

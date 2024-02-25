@@ -40,7 +40,7 @@ template<class K, class V>
 std::set<K> get_map_keys(const std::map<K, V>& input_map)
 {
     std::set<K> retval;
-    std::transform(input_map.begin(), input_map.end(), std::inserter(retval, retval.end()), [](auto pair) { return pair.first; });
+    std::transform(input_map.begin(), input_map.end(), std::inserter(retval, retval.end()), [](const auto& pair) { return pair.first; });
     return retval;
 }
 
