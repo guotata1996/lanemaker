@@ -43,9 +43,16 @@ namespace RoadRunner
 
     MapExporter::MapExporter(std::string fpath) : export_path(fpath) {}
 
-    void MapExporter::Update()
+    void MapExporter::Update(std::string overridePath)
     {
         MapUpdater::Update();
-        odrMap.export_file(export_path);
+        if (overridePath.empty())
+        {
+            odrMap.export_file(export_path);
+        }
+        else
+        {
+            odrMap.export_file(overridePath);
+        }
     }
 }

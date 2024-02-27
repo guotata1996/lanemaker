@@ -5,7 +5,6 @@
 #include "spdlog/spdlog.h"
 
 #include "OpenDriveMap.h"
-#include "Geometries/Line.h"
 #include "IDGenerator.h"
 
 namespace RoadRunner
@@ -39,7 +38,7 @@ namespace RoadRunner
 
     class RoadProfile 
     {
-        friend class Road;
+        friend class Road; // TODO: remove
     public:
         RoadProfile(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right);
 
@@ -51,6 +50,13 @@ namespace RoadRunner
         SectionProfile LeftExit() const;
         SectionProfile RightEntrance() const;
         SectionProfile RightExit() const;
+
+        // right side keys are in (s_small, s_big)
+        // left side keys are in (s_big, s_small)
+        // begins with 0, ends at length
+        std::map<std::pair<type_s, type_s>, SectionProfile> GetAllSections(type_s length, int side) const;
+
+        bool HasSide(int side);
 
         void Apply(double length, odr::Road&) const;
 
@@ -101,8 +107,8 @@ namespace RoadRunner
     class Road
     {
     public:
-        Road(const RoadProfile& p, std::shared_ptr<odr::RoadGeometry> l, std::string id="") :
-            generated(id.empty() ? IDGenerator::ForRoad()->GenerateID(this) : id, 0, "-1"),
+        Road(const RoadProfile& p, std::shared_ptr<odr::RoadGeometry> l) :
+            generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1"),
             profile(p)
         {
             generated.ref_line.length = l->length;
@@ -150,19 +156,26 @@ namespace RoadRunner
         }
 
         std::string ID() const { return generated.id; }
+        odr::RefLine& RefLine() { return generated.ref_line; }
+        
         odr::Road generated;
-
         RoadProfile profile;
+
+        enum RoadJoinError;
+
+        static int JoinRoads(Road* const road1AsDst, odr::RoadLink::ContactPoint c1,
+            Road* const road2ToDel, odr::RoadLink::ContactPoint c2);
+
+        static Road* SplitRoad(Road* const roadAsPrev, double s);
     };
 
-    enum RoadJoinError;
+    
 
     // generate refLine: ConnectLines
     // middle section half/half
     // manage start1 / end2 links, if road1 != road2
     /*Returns: error code*/
-    int JoinRoads(Road* const road1AsDst, odr::RoadLink::ContactPoint c1,
-                   Road* const road2ToDel, odr::RoadLink::ContactPoint c2);
+    
 
-    Road* SplitRoad(Road* const roadAsPrev, double s);
+    
 }

@@ -82,6 +82,56 @@ std::set<double> ParamPoly3::approximate_linear(double eps) const
 
 void ParamPoly3::reverse() 
 { 
-    throw; 
+    decltype(cubic_bezier.control_points) revCtrlPoints;
+    odr::Vec2D                            oldOrigin = get_xy(0);
+    odr::Vec2D                            oldHdg = odr::normalize(get_grad(0));
+    odr::Vec2D                            newOrigin = get_xy(length);
+    odr::Vec2D                            newHdg = odr::normalize(odr::negate(get_grad(length)));
+
+    for (int i = 0; i != 4; ++i)
+    {
+        auto globalCtrl = odr::toGlobal(cubic_bezier.control_points[i], oldOrigin, oldHdg);
+        revCtrlPoints[3 - i] = odr::toLocal(globalCtrl, newOrigin, newHdg);
+    }
+
+    x0 = newOrigin.at(0);
+    y0 = newOrigin.at(1);
+    hdg0 = std::atan2(newHdg[1], newHdg[0]);
+    if (hdg0 >= 2 * M_PI)
+    {
+        hdg0 -= 2 * M_PI;
+    }
+
+    auto coefficients = odr::CubicBezier2D::get_coefficients(revCtrlPoints);
+    aU = coefficients[0][0];
+    bU = coefficients[1][0];
+    cU = coefficients[2][0];
+    dU = coefficients[3][0];
+    aV = coefficients[0][1];
+    bV = coefficients[1][1];
+    cV = coefficients[2][1];
+    dV = coefficients[3][1];
+
+    this->cubic_bezier = CubicBezier2D(revCtrlPoints);
+    this->cubic_bezier.arclen_t[length] = 1.0;
+    this->cubic_bezier.valid_length = length;
+
+    //double au1 = aU + bU + cU + dU;
+    //double bu1 = -bU - 2 * cU - 3 * dU;
+    //double cu1 = cU + 3 * dU;
+    //double du1 = -dU;
+
+    //double av1 = aV + bV + cV + dV;
+    //double bv1 = -bV - 2 * cV - 3 * dV;
+    //double cv1 = cV + 3 * dV;
+    //double dv1 = -dV;
+
+    //aU = au1; bU = bu1; cU = cu1; dU = du1;
+    //aV = av1; bV = bv1; cV = cv1; dV = dv1;
+
+    //const std::array<Vec2D, 4> coefficients = {{{this->aU, this->aV}, {this->bU, this->bV}, {this->cU, this->cV}, {this->dU, this->dV}}};
+    //this->cubic_bezier = CubicBezier2D(CubicBezier2D::get_control_points(coefficients));
+    //this->cubic_bezier.arclen_t[length] = 1.0;
+    //this->cubic_bezier.valid_length = length;
 }
 } // namespace odr

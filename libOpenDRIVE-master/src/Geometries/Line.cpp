@@ -28,6 +28,10 @@ void Line::reverse()
     x0 = pos_end.at(0);
     y0 = pos_end.at(1);
     hdg0 += M_PI;
+    if (hdg0 >= 2 * M_PI)
+    {
+        hdg0 -= 2 * M_PI;
+    }
 }
 
 } // namespace odr

@@ -19,7 +19,7 @@ namespace RoadRunner
     public:
         MapExporter(std::string fpath);
 
-        void Update();
+        void Update(std::string overridePath="");
     private:
         std::string export_path;
     };

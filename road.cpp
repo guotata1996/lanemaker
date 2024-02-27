@@ -15,7 +15,11 @@ namespace RoadRunner
 
     double to_odr_unit(type_t l) { return (double)l / 2 * LaneWidth; }
 
+    double to_odr_unit(double) = delete;
+
     type_s from_odr_unit(double l) { return std::floor(l * 100); }
+
+    type_s from_odr_unit(type_s) = delete;
 
     RoadProfile::RoadProfile(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right)
     {
@@ -159,6 +163,55 @@ namespace RoadRunner
     SectionProfile RoadProfile::RightExit() const
     {
         return rightProfiles.empty() ? SectionProfile{ 0, 0 } : rightProfiles.rbegin()->second;
+    }
+
+    std::map<std::pair<type_s, type_s>, SectionProfile> RoadProfile::GetAllSections(type_s length, int side) const
+    {
+        std::map<std::pair<type_s, type_s>, SectionProfile> rtn;
+        if (side == -1)
+        {
+            if (rightProfiles.empty()) return rtn;
+            auto rightKeys = odr::get_map_keys_sorted(rightProfiles);
+            if (std::find(rightKeys.begin(), rightKeys.end(), length) == rightKeys.end())
+            {
+                rightKeys.push_back(length);
+                std::sort(rightKeys.begin(), rightKeys.end());
+            }
+            for (int i = 0; i < rightKeys.size() - 1 && rightKeys[i] < length; ++i)
+            {
+                int j = i + 1;
+                auto section = rightProfiles.at(rightKeys[i]);
+
+                type_s overwriteStart = rightKeys[i];
+                type_s overwriteEnd = std::min(rightKeys[j], length);
+                rtn.emplace(std::make_pair(overwriteStart, overwriteEnd), section);
+            }
+        }
+        else
+        {
+            if (leftProfiles.empty()) return rtn;
+            auto oldLeftKeys = odr::get_map_keys_sorted(leftProfiles);
+            if (std::find(oldLeftKeys.begin(), oldLeftKeys.end(), 0) == oldLeftKeys.end())
+            {
+                oldLeftKeys.insert(oldLeftKeys.begin(), 0);
+                std::sort(oldLeftKeys.begin(), oldLeftKeys.end());
+            }
+            for (int i = 0; i < oldLeftKeys.size() - 1 && oldLeftKeys[i] < length; ++i)
+            {
+                int j = i + 1;
+                auto section = leftProfiles.at(oldLeftKeys[j]);
+
+                type_s overwriteStart = std::min(oldLeftKeys[j], length);
+                type_s overwriteEnd = oldLeftKeys[i];
+                rtn.emplace(std::make_pair(overwriteStart, overwriteEnd), section);
+            }
+        }
+        return rtn;
+    }
+
+    bool RoadProfile::HasSide(int side)
+    {
+        return side < 0 ? !rightProfiles.empty() : !leftProfiles.empty();
     }
 
     std::map<double, odr::Poly3> RoadProfile::_MakeTransition(
@@ -805,45 +858,21 @@ namespace RoadRunner
         decltype(profile) newProfile(
             profile.RightEntrance().laneCount, -profile.RightEntrance().offsetx2,
             profile.LeftEntrance().laneCount,  -profile.LeftEntrance().offsetx2);
-        if (!profile.leftProfiles.empty())
-        {
-            auto oldLeftKeys = odr::get_map_keys_sorted(profile.leftProfiles);
-            if (std::find(oldLeftKeys.begin(), oldLeftKeys.end(), 0) == oldLeftKeys.end())
-            {
-                oldLeftKeys.insert(oldLeftKeys.begin(), 0);
-                std::sort(oldLeftKeys.begin(), oldLeftKeys.end());
-            }
-            for (int i = 0; i < oldLeftKeys.size() - 1; ++i)
-            {
-                int j = i + 1;
-                if (oldLeftKeys[i] >= length) break;
-                auto section = profile.leftProfiles.at(oldLeftKeys[j]);
 
-                type_s overwriteStart = oldLeftKeys[j] < length ? length - oldLeftKeys[j] : 0;
-                type_s overWriteEnd = length - oldLeftKeys[i];
-                newProfile.OverwriteSection(-1, overwriteStart, overWriteEnd, section.laneCount, -section.offsetx2);
-            }
+        for (const auto& lSectionInfo : profile.GetAllSections(length, 1))
+        {
+            type_s fwdStart = lSectionInfo.first.first;
+            type_s fwdEnd = lSectionInfo.first.second;
+            newProfile.OverwriteSection(-1, length - fwdStart, length - fwdEnd,
+                lSectionInfo.second.laneCount, -lSectionInfo.second.offsetx2);
         }
 
-        if (!profile.rightProfiles.empty())
+        for (const auto& rSectionInfo : profile.GetAllSections(length, -1))
         {
-            auto oldRightKeys = odr::get_map_keys_sorted(profile.rightProfiles);
-            if (std::find(oldRightKeys.begin(), oldRightKeys.end(), length) == oldRightKeys.end())
-            {
-                oldRightKeys.push_back(length);
-                std::sort(oldRightKeys.begin(), oldRightKeys.end());
-            }
-            for (int i = 0; i < oldRightKeys.size() - 1; ++i)
-            {
-                int j = i + 1;
-                if (oldRightKeys[i] >= length) break;
-                auto section = profile.rightProfiles.at(oldRightKeys[i]);
-
-                type_s overwriteStart = length - oldRightKeys[i];
-                type_s overwriteEnd = oldRightKeys[j] < length ? length - oldRightKeys[j] : 0;
-
-                newProfile.OverwriteSection(1, overwriteStart, overwriteEnd, section.laneCount, -section.offsetx2);
-            }
+            type_s fwdStart = rSectionInfo.first.first;
+            type_s fwdEnd = rSectionInfo.first.second;
+            newProfile.OverwriteSection(1, length - fwdStart, length - fwdEnd,
+                rSectionInfo.second.laneCount, -rSectionInfo.second.offsetx2);
         }
         
         profile = newProfile;

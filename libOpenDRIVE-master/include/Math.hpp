@@ -196,6 +196,13 @@ constexpr Vec<T, 2> toLocal(Vec<T, 2> p, const Vec<T, 2>& origin, const Vec<T, 2
 }
 
 template<typename T, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
+constexpr Vec<T, 2> toGlobal(Vec<T, 2> p, const Vec<T, 2>& origin, const Vec<T, 2>& xAxis)
+{
+    Vec<T, 2> yAxis{-xAxis[1], xAxis[0]};
+    return add(add(origin, mut(p[0], xAxis)), mut(p[1], yAxis));
+}
+
+template<typename T, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
 T angle(const Vec<T, 2>& from, const Vec<T, 2>& to)
 {
     T c = crossProduct(from, to);

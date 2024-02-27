@@ -40,6 +40,18 @@ std::set<double> Arc::approximate_linear(double eps) const
     return s_vals;
 }
 
-void Arc::reverse() { throw; }
+void Arc::reverse() 
+{
+    const auto pos_end = get_xy(length);
+    const auto hdg_end = get_grad(length);
+    hdg0 = std::atan2(hdg_end[1], hdg_end[0]) + M_PI;
+    if (hdg0 >= 2 * M_PI)
+    {
+        hdg0 -= 2 * M_PI;
+    }
+    x0 = pos_end[0];
+    y0 = pos_end[1];
+    curvature = -curvature;
+}
 
 } // namespace odr
