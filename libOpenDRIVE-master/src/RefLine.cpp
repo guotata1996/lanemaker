@@ -10,6 +10,9 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <cassert>
+
+#include <iostream>
 
 namespace odr
 {
@@ -42,10 +45,59 @@ void RefLine::reverse()
         section->reverse();
 
         double newMile = length - keys[i + 1];
+        section->s0 = newMile;
         new_s0_to_geo.emplace(newMile, std::move(section));
     }
 
     s0_to_geometry = std::move(new_s0_to_geo);
+}
+
+RefLine RefLine::split(double s) 
+{
+    assert(0 < s);
+    assert(s < length);
+    // configure second
+    RefLine second("", length - s);
+    
+    auto    maps_keys = odr::get_map_keys_sorted(s0_to_geometry);
+    
+    for (int keyIndex = 0; keyIndex < maps_keys.size(); ++keyIndex)
+    {
+        double key1 = maps_keys[keyIndex];
+        double key2 = keyIndex + 1 == maps_keys.size() ? length : maps_keys[keyIndex + 1];
+        
+        auto&  roadGeometryPtr = s0_to_geometry.at(key1);
+        if (key2 <= s) 
+        {
+            // Already in first s0_to_geometry, no nothing
+        }
+        else
+        {
+            auto newGeoPtr = roadGeometryPtr->clone();
+            if (key1 < s && s < key2)
+            {
+                roadGeometryPtr->trim(s - key1);
+                newGeoPtr->rebase(s - key1);
+                newGeoPtr->s0 = 0;
+                second.s0_to_geometry.emplace(0, std::move(newGeoPtr));
+            }
+            else
+            {
+                newGeoPtr->s0 = key1 - s;
+                second.s0_to_geometry.emplace(key1 - s, std::move(newGeoPtr));
+            }
+        }
+    }
+    
+    // trim first
+    for (double key : maps_keys) 
+    {
+        if (key >= s)
+            s0_to_geometry.erase(key);
+    }
+    length = s; 
+    
+    return second;
 }
 
 std::set<const RoadGeometry*> RefLine::get_geometries() const

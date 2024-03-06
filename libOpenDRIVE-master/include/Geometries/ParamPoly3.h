@@ -34,6 +34,8 @@ struct ParamPoly3 : public RoadGeometry
     std::set<double> approximate_linear(double eps) const override;
 
     void reverse() override;
+    void trim(double) override;
+    void rebase(double s) override;
 
     double        aU = 0, bU = 0, cU = 0, dU = 0, aV = 0, bV = 0, cV = 0, dV = 0;
     bool          pRange_normalized = true;

@@ -2,12 +2,14 @@
 #include "Geometries/RoadGeometry.h"
 
 #include <cmath>
+#include <cassert>
 
 namespace odr
 {
 Arc::Arc(double s0, double x0, double y0, double hdg0, double length, double curvature) :
     RoadGeometry(s0, x0, y0, hdg0, length, GeometryType_Arc), curvature(curvature)
 {
+    assert(curvature != 0);
 }
 
 std::unique_ptr<RoadGeometry> Arc::clone() const { return std::make_unique<Arc>(*this); }
@@ -42,15 +44,7 @@ std::set<double> Arc::approximate_linear(double eps) const
 
 void Arc::reverse() 
 {
-    const auto pos_end = get_xy(length);
-    const auto hdg_end = get_grad(length);
-    hdg0 = std::atan2(hdg_end[1], hdg_end[0]) + M_PI;
-    if (hdg0 >= 2 * M_PI)
-    {
-        hdg0 -= 2 * M_PI;
-    }
-    x0 = pos_end[0];
-    y0 = pos_end[1];
+    RoadGeometry::reverse();
     curvature = -curvature;
 }
 

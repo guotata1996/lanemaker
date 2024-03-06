@@ -116,6 +116,14 @@ namespace RoadRunner
             Generate();
         }
 
+        Road(const RoadProfile& p, odr::RefLine& l) :
+            generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1"),
+            profile(p)
+        {
+            generated.ref_line = std::move(l);
+            Generate();
+        }
+
         ~Road() 
         {
             if (!ID().empty())
@@ -163,10 +171,10 @@ namespace RoadRunner
 
         enum RoadJoinError;
 
-        static int JoinRoads(Road* const road1AsDst, odr::RoadLink::ContactPoint c1,
-            Road* const road2ToDel, odr::RoadLink::ContactPoint c2);
+        static int JoinRoads(std::unique_ptr<Road>& road1AsDst, odr::RoadLink::ContactPoint c1,
+            std::unique_ptr<Road>& road2ToDel, odr::RoadLink::ContactPoint c2);
 
-        static Road* SplitRoad(Road* const roadAsPrev, double s);
+        static std::unique_ptr<Road> SplitRoad(std::unique_ptr<Road>& roadAsPrev, double s);
     };
 
     

@@ -54,18 +54,33 @@ std::set<double> Spiral::approximate_linear(double eps) const
 
 void Spiral::reverse() 
 { 
-    const auto pos_end = get_xy(length);
-    const auto hdg_end = get_grad(length);
-    hdg0 = std::atan2(hdg_end[1], hdg_end[0]) + M_PI;
-    if (hdg0 >= 2 * M_PI)
-    {
-        hdg0 -= 2 * M_PI;
-    }
-    x0 = pos_end[0];
-    y0 = pos_end[1];
+    RoadGeometry::reverse();
     std::swap(curv_start, curv_end);
     curv_start = -curv_start;
     curv_end = -curv_end;
+
+    // Update underlying odrSpiral
+    *this = Spiral(0, x0, y0, hdg0, length, curv_start, curv_end);
+}
+
+void Spiral::trim(double l) 
+{ 
+    auto frac = l / length;
+    curv_end = curv_start * (1 - frac) + curv_end * frac;
+    RoadGeometry::trim(l);
+
+    // Update underlying odrSpiral
+    //*this = Spiral(0, x0, y0, hdg0, length, curv_start, curv_end);
+}
+
+void Spiral::rebase(double s0) 
+{ 
+    auto frac = s0 / length;
+    curv_start = curv_start * (1 - frac) + curv_end * frac;
+    RoadGeometry::rebase(s0);
+
+    // Update underlying odrSpiral
+    *this = Spiral(0, x0, y0, hdg0, length, curv_start, curv_end);
 }
 
 } // namespace odr

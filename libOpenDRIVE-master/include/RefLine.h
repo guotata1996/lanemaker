@@ -15,8 +15,13 @@ struct RefLine
 {
     RefLine(std::string road_id, double length);
     RefLine(const RefLine& other);
+    RefLine(RefLine&& other) noexcept = default;
+    RefLine& operator=(RefLine&& other) = default;
 
     void reverse();
+    // Remain:  section between 0 and s
+    // Returns: section beyond s
+    RefLine split(double s);
 
     std::set<const RoadGeometry*> get_geometries() const;
     std::set<RoadGeometry*>       get_geometries();

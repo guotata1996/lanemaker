@@ -18,8 +18,6 @@ struct Line : public RoadGeometry
     Vec2D get_grad(double s) const override;
 
     std::set<double> approximate_linear(double eps) const override;
-
-    void reverse() override;
 };
 
 } // namespace odr

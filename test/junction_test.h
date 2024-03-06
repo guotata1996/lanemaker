@@ -95,4 +95,9 @@ namespace RoadRunnerTest
 
         VerifyJunction(j1, connectionInfo);
     }
+
+    INSTANTIATE_TEST_SUITE_P(
+        RandomJunction,
+        Seed_SingleJunction,
+        testing::Range(1, 100));
 }

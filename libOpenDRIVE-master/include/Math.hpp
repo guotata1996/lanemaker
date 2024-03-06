@@ -217,4 +217,11 @@ constexpr Vec<T, 2> rotateCCW(Vec<T, 2> p, const T radians)
     T sin = std::sin(radians);
     return Vec<T, 2>{cos * p[0] - sin * p[1], sin * p[0] + cos * p[1]};
 }
+
+template<typename T, typename S, typename std::enable_if_t<std::is_arithmetic<S>::value>* = nullptr>
+constexpr T lerp(T a, T b, S scalar)
+{
+    return add(mut(1 - scalar, a), mut(scalar, b));
+}
+
 } // namespace odr

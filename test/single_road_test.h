@@ -31,4 +31,9 @@ namespace RoadRunnerTest
         auto road = GenerateConfig(seed, Length_M);
         GenerateAndVerify(road, Length_M);
     }
+
+    INSTANTIATE_TEST_SUITE_P(
+        RandomRoad,
+        Seed_SingleRoad,
+        testing::Range(1, 30));
 }

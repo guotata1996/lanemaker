@@ -2,6 +2,7 @@
 
 #include "road.h"
 #include "test_const.h"
+#include <Geometries/Line.h>
 
 #include "spdlog/spdlog.h"
 
