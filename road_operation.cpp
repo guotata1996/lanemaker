@@ -89,6 +89,7 @@ namespace RoadRunner
         }
 
         road1->Generate();
+        road2.reset();
         return 0;
     }
 

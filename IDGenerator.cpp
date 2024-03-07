@@ -65,6 +65,17 @@ void* IDGenerator::GetByID(const std::string& sid)
     return it->second;
 }
 
+void IDGenerator::NotifyChange(const std::string& sid)
+{
+    auto id = static_cast<IDType>(std::atoi(sid.c_str()));
+    auto it = assignTo.find(id);
+    if (it == assignTo.end())
+    {
+        throw;
+    }
+    changeList[id] = it->second;
+}
+
 bool IDGenerator::FreeID(const std::string& sid)
 {
     auto id = static_cast<uint32_t>(std::atoi(sid.c_str()));

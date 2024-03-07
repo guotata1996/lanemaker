@@ -17,6 +17,7 @@ public:
 
     std::string GenerateID(void* object); // Added to changeList
     void* GetByID(const std::string&);  // Added to changeList
+    void NotifyChange(const std::string&);
     bool FreeID(const std::string&);  // Added to changeList
 
     std::map<IDType, void*> ConsumeChanges();

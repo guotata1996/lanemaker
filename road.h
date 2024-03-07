@@ -152,6 +152,7 @@ namespace RoadRunner
         {
             profile.Apply(Length(), generated);
             generated.DeriveLaneBorders();
+            IDGenerator::ForRoad()->NotifyChange(ID());
         }
 
         /*Without visible change to shape
