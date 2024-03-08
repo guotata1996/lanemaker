@@ -11,7 +11,7 @@ namespace RoadRunner
     // public
     struct ConnectionInfo
     {
-        Road* road;
+        std::unique_ptr<Road>& road;
         double s;
         std::vector<double> dirSplit; // not needed for outgoing-only connection
     };

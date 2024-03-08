@@ -46,9 +46,17 @@ int main(int argc, char** argv)
     std::unique_ptr<RoadRunner::Road> r1a = std::make_unique<RoadRunner::Road>(config, refLine1a);
     auto refLine1b = std::make_shared<odr::Line>(0, 0, -30, M_PI_2 * 3, 40);
     std::unique_ptr<RoadRunner::Road> r1b = std::make_unique<RoadRunner::Road>(config, refLine1b);
-    exporter.Update();
 
-    // auto j1 = std::make_unique<RoadRunner::Junction>({RoadRunner::ConnectionInfo()})
+    std::vector<RoadRunner::ConnectionInfo> j1Info = { 
+        RoadRunner::ConnectionInfo{r1, 0},
+        RoadRunner::ConnectionInfo{r1a, 0},
+        RoadRunner::ConnectionInfo{r1b, 0}
+    };
+    auto j1 = std::make_unique<RoadRunner::Junction>(j1Info);
+    exporter.Update("C:\\Users\\guota\\Downloads\\step2.xodr");
+
+    j1.reset();
+    exporter.Update("C:\\Users\\guota\\Downloads\\step3.xodr");
     
     //QApplication app(argc, argv);
     //RoadRunner::MapDrawer odr_drawer;

@@ -34,17 +34,15 @@ namespace RoadRunner
         }
     };
 
-    class Road;
-
     class RoadProfile 
     {
-        friend class Road; // TODO: remove
     public:
         RoadProfile(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right);
 
         RoadProfile& operator=(const RoadProfile& other);
 
         void OverwriteSection(int side, double start, double end, uint8_t nLanes, int8_t offsetX2);
+        void OverwriteSection(int side, type_s start, type_s end, uint8_t nLanes, int8_t offsetX2);
         
         SectionProfile LeftEntrance() const;
         SectionProfile LeftExit() const;
@@ -99,8 +97,6 @@ namespace RoadRunner
             int startLanes, newLanesOnLeft, newLanesOnRight;
             type_s transitionHalfLength;
         };
-
-        void OverwriteSection(int side, type_s start, type_s end, uint8_t nLanes, int8_t offsetX2);
     };
 
     // Find Road Pointer by IDGenerator::ForRoad()::GetByID(). Pointer is EXPECTED to change!!

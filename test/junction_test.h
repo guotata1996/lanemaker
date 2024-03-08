@@ -23,7 +23,7 @@ namespace RoadRunnerTest
         const odr::Vec2D nearEnd{ 25, 0 };
         const odr::Vec2D farEnd{ 55, 0 };
 
-        std::vector< RoadRunner::Road> generatedRoads;
+        std::vector< std::unique_ptr<RoadRunner::Road>> generatedRoads;
         std::vector< bool > incomings;
 
         int totalOuts = 0;
@@ -46,8 +46,7 @@ namespace RoadRunnerTest
             if (incoming) hdg += M_PI;
             auto refLine = std::make_shared<odr::Line>(0, refLineOrigin[0], refLineOrigin[1], hdg, RoadLengthD);
 
-            RoadRunner::Road road(cfg, refLine);
-            generatedRoads.push_back(std::move(road));
+            generatedRoads.push_back(std::make_unique<RoadRunner::Road>(cfg, refLine));
             incomings.push_back(incoming);
         }
 
@@ -55,12 +54,10 @@ namespace RoadRunnerTest
         for (int i = 0; i != NumRoads; ++i)
         {
             connectionInfo.push_back(RoadRunner::ConnectionInfo{
-                &generatedRoads[i], incomings[i] ? RoadLengthD : 0 });
+                generatedRoads[i], incomings[i] ? RoadLengthD : 0 });
         }
 
         RoadRunner::Junction j1(connectionInfo);
-        // RoadRunner::MapExporter odr_writer("C:\\Users\\guota\\Downloads\\junction_" + std::to_string(seed) + ".xodr");
-        // odr_writer.Update();
 
         int mostIncomingLanes = *std::max_element(numIncominglanes.begin(), numIncominglanes.end());
         if (mostIncomingLanes > totalOuts)
@@ -77,21 +74,19 @@ namespace RoadRunnerTest
     {
         RoadRunner::RoadProfile commonProfile(2, 0, 2, 0);
         auto circleRRef = std::make_shared<odr::Arc>(0, 20, 0, 0, 2 * M_PI * 20 * 0.75, 1 / 20.0);
-        RoadRunner::Road circleR(commonProfile, circleRRef);
+        auto circleR = std::make_unique<RoadRunner::Road>(commonProfile, circleRRef);
         auto circleLRef = std::make_shared<odr::Arc>(0, 0, -20, M_PI_2 * 3, 2 * M_PI * 20 * 0.75, -1 / 20.0);
-        RoadRunner::Road circleL(commonProfile, circleLRef);
+        auto circleL = std::make_unique<RoadRunner::Road>(commonProfile, circleLRef);
        
         std::vector< RoadRunner::ConnectionInfo> connectionInfo
         {
-            RoadRunner::ConnectionInfo{&circleL, 0},
-            RoadRunner::ConnectionInfo{&circleL, circleL.Length()},
-            RoadRunner::ConnectionInfo{&circleR, 0},
-            RoadRunner::ConnectionInfo{&circleR, circleR.Length()}
+            RoadRunner::ConnectionInfo{circleL, 0},
+            RoadRunner::ConnectionInfo{circleL, circleL->Length()},
+            RoadRunner::ConnectionInfo{circleR, 0},
+            RoadRunner::ConnectionInfo{circleR, circleR->Length()}
         };
 
         RoadRunner::Junction j1(connectionInfo);
-        //RoadRunner::MapExporter odr_writer("C:\\Users\\guota\\Downloads\\junction_both.xodr");
-        //odr_writer.Update();
 
         VerifyJunction(j1, connectionInfo);
     }
