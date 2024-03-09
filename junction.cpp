@@ -15,9 +15,9 @@ namespace RoadRunner
         std::vector<RoadEndpoint> incomingEndpoints, outgoingEndpoints;
         for (auto& roadAndS : connected)
         {
-            odr::Road* road = &roadAndS.road->generated;
+            odr::Road* road = &roadAndS.road.lock()->generated;
             double meetAt = roadAndS.s;
-            RoadProfile config = roadAndS.road->profile;
+            RoadProfile config = roadAndS.road.lock()->profile;
             odr::LaneSection meetSection = meetAt == 0 ? 
                 road->s_to_lanesection.begin()->second : road->s_to_lanesection.rbegin()->second;
             
@@ -492,11 +492,14 @@ namespace RoadRunner
         }
     }
 
-    Junction::Junction(const std::vector<ConnectionInfo>& connected, std::string id):
+    Junction::Junction(std::string id):
         generated("", id.empty() ? IDGenerator::ForJunction()->GenerateID(this) : id)
     {
         generated.name = "Junction " + generated.id;
+    }
 
+    int Junction::CreateFrom(const std::vector<ConnectionInfo>& connected)
+    {
         generationError = GenerateConnections(generated.id, connected, connectingRoads);
 
         int junctionConnID = 0;
@@ -505,7 +508,7 @@ namespace RoadRunner
             auto incomingRoad = connecting.generated.predecessor.id;
             auto outgoingRoad = connecting.generated.successor.id;
 
-            odr::JunctionConnection prevConn(std::to_string(junctionConnID++), 
+            odr::JunctionConnection prevConn(std::to_string(junctionConnID++),
                 incomingRoad, connecting.ID(),
                 odr::JunctionConnection::ContactPoint_Start,
                 outgoingRoad);
@@ -516,6 +519,9 @@ namespace RoadRunner
             }
             generated.id_to_connection.emplace(prevConn.id, prevConn);
         }
+        formedFrom = connected;
+
+        return generationError;
     }
 
     void clearLinkage(std::string junctionID, std::string regularRoad)
@@ -571,12 +577,12 @@ namespace RoadRunner
         if (!ID().empty())
         {
             spdlog::trace("del junction {} w/ {} connections", ID(), connectingRoads.size());
-            for (auto& connectingRoad : connectingRoads)
-            {
-                clearLinkage(ID(), connectingRoad.generated.successor.id);
-                clearLinkage(ID(), connectingRoad.generated.predecessor.id);
-            }
-            connectingRoads.clear();
+            //for (auto& connectingRoad : connectingRoads)
+            //{
+            //    clearLinkage(ID(), connectingRoad.generated.successor.id);
+            //    clearLinkage(ID(), connectingRoad.generated.predecessor.id);
+            //}
+            // connectingRoads.clear();
             IDGenerator::ForJunction()->FreeID(ID());
         }
     }

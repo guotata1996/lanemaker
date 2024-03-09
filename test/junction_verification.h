@@ -46,7 +46,7 @@ namespace RoadRunnerTest
         // Make sure all incoming roads' entering lanes have matching connectings
         for (auto& incomingInfo : connectionInfo)
         {
-            const odr::Road& incomingRoad = incomingInfo.road->generated;
+            const odr::Road& incomingRoad = incomingInfo.road.lock()->generated;
             auto link = incomingInfo.s == 0 ? incomingRoad.predecessor : incomingRoad.successor;
 #ifdef G_TEST
             EXPECT_EQ(link.type, odr::RoadLink::Type_Junction);
@@ -102,12 +102,12 @@ namespace RoadRunnerTest
                 [outgoingID, contactPointOnNext](const RoadRunner::ConnectionInfo& info) 
             {
                 auto specifiedContactPoint = info.s == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End;
-                return info.road->ID() == outgoingID && specifiedContactPoint == contactPointOnNext;
+                return info.road.lock()->ID() == outgoingID && specifiedContactPoint == contactPointOnNext;
             });
             for (const auto& ll : connection->lane_links)
             {
                 EnsureEndsMeet(connecting.generated, connecting.generated.length, ll.to,
-                    outgoingItr->road->generated, outgoingItr->s, ll.next);
+                    outgoingItr->road.lock()->generated, outgoingItr->s, ll.next);
             }
         }
     }

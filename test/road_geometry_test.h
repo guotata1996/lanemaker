@@ -105,34 +105,34 @@ namespace RoadRunnerTest
         }
     }
 
-    std::unique_ptr<RoadRunner::Road> GenerateComplexRoad()
+    std::shared_ptr<RoadRunner::Road> GenerateComplexRoad()
     {
         auto refLine1 = std::make_shared<odr::Line>(0, 0, 0, M_PI_2, 40);
         RoadRunner::RoadProfile config(2, 0, 2, 0);
-        std::unique_ptr<RoadRunner::Road> r1 = std::make_unique<RoadRunner::Road>(config, refLine1); // (0, 40)
+        auto r1 = std::make_shared<RoadRunner::Road>(config, refLine1); // (0, 40)
 
         {
             auto refLine2 = std::make_shared<odr::Arc>(0, 0, 50, M_PI_2, 60, -1 / 20.0); // about (40, 50)
-            auto r2 = std::make_unique<RoadRunner::Road>(config, refLine2);
+            auto r2 = std::make_shared<RoadRunner::Road>(config, refLine2);
             int err = RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r2, odr::RoadLink::ContactPoint_Start);
         }
 
         {
             auto refLine3 = std::make_shared<odr::Spiral>(0, 90, 10, M_PI / 8, 50, 1 / 60.0, 1 / 30.0);
-            auto r3 = std::make_unique<RoadRunner::Road>(config, refLine3);
+            auto r3 = std::make_shared<RoadRunner::Road>(config, refLine3);
             int err = RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r3, odr::RoadLink::ContactPoint_Start);
         }
 
         {
             auto refLine4 = std::make_shared<odr::Line>(0, 50, 80, 0, 30);
-            auto r4 = std::make_unique<RoadRunner::Road>(config, refLine4);
+            auto r4 = std::make_shared<RoadRunner::Road>(config, refLine4);
             int err = RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r4, odr::RoadLink::ContactPoint_End);
         }
 
         return r1;
     }
 
-    void VerifyReverseMatch(std::unique_ptr<RoadRunner::Road> &r1)
+    void VerifyReverseMatch(std::shared_ptr<RoadRunner::Road> &r1)
     {
         std::map<double, odr::Vec2D> originalSToPos;
         std::map<double, double> originalSToHdg;
@@ -166,7 +166,7 @@ namespace RoadRunnerTest
         : public testing::TestWithParam<int> {};
     TEST_P(Split_Reverse_RoadGeometry, RoadGeometry)
     {
-        std::unique_ptr<RoadRunner::Road> r1 = GenerateComplexRoad();
+        auto r1 = GenerateComplexRoad();
         std::map<double, odr::Vec2D> originalSToPos;
         std::map<double, double> originalSToHdg;
         for (int i = 0; i <= Subdivision; ++i)
@@ -180,7 +180,7 @@ namespace RoadRunnerTest
         auto splitIndex = GetParam();
         double splitS = static_cast<double>(splitIndex) / Subdivision * r1->Length();
 
-        auto r2 = RoadRunner::Road::SplitRoad(r1, splitS);
+        std::shared_ptr<RoadRunner::Road> r2 = std::move(RoadRunner::Road::SplitRoad(r1, splitS));
         for (const auto& sAndPos : originalSToPos)
         {
             double s = sAndPos.first;

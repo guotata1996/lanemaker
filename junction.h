@@ -11,7 +11,7 @@ namespace RoadRunner
     // public
     struct ConnectionInfo
     {
-        std::unique_ptr<Road>& road;
+        std::weak_ptr<Road> road;
         double s;
         std::vector<double> dirSplit; // not needed for outgoing-only connection
     };
@@ -87,7 +87,7 @@ namespace RoadRunner
     class Junction
     {
     public:
-        Junction(const std::vector<ConnectionInfo>&, std::string id="");
+        Junction(std::string id="");
 
         Junction(const Junction& another) = delete; // No copy costruct
         Junction& operator=(const Junction& another) = delete; // No copy assignment
@@ -108,6 +108,8 @@ namespace RoadRunner
 
         ~Junction();
 
+        int CreateFrom(const std::vector<ConnectionInfo>&);
+
         std::string ID() { return generated.id; }
 
         std::vector<Road> connectingRoads;
@@ -115,6 +117,8 @@ namespace RoadRunner
         odr::Junction generated;
 
         int generationError = 0;
+    private:
+        std::vector<ConnectionInfo> formedFrom;
     };
 }
 

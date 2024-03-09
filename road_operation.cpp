@@ -10,8 +10,8 @@ namespace RoadRunner
         RoadJoin_ConnectionInvalidShape
     };
 
-    int Road::JoinRoads(std::unique_ptr<Road>& road1, odr::RoadLink::ContactPoint c1,
-        std::unique_ptr<Road>& road2, odr::RoadLink::ContactPoint c2)
+    int Road::JoinRoads(std::shared_ptr<Road>& road1, odr::RoadLink::ContactPoint c1,
+        std::shared_ptr<Road>& road2, odr::RoadLink::ContactPoint c2)
     {
         if (road1 == road2 && c1 == c2)
         {
@@ -93,7 +93,7 @@ namespace RoadRunner
         return 0;
     }
 
-    std::unique_ptr<Road> Road::SplitRoad(std::unique_ptr<Road>& roadAsPrev, double s)
+    std::unique_ptr<Road> Road::SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s)
     {
         type_s oldLength = from_odr_unit(roadAsPrev->Length());
         type_s splitPoint = from_odr_unit(s);
