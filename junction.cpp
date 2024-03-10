@@ -503,6 +503,7 @@ namespace RoadRunner
         connectingRoads.clear();
         generationError = GenerateConnections(generated.id, connected, connectingRoads);
 
+        generated.id_to_connection.clear();
         int junctionConnID = 0;
         for (auto& connecting : connectingRoads)
         {
@@ -534,27 +535,46 @@ namespace RoadRunner
             }
         });
 
+        IDGenerator::ForJunction()->NotifyChange(ID());
 
         return generationError;
     }
 
     void Junction::NotifyPotentialChange()
     {
+        NotifyPotentialChange(ChangeInConnecting());
+    }
+
+    void Junction::NotifyPotentialChange(const ChangeInConnecting& detail)
+    {
+        std::shared_ptr<Road> reversedSubject;
+        if (detail._type == detail.Type_Reverse)
+        {
+            reversedSubject = detail.subject.lock();
+        }
+
         std::vector<ConnectionInfo> altered;
         bool needReGen{ false };
-        for (const auto existing : formedFrom)
+        for (const auto record : formedFrom)
         {
-            auto newPtr = existing.road.lock();
-            auto updatedInfo = ConnectionInfo{ newPtr, existing.contact };
+            auto recordedRoad = record.road.lock();
+            auto updatedInfo = ConnectionInfo{ recordedRoad, record.contact };
 
-            if (newPtr == nullptr)
+            if (recordedRoad == nullptr)
             {
                 needReGen = true;
+            }
+            else if (reversedSubject == recordedRoad)
+            {
+                needReGen = true;
+                updatedInfo.contact = record.contact == odr::RoadLink::ContactPoint_Start ?
+                    odr::RoadLink::ContactPoint_End : odr::RoadLink::ContactPoint_Start;
+                altered.push_back(updatedInfo);
             }
             else
             {
                 altered.push_back(updatedInfo);
-                if (ConnectedInfo(updatedInfo) != existing) 
+                if (ConnectedInfo(updatedInfo) != record)
                     needReGen = true;
             }
         }
@@ -620,6 +640,14 @@ namespace RoadRunner
 
     Junction::~Junction()
     {
+        for (const auto& connectingRoad : formedFrom)
+        {
+            if (!connectingRoad.road.expired())
+            {
+                spdlog::error("Junction gets destroyed before its connecting road!");
+            }
+        }
+
         if (!ID().empty())
         {
             spdlog::trace("del junction {} w/ {} connections", ID(), connectingRoads.size());

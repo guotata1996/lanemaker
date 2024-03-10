@@ -12,19 +12,22 @@
 
 namespace RoadRunner
 {
-    void Road::Generate()
+    void Road::Generate(bool notifyJunctions)
     {
         profile.Apply(Length(), generated);
         generated.DeriveLaneBorders();
         IDGenerator::ForRoad()->NotifyChange(ID());
 
-        if (successorJunction != nullptr)
+        if (notifyJunctions)
         {
-            successorJunction->NotifyPotentialChange();
-        }
-        if (predecessorJunction != nullptr)
-        {
-            predecessorJunction->NotifyPotentialChange();
+            if (successorJunction != nullptr)
+            {
+                successorJunction->NotifyPotentialChange();
+            }
+            if (predecessorJunction != nullptr)
+            {
+                predecessorJunction->NotifyPotentialChange();
+            }
         }
     }
 
@@ -54,10 +57,21 @@ namespace RoadRunner
         }
         
         profile = newProfile;
-        Generate();
-        
+        Generate(false);
+
+        // Handle linkage
         generated.predecessor.type = odr::RoadLink::Type_None;
         generated.successor.type = odr::RoadLink::Type_None;
+
+        std::swap(successorJunction, predecessorJunction);
+        if (successorJunction != nullptr)
+        {
+            successorJunction->NotifyPotentialChange(ChangeInConnecting{shared_from_this(), ChangeInConnecting::Type_Reverse});
+        }
+        if (predecessorJunction != nullptr)
+        {
+            predecessorJunction->NotifyPotentialChange(ChangeInConnecting{ shared_from_this(), ChangeInConnecting::Type_Reverse });
+        }
     }
 
     Road::~Road()

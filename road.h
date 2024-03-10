@@ -12,7 +12,7 @@ namespace RoadRunner
 {
     class Junction;
 
-    class Road
+    class Road: public std::enable_shared_from_this<Road>
     {
     public:
         Road(const RoadProfile& p, std::shared_ptr<odr::RoadGeometry> l) :
@@ -37,7 +37,7 @@ namespace RoadRunner
         Road(const Road& another) = delete; // No copy costruct
         Road& operator=(const Road& another) = delete; // No copy assignment
 
-        void Generate();
+        void Generate(bool notifyJunctions=true);
 
         /*Without visible change to shape
         * Caller is responsible for re-generate junction

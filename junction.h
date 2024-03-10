@@ -81,7 +81,14 @@ namespace RoadRunner
     void assignOutgoingLanes(std::vector<TurningGroup>& incomingLanes);
 
     // Clear any connection of regularRoad towards junction
-    void clearLinkage(std::string junctionID, std::string regularRoad);
+    // void clearLinkage(std::string junctionID, std::string regularRoad);
+
+    struct ChangeInConnecting
+    {
+        enum Type {Type_Others, Type_Reverse};
+        std::weak_ptr<Road> subject;
+        Type _type;
+    };
 
     // TODO: inherit same class as Road to manage ID
     class Junction: public std::enable_shared_from_this<Junction>
@@ -98,6 +105,7 @@ namespace RoadRunner
 
         /*Call this when connected roads get deleted or modified*/
         void NotifyPotentialChange();
+        void NotifyPotentialChange(const ChangeInConnecting&);
 
         std::string ID() { return generated.id; }
 
