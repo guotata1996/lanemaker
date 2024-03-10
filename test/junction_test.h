@@ -54,20 +54,20 @@ namespace RoadRunnerTest
         for (int i = 0; i != NumRoads; ++i)
         {
             connectionInfo.push_back(RoadRunner::ConnectionInfo{
-                generatedRoads[i], incomings[i] ? RoadLengthD : 0 });
+                generatedRoads[i], incomings[i] ? odr::RoadLink::ContactPoint_End : odr::RoadLink::ContactPoint_Start });
         }
 
-        RoadRunner::Junction j1;
-        j1.CreateFrom(connectionInfo);
+        auto j1 = std::make_shared<RoadRunner::Junction>();
+        j1->CreateFrom(connectionInfo);
 
         int mostIncomingLanes = *std::max_element(numIncominglanes.begin(), numIncominglanes.end());
         if (mostIncomingLanes > totalOuts)
         {
-            EXPECT_EQ(j1.generationError, RoadRunner::JunctionError::Junction_TooManyIncomingLanes);
+            EXPECT_EQ(j1->generationError, RoadRunner::JunctionError::Junction_TooManyIncomingLanes);
         }
         else
         {
-            VerifyJunction(j1, connectionInfo);
+            VerifyJunction(*j1, connectionInfo);
         }
     }
 
@@ -81,16 +81,16 @@ namespace RoadRunnerTest
        
         std::vector< RoadRunner::ConnectionInfo> connectionInfo
         {
-            RoadRunner::ConnectionInfo{circleL, 0},
-            RoadRunner::ConnectionInfo{circleL, circleL->Length()},
-            RoadRunner::ConnectionInfo{circleR, 0},
-            RoadRunner::ConnectionInfo{circleR, circleR->Length()}
+            RoadRunner::ConnectionInfo{circleL, odr::RoadLink::ContactPoint_Start},
+            RoadRunner::ConnectionInfo{circleL, odr::RoadLink::ContactPoint_End},
+            RoadRunner::ConnectionInfo{circleR, odr::RoadLink::ContactPoint_Start},
+            RoadRunner::ConnectionInfo{circleR, odr::RoadLink::ContactPoint_End}
         };
 
-        RoadRunner::Junction j1;
-        j1.CreateFrom(connectionInfo);
+        auto j1 = std::make_shared<RoadRunner::Junction>();
+        j1->CreateFrom(connectionInfo);
 
-        VerifyJunction(j1, connectionInfo);
+        VerifyJunction(*j1, connectionInfo);
     }
 
     INSTANTIATE_TEST_SUITE_P(

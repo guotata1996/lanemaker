@@ -19,7 +19,7 @@
 int main(int argc, char** argv)
 {
     spdlog::set_level(spdlog::level::info);
-
+    
     RoadRunner::MapExporter exporter("C:\\Users\\guota\\Downloads\\split.xodr");
 
     auto refLine1 = std::make_shared<odr::Line>(0, 0, 0, M_PI_2, 40);
@@ -37,7 +37,6 @@ int main(int argc, char** argv)
     auto refLine4 = std::make_shared<odr::Line>(0, 50, 80, 0, 30);
     auto r4 = std::make_shared<RoadRunner::Road>(config, refLine4);
     err = RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r4, odr::RoadLink::ContactPoint_End);
-    exporter.Update("C:\\Users\\guota\\Downloads\\step1.xodr");
     //auto second = RoadRunner::Road::SplitRoad(r1, 0.65 * r1->Length());
     //second->ReverseRefLine();
     //exporter.Update();
@@ -47,17 +46,18 @@ int main(int argc, char** argv)
     auto refLine1b = std::make_shared<odr::Line>(0, 0, -30, M_PI_2 * 3, 40);
     auto r1b = std::make_shared<RoadRunner::Road>(config, refLine1b);
 
-    auto j1 = std::make_unique<RoadRunner::Junction>();
+    auto j1 = std::make_shared<RoadRunner::Junction>();
     j1->CreateFrom({
-        RoadRunner::ConnectionInfo{r1, 0},
-        RoadRunner::ConnectionInfo{r1a, 0},
-        RoadRunner::ConnectionInfo{r1b, 0}
+        RoadRunner::ConnectionInfo{r1, odr::RoadLink::ContactPoint_Start},
+        RoadRunner::ConnectionInfo{r1a, odr::RoadLink::ContactPoint_Start},
+        RoadRunner::ConnectionInfo{r1b, odr::RoadLink::ContactPoint_Start}
         });
+    exporter.Update("C:\\Users\\guota\\Downloads\\step1.xodr");
+    
+    r1.reset();
+
     exporter.Update("C:\\Users\\guota\\Downloads\\step2.xodr");
 
-    j1.reset();
-    exporter.Update("C:\\Users\\guota\\Downloads\\step3.xodr");
-    
     //QApplication app(argc, argv);
     //RoadRunner::MapDrawer odr_drawer;
     //odr_drawer.Update();

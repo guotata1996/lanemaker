@@ -55,6 +55,12 @@ std::string IDGenerator::GenerateID(void* object)
     return std::to_string(newID);
 }
 
+void IDGenerator::ReuseID(void* object, const std::string& sid)
+{
+    auto id = static_cast<IDType>(std::atoi(sid.c_str()));
+    assignTo[id] = object;
+}
+
 void* IDGenerator::GetByID(const std::string& sid)
 {
     auto id = static_cast<IDType>(std::atoi(sid.c_str()));

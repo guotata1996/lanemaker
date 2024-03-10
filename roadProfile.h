@@ -37,10 +37,13 @@ namespace RoadRunner
 
         void OverwriteSection(int side, double start, double end, uint8_t nLanes, int8_t offsetX2);
         void OverwriteSection(int side, type_s start, type_s end, uint8_t nLanes, int8_t offsetX2);
-
+        /*First section travelling on left side, @s = Length*/
         SectionProfile LeftEntrance() const;
+        /*Last section travelling on left side, @s = 0*/
         SectionProfile LeftExit() const;
+        /*First section travelling on right side, @s = 0*/
         SectionProfile RightEntrance() const;
+        /*Last section travelling on right side, @s = Length*/
         SectionProfile RightExit() const;
 
         // right side keys are in (s_small, s_big)

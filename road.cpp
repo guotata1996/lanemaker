@@ -1,4 +1,5 @@
 #include "road.h"
+#include "junction.h"
 
 #include <algorithm>
 #include <vector>
@@ -11,7 +12,22 @@
 
 namespace RoadRunner
 {
-    
+    void Road::Generate()
+    {
+        profile.Apply(Length(), generated);
+        generated.DeriveLaneBorders();
+        IDGenerator::ForRoad()->NotifyChange(ID());
+
+        if (successorJunction != nullptr)
+        {
+            successorJunction->NotifyPotentialChange();
+        }
+        if (predecessorJunction != nullptr)
+        {
+            predecessorJunction->NotifyPotentialChange();
+        }
+    }
+
     void Road::ReverseRefLine()
     {
         generated.ref_line.reverse();
@@ -42,5 +58,25 @@ namespace RoadRunner
         
         generated.predecessor.type = odr::RoadLink::Type_None;
         generated.successor.type = odr::RoadLink::Type_None;
+    }
+
+    Road::~Road()
+    {
+        if (successorJunction != nullptr)
+        {
+            successorJunction->NotifyPotentialChange();
+            successorJunction.reset();
+        }
+        if (predecessorJunction != nullptr)
+        {
+            predecessorJunction->NotifyPotentialChange();
+            predecessorJunction.reset();
+        }
+
+        if (!ID().empty())
+        {
+            spdlog::trace("del road {}", ID());
+            IDGenerator::ForRoad()->FreeID(ID());
+        }
     }
 } // namespace

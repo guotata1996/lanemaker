@@ -46,8 +46,8 @@ namespace RoadRunnerTest
         // Make sure all incoming roads' entering lanes have matching connectings
         for (auto& incomingInfo : connectionInfo)
         {
-            const odr::Road& incomingRoad = incomingInfo.road.lock()->generated;
-            auto link = incomingInfo.s == 0 ? incomingRoad.predecessor : incomingRoad.successor;
+            const odr::Road& incomingRoad = incomingInfo.road->generated;
+            auto link = incomingInfo.contact == odr::RoadLink::ContactPoint_Start ? incomingRoad.predecessor : incomingRoad.successor;
 #ifdef G_TEST
             EXPECT_EQ(link.type, odr::RoadLink::Type_Junction);
             EXPECT_EQ(link.id, junction.generated.id);
@@ -67,30 +67,32 @@ namespace RoadRunnerTest
                 }
             }
 
-            auto enteringLanes = incomingRoad.s_to_lanesection.begin()->second.get_sorted_driving_lanes(incomingInfo.s == 0 ? 1 : -1);
+            auto enteringLanes = incomingRoad.s_to_lanesection.begin()->second.get_sorted_driving_lanes(
+                incomingInfo.contact == odr::RoadLink::ContactPoint_Start ? 1 : -1);
             for (const odr::Lane& enteringLane : enteringLanes)
             {
                 auto connectingRoadAndLane = incomingLaneToConnectingRoadLane.at(enteringLane.id);
                 std::string connectingRoadID = connectingRoadAndLane.first;
                 int connectingLane = connectingRoadAndLane.second;
                 auto connectingRoad = std::find_if(junction.connectingRoads.begin(), junction.connectingRoads.end(),
-                    [connectingRoadID](auto& road) {return road.ID() == connectingRoadID; });
+                    [connectingRoadID](auto& road) {return road->ID() == connectingRoadID; });
 
-                EnsureEndsMeet(incomingRoad, incomingInfo.s, enteringLane.id,
-                    connectingRoad->generated, 0, connectingLane);
+                double incomingS = incomingInfo.contact == odr::RoadLink::ContactPoint_Start ? 0 : incomingRoad.length;
+                EnsureEndsMeet(incomingRoad, incomingS, enteringLane.id,
+                    (*connectingRoad)->generated, 0, connectingLane);
             }
         }
 
         // Make sure all connecting roads have matching outgoing lanes
         for (auto& connecting : junction.connectingRoads)
         {
-            auto outLink = connecting.generated.successor;
+            auto outLink = connecting->generated.successor;
 #ifdef G_TEST
-            EXPECT_EQ(connecting.generated.junction, junction.generated.id);
+            EXPECT_EQ(connecting->generated.junction, junction.generated.id);
             EXPECT_EQ(outLink.type, odr::RoadLink::Type_Road);
 #endif
             std::string outgoingID = outLink.id;
-            std::string connectingID = connecting.ID();
+            std::string connectingID = connecting->ID();
             auto connection = std::find_if(allConnections.begin(), allConnections.end(),
                 [connectingID](auto& connection) {return connectingID == connection.connecting_road; });
 #ifdef G_TEST
@@ -101,13 +103,13 @@ namespace RoadRunnerTest
             auto outgoingItr = std::find_if(connectionInfo.begin(), connectionInfo.end(),
                 [outgoingID, contactPointOnNext](const RoadRunner::ConnectionInfo& info) 
             {
-                auto specifiedContactPoint = info.s == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End;
-                return info.road.lock()->ID() == outgoingID && specifiedContactPoint == contactPointOnNext;
+                return info.road->ID() == outgoingID && info.contact == contactPointOnNext;
             });
             for (const auto& ll : connection->lane_links)
             {
-                EnsureEndsMeet(connecting.generated, connecting.generated.length, ll.to,
-                    outgoingItr->road.lock()->generated, outgoingItr->s, ll.next);
+                double outgoingS = outgoingItr->contact == odr::RoadLink::ContactPoint_Start ? 0 : outgoingItr->road->Length();
+                EnsureEndsMeet(connecting->generated, connecting->generated.length, ll.to,
+                    outgoingItr->road->generated, outgoingS, ll.next);
             }
         }
     }

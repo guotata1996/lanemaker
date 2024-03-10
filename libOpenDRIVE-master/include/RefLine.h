@@ -34,6 +34,7 @@ struct RefLine
     Vec3D            get_xyz(const double s, const double t=0) const;
     Vec2D            get_grad_xy(const double s) const;
     Vec3D            get_grad(const double s) const;
+    double           get_hdg(const double s) const;
     Line3D           get_line(const double s_start, const double s_end, const double eps) const;
     double           match(const double x, const double y) const;
     std::set<double> approximate_linear(const double eps, const double s_start, const double s_end) const;

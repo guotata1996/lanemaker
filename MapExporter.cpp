@@ -21,7 +21,9 @@ namespace RoadRunner
             void* ptr = change.second;
             if (ptr != nullptr)
             {
-                odrMap.id_to_road.emplace(id, static_cast<Road*>(ptr)->generated);
+                Road* r = static_cast<Road*>(ptr);
+                auto& gen = r->generated;
+                odrMap.id_to_road.emplace(id, gen);
             }
         }
 

@@ -10,7 +10,8 @@
 
 namespace RoadRunner
 {
-    // Find Road Pointer by IDGenerator::ForRoad()::GetByID(). Pointer is EXPECTED to change!!
+    class Junction;
+
     class Road
     {
     public:
@@ -31,36 +32,12 @@ namespace RoadRunner
             Generate();
         }
 
-        ~Road() 
-        {
-            if (!ID().empty())
-            {
-                spdlog::trace("del road {}", ID());
-                IDGenerator::ForRoad()->FreeID(ID());
-            }  
-        }
+        ~Road();
 
         Road(const Road& another) = delete; // No copy costruct
         Road& operator=(const Road& another) = delete; // No copy assignment
 
-        // Move constructor
-        Road(Road&& other) noexcept :
-            generated(other.generated),
-            profile(other.profile)
-        {
-            IDGenerator::ForRoad()->FreeID(other.ID());
-            other.generated.id = "";
-
-            generated.id = IDGenerator::ForRoad()->GenerateID(this);
-            generated.name = "Road " + generated.id;
-        }
-
-        void Generate()
-        {
-            profile.Apply(Length(), generated);
-            generated.DeriveLaneBorders();
-            IDGenerator::ForRoad()->NotifyChange(ID());
-        }
+        void Generate();
 
         /*Without visible change to shape
         * Caller is responsible for re-generate junction
@@ -74,24 +51,16 @@ namespace RoadRunner
         std::string ID() const { return generated.id; }
         odr::RefLine& RefLine() { return generated.ref_line; }
         
-        odr::Road generated;
-        RoadProfile profile;
-
-        enum RoadJoinError;
-
+        // Static functions
         static int JoinRoads(std::shared_ptr<Road>& road1AsDst, odr::RoadLink::ContactPoint c1,
             std::shared_ptr<Road>& road2ToDel, odr::RoadLink::ContactPoint c2);
 
         static std::unique_ptr<Road> SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s);
+
+        // Member variables
+        odr::Road generated;
+        RoadProfile profile;
+
+        std::shared_ptr<Junction> successorJunction, predecessorJunction;
     };
-
-    
-
-    // generate refLine: ConnectLines
-    // middle section half/half
-    // manage start1 / end2 links, if road1 != road2
-    /*Returns: error code*/
-    
-
-    
 }

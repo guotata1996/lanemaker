@@ -16,8 +16,9 @@ public:
     static IDGenerator* ForRoad();
 
     std::string GenerateID(void* object); // Added to changeList
+    void ReuseID(void* object, const std::string& sid);
     void* GetByID(const std::string&);  // Added to changeList
-    void NotifyChange(const std::string&);
+    void NotifyChange(const std::string&);  // Added to changeList
     bool FreeID(const std::string&);  // Added to changeList
 
     std::map<IDType, void*> ConsumeChanges();

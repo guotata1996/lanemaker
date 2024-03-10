@@ -8,16 +8,16 @@ namespace RoadRunner
 {
     int GenerateConnections(std::string junctionID,
         std::vector<ConnectionInfo> connected,
-        std::vector<Road>& connectings)
+        std::vector<std::unique_ptr<Road>>& connectings)
     {
         auto errorCode = 0;
         // Collect endpoint info of each connected road
         std::vector<RoadEndpoint> incomingEndpoints, outgoingEndpoints;
         for (auto& roadAndS : connected)
         {
-            odr::Road* road = &roadAndS.road.lock()->generated;
-            double meetAt = roadAndS.s;
-            RoadProfile config = roadAndS.road.lock()->profile;
+            odr::Road* road = &roadAndS.road->generated;
+            double meetAt = roadAndS.contact == odr::RoadLink::ContactPoint_Start ? 0 : road->length;
+            RoadProfile config = roadAndS.road->profile;
             odr::LaneSection meetSection = meetAt == 0 ? 
                 road->s_to_lanesection.begin()->second : road->s_to_lanesection.rbegin()->second;
             
@@ -261,11 +261,11 @@ namespace RoadRunner
 
             RoadRunner::RoadProfile connectingProfile(0, 0, turningGroup.nLanes, turningGroup.nLanes);
 
-            auto connecting = Road(connectingProfile, connectingRefLine);
-            connecting.Generate();
+            auto connecting = std::make_unique<Road>(connectingProfile, connectingRefLine);
+            connecting->Generate();
 
             // Assign linkage
-            odr::Road& connRoad = connecting.generated;
+            odr::Road& connRoad = connecting->generated;
             odr::Road* incomingRoad = turningKv.first.first.road;
             odr::Road* outgoingRoad = turningKv.first.second.road;
             connRoad.junction = junctionID;
@@ -500,77 +500,123 @@ namespace RoadRunner
 
     int Junction::CreateFrom(const std::vector<ConnectionInfo>& connected)
     {
+        connectingRoads.clear();
         generationError = GenerateConnections(generated.id, connected, connectingRoads);
 
         int junctionConnID = 0;
         for (auto& connecting : connectingRoads)
         {
-            auto incomingRoad = connecting.generated.predecessor.id;
-            auto outgoingRoad = connecting.generated.successor.id;
+            auto incomingRoad = connecting->generated.predecessor.id;
+            auto outgoingRoad = connecting->generated.successor.id;
 
             odr::JunctionConnection prevConn(std::to_string(junctionConnID++),
-                incomingRoad, connecting.ID(),
+                incomingRoad, connecting->ID(),
                 odr::JunctionConnection::ContactPoint_Start,
                 outgoingRoad);
 
-            for (odr::Lane connectinglane : connecting.generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(-1))
+            for (odr::Lane connectinglane : connecting->generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(-1))
             {
                 prevConn.lane_links.insert(odr::JunctionLaneLink(connectinglane.predecessor, connectinglane.id, connectinglane.successor));
             }
             generated.id_to_connection.emplace(prevConn.id, prevConn);
         }
-        formedFrom = connected;
+
+        formedFrom.clear();
+        std::for_each(connected.begin(), connected.end(), [this](const ConnectionInfo& info) {
+            formedFrom.insert(ConnectedInfo(info));
+            if (info.contact == odr::RoadLink::ContactPoint_Start)
+            {
+                info.road->predecessorJunction = shared_from_this();
+            }
+            else
+            {
+                info.road->successorJunction = shared_from_this();
+            }
+        });
+
 
         return generationError;
     }
 
-    void clearLinkage(std::string junctionID, std::string regularRoad)
+    void Junction::NotifyPotentialChange()
     {
-        auto road = IDGenerator::ForRoad()->GetByID(regularRoad);
-        if (road == nullptr)
+        std::vector<ConnectionInfo> altered;
+        bool needReGen{ false };
+        for (const auto existing : formedFrom)
         {
-            return;
-        }
-        odr::Road& affectedRoad = static_cast<Road*>(road)->generated;
-        if (affectedRoad.successor.type == odr::RoadLink::Type_Junction && 
-            affectedRoad.successor.id == junctionID)
-        {
-            affectedRoad.successor.type = odr::RoadLink::Type_None;
-            affectedRoad.successor.id = "";
-            auto lastSection = affectedRoad.s_to_lanesection.rbegin()->second;
-            // right side loses next
-            for (auto& lane : lastSection.get_sorted_driving_lanes(-1))
+            auto newPtr = existing.road.lock();
+            auto updatedInfo = ConnectionInfo{ newPtr, existing.contact };
+
+            if (newPtr == nullptr)
             {
-                lane.successor = 0;
-                lastSection.id_to_lane.find(lane.id)->second = lane;
+                needReGen = true;
             }
-            // left side loses prev
-            for (auto& lane : lastSection.get_sorted_driving_lanes(1))
+            else
             {
-                lane.predecessor = 0;
-                lastSection.id_to_lane.find(lane.id)->second = lane;
+                altered.push_back(updatedInfo);
+                if (ConnectedInfo(updatedInfo) != existing) 
+                    needReGen = true;
             }
         }
-        if (affectedRoad.predecessor.type == odr::RoadLink::Type_Junction &&
-            affectedRoad.predecessor.id == junctionID)
+
+        if (needReGen && altered.size() > 1) // TODO: case where size() == 1
         {
-            affectedRoad.predecessor.type = odr::RoadLink::Type_None;
-            affectedRoad.predecessor.id = "";
-            auto firstSection = affectedRoad.s_to_lanesection.begin()->second;
-            // right side loses prev
-            for (auto& lane : firstSection.get_sorted_driving_lanes(-1))
-            {
-                lane.predecessor = 0;
-                firstSection.id_to_lane.find(lane.id)->second = lane;
-            }
-            // left side loses next
-            for (auto& lane : firstSection.get_sorted_driving_lanes(1))
-            {
-                lane.successor = 0;
-                firstSection.id_to_lane.find(lane.id)->second = lane;
-            }
+            spdlog::trace("Junction regen from {} roads", altered.size());
+            CreateFrom(altered);
         }
     }
+
+    // Probably not needed: 
+    // there's no way to directly destroy a junction
+    // Junction will be deleted once all connecting roads get deleted
+
+    //void clearLinkage(std::string junctionID, std::string regularRoad)
+    //{
+    //    auto road = IDGenerator::ForRoad()->GetByID(regularRoad);
+    //    if (road == nullptr)
+    //    {
+    //        return;
+    //    }
+    //    odr::Road& affectedRoad = static_cast<Road*>(road)->generated;
+    //    if (affectedRoad.successor.type == odr::RoadLink::Type_Junction && 
+    //        affectedRoad.successor.id == junctionID)
+    //    {
+    //        affectedRoad.successor.type = odr::RoadLink::Type_None;
+    //        affectedRoad.successor.id = "";
+    //        auto lastSection = affectedRoad.s_to_lanesection.rbegin()->second;
+    //        // right side loses next
+    //        for (auto& lane : lastSection.get_sorted_driving_lanes(-1))
+    //        {
+    //            lane.successor = 0;
+    //            lastSection.id_to_lane.find(lane.id)->second = lane;
+    //        }
+    //        // left side loses prev
+    //        for (auto& lane : lastSection.get_sorted_driving_lanes(1))
+    //        {
+    //            lane.predecessor = 0;
+    //            lastSection.id_to_lane.find(lane.id)->second = lane;
+    //        }
+    //    }
+    //    if (affectedRoad.predecessor.type == odr::RoadLink::Type_Junction &&
+    //        affectedRoad.predecessor.id == junctionID)
+    //    {
+    //        affectedRoad.predecessor.type = odr::RoadLink::Type_None;
+    //        affectedRoad.predecessor.id = "";
+    //        auto firstSection = affectedRoad.s_to_lanesection.begin()->second;
+    //        // right side loses prev
+    //        for (auto& lane : firstSection.get_sorted_driving_lanes(-1))
+    //        {
+    //            lane.predecessor = 0;
+    //            firstSection.id_to_lane.find(lane.id)->second = lane;
+    //        }
+    //        // left side loses next
+    //        for (auto& lane : firstSection.get_sorted_driving_lanes(1))
+    //        {
+    //            lane.successor = 0;
+    //            firstSection.id_to_lane.find(lane.id)->second = lane;
+    //        }
+    //    }
+    //}
 
     Junction::~Junction()
     {

@@ -184,6 +184,12 @@ Vec3D RefLine::get_grad(const double s) const
     return Vec3D{d_xy[0], d_xy[1], this->elevation_profile.get_grad(s)};
 }
 
+double RefLine::get_hdg(const double s) const 
+{ 
+    Vec2D grad = get_grad_xy(s);
+    return std::atan2(grad[1], grad[0]);
+}
+
 double RefLine::match(const double x, const double y) const
 {
     std::function<double(double)> f_dist = [&](const double s)
