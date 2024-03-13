@@ -67,7 +67,7 @@ namespace RoadRunnerTest
         }
         else
         {
-            VerifyJunction(*j1, connectionInfo);
+            VerifyJunction(*j1);
         }
     }
 
@@ -90,7 +90,7 @@ namespace RoadRunnerTest
         auto j1 = std::make_shared<RoadRunner::Junction>();
         j1->CreateFrom(connectionInfo);
 
-        VerifyJunction(*j1, connectionInfo);
+        VerifyJunction(*j1);
     }
 
     INSTANTIATE_TEST_SUITE_P(

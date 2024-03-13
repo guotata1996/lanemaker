@@ -35,8 +35,7 @@ namespace RoadRunnerTest
 #endif
     }
 
-    void VerifyJunction(const RoadRunner::Junction& junction,
-        const std::vector<RoadRunner::ConnectionInfo>& connectionInfo)
+    void VerifyJunction(const RoadRunner::Junction& junction)
     {
 #ifdef G_TEST
         EXPECT_EQ(junction.generationError, 0);
@@ -44,9 +43,9 @@ namespace RoadRunnerTest
         auto allConnections = odr::get_map_values(junction.generated.id_to_connection);
 
         // Make sure all incoming roads' entering lanes have matching connectings
-        for (auto& incomingInfo : connectionInfo)
+        for (auto& incomingInfo : junction.formedFrom)
         {
-            const odr::Road& incomingRoad = incomingInfo.road->generated;
+            const odr::Road& incomingRoad = incomingInfo.road.lock()->generated;
             auto link = incomingInfo.contact == odr::RoadLink::ContactPoint_Start ? incomingRoad.predecessor : incomingRoad.successor;
 #ifdef G_TEST
             EXPECT_EQ(link.type, odr::RoadLink::Type_Junction);
@@ -100,16 +99,16 @@ namespace RoadRunnerTest
 #endif
             auto contactPointOnNext = connection->lane_links.begin()->next < 0 ?
                 odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End;
-            auto outgoingItr = std::find_if(connectionInfo.begin(), connectionInfo.end(),
+            auto outgoingItr = std::find_if(junction.formedFrom.begin(), junction.formedFrom.end(),
                 [outgoingID, contactPointOnNext](const RoadRunner::ConnectionInfo& info) 
             {
-                return info.road->ID() == outgoingID && info.contact == contactPointOnNext;
+                return info.road.lock()->ID() == outgoingID && info.contact == contactPointOnNext;
             });
             for (const auto& ll : connection->lane_links)
             {
-                double outgoingS = outgoingItr->contact == odr::RoadLink::ContactPoint_Start ? 0 : outgoingItr->road->Length();
+                double outgoingS = outgoingItr->contact == odr::RoadLink::ContactPoint_Start ? 0 : outgoingItr->road.lock()->Length();
                 EnsureEndsMeet(connecting->generated, connecting->generated.length, ll.to,
-                    outgoingItr->road->generated, outgoingS, ll.next);
+                    outgoingItr->road.lock()->generated, outgoingS, ll.next);
             }
         }
     }

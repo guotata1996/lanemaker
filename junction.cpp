@@ -15,9 +15,10 @@ namespace RoadRunner
         std::vector<RoadEndpoint> incomingEndpoints, outgoingEndpoints;
         for (auto& roadAndS : connected)
         {
-            odr::Road* road = &roadAndS.road->generated;
+            auto roadPtr = roadAndS.road.lock();
+            odr::Road* road = &roadPtr->generated;
             double meetAt = roadAndS.contact == odr::RoadLink::ContactPoint_Start ? 0 : road->length;
-            RoadProfile config = roadAndS.road->profile;
+            RoadProfile config = roadPtr->profile;
             odr::LaneSection meetSection = meetAt == 0 ? 
                 road->s_to_lanesection.begin()->second : road->s_to_lanesection.rbegin()->second;
             
@@ -524,14 +525,15 @@ namespace RoadRunner
 
         formedFrom.clear();
         std::for_each(connected.begin(), connected.end(), [this](const ConnectionInfo& info) {
-            formedFrom.insert(ConnectedInfo(info));
+            formedFrom.insert(info);
+            auto roadPtr = info.road.lock();
             if (info.contact == odr::RoadLink::ContactPoint_Start)
             {
-                info.road->predecessorJunction = shared_from_this();
+                roadPtr->predecessorJunction = shared_from_this();
             }
             else
             {
-                info.road->successorJunction = shared_from_this();
+                roadPtr->successorJunction = shared_from_this();
             }
         });
 
@@ -542,8 +544,7 @@ namespace RoadRunner
 
     int Junction::Attach(ConnectionInfo conn)
     {
-        ConnectedInfo newConn(conn);
-        if (formedFrom.find(newConn) != formedFrom.end())
+        if (formedFrom.find(conn) != formedFrom.end())
         {
             return Junction_DuplicateConn;
         }
@@ -574,7 +575,7 @@ namespace RoadRunner
         for (const auto record : formedFrom)
         {
             auto recordedRoad = record.road.lock();
-            auto updatedInfo = ConnectionInfo{ recordedRoad, record.contact };
+            auto updatedInfo = ConnectionInfo(recordedRoad, record.contact);
 
             if (recordedRoad == nullptr)
             {
@@ -596,7 +597,7 @@ namespace RoadRunner
             else
             {
                 updatedInfoList.push_back(updatedInfo);
-                if (ConnectedInfo(updatedInfo) != record)
+                if (updatedInfo != record)
                     needReGen = true;
             }
         }

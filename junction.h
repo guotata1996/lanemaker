@@ -9,11 +9,58 @@
 namespace RoadRunner
 {
     // public
-    struct ConnectionInfo
+    class ConnectionInfo
     {
-        std::shared_ptr<Road> road;
+    public:
+        ConnectionInfo() = delete;
+
+        ConnectionInfo(std::shared_ptr<Road> inRoad, odr::RoadLink::ContactPoint ct) :
+            road(inRoad), contact(ct) 
+        {
+            if (inRoad != nullptr)
+            {
+                bool contactAtStart = contact == odr::RoadLink::ContactPoint_Start;
+                leftProfile = contactAtStart ? inRoad->profile.LeftExit() : inRoad->profile.LeftEntrance();
+                rightProfile = contactAtStart ? inRoad->profile.RightEntrance() : inRoad->profile.RightExit();
+                refLinePos = inRoad->RefLine().get_xy(contactAtStart ? 0 : inRoad->Length());
+                refLineHdg = inRoad->RefLine().get_hdg(contactAtStart ? 0 : inRoad->Length());
+            }
+        }
+
+        bool operator==(const ConnectionInfo& other) const
+        {
+            return road.lock() == other.road.lock() &&
+                contact == other.contact &&
+                leftProfile == other.leftProfile &&
+                rightProfile == other.rightProfile &&
+                refLinePos == other.refLinePos &&
+                refLineHdg == other.refLineHdg;
+        }
+
+        bool operator!=(const ConnectionInfo& other) const
+        {
+            return !(*this == other);
+        }
+
+        struct Hasher
+        {
+            size_t operator()(const ConnectionInfo& obj) const {
+                return std::hash<double>()(obj.refLinePos[0]) ^ std::hash<double>()(obj.refLinePos[1]) ^ std::hash<double>()(obj.refLineHdg) ^
+                    std::hash<type_t>()(obj.leftProfile.laneCount) ^ std::hash<type_t>()(obj.leftProfile.offsetx2) ^
+                    std::hash<type_t>()(obj.rightProfile.laneCount) ^ std::hash<type_t>()(obj.rightProfile.offsetx2) ^
+                    std::hash<odr::RoadLink::ContactPoint>()(obj.contact);
+            };
+        };
+
+        std::weak_ptr<Road> road;
         odr::RoadLink::ContactPoint contact;
         std::vector<double> dirSplit; // not needed for outgoing-only connection
+
+    private:
+        SectionProfile leftProfile;
+        SectionProfile rightProfile;
+        odr::Vec2D refLinePos;
+        double refLineHdg;
     };
 
     enum JunctionError
@@ -120,55 +167,9 @@ namespace RoadRunner
         odr::Junction generated;
 
         int generationError = 0;
+#ifndef G_TEST
     private:
-        // Re-generate if this changes
-        struct ConnectedInfo
-        {
-            std::weak_ptr<Road> road;
-
-            odr::RoadLink::ContactPoint contact;
-            SectionProfile leftProfile;
-            SectionProfile rightProfile;
-            odr::Vec2D refLinePos;
-            double refLineHdg;
-
-            bool operator==(const ConnectedInfo& other) const
-            {
-                return road.lock() == other.road.lock() &&
-                    contact == other.contact &&
-                    leftProfile == other.leftProfile &&
-                    rightProfile == other.rightProfile &&
-                    refLinePos == other.refLinePos &&
-                    refLineHdg == other.refLineHdg;
-            }
-
-            bool operator!=(const ConnectedInfo& other) const
-            {
-                return !(*this == other);
-            }
-
-            ConnectedInfo(const ConnectionInfo& info) :
-                road(info.road),
-                contact(info.contact)
-            {
-                bool contactAtStart = info.contact == odr::RoadLink::ContactPoint_Start;
-                leftProfile = contactAtStart ? info.road->profile.LeftExit() : info.road->profile.LeftEntrance();
-                rightProfile = contactAtStart ? info.road->profile.RightEntrance() : info.road->profile.RightExit();
-                refLinePos = info.road->RefLine().get_xy(contactAtStart ? 0 : info.road->Length());
-                refLineHdg = info.road->RefLine().get_hdg(contactAtStart ? 0 : info.road->Length());
-            }
-        };
-
-        struct ConnectionInfoHash
-        {
-            size_t operator()(const ConnectedInfo& obj) const {
-                return std::hash<double>()(obj.refLinePos[0]) ^ std::hash<double>()(obj.refLinePos[1]) ^ std::hash<double>()(obj.refLineHdg) ^
-                    std::hash<type_t>()(obj.leftProfile.laneCount) ^ std::hash<type_t>()(obj.leftProfile.offsetx2) ^
-                    std::hash<type_t>()(obj.rightProfile.laneCount) ^ std::hash<type_t>()(obj.rightProfile.offsetx2) ^
-                    std::hash<odr::RoadLink::ContactPoint>()(obj.contact);
-            };
-        };
-
-        std::unordered_set<ConnectedInfo, ConnectionInfoHash> formedFrom;
+#endif
+        std::unordered_set<ConnectionInfo, ConnectionInfo::Hasher> formedFrom;
     };
 }
