@@ -51,8 +51,8 @@ int main(int argc, char** argv)
     
     // r1->ReverseRefLine();
     auto part3 = RoadRunner::Road::SplitRoad(r1, 40);
-    auto part2 = RoadRunner::Road::SplitRoad(r1, 20);
-    part2.reset();
+    //auto part2 = RoadRunner::Road::SplitRoad(r1, 20);
+    //part2.reset();
     exporter.Update("C:\\Users\\guota\\Downloads\\step2.xodr");
 
     RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, part3, odr::RoadLink::ContactPoint_Start);

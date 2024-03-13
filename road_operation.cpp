@@ -1,7 +1,8 @@
 #include "road.h"
 #include "curve_fitting.h"
-
 #include "junction.h"
+
+#include <math.h>
 
 namespace RoadRunner
 {
@@ -37,36 +38,53 @@ namespace RoadRunner
 
         auto p1 = road1->RefLine().get_xy(road1->Length());
         auto f1 = road1->RefLine().get_grad_xy(road1->Length());
+        auto h1 = std::atan2(f1[1], f1[0]);
         auto p2 = road2->RefLine().get_xy(0);
         auto f2 = road2->RefLine().get_grad_xy(0);
-        auto connectingRef = ConnectLines(p1, odr::normalize(f1), p2, odr::normalize(f2));
-        // TODO: special case where p1==f1 and f1==f2
-        if (connectingRef == nullptr)
+        auto h2 = std::atan2(f2[1], f2[0]);
+        bool hdgClose = std::abs(h1 - h2) < 1e-2 || std::abs(std::abs(h1 - h2) - M_PI * 2) < 1e-2;
+        type_s linkBase = from_odr_unit(road1->Length());
+        type_s road2Base;
+
+        if (odr::euclDistance(p1, p2) > 1e-2 || !hdgClose)
         {
-            return RoadJoin_ConnectionInvalidShape;
+            auto connectingRef = ConnectLines(p1, odr::normalize(f1), p2, odr::normalize(f2));
+            if (connectingRef == nullptr)
+            {
+                return RoadJoin_ConnectionInvalidShape;
+            }
+
+            road2Base = from_odr_unit(road1->Length() + connectingRef->length);
+            // Connect ref lines
+            connectingRef->s0 = road1->Length();
+            road1->generated.ref_line.s0_to_geometry.emplace(road1->Length(), connectingRef->clone());
+            double baseLength = road1->Length() + connectingRef->length;
+            for (const auto& s2geo : road2->RefLine().s0_to_geometry)
+            {
+                auto clonedLine = s2geo.second->clone();
+                clonedLine->s0 = baseLength + s2geo.first;
+                road1->generated.ref_line.s0_to_geometry.emplace(
+                    baseLength + s2geo.first,
+                    std::move(clonedLine));
+            }
+            road1->generated.ref_line.length = road1->Length() + connectingRef->length + road2->Length();
+        }
+        else
+        {
+            road2Base = linkBase;
+            road1->generated.ref_line.length = road1->Length() + road2->Length();
         }
 
-        type_s linkBase = from_odr_unit(road1->Length());
-        type_s road2Base = from_odr_unit(road1->Length() + connectingRef->length);
-        // Connect ref lines
-        connectingRef->s0 = road1->Length();
-        road1->generated.ref_line.s0_to_geometry.emplace(road1->Length(), connectingRef->clone());
-        double baseLength = road1->Length() + connectingRef->length;
-        for (const auto& s2geo : road2->RefLine().s0_to_geometry)
-        {
-            auto clonedLine = s2geo.second->clone();
-            clonedLine->s0 = baseLength + s2geo.first;
-            road1->generated.ref_line.s0_to_geometry.emplace(
-                baseLength + s2geo.first,
-                std::move(clonedLine));
-        }
-        road1->generated.ref_line.length = road1->Length() + connectingRef->length + road2->Length();
         // Join right profile
         if (road1->profile.HasSide(-1))
         {
-            road1->profile.OverwriteSection(-1,
-                linkBase, road2Base,
-                road1->profile.RightExit().laneCount, road1->profile.RightExit().offsetx2);
+            if (road2Base != linkBase)
+            {
+                road1->profile.OverwriteSection(-1,
+                    linkBase, road2Base,
+                    road1->profile.RightExit().laneCount, road1->profile.RightExit().offsetx2);
+            }
+
             for (const auto& road2section : road2->profile.GetAllSections(from_odr_unit(road2->Length()), -1))
             {
                 type_s newStart = road2section.first.first + road2Base;
@@ -78,9 +96,12 @@ namespace RoadRunner
         // Join left profile
         if (road1->profile.HasSide(1))
         {
-            road1->profile.OverwriteSection(1,
-                road2Base, linkBase,
-                road1->profile.LeftEntrance().laneCount, road1->profile.LeftEntrance().offsetx2);
+            if (road2Base != linkBase)
+            {
+                road1->profile.OverwriteSection(1,
+                    road2Base, linkBase,
+                    road1->profile.LeftEntrance().laneCount, road1->profile.LeftEntrance().offsetx2);
+            }
 
             for (const auto& road2section : road2->profile.GetAllSections(from_odr_unit(road2->Length()), 1))
             {
