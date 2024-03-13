@@ -34,29 +34,34 @@ int main(int argc, char** argv)
     auto refLine3 = std::make_shared<odr::Arc>(0, -50, 20, M_PI_4 * 3, 0.75 * M_PI * 2 * R, 1 / R);
     auto r3 = std::make_shared<RoadRunner::Road>(config, refLine3);
     //err = RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r3, odr::RoadLink::ContactPoint_Start);
-    
-    exporter.Update("C:\\Users\\guota\\Downloads\\step1.xodr");
-    
-    auto j12 = std::make_shared<RoadRunner::Junction>();
-    j12->CreateFrom({
+        
+    std::make_shared<RoadRunner::Junction>()->CreateFrom({
         RoadRunner::ConnectionInfo{r1, odr::RoadLink::ContactPoint_End},
         RoadRunner::ConnectionInfo{r2, odr::RoadLink::ContactPoint_Start},
         RoadRunner::ConnectionInfo{r2, odr::RoadLink::ContactPoint_End}
         });
 
-    auto j13 = std::make_shared<RoadRunner::Junction>();
-    j13->CreateFrom({
+    std::make_shared<RoadRunner::Junction>()->CreateFrom({
         RoadRunner::ConnectionInfo{r1, odr::RoadLink::ContactPoint_Start},
         RoadRunner::ConnectionInfo{r3, odr::RoadLink::ContactPoint_Start},
         RoadRunner::ConnectionInfo{r3, odr::RoadLink::ContactPoint_End}
         });
 
-    exporter.Update("C:\\Users\\guota\\Downloads\\step2.xodr");
+    exporter.Update("C:\\Users\\guota\\Downloads\\step1.xodr");
     
-    spdlog::info("=========");
-    r1->ReverseRefLine();
-    auto r2_part2 = RoadRunner::Road::SplitRoad(r1, 30);
+    // r1->ReverseRefLine();
+    auto part3 = RoadRunner::Road::SplitRoad(r1, 40);
+    auto part2 = RoadRunner::Road::SplitRoad(r1, 20);
+    part2.reset();
+    exporter.Update("C:\\Users\\guota\\Downloads\\step2.xodr");
+
+    RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, part3, odr::RoadLink::ContactPoint_Start);
     exporter.Update("C:\\Users\\guota\\Downloads\\step3.xodr");
+    r1->ReverseRefLine();
+    exporter.Update("C:\\Users\\guota\\Downloads\\step4.xodr");
+    r1.reset();
+    r2.reset();
+    exporter.Update("C:\\Users\\guota\\Downloads\\step5.xodr");
 
     //QApplication app(argc, argv);
     //RoadRunner::MapDrawer odr_drawer;

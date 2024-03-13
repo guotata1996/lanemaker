@@ -40,6 +40,7 @@ namespace RoadRunner
         auto p2 = road2->RefLine().get_xy(0);
         auto f2 = road2->RefLine().get_grad_xy(0);
         auto connectingRef = ConnectLines(p1, odr::normalize(f1), p2, odr::normalize(f2));
+        // TODO: special case where p1==f1 and f1==f2
         if (connectingRef == nullptr)
         {
             return RoadJoin_ConnectionInvalidShape;
@@ -91,12 +92,20 @@ namespace RoadRunner
         }
 
         road1->Generate();
+        if (road2->successorJunction != nullptr)
+        {
+            road2->successorJunction->NotifyPotentialChange(ChangeInConnecting
+                { road2, RoadRunner::ChangeInConnecting::Type_DetachAtEnd_Temp });
+            road2->successorJunction->Attach(RoadRunner::ConnectionInfo{ road1, odr::RoadLink::ContactPoint_End });
+        }
         road2.reset();
         return 0;
     }
 
     std::shared_ptr<Road> Road::SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s)
     {
+        assert(0 < s);
+        assert(s < roadAsPrev->Length());
         type_s oldLength = from_odr_unit(roadAsPrev->Length());
         type_s splitPoint = from_odr_unit(s);
         RoadProfile& oldProfile = roadAsPrev->profile;
