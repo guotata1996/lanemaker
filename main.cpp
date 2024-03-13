@@ -54,8 +54,8 @@ int main(int argc, char** argv)
     exporter.Update("C:\\Users\\guota\\Downloads\\step2.xodr");
     
     spdlog::info("=========");
-    r1->ReverseRefLine();
-
+    r2->ReverseRefLine();
+    auto r2_part2 = RoadRunner::Road::SplitRoad(r2, 60);
     exporter.Update("C:\\Users\\guota\\Downloads\\step3.xodr");
 
     //QApplication app(argc, argv);

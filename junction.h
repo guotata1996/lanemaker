@@ -20,7 +20,8 @@ namespace RoadRunner
     {
         Junction_TooManyIncomingLanes = 1,
         Junction_ConnectionInvalidShape = 2,
-        Junction_AlgoFail = 4
+        Junction_AlgoFail = 4,
+        Junction_DuplicateConn = 8
     };
 
     int GenerateConnections(
@@ -85,7 +86,11 @@ namespace RoadRunner
 
     struct ChangeInConnecting
     {
-        enum Type {Type_Others, Type_Reverse};
+        enum Type {
+            Type_Others,
+            Type_Reverse,
+            Type_DetachAtEnd_Temp // Intermediate step; Doesn't trigger a regeneration
+        };
         std::weak_ptr<Road> subject;
         Type _type;
     };
@@ -102,6 +107,7 @@ namespace RoadRunner
         ~Junction();
 
         int CreateFrom(const std::vector<ConnectionInfo>&);
+        int Attach(ConnectionInfo);
 
         /*Call this when connected roads get deleted or modified*/
         void NotifyPotentialChange();

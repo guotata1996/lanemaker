@@ -540,6 +540,22 @@ namespace RoadRunner
         return generationError;
     }
 
+    int Junction::Attach(ConnectionInfo conn)
+    {
+        ConnectedInfo newConn(conn);
+        if (formedFrom.find(newConn) != formedFrom.end())
+        {
+            return Junction_DuplicateConn;
+        }
+        std::vector<ConnectionInfo> newConnections = { conn };
+        for (auto existing : formedFrom)
+        {
+            ConnectionInfo existingInfo{ existing.road.lock(), existing.contact };
+            newConnections.push_back(existingInfo);
+        }
+        return CreateFrom(newConnections);
+    }
+
     void Junction::NotifyPotentialChange()
     {
         NotifyPotentialChange(ChangeInConnecting());
@@ -547,13 +563,13 @@ namespace RoadRunner
 
     void Junction::NotifyPotentialChange(const ChangeInConnecting& detail)
     {
-        std::shared_ptr<Road> reversedSubject;
-        if (detail._type == detail.Type_Reverse)
+        std::shared_ptr<Road> subject;
+        if (detail._type != detail.Type_Others)
         {
-            reversedSubject = detail.subject.lock();
+            subject = detail.subject.lock();
         }
 
-        std::vector<ConnectionInfo> altered;
+        std::vector<ConnectionInfo> updatedInfoList;
         bool needReGen{ false };
         for (const auto record : formedFrom)
         {
@@ -564,25 +580,31 @@ namespace RoadRunner
             {
                 needReGen = true;
             }
-            else if (reversedSubject == recordedRoad)
+            else if (detail._type == detail.Type_Reverse && subject == recordedRoad)
             {
                 needReGen = true;
                 updatedInfo.contact = record.contact == odr::RoadLink::ContactPoint_Start ?
                     odr::RoadLink::ContactPoint_End : odr::RoadLink::ContactPoint_Start;
-                altered.push_back(updatedInfo);
+                updatedInfoList.push_back(updatedInfo);
+            }
+            else if (detail._type == detail.Type_DetachAtEnd_Temp && record.contact == odr::RoadLink::ContactPoint_End && 
+                subject == recordedRoad)
+            {
+                needReGen = true; // TODO: false
+                subject->generated.successor = odr::RoadLink();
             }
             else
             {
-                altered.push_back(updatedInfo);
+                updatedInfoList.push_back(updatedInfo);
                 if (ConnectedInfo(updatedInfo) != record)
                     needReGen = true;
             }
         }
 
-        if (needReGen && altered.size() > 1) // TODO: case where size() == 1
+        if (needReGen && updatedInfoList.size() > 1) // TODO: case where size() == 1
         {
-            spdlog::trace("Junction regen from {} roads", altered.size());
-            CreateFrom(altered);
+            spdlog::trace("Junction regen from {} roads", updatedInfoList.size());
+            CreateFrom(updatedInfoList);
         }
     }
 

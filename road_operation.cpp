@@ -1,6 +1,8 @@
 #include "road.h"
 #include "curve_fitting.h"
 
+#include "junction.h"
+
 namespace RoadRunner
 {
     enum RoadJoinError
@@ -93,7 +95,7 @@ namespace RoadRunner
         return 0;
     }
 
-    std::unique_ptr<Road> Road::SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s)
+    std::shared_ptr<Road> Road::SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s)
     {
         type_s oldLength = from_odr_unit(roadAsPrev->Length());
         type_s splitPoint = from_odr_unit(s);
@@ -144,9 +146,17 @@ namespace RoadRunner
         }
 
         auto refLine2 = roadAsPrev->RefLine().split(s);
+        auto part2 = std::make_shared<Road>(profile2, refLine2);
         roadAsPrev->profile = profile1;
         roadAsPrev->Generate();
+
+        if (roadAsPrev->successorJunction != nullptr)
+        {
+            roadAsPrev->successorJunction->NotifyPotentialChange(ChangeInConnecting
+                { roadAsPrev, RoadRunner::ChangeInConnecting::Type_DetachAtEnd_Temp });
+            roadAsPrev->successorJunction->Attach(RoadRunner::ConnectionInfo{ part2, odr::RoadLink::ContactPoint_End });
+        }
         
-        return std::make_unique<Road>(profile2, refLine2);
+        return part2;
     }
 }

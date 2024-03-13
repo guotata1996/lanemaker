@@ -55,7 +55,7 @@ namespace RoadRunner
         static int JoinRoads(std::shared_ptr<Road>& road1AsDst, odr::RoadLink::ContactPoint c1,
             std::shared_ptr<Road>& road2ToDel, odr::RoadLink::ContactPoint c2);
 
-        static std::unique_ptr<Road> SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s);
+        static std::shared_ptr<Road> SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s);
 
         // Member variables
         odr::Road generated;
