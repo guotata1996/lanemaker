@@ -28,6 +28,11 @@ IDGenerator* IDGenerator::ForRoad()
     return _road;
 }
 
+size_t IDGenerator::size() const
+{
+    return assignTo.size();
+}
+
 std::string IDGenerator::GenerateID(void* object)
 {
     IDType newID = assigned.size();

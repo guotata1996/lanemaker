@@ -15,6 +15,7 @@ public:
     static IDGenerator* ForJunction();
     static IDGenerator* ForRoad();
 
+    size_t size() const;
     std::string GenerateID(void* object); // Added to changeList
     void ReuseID(void* object, const std::string& sid);
     void* GetByID(const std::string&);  // Added to changeList

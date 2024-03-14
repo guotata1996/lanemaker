@@ -3,6 +3,7 @@
 #include "single_road_test.h"
 #include "junction_test.h"
 #include "road_geometry_test.h"
+#include "road_operation_test.h"
 
 namespace RoadRunnerTest
 {
