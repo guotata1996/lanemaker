@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.1...3.23)
 project(RoadRunner)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_AUTOMOC ON)
 
 find_package(CGAL REQUIRED OPTIONAL_COMPONENTS Qt5)
 find_package(Qt5 REQUIRED COMPONENTS Widgets Core Gui)
@@ -9,9 +10,13 @@ find_package(spdlog REQUIRED)
 
 add_subdirectory(libOpenDRIVE-master)
 # TODO: make RoadRunner a library
+
+qt5_add_resources(srcs_for_exe images.qrc) 
+
 add_executable(${CMAKE_PROJECT_NAME} main.cpp 
     roadProfile.cpp road.cpp junction.cpp road_operation.cpp curve_fitting.cpp
     IDGenerator.cpp MapExporter.cpp MapDrawer.cpp
+    mainwindow.cpp view.cpp ${srcs_for_exe} RoadGraphics.cpp
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE 
