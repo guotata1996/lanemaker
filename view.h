@@ -5,6 +5,7 @@
 #define VIEW_H
 
 #include <QFrame>
+#include <qmenu.h>
 #include <QGraphicsView>
 
 QT_BEGIN_NAMESPACE
@@ -15,19 +16,39 @@ QT_END_NAMESPACE
 
 class View;
 
+class RoadDrawingSession;
+
 class GraphicsView : public QGraphicsView
 {
     Q_OBJECT
 public:
-    GraphicsView(View* v) : QGraphicsView(), view(v) { }
+    GraphicsView(View* v);
 
 protected:
 #if QT_CONFIG(wheelevent)
     void wheelEvent(QWheelEvent*) override;
 #endif
 
+    void mousePressEvent(QMouseEvent* event) override;
+
+    void mouseMoveEvent(QMouseEvent* event) override;
+
+    void keyPressEvent(QKeyEvent* event) override;
+
+    void AdjustSceneRect();
+
 private:
+    const double ViewPadding = 100; // meters
+
     View* view;
+    RoadDrawingSession* drawingSession = nullptr;
+
+signals:
+    void enableRoadEditingTool(bool);
+
+public slots:
+    void confirmEdit();
+    void quitEdit();
 };
 
 class View : public QFrame
@@ -53,9 +74,10 @@ private slots:
     void rotateLeft();
     void rotateRight();
 
+    void showRoadEditingTool(bool show);
+
 private:
     GraphicsView* graphicsView;
-    QLabel* label;
     QLabel* label2;
     QToolButton* selectModeButton;
     QToolButton* dragModeButton;
@@ -63,6 +85,8 @@ private:
     QToolButton* resetButton;
     QSlider* zoomSlider;
     QSlider* rotateSlider;
+
+    QWidget* roadEditingTool;
 };
 
 #endif // VIEW_H

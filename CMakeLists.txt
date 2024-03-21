@@ -15,7 +15,7 @@ qt5_add_resources(srcs_for_exe images.qrc)
 
 add_executable(${CMAKE_PROJECT_NAME} main.cpp 
     roadProfile.cpp road.cpp junction.cpp road_operation.cpp curve_fitting.cpp
-    IDGenerator.cpp MapExporter.cpp MapDrawer.cpp
+    IDGenerator.cpp MapExporter.cpp world.cpp
     mainwindow.cpp view.cpp ${srcs_for_exe} RoadGraphics.cpp
 )
 

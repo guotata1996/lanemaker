@@ -5,21 +5,22 @@
 
 #include <QHBoxLayout>
 
-MainWindow::MainWindow(QWidget* parent): QWidget(parent), scene(new QGraphicsScene(this))
+QGraphicsScene* g_scene;
+
+MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 {
     setWindowTitle(tr("Road Runner"));
+    setMinimumWidth(1600);
+    setMinimumHeight(900);
 
-    auto item = new QGraphicsPathItem;
-    QPainterPath path;
-    path.addEllipse(100, 200, 80, 120);
-    item->setPath(path);
-
-    scene->addItem(item);
+    scene = std::make_unique<QGraphicsScene>(this);
+    g_scene = scene.get();
     
     auto view = new View("Main View");
-    view->view()->setScene(scene);
+    view->view()->setScene(g_scene);
 
-    QHBoxLayout* layout = new QHBoxLayout;
-    layout->addWidget(view);
-    setLayout(layout);
+    auto mainLayout = new QHBoxLayout;
+    mainLayout->addWidget(view);
+    
+    setLayout(mainLayout);
 }

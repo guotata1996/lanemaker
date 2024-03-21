@@ -26,6 +26,8 @@ struct ParamPoly3 : public RoadGeometry
                double dV,
                bool   pRange_normalized = true);
 
+    ParamPoly3(double s0, odr::Vec2D p0, odr::Vec2D c1, odr::Vec2D c2, odr::Vec2D p1);
+
     std::unique_ptr<RoadGeometry> clone() const override;
 
     Vec2D get_xy(double s) const override;

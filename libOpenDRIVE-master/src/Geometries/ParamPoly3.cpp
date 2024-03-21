@@ -43,6 +43,32 @@ ParamPoly3::ParamPoly3(double s0,
     this->cubic_bezier.valid_length = length;
 }
 
+ParamPoly3::ParamPoly3(double s0, odr::Vec2D p0, odr::Vec2D c1, odr::Vec2D c2, odr::Vec2D p1) : 
+    RoadGeometry(s0, p0[0], p0[1], 0, 0, GeometryType_ParamPoly3)
+{ 
+    auto       p0c1 = odr::sub(c1, p0);
+    hdg0 = std::atan2(p0c1[1], p0c1[0]);
+    odr::Vec2D startHdg{std::cos(hdg0), std::sin(hdg0)};
+    odr::Vec2D odr_p0{0, 0}; 
+    auto       odr_c1 = odr::toLocal(c1, p0, startHdg);
+    auto       odr_c2 = odr::toLocal(c2, p0, startHdg);
+    auto       odr_p1 = odr::toLocal(p1, p0, startHdg);
+    this->cubic_bezier = CubicBezier2D({odr_p0, odr_c1, odr_c2, odr_p1});
+    length = cubic_bezier.get_length();
+    this->cubic_bezier.arclen_t[length] = 1.0;
+    this->cubic_bezier.valid_length = length;
+
+    auto coefficients = odr::CubicBezier2D::get_coefficients(cubic_bezier.control_points);
+    aU = coefficients[0][0];
+    bU = coefficients[1][0];
+    cU = coefficients[2][0];
+    dU = coefficients[3][0];
+    aV = coefficients[0][1];
+    bV = coefficients[1][1];
+    cV = coefficients[2][1];
+    dV = coefficients[3][1];
+}
+
 std::unique_ptr<RoadGeometry> ParamPoly3::clone() const { return std::make_unique<ParamPoly3>(*this); }
 
 Vec2D ParamPoly3::get_xy(double s) const

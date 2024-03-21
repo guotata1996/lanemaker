@@ -1,6 +1,7 @@
 #pragma once
 
 #include <list>
+#include <map>
 #include <cassert>
 #include "spdlog/spdlog.h"
 
@@ -12,25 +13,14 @@ namespace RoadRunner
 {
     class Junction;
 
+    class RoadGraphics;
+
     class Road: public std::enable_shared_from_this<Road>
     {
     public:
-        Road(const RoadProfile& p, std::shared_ptr<odr::RoadGeometry> l) :
-            generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1"),
-            profile(p)
-        {
-            generated.ref_line.length = l->length;
-            generated.ref_line.s0_to_geometry.emplace(0, l->clone());
-            Generate();
-        }
+        Road(const RoadProfile& p, std::shared_ptr<odr::RoadGeometry> l);
 
-        Road(const RoadProfile& p, odr::RefLine& l) :
-            generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1"),
-            profile(p)
-        {
-            generated.ref_line = std::move(l);
-            Generate();
-        }
+        Road(const RoadProfile& p, odr::RefLine& l);
 
         ~Road();
 
@@ -62,5 +52,14 @@ namespace RoadRunner
         RoadProfile profile;
 
         std::shared_ptr<Junction> successorJunction, predecessorJunction;
+
+    private:
+        const double GraphicsDivision = 20;
+
+        // Expensive
+        void GenerateAllSectionGraphics();
+
+        // When updates road, remove RoadSectionGraphics then add new
+        std::map<double, std::unique_ptr<RoadGraphics>> s_to_section_graphics;
     };
 }

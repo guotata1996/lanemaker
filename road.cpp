@@ -10,8 +10,29 @@
 
 #include "spdlog/spdlog.h"
 
+#include "RoadGraphics.h"
+
 namespace RoadRunner
 {
+    Road::Road(const RoadProfile& p, std::shared_ptr<odr::RoadGeometry> l) :
+        generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1"),
+        profile(p)
+    {
+        generated.ref_line.length = l->length;
+        generated.ref_line.s0_to_geometry.emplace(0, l->clone());
+        Generate();
+        GenerateAllSectionGraphics();
+    }
+
+    Road::Road(const RoadProfile& p, odr::RefLine& l) :
+        generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1"),
+        profile(p)
+    {
+        generated.ref_line = std::move(l);
+        Generate();
+        GenerateAllSectionGraphics();
+    }
+
     void Road::Generate(bool notifyJunctions)
     {
         profile.Apply(Length(), generated);
@@ -91,6 +112,36 @@ namespace RoadRunner
         {
             spdlog::trace("del road {}", ID());
             IDGenerator::ForRoad()->FreeID(ID());
+        }
+    }
+
+    void Road::GenerateAllSectionGraphics()
+    {
+        for (auto it = generated.s_to_lanesection.begin();
+            it != generated.s_to_lanesection.end(); ++it)
+        {
+            auto nextIt = it;
+            nextIt++;
+            double startS = it->first;
+            double endS = nextIt == generated.s_to_lanesection.end() ? generated.length : nextIt->first;
+            
+            if (endS - startS < 0.1f)
+            {
+                continue;
+            }
+
+            odr::LaneSection& section = it->second;
+            int nDivision = std::floor((endS - startS) / GraphicsDivision);
+            nDivision = std::max(1, nDivision);
+            double segmentLength = (endS - startS) / nDivision;
+            for (int segmentIndex = 0; segmentIndex != nDivision; ++segmentIndex)
+            {
+                double segStartS = startS + segmentLength * segmentIndex;
+                double segEndS = segmentIndex == nDivision - 1 ? endS : segStartS + segmentLength;
+                auto sectionGraphics = std::make_unique<RoadGraphics>(this);
+                sectionGraphics->Update(it->second, segStartS, segEndS);
+                s_to_section_graphics.emplace(segStartS, std::move(sectionGraphics));
+            }
         }
     }
 } // namespace

@@ -121,6 +121,7 @@ namespace RoadRunner
         }
         road2.reset();
         return 0;
+        // TODO: road2 RoadSectionGraphics move to road1
     }
 
     std::shared_ptr<Road> Road::SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s)

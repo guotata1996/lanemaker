@@ -6,6 +6,15 @@
 #include <QtWidgets>
 #include <QtMath>
 
+#include "road_drawing.h"
+#include "spdlog/spdlog.h"
+
+GraphicsView::GraphicsView(View* v) : 
+    QGraphicsView(), view(v)
+{ 
+    setSceneRect(-ViewPadding, -ViewPadding, ViewPadding, ViewPadding);
+}
+
 #if QT_CONFIG(wheelevent)
 void GraphicsView::wheelEvent(QWheelEvent* e)
 {
@@ -22,6 +31,66 @@ void GraphicsView::wheelEvent(QWheelEvent* e)
 }
 #endif
 
+void GraphicsView::mousePressEvent(QMouseEvent* evt)
+{
+    QGraphicsView::mousePressEvent(evt);
+    if (dragMode() == QGraphicsView::ScrollHandDrag)
+    {
+        return;
+    }
+    QPointF sceneEvt = mapToScene(evt->pos().x(), evt->pos().y());
+    if (drawingSession == nullptr)
+    {
+        drawingSession = new RoadDrawingSession(this, sceneEvt);
+        emit enableRoadEditingTool(true);
+    }
+    drawingSession->Update(evt);
+}
+
+void GraphicsView::mouseMoveEvent(QMouseEvent* evt)
+{
+    QGraphicsView::mouseMoveEvent(evt);
+
+    if (drawingSession != nullptr)
+    {
+        drawingSession->Update(evt);
+    }
+}
+
+void GraphicsView::keyPressEvent(QKeyEvent* evt)
+{
+    // End session, create road
+    QGraphicsView::keyPressEvent(evt);
+    if (drawingSession != nullptr && evt->key() == Qt::Key_Escape)
+    {
+        quitEdit();
+    }
+}
+
+void GraphicsView::AdjustSceneRect()
+{
+    auto original = scene()->itemsBoundingRect();
+    QRectF paded(original.left() - ViewPadding, original.top() - ViewPadding,
+        original.width() + 2 * ViewPadding, original.height() + 2 * ViewPadding);
+    setSceneRect(paded);
+}
+
+void GraphicsView::confirmEdit()
+{
+    drawingSession->Complete();
+    AdjustSceneRect();
+
+    quitEdit();
+}
+
+void GraphicsView::quitEdit()
+{
+    delete drawingSession;
+    drawingSession = nullptr;
+
+    emit enableRoadEditingTool(false);
+}
+
 View::View(const QString& name, QWidget* parent)
     : QFrame(parent)
 {
@@ -32,6 +101,7 @@ View::View(const QString& name, QWidget* parent)
     graphicsView->setOptimizationFlags(QGraphicsView::DontSavePainterState);
     graphicsView->setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
     graphicsView->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+    graphicsView->setMouseTracking(true);
 
     int size = style()->pixelMetric(QStyle::PM_ToolBarIconSize);
     QSize iconSize(size, size);
@@ -84,8 +154,18 @@ View::View(const QString& name, QWidget* parent)
     resetButton->setEnabled(false);
 
     // Label layout
+    QHBoxLayout* roadEditingLayout = new QHBoxLayout;
+    auto confirmButton = new QToolButton;
+    confirmButton->setText("Confirm");
+    roadEditingLayout->addWidget(confirmButton);
+    auto cancelButton = new QToolButton;
+    cancelButton->setText("Cancel");
+    roadEditingLayout->addWidget(cancelButton);
+    roadEditingTool = new QWidget(this);
+    roadEditingTool->setLayout(roadEditingLayout);
+    roadEditingTool->hide();
+
     QHBoxLayout* labelLayout = new QHBoxLayout;
-    label = new QLabel(name);
     label2 = new QLabel(tr("Pointer Mode"));
     selectModeButton = new QToolButton;
     selectModeButton->setText(tr("Select"));
@@ -105,7 +185,7 @@ View::View(const QString& name, QWidget* parent)
     pointerModeGroup->addButton(selectModeButton);
     pointerModeGroup->addButton(dragModeButton);
 
-    labelLayout->addWidget(label);
+    labelLayout->addWidget(roadEditingTool);
     labelLayout->addStretch();
     labelLayout->addWidget(label2);
     labelLayout->addWidget(selectModeButton);
@@ -135,6 +215,10 @@ View::View(const QString& name, QWidget* parent)
     connect(rotateRightIcon, &QAbstractButton::clicked, this, &View::rotateRight);
     connect(zoomInIcon, &QAbstractButton::clicked, this, &View::zoomIn);
     connect(zoomOutIcon, &QAbstractButton::clicked, this, &View::zoomOut);
+
+    connect(graphicsView, &GraphicsView::enableRoadEditingTool, this, &View::showRoadEditingTool);
+    connect(confirmButton, &QAbstractButton::clicked, graphicsView, &GraphicsView::confirmEdit);
+    connect(cancelButton, &QAbstractButton::clicked, graphicsView, &GraphicsView::quitEdit);
 
     setupMatrix();
 }
@@ -212,4 +296,9 @@ void View::rotateLeft()
 void View::rotateRight()
 {
     rotateSlider->setValue(rotateSlider->value() + 10);
+}
+
+void View::showRoadEditingTool(bool show)
+{
+    roadEditingTool->setHidden(!show);
 }
