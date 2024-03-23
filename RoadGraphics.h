@@ -25,8 +25,9 @@ namespace RoadRunner
 
         RoadRunner::Road* road;
 
+        static QPolygonF LineToPoly(const odr::Line3D& line);
+
     private:
-        QPolygonF LineToPoly(const odr::Line3D& line);
 
         std::map<double, QGraphicsItem*> sections;
     };
@@ -34,12 +35,24 @@ namespace RoadRunner
     class LaneSegmentGraphics : QGraphicsPolygonItem
     {
     public:
-        LaneSegmentGraphics(const QPolygonF poly, QGraphicsItem* parent);
+        LaneSegmentGraphics(const QPolygonF& poly, 
+            const odr::Line3D& outerBorder, const odr::Line3D& innerBorder,
+            double aSBegin, double aSEnd, std::string,
+            QGraphicsItem* parent);
 
-        void hoverEnterEvent(QGraphicsSceneHoverEvent* event) override;
+        void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override;
+
+        void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
 
     protected:
         void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
+
+    private:
+        std::vector<QPolygonF> subdivisionPolys;
+        std::vector<double> subdivisionS;
+
+        double sBegin, sEnd;
+        std::string roadID;
     };
 }
 

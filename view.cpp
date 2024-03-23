@@ -9,10 +9,13 @@
 #include "road_drawing.h"
 #include "spdlog/spdlog.h"
 
+std::string g_PointerRoadID;
+double g_PointerRoadS;
+
 GraphicsView::GraphicsView(View* v) : 
     QGraphicsView(), view(v)
 { 
-    setSceneRect(-ViewPadding, -ViewPadding, ViewPadding, ViewPadding);
+    setSceneRect(-ViewPadding, -ViewPadding, 2 * ViewPadding, 2 * ViewPadding);
 }
 
 #if QT_CONFIG(wheelevent)
@@ -67,6 +70,32 @@ void GraphicsView::keyPressEvent(QKeyEvent* evt)
     }
 }
 
+void GraphicsView::drawForeground(QPainter* painter, const QRectF& rect)
+{
+    QGraphicsView::drawForeground(painter, rect);
+
+    if (!g_PointerRoadID.empty())
+    {
+        painter->save();
+
+        QFont font = painter->font();
+        font.setPointSize(20);
+        painter->setFont(font);
+
+        painter->setWorldMatrixEnabled(false);
+        QRectF vpRect = viewport()->rect();
+
+        std::stringstream ss;
+        ss << "Road " << g_PointerRoadID << " @ " << g_PointerRoadS;
+        QString txt = QString::fromStdString(ss.str());
+        painter->drawText(vpRect.bottomLeft(), txt);
+        painter->setWorldMatrixEnabled(true);
+        painter->restore();
+    }
+
+    viewport()->update();
+}
+
 void GraphicsView::AdjustSceneRect()
 {
     auto original = scene()->itemsBoundingRect();
@@ -78,9 +107,9 @@ void GraphicsView::AdjustSceneRect()
 void GraphicsView::confirmEdit()
 {
     drawingSession->Complete();
-    AdjustSceneRect();
-
     quitEdit();
+
+    AdjustSceneRect();
 }
 
 void GraphicsView::quitEdit()

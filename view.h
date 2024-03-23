@@ -35,6 +35,8 @@ protected:
 
     void keyPressEvent(QKeyEvent* event) override;
 
+    void drawForeground(QPainter* painter, const QRectF& rect) override;
+
     void AdjustSceneRect();
 
 private:
