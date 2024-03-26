@@ -53,11 +53,11 @@ namespace RoadRunner
 
         std::shared_ptr<Junction> successorJunction, predecessorJunction;
 
-    private:
-        const double GraphicsDivision = 20;
-
         // Expensive
         void GenerateAllSectionGraphics();
+
+    private:
+        const double GraphicsDivision = 20;
 
         // When updates road, remove RoadSectionGraphics then add new
         std::map<double, std::unique_ptr<RoadGraphics>> s_to_section_graphics;

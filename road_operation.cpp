@@ -8,6 +8,7 @@ namespace RoadRunner
 {
     enum RoadJoinError
     {
+        RoadJoin_Success,
         RoadJoin_InputIsIdentical,
         RoadJoin_DirNoOutlet,
         RoadJoin_ConnectionInvalidShape
@@ -72,6 +73,15 @@ namespace RoadRunner
         else
         {
             road2Base = linkBase;
+            // Connect ref lines
+            for (const auto& s2geo : road2->RefLine().s0_to_geometry)
+            {
+                auto clonedLine = s2geo.second->clone();
+                clonedLine->s0 = road1->Length() + s2geo.first;
+                road1->generated.ref_line.s0_to_geometry.emplace(
+                    road1->Length() + s2geo.first,
+                    std::move(clonedLine));
+            }
             road1->generated.ref_line.length = road1->Length() + road2->Length();
         }
 
@@ -120,7 +130,7 @@ namespace RoadRunner
             road2->successorJunction->Attach(RoadRunner::ConnectionInfo{ road1, odr::RoadLink::ContactPoint_End });
         }
         road2.reset();
-        return 0;
+        return RoadJoin_Success;
         // TODO: road2 RoadSectionGraphics move to road1
     }
 

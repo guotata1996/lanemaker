@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
 #include "view.h"
-
-#include <QtWidgets>
-#include <QtMath>
-
 #include "road_drawing.h"
 #include "spdlog/spdlog.h"
 
-std::string g_PointerRoadID;
+#include <sstream>
+#include <QtWidgets>
+#include <QtMath>
+
+std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 double g_PointerRoadS;
 
 GraphicsView::GraphicsView(View* v) : 
@@ -41,32 +41,38 @@ void GraphicsView::mousePressEvent(QMouseEvent* evt)
     {
         return;
     }
-    QPointF sceneEvt = mapToScene(evt->pos().x(), evt->pos().y());
-    if (drawingSession == nullptr)
+
+    if (!drawingSession->Update(evt))
     {
-        drawingSession = new RoadDrawingSession(this, sceneEvt);
+        confirmEdit();
+    }
+    else if (drawingSession->IsRoadValid())
+    {
         emit enableRoadEditingTool(true);
     }
-    drawingSession->Update(evt);
 }
 
 void GraphicsView::mouseMoveEvent(QMouseEvent* evt)
 {
     QGraphicsView::mouseMoveEvent(evt);
-
-    if (drawingSession != nullptr)
+    if (drawingSession == nullptr)
     {
-        drawingSession->Update(evt);
+        drawingSession = new RoadDrawingSession(this);
     }
+    drawingSession->Update(evt);
 }
 
 void GraphicsView::keyPressEvent(QKeyEvent* evt)
 {
     // End session, create road
     QGraphicsView::keyPressEvent(evt);
-    if (drawingSession != nullptr && evt->key() == Qt::Key_Escape)
+    if (evt->key() == Qt::Key_Escape)
     {
         quitEdit();
+    }
+    else if (evt->key() == Qt::Key_Return)
+    {
+        confirmEdit();
     }
 }
 
@@ -74,7 +80,8 @@ void GraphicsView::drawForeground(QPainter* painter, const QRectF& rect)
 {
     QGraphicsView::drawForeground(painter, rect);
 
-    if (!g_PointerRoadID.empty())
+    auto g_road = g_PointerRoad.lock();
+    if (g_road != nullptr)
     {
         painter->save();
 
@@ -86,7 +93,7 @@ void GraphicsView::drawForeground(QPainter* painter, const QRectF& rect)
         QRectF vpRect = viewport()->rect();
 
         std::stringstream ss;
-        ss << "Road " << g_PointerRoadID << " @ " << g_PointerRoadS;
+        ss << "Road " << g_road->ID() << " @ " << g_PointerRoadS;
         QString txt = QString::fromStdString(ss.str());
         painter->drawText(vpRect.bottomLeft(), txt);
         painter->setWorldMatrixEnabled(true);
@@ -115,7 +122,7 @@ void GraphicsView::confirmEdit()
 void GraphicsView::quitEdit()
 {
     delete drawingSession;
-    drawingSession = nullptr;
+    drawingSession = new RoadDrawingSession(this);
 
     emit enableRoadEditingTool(false);
 }

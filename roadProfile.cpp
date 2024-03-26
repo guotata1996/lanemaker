@@ -271,9 +271,14 @@ namespace RoadRunner
         {
             for (const auto& s_and_section : rightProfiles)
             {
-                if (s_and_section.first < length)
+                type_s uniformS = s_and_section.first;
+                if (uniformS < ProfileMinLengthCM)
                 {
-                    profiles.emplace(s_and_section.first, s_and_section.second);
+                    uniformS = 0;
+                }
+                if (uniformS < length - ProfileMinLengthCM)
+                {
+                    profiles.emplace(uniformS, s_and_section.second);
                 }
             }
         }
@@ -284,7 +289,11 @@ namespace RoadRunner
             {
                 type_s clampedS = std::min(s_and_section.first, length); // filter out uint32_max value
                 type_s uniformS = length - clampedS;
-                if (uniformS < length)
+                if (uniformS < ProfileMinLengthCM)
+                {
+                    uniformS = 0;
+                }
+                if (uniformS < length - ProfileMinLengthCM)
                 {
                     // Ignore impossible transition at the end
                     profiles.emplace(uniformS, s_and_section.second);

@@ -21,7 +21,7 @@ namespace RoadRunner
         generated.ref_line.length = l->length;
         generated.ref_line.s0_to_geometry.emplace(0, l->clone());
         Generate();
-        GenerateAllSectionGraphics();
+        //GenerateAllSectionGraphics();
     }
 
     Road::Road(const RoadProfile& p, odr::RefLine& l) :
@@ -30,7 +30,6 @@ namespace RoadRunner
     {
         generated.ref_line = std::move(l);
         Generate();
-        GenerateAllSectionGraphics();
     }
 
     void Road::Generate(bool notifyJunctions)
@@ -112,11 +111,14 @@ namespace RoadRunner
         {
             spdlog::trace("del road {}", ID());
             IDGenerator::ForRoad()->FreeID(ID());
+            s_to_section_graphics.clear(); // ROADRUNNERTODO: don't need to clear everything
         }
     }
 
     void Road::GenerateAllSectionGraphics()
     {
+        s_to_section_graphics.clear();
+
         for (auto it = generated.s_to_lanesection.begin();
             it != generated.s_to_lanesection.end(); ++it)
         {
@@ -138,7 +140,7 @@ namespace RoadRunner
             {
                 double segStartS = startS + segmentLength * segmentIndex;
                 double segEndS = segmentIndex == nDivision - 1 ? endS : segStartS + segmentLength;
-                auto sectionGraphics = std::make_unique<RoadGraphics>(this);
+                auto sectionGraphics = std::make_unique<RoadGraphics>(shared_from_this());
                 sectionGraphics->Update(it->second, segStartS, segEndS);
                 s_to_section_graphics.emplace(segStartS, std::move(sectionGraphics));
             }

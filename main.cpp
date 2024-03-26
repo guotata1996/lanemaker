@@ -13,7 +13,7 @@
 //#include "test/randomization_utils.h"
 //#include "test/junction_verification.h"
 //#include "test/road_verification.h"
-
+#include "world.h"
 #include "mainwindow.h"
 
 int main(int argc, char** argv)
@@ -30,6 +30,8 @@ int main(int argc, char** argv)
     RoadRunner::RoadProfile config(2, 1, 2, -1);
     config.OverwriteSection(-1, 20.0, 30.0, 3, 0);
     std::shared_ptr<RoadRunner::Road> r1 = std::make_shared<RoadRunner::Road>(config, refLine1);
+    r1->GenerateAllSectionGraphics();
+    World::Instance()->allRoads.insert(r1);
 
     return app.exec();
 }

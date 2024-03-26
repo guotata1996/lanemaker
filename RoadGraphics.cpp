@@ -10,12 +10,12 @@
 
 extern QGraphicsScene* g_scene;
 
-extern std::string g_PointerRoadID;
+extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 
 namespace RoadRunner
 {
-    RoadGraphics::RoadGraphics(RoadRunner::Road* _road) : road(_road)
+    RoadGraphics::RoadGraphics(std::shared_ptr<RoadRunner::Road> _road) : road(_road)
     {
         g_scene->addItem(this);
     }
@@ -37,28 +37,32 @@ namespace RoadRunner
 
     void RoadGraphics::Update(const odr::LaneSection& section, double s_begin, double s_end)
     {
-        odr::Road& gen = road->generated;
+        odr::Road& gen = road.lock()->generated;
         for (int side : {-1, 1})
         {
-            for (auto& lane : section.get_sorted_driving_lanes(side))
+            for (const auto& id2Lane : section.id_to_lane)
             {
-                auto innerBorder = gen.get_lane_border_line(lane, s_begin, s_end, 0.1f, false);
-                auto outerBorder = gen.get_lane_border_line(lane, s_begin, s_end, 0.1f, true);
-                auto aggregateBorder = outerBorder;
-                aggregateBorder.insert(aggregateBorder.end(), innerBorder.rbegin(), innerBorder.rend());
-                QPolygonF poly = LineToPoly(aggregateBorder);
+                const auto& lane = id2Lane.second;
+                if (lane.type == "median" || lane.type == "driving")
+                {
+                    odr::Line3D innerBorder, outerBorder;
+                    gen.get_lane_border_line(lane, s_begin, s_end, 0.1f, outerBorder, innerBorder);
+                    auto aggregateBorder = outerBorder;
+                    aggregateBorder.insert(aggregateBorder.end(), innerBorder.rbegin(), innerBorder.rend());
+                    QPolygonF poly = LineToPoly(aggregateBorder);
 
-                auto polyItem = new LaneSegmentGraphics(poly, outerBorder, innerBorder, 
-                    s_begin, s_end, road->ID(), this);
+                    auto polyItem = new LaneSegmentGraphics(poly, outerBorder, innerBorder,
+                        s_begin, s_end, road.lock()->ID(), lane.type, this);
+                }
             }
         }
     }
 
     LaneSegmentGraphics::LaneSegmentGraphics(
         const QPolygonF& poly,
-        const odr::Line3D& outerBorder, 
-        const odr::Line3D& innerBorder,
-        double aSBegin, double aSEnd, std::string aRoadID,
+        odr::Line3D outerBorder, 
+        odr::Line3D innerBorder,
+        double aSBegin, double aSEnd, std::string aRoadID, std::string laneType,
         QGraphicsItem* parent) :
         sBegin(aSBegin), sEnd(aSEnd), roadID(aRoadID),
         QGraphicsPolygonItem(poly, parent) 
@@ -67,7 +71,7 @@ namespace RoadRunner
         QPen noPen;
         noPen.setWidth(0);
         setPen(noPen);
-        setBrush(QBrush(Qt::gray, Qt::SolidPattern));
+        setBrush(QBrush(laneType == "median" ? Qt::yellow : Qt::gray, Qt::SolidPattern));
         
         assert(outerBorder.size() == innerBorder.size());
         assert(outerBorder.size() >= 2);
@@ -128,7 +132,7 @@ namespace RoadRunner
                 double portion = dDown / (dDown + dUp);
                 double s = sMin * (1 - portion) + sMax * portion;
                 s = std::max(sBegin, std::min(s, sEnd));
-                g_PointerRoadID = parentRoad->road->ID();
+                g_PointerRoad = parentRoad->road;
                 g_PointerRoadS = s;
                 break;
             }
@@ -137,10 +141,11 @@ namespace RoadRunner
 
     void LaneSegmentGraphics::hoverLeaveEvent(QGraphicsSceneHoverEvent* event)
     {
-        if (g_PointerRoadID == roadID && 
+        auto g_road = g_PointerRoad.lock();
+        if (g_road != nullptr && g_road->ID() == roadID &&
             sBegin <= g_PointerRoadS && g_PointerRoadS <= sEnd)
         {
-            g_PointerRoadID = "";
+            g_PointerRoad.reset();
         }
     }
 }

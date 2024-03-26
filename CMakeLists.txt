@@ -17,6 +17,7 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp
     roadProfile.cpp road.cpp junction.cpp road_operation.cpp curve_fitting.cpp
     IDGenerator.cpp MapExporter.cpp world.cpp
     mainwindow.cpp view.cpp ${srcs_for_exe} RoadGraphics.cpp
+    road_drawing.cpp
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE 

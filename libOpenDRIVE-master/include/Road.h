@@ -97,6 +97,8 @@ public:
     Vec3D get_surface_pt(double s, const double t, Vec3D* vn = nullptr) const;
 
     Line3D get_lane_border_line(const Lane& lane, const double s_start, const double s_end, const double eps, const bool outer = true) const;
+    /*Ensure s match*/
+    void   get_lane_border_line(const Lane& lane, const double s_start, const double s_end, const double eps, Line3D& outerOut, Line3D& innerOut) const;
     Line3D get_lane_border_line(const Lane& lane, const double eps, const bool outer = true) const;
 
     Mesh3D get_lane_mesh(

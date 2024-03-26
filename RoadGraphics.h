@@ -17,13 +17,13 @@ namespace RoadRunner
         // When profile changes, only changed part need to re-compute
         // Newly-created r has a length limit to save performance
 
-        RoadGraphics(RoadRunner::Road* road);
+        RoadGraphics(std::shared_ptr<RoadRunner::Road> road);
 
         ~RoadGraphics();
 
         void Update(const odr::LaneSection& section, double s_begin, double s_end);
 
-        RoadRunner::Road* road;
+        std::weak_ptr<RoadRunner::Road> road;
 
         static QPolygonF LineToPoly(const odr::Line3D& line);
 
@@ -36,8 +36,8 @@ namespace RoadRunner
     {
     public:
         LaneSegmentGraphics(const QPolygonF& poly, 
-            const odr::Line3D& outerBorder, const odr::Line3D& innerBorder,
-            double aSBegin, double aSEnd, std::string,
+            odr::Line3D outerBorder, odr::Line3D innerBorder,
+            double aSBegin, double aSEnd, std::string roadID, std::string laneType,
             QGraphicsItem* parent);
 
         void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override;

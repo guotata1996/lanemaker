@@ -233,6 +233,29 @@ Line3D Road::get_lane_border_line(const Lane& lane, const double s_start, const 
     return border_line;
 }
 
+void Road::get_lane_border_line(
+    const Lane& lane, const double s_start, const double s_end, const double eps, Line3D& outerOut, Line3D& innerOut) const
+{
+    outerOut.clear();
+    innerOut.clear();
+    std::set<double> s_vals_out = this->approximate_lane_border_linear(lane, s_start, s_end, eps, true);
+    std::set<double> s_vals_in = this->approximate_lane_border_linear(lane, s_start, s_end, eps, false);
+    
+    // ROADRUNNERTODO: make sure result gets separated by eps
+    for (double v : s_vals_in) 
+    {
+        s_vals_out.insert(v);
+    }
+
+    for (const double& s : s_vals_out)
+    {
+        double tOut = lane.outer_border.get(s);
+        double tIn = lane.inner_border.get(s);
+        outerOut.push_back(this->get_surface_pt(s, tOut));
+        innerOut.push_back(this->get_surface_pt(s, tIn));
+    }
+}
+
 Line3D Road::get_lane_border_line(const Lane& lane, const double eps, const bool outer) const
 {
     const double s_end = this->get_lanesection_end(lane.key.lanesection_s0);

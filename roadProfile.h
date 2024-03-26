@@ -12,6 +12,8 @@ namespace RoadRunner
     double to_odr_unit(type_t l);
     type_s from_odr_unit(double l);
 
+    constexpr type_s ProfileMinLengthCM = 100;
+
     struct SectionProfile
     {
         type_t offsetx2; // follows XODR s definition
