@@ -136,8 +136,6 @@ namespace RoadRunner
 
     std::shared_ptr<Road> Road::SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s)
     {
-        assert(0 < s);
-        assert(s < roadAsPrev->Length());
         type_s oldLength = from_odr_unit(roadAsPrev->Length());
         type_s splitPoint = from_odr_unit(s);
         RoadProfile& oldProfile = roadAsPrev->profile;

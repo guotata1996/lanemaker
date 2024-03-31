@@ -3,6 +3,7 @@
 
 #include "view.h"
 #include "road_drawing.h"
+#include "CreateRoadOptionWidget.h"
 #include "spdlog/spdlog.h"
 
 #include <sstream>
@@ -34,32 +35,48 @@ void GraphicsView::wheelEvent(QWheelEvent* e)
 }
 #endif
 
+void GraphicsView::SetEditMode(EditMode aMode)
+{
+    editMode = aMode;
+
+    if (drawingSession != nullptr)
+    {
+        delete drawingSession;
+        drawingSession = nullptr;
+    }
+    switch (aMode)
+    {
+        case Mode_Create:
+            drawingSession = new RoadCreationSession(this);
+            break;
+        case Mode_Destroy:
+            drawingSession = new RoadDestroySession(this);
+            break;
+        default:
+            break;
+    }
+}
+
 void GraphicsView::mousePressEvent(QMouseEvent* evt)
 {
     QGraphicsView::mousePressEvent(evt);
-    if (dragMode() == QGraphicsView::ScrollHandDrag)
+    if (editMode != Mode_None)
     {
-        return;
-    }
-
-    if (!drawingSession->Update(evt))
-    {
-        confirmEdit();
-    }
-    else if (drawingSession->IsRoadValid())
-    {
-        emit enableRoadEditingTool(true);
+        if (!drawingSession->Update(evt))
+        {
+            confirmEdit();
+        }
     }
 }
 
 void GraphicsView::mouseMoveEvent(QMouseEvent* evt)
 {
     QGraphicsView::mouseMoveEvent(evt);
-    if (drawingSession == nullptr)
+
+    if (editMode != Mode_None)
     {
-        drawingSession = new RoadDrawingSession(this);
+        drawingSession->Update(evt);
     }
-    drawingSession->Update(evt);
 }
 
 void GraphicsView::keyPressEvent(QKeyEvent* evt)
@@ -121,14 +138,11 @@ void GraphicsView::confirmEdit()
 
 void GraphicsView::quitEdit()
 {
-    delete drawingSession;
-    drawingSession = new RoadDrawingSession(this);
-
-    emit enableRoadEditingTool(false);
+    SetEditMode(editMode);
 }
 
 View::View(const QString& name, QWidget* parent)
-    : QFrame(parent)
+    : QFrame(parent), createRoadOption(new CreateRoadOptionWidget)
 {
     setFrameStyle(Sunken | StyledPanel);
     graphicsView = new GraphicsView(this);
@@ -190,23 +204,16 @@ View::View(const QString& name, QWidget* parent)
     resetButton->setEnabled(false);
 
     // Label layout
-    QHBoxLayout* roadEditingLayout = new QHBoxLayout;
-    auto confirmButton = new QToolButton;
-    confirmButton->setText("Confirm");
-    roadEditingLayout->addWidget(confirmButton);
-    auto cancelButton = new QToolButton;
-    cancelButton->setText("Cancel");
-    roadEditingLayout->addWidget(cancelButton);
-    roadEditingTool = new QWidget(this);
-    roadEditingTool->setLayout(roadEditingLayout);
-    roadEditingTool->hide();
-
     QHBoxLayout* labelLayout = new QHBoxLayout;
     label2 = new QLabel(tr("Pointer Mode"));
-    selectModeButton = new QToolButton;
-    selectModeButton->setText(tr("Select"));
-    selectModeButton->setCheckable(true);
-    selectModeButton->setChecked(true);
+    createModeButton = new QToolButton;
+    createModeButton->setText(tr("Create"));
+    createModeButton->setCheckable(true);
+    createModeButton->setChecked(false);
+    destroyModeButton = new QToolButton;
+    destroyModeButton->setText(tr("Destroy"));
+    destroyModeButton->setCheckable(true);
+    destroyModeButton->setChecked(false);
     dragModeButton = new QToolButton;
     dragModeButton->setText(tr("Drag"));
     dragModeButton->setCheckable(true);
@@ -218,13 +225,16 @@ View::View(const QString& name, QWidget* parent)
 
     QButtonGroup* pointerModeGroup = new QButtonGroup(this);
     pointerModeGroup->setExclusive(true);
-    pointerModeGroup->addButton(selectModeButton);
+    pointerModeGroup->addButton(createModeButton);
+    pointerModeGroup->addButton(destroyModeButton);
     pointerModeGroup->addButton(dragModeButton);
 
-    labelLayout->addWidget(roadEditingTool);
+    labelLayout->addWidget(createRoadOption);
+    createRoadOption->hide();
     labelLayout->addStretch();
     labelLayout->addWidget(label2);
-    labelLayout->addWidget(selectModeButton);
+    labelLayout->addWidget(createModeButton);
+    labelLayout->addWidget(destroyModeButton);
     labelLayout->addWidget(dragModeButton);
     labelLayout->addStretch();
     labelLayout->addWidget(antialiasButton);
@@ -244,17 +254,14 @@ View::View(const QString& name, QWidget* parent)
         this, &View::setResetButtonEnabled);
     connect(graphicsView->horizontalScrollBar(), &QAbstractSlider::valueChanged,
         this, &View::setResetButtonEnabled);
-    connect(selectModeButton, &QAbstractButton::toggled, this, &View::togglePointerMode);
-    connect(dragModeButton, &QAbstractButton::toggled, this, &View::togglePointerMode);
+    connect(createModeButton, &QAbstractButton::toggled, this, &View::gotoCreateMode);
+    connect(destroyModeButton, &QAbstractButton::toggled, this, &View::gotoDestroyMode);
+    connect(dragModeButton, &QAbstractButton::toggled, this, &View::gotoDragMode);
     connect(antialiasButton, &QAbstractButton::toggled, this, &View::toggleAntialiasing);
     connect(rotateLeftIcon, &QAbstractButton::clicked, this, &View::rotateLeft);
     connect(rotateRightIcon, &QAbstractButton::clicked, this, &View::rotateRight);
     connect(zoomInIcon, &QAbstractButton::clicked, this, &View::zoomIn);
     connect(zoomOutIcon, &QAbstractButton::clicked, this, &View::zoomOut);
-
-    connect(graphicsView, &GraphicsView::enableRoadEditingTool, this, &View::showRoadEditingTool);
-    connect(confirmButton, &QAbstractButton::clicked, graphicsView, &GraphicsView::confirmEdit);
-    connect(cancelButton, &QAbstractButton::clicked, graphicsView, &GraphicsView::quitEdit);
 
     setupMatrix();
 }
@@ -284,19 +291,35 @@ void View::setupMatrix()
     qreal scale = qPow(qreal(2), (zoomSlider->value() - 250) / qreal(50));
 
     QTransform matrix;
-    matrix.scale(scale, scale);
+    matrix.scale(scale, -scale);
     matrix.rotate(rotateSlider->value());
 
     graphicsView->setTransform(matrix);
     setResetButtonEnabled();
 }
 
-void View::togglePointerMode()
+void View::gotoCreateMode()
 {
-    graphicsView->setDragMode(selectModeButton->isChecked()
-        ? QGraphicsView::RubberBandDrag
-        : QGraphicsView::ScrollHandDrag);
-    graphicsView->setInteractive(selectModeButton->isChecked());
+    graphicsView->setDragMode(QGraphicsView::RubberBandDrag);
+    graphicsView->setInteractive(true);
+    graphicsView->SetEditMode(GraphicsView::Mode_Create);
+    createRoadOption->show();
+}
+
+void View::gotoDestroyMode()
+{
+    graphicsView->setDragMode(QGraphicsView::RubberBandDrag);
+    graphicsView->setInteractive(true);
+    graphicsView->SetEditMode(GraphicsView::Mode_Destroy);
+    createRoadOption->hide();
+}
+
+void View::gotoDragMode()
+{
+    graphicsView->setDragMode(QGraphicsView::ScrollHandDrag);
+    graphicsView->setInteractive(false);
+    graphicsView->SetEditMode(GraphicsView::Mode_None);
+    createRoadOption->hide();
 }
 
 void View::toggleAntialiasing()
@@ -332,9 +355,4 @@ void View::rotateLeft()
 void View::rotateRight()
 {
     rotateSlider->setValue(rotateSlider->value() + 10);
-}
-
-void View::showRoadEditingTool(bool show)
-{
-    roadEditingTool->setHidden(!show);
 }

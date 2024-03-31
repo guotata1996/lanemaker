@@ -40,6 +40,8 @@ namespace RoadRunner
             double aSBegin, double aSEnd, std::string roadID, std::string laneType,
             QGraphicsItem* parent);
 
+        void hoverEnterEvent(QGraphicsSceneHoverEvent* event) override;
+
         void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override;
 
         void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;

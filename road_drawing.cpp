@@ -10,8 +10,22 @@
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 
-RoadDrawingSession::RoadDrawingSession(QGraphicsView* aView) :
-    view(aView), scene(aView->scene()), world(World::Instance())
+extern RoadRunner::SectionProfile activeLeftSetting;
+extern RoadRunner::SectionProfile activeRightSetting;
+
+float RoadDrawingSession::ScaleFromView() const
+{
+    auto trf = view->transform();
+    return std::sqrt(trf.m11() * trf.m11() + trf.m12() * trf.m12());
+}
+
+float RoadDrawingSession::SnapDistFromScale() const
+{
+    return SnapToEndThreshold / std::sqrt(ScaleFromView());
+}
+
+RoadCreationSession::RoadCreationSession(QGraphicsView* aView) :
+    RoadDrawingSession(aView)
 {
     previewItem = scene->addPath(ctrlPath);
     hintItem = scene->addPath(hintPath);
@@ -24,7 +38,7 @@ RoadDrawingSession::RoadDrawingSession(QGraphicsView* aView) :
     ctrlPoints.push_back(QPointF());
 }
 
-bool RoadDrawingSession::Update(QMouseEvent* event)
+bool RoadCreationSession::Update(QMouseEvent* event)
 {
     QPointF scenePos = view->mapToScene(event->pos().x(), event->pos().y());
 
@@ -51,9 +65,10 @@ bool RoadDrawingSession::Update(QMouseEvent* event)
     }
 
     hintPath.clear();
-    float maxSnapDist = ctrlPoints.size() % 2 == 1 ? 5 : 1e9;
-    SnapCtrlPoint(maxSnapDist);
+    float maxSnapDist = ctrlPoints.size() % 2 == 1 ? SnapDistFromScale() : 1e9;
+    bool onExisting = SnapCtrlPoint(maxSnapDist);
     cursorItem->setPos(ctrlPoints.back());
+    cursorItem->setBrush(onExisting ? QBrush(Qt::yellow, Qt::SolidPattern) : Qt::NoBrush);
 
     // TODO: incremental path?
     ctrlPath.clear();
@@ -81,35 +96,38 @@ bool RoadDrawingSession::Update(QMouseEvent* event)
     return true;
 }
 
-void RoadDrawingSession::Complete()
+void RoadCreationSession::Complete()
 {
     CreateRoad();
 }
 
-RoadDrawingSession::~RoadDrawingSession()
+RoadCreationSession::~RoadCreationSession()
 {
     scene->removeItem(previewItem);
     scene->removeItem(hintItem);
     scene->removeItem(cursorItem);
 }
 
-void RoadDrawingSession::SnapCtrlPoint(float maxOffset)
+bool RoadCreationSession::SnapCtrlPoint(float maxOffset)
 {
     QPointF& nextPoint = ctrlPoints.back();
 
     QVector2D nextDir;
+    bool onExisting = false;
+    const double snapThreshold = SnapDistFromScale();
 
     if (ctrlPoints.size() == 1)
     {
         startDir.reset();
         extendFromStart.reset();
+        extendFromStartContact = odr::RoadLink::ContactPoint_None;
 
         auto g_road = g_PointerRoad.lock();
         if (g_road != nullptr)
         {
             // Do point snap
             double snapS = g_PointerRoadS;
-            if (g_PointerRoadS < SnapToEndThreshold)
+            if (g_PointerRoadS < snapThreshold)
             {
                 snapS = 0;
                 auto grad = g_road->generated.ref_line.get_grad_xy(snapS);
@@ -117,7 +135,7 @@ void RoadDrawingSession::SnapCtrlPoint(float maxOffset)
                 extendFromStart = g_PointerRoad;
                 extendFromStartContact = odr::RoadLink::ContactPoint_Start;
             }
-            else if (g_PointerRoadS > g_road->Length() - SnapToEndThreshold)
+            else if (g_PointerRoadS > g_road->Length() - snapThreshold)
             {
                 snapS = g_road->Length();
                 auto grad = g_road->generated.ref_line.get_grad_xy(snapS);
@@ -126,12 +144,17 @@ void RoadDrawingSession::SnapCtrlPoint(float maxOffset)
                 extendFromStartContact = odr::RoadLink::ContactPoint_End;
             }
 
-            auto snapped = g_road->generated.ref_line.get_xy(snapS);
-            nextPoint.setX(snapped[0]);
-            nextPoint.setY(snapped[1]);
+            if (extendFromStartContact != odr::RoadLink::ContactPoint_None)
+            {
+                // only snap to ends
+                auto snapped = g_road->generated.ref_line.get_xy(snapS);
+                nextPoint.setX(snapped[0]);
+                nextPoint.setY(snapped[1]);
+                onExisting = true;
+            }
         }
 
-        return;
+        return onExisting;
     }
     else if (ctrlPoints.size() == 2)
     {
@@ -150,13 +173,13 @@ void RoadDrawingSession::SnapCtrlPoint(float maxOffset)
         {
             // Join to existing
             double snapS;
-            if (g_PointerRoadS < SnapToEndThreshold)
+            if (g_PointerRoadS < snapThreshold)
             {
                 snapS = 0;
                 joinAtEnd = g_PointerRoad;
                 joinAtEndContact = odr::RoadLink::ContactPoint_Start;
             }
-            else if (g_PointerRoadS > g_road->Length() - SnapToEndThreshold)
+            else if (g_PointerRoadS > g_road->Length() - snapThreshold)
             {
                 snapS = g_road->Length();
                 joinAtEnd = g_PointerRoad;
@@ -167,6 +190,7 @@ void RoadDrawingSession::SnapCtrlPoint(float maxOffset)
                 auto snapped = g_road->generated.ref_line.get_xy(snapS);
                 nextPoint.setX(snapped[0]);
                 nextPoint.setY(snapped[1]);
+                onExisting = true;
             }
         }
         else
@@ -192,9 +216,11 @@ void RoadDrawingSession::SnapCtrlPoint(float maxOffset)
             nextPoint.setY(projected.y());
         }
     }
+
+    return onExisting;
 }
 
-void RoadDrawingSession::CreateRoad()
+void RoadCreationSession::CreateRoad()
 {
     odr::RefLine refLine("", 0);
     double cumLength = 0;
@@ -225,7 +251,9 @@ void RoadDrawingSession::CreateRoad()
     }
     refLine.length = cumLength;
 
-    RoadRunner::RoadProfile config(1, 0, 1, 0);
+    RoadRunner::RoadProfile config(
+        activeLeftSetting.laneCount, activeLeftSetting.offsetx2, 
+        activeRightSetting.laneCount, activeRightSetting.offsetx2);
     std::shared_ptr<RoadRunner::Road> newRoad;
     if (cumLength == 0)
     {

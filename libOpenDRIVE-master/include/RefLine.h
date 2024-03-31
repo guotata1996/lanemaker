@@ -17,11 +17,13 @@ struct RefLine
     RefLine(const RefLine& other);
     RefLine(RefLine&& other) noexcept = default;
     RefLine& operator=(RefLine&& other) = default;
+    static double MinGeoLength;
 
     void reverse();
     // Remain:  section between 0 and s
     // Returns: section beyond s
     RefLine split(double s);
+    void    enforceMinGeoLength();
 
     std::set<const RoadGeometry*> get_geometries() const;
     std::set<RoadGeometry*>       get_geometries();

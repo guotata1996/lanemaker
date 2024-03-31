@@ -16,6 +16,8 @@
 
 namespace odr
 {
+double RefLine::MinGeoLength = 1e-3f;
+
 RefLine::RefLine(std::string road_id, double length) : road_id(road_id), length(length) {}
 
 RefLine::RefLine(const RefLine& other) : road_id(other.road_id), length(other.length), elevation_profile(other.elevation_profile)
@@ -54,12 +56,23 @@ void RefLine::reverse()
 
 RefLine RefLine::split(double s) 
 {
-    assert(0 < s);
-    assert(s < length);
-    // configure second
-    RefLine second("", length - s);
+    assert(2 * MinGeoLength < s);
+    assert(s < length - 2 * MinGeoLength);
     
     auto    maps_keys = odr::get_map_keys_sorted(s0_to_geometry);
+
+    // Don't RoadGeometry cut into tiny pieces
+    for (const auto& key : maps_keys) 
+    {
+        if (std::abs(s - key) < 2 * MinGeoLength) 
+        {
+            s = key;
+            break;
+        }
+    }
+
+    // configure second
+    RefLine second("", length - s);
     
     for (int keyIndex = 0; keyIndex < maps_keys.size(); ++keyIndex)
     {
@@ -96,8 +109,26 @@ RefLine RefLine::split(double s)
             s0_to_geometry.erase(key);
     }
     length = s; 
+
+    enforceMinGeoLength();
+    second.enforceMinGeoLength();
     
     return second;
+}
+
+void RefLine::enforceMinGeoLength()
+{
+    auto keys = odr::get_map_keys(s0_to_geometry);
+    for (auto it = keys.begin(); it != keys.end(); ++it) 
+    {
+        auto next = it;
+        next++;
+        if (next == keys.end())
+        {
+            break;
+        }
+        assert(*next - *it >= MinGeoLength);
+    }
 }
 
 std::set<const RoadGeometry*> RefLine::get_geometries() const

@@ -18,11 +18,22 @@ class View;
 
 class RoadDrawingSession;
 
+class CreateRoadOptionWidget;
+
 class GraphicsView : public QGraphicsView
 {
     Q_OBJECT
 public:
     GraphicsView(View* v);
+
+    enum EditMode
+    {
+        Mode_None,
+        Mode_Create,
+        Mode_Destroy
+    };
+
+    void SetEditMode(EditMode aMode);
 
 protected:
 #if QT_CONFIG(wheelevent)
@@ -45,10 +56,8 @@ private:
     View* view;
     RoadDrawingSession* drawingSession = nullptr;
 
-signals:
-    void enableRoadEditingTool(bool);
+    EditMode editMode = Mode_None;
 
-public slots:
     void confirmEdit();
     void quitEdit();
 };
@@ -71,24 +80,26 @@ private slots:
     void resetView();
     void setResetButtonEnabled();
     void setupMatrix();
-    void togglePointerMode();
+
+    void gotoCreateMode();
+    void gotoDestroyMode();
+    void gotoDragMode();
     void toggleAntialiasing();
     void rotateLeft();
     void rotateRight();
 
-    void showRoadEditingTool(bool show);
-
 private:
     GraphicsView* graphicsView;
     QLabel* label2;
-    QToolButton* selectModeButton;
+    QToolButton* createModeButton;
+    QToolButton* destroyModeButton;
     QToolButton* dragModeButton;
     QToolButton* antialiasButton;
     QToolButton* resetButton;
     QSlider* zoomSlider;
     QSlider* rotateSlider;
 
-    QWidget* roadEditingTool;
+    CreateRoadOptionWidget* createRoadOption;
 };
 
 #endif // VIEW_H

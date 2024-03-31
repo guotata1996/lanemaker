@@ -32,6 +32,7 @@ int main(int argc, char** argv)
     std::shared_ptr<RoadRunner::Road> r1 = std::make_shared<RoadRunner::Road>(config, refLine1);
     r1->GenerateAllSectionGraphics();
     World::Instance()->allRoads.insert(r1);
+    r1.reset();
 
     return app.exec();
 }

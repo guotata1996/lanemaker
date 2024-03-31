@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <list>
 
 namespace odr
 {
@@ -241,7 +242,6 @@ void Road::get_lane_border_line(
     std::set<double> s_vals_out = this->approximate_lane_border_linear(lane, s_start, s_end, eps, true);
     std::set<double> s_vals_in = this->approximate_lane_border_linear(lane, s_start, s_end, eps, false);
     
-    // ROADRUNNERTODO: make sure result gets separated by eps
     for (double v : s_vals_in) 
     {
         s_vals_out.insert(v);
@@ -260,6 +260,59 @@ Line3D Road::get_lane_border_line(const Lane& lane, const double eps, const bool
 {
     const double s_end = this->get_lanesection_end(lane.key.lanesection_s0);
     return this->get_lane_border_line(lane, lane.key.lanesection_s0, s_end, eps, outer);
+}
+
+Line3D Road::get_side_border_line(const int8_t side, const double s_start, const double s_end, const bool outer, const double eps) const
+{
+    double firstSectionS0 = get_lanesection_s0(s_start);
+    double lastSectionS0 = get_lanesection_s0(s_end);
+    std::list<odr::Vec3D> rtn;
+    for (auto& s_and_section = s_to_lanesection.begin(); s_and_section != s_to_lanesection.end(); ++s_and_section)
+    {
+        double s0 = s_and_section->first;
+
+        if (s0 < firstSectionS0) 
+        {
+            continue;
+        }
+        if (s0 > lastSectionS0) 
+        {
+            break;
+        }
+        double s_start_section = std::max(s_start, s0);
+        double s_end_section;
+        auto   it_next = s_and_section;
+        it_next++;
+
+        if (it_next == s_to_lanesection.end()) 
+        {
+            s_end_section = s_end;
+        }
+        else
+        {
+            s_end_section = std::min(s_end, it_next->first);
+        }
+
+        const auto& section = s_and_section->second;
+        const auto& lanes = section.get_sorted_driving_lanes(side);
+        const auto  lane = outer ? lanes.back() : lanes.front();
+        auto section_border = get_lane_border_line(lane, s_start_section, s_end_section, eps, outer);
+
+        if (side < 0) 
+        {
+            for (auto& p : section_border)
+            {
+                rtn.emplace_back(p); // Causing duplicate points at section boundary
+            }
+        }
+        else
+        {
+            for (auto& p : section_border) {
+                rtn.emplace_front(p); // Causing duplicate points at section boundary
+            }
+        }
+    }
+    return Line3D(rtn.begin(), rtn.end());
 }
 
 Mesh3D Road::get_lane_mesh(const Lane& lane, const double s_start, const double s_end, const double eps, std::vector<uint32_t>* outline_indices) const

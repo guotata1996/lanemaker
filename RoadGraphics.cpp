@@ -68,9 +68,8 @@ namespace RoadRunner
         QGraphicsPolygonItem(poly, parent) 
     {
         setAcceptHoverEvents(true);
-        QPen noPen;
-        noPen.setWidth(0);
-        setPen(noPen);
+
+        setPen(Qt::NoPen);
         setBrush(QBrush(laneType == "median" ? Qt::yellow : Qt::gray, Qt::SolidPattern));
         
         assert(outerBorder.size() == innerBorder.size());
@@ -106,6 +105,11 @@ namespace RoadRunner
         QGraphicsPolygonItem::mousePressEvent(evt);
 
         spdlog::info("Mouse press evt on GraphicsItem @ {},{}", evt->pos().x(), evt->pos().y());
+    }
+
+    void LaneSegmentGraphics::hoverEnterEvent(QGraphicsSceneHoverEvent* event)
+    {
+        hoverMoveEvent(event);
     }
 
     void LaneSegmentGraphics::hoverMoveEvent(QGraphicsSceneHoverEvent* event)
