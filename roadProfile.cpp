@@ -205,6 +205,28 @@ namespace RoadRunner
         return rtn;
     }
 
+    std::set<type_s> RoadProfile::GetAllKeys(type_s length)
+    {
+        std::set<type_s> rtn{0, length };
+        auto rightKeys = odr::get_map_keys(rightProfiles);
+        for (auto key : rightKeys)
+        {
+            if (key < length)
+            {
+                rtn.insert(key);
+            }
+        }
+        auto leftKeys = odr::get_map_keys(leftProfiles);
+        for (auto key : leftKeys)
+        {
+            if (key < length)
+            {
+                rtn.insert(key);
+            }
+        }
+        return rtn;
+    }
+
     bool RoadProfile::HasSide(int side)
     {
         return side < 0 ? !rightProfiles.empty() : !leftProfiles.empty();

@@ -85,6 +85,9 @@ namespace RoadRunner
             road1->generated.ref_line.length = road1->Length() + road2->Length();
         }
 
+        road1->SnapToSegmentBoundary(linkBase);
+        road1->SnapToSegmentBoundary(road2Base);
+
         // Join right profile
         if (road1->profile.HasSide(-1))
         {
@@ -99,6 +102,8 @@ namespace RoadRunner
             {
                 type_s newStart = road2section.first.first + road2Base;
                 type_s newEnd = road2section.first.second + road2Base;
+                road1->SnapToSegmentBoundary(newStart);
+                road1->SnapToSegmentBoundary(newEnd);
                 road1->profile.OverwriteSection(-1, newStart, newEnd,
                     road2section.second.laneCount, road2section.second.offsetx2);
             }
@@ -117,6 +122,8 @@ namespace RoadRunner
             {
                 type_s newStart = road2section.first.first + road2Base;
                 type_s newEnd = road2section.first.second + road2Base;
+                road1->SnapToSegmentBoundary(newStart);
+                road1->SnapToSegmentBoundary(newEnd);
                 road1->profile.OverwriteSection(1, newStart, newEnd,
                     road2section.second.laneCount, road2section.second.offsetx2);
             }
@@ -131,7 +138,7 @@ namespace RoadRunner
         }
         road2.reset();
         return RoadJoin_Success;
-        // TODO: road2 RoadSectionGraphics move to road1
+        // ROADRUNNERTODO: road2 RoadSectionGraphics move to road1
     }
 
     std::shared_ptr<Road> Road::SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s)

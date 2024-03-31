@@ -146,4 +146,55 @@ namespace RoadRunner
             }
         }
     }
+
+    void Road::SnapToSegmentBoundary(type_s& key, type_s limit)
+    {
+        type_s profileLength = RoadRunner::from_odr_unit(Length());
+        auto existingKeys = profile.GetAllKeys(profileLength);
+
+        if (key < limit)
+        {
+            key = 0;
+            return;
+        }
+        if (key > profileLength - limit)
+        {
+            key = profileLength;
+            return;
+        }
+
+        auto above = existingKeys.lower_bound(key);
+        if (*above - key < limit)
+        {
+            key = *above;
+            return;
+        }
+
+        if (above != existingKeys.begin())
+        {
+            auto below = above;
+            below--;
+            if (key - *below < limit)
+            {
+                key = *below;
+                return;
+            }
+        }
+
+        return;
+    }
+
+    double Road::SnapToSegmentBoundary(double key, double limit)
+    {
+        type_s key_s = from_odr_unit(key);
+        type_s limit_s = from_odr_unit(limit);
+        type_s modifiedKey_s = key_s;
+        
+        SnapToSegmentBoundary(modifiedKey_s, limit_s);
+        if (key_s == modifiedKey_s)
+        {
+            return key;
+        }
+        return to_odr_unit(modifiedKey_s);
+    }
 } // namespace

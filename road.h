@@ -56,7 +56,12 @@ namespace RoadRunner
         // Expensive
         void GenerateAllSectionGraphics();
 
+        double SnapToSegmentBoundary(double key, double limit);
+
     private:
+        // Prevent formation of too-short segment
+        void SnapToSegmentBoundary(type_s& key, type_s limit = 10);
+
         const double GraphicsDivision = 20;
 
         // When updates road, remove RoadSectionGraphics then add new

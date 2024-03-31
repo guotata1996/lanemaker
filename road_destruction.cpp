@@ -119,42 +119,7 @@ double RoadDestroySession::GetAdjustedS()
     {
         return g_road->Length();
     }
-    else
-    {
-        RoadRunner::type_s rrUnitS = RoadRunner::from_odr_unit(g_PointerRoadS);
-        if (targetSectionKeys.empty())
-        {
-            for (const auto& keys : g_road->profile.GetAllSections(RoadRunner::from_odr_unit(g_road->Length()), 1))
-            {
-                targetSectionKeys.insert(keys.first.first);
-                targetSectionKeys.insert(keys.first.second);
-            }
-            for (const auto& keys : g_road->profile.GetAllSections(RoadRunner::from_odr_unit(g_road->Length()), -1))
-            {
-                targetSectionKeys.insert(keys.first.first);
-                targetSectionKeys.insert(keys.first.second);
-            }
-        }
-
-        auto above = targetSectionKeys.lower_bound(rrUnitS);
-
-        if (RoadRunner::to_odr_unit(*above - rrUnitS) < snapThreshold)
-        {
-            return RoadRunner::to_odr_unit(*above);
-        }
-
-        if (above != targetSectionKeys.begin())
-        {
-            auto below = above;
-            below--;
-            if (RoadRunner::to_odr_unit(rrUnitS - *below) < snapThreshold)
-            {
-                return RoadRunner::to_odr_unit(*below);
-            }
-        }
-
-        return g_PointerRoadS;
-    }
+    return g_road->SnapToSegmentBoundary(g_PointerRoadS, snapThreshold);
 
 }
 

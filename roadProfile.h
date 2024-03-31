@@ -53,6 +53,9 @@ namespace RoadRunner
         // begins with 0, ends at length
         std::map<std::pair<type_s, type_s>, SectionProfile> GetAllSections(type_s length, int side) const;
 
+        // begins with 0, ends at length
+        std::set<type_s> GetAllKeys(type_s length);
+
         bool HasSide(int side);
 
         void Apply(double length, odr::Road&) const;
