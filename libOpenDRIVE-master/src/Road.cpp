@@ -315,6 +315,34 @@ Line3D Road::get_side_border_line(const int8_t side, const double s_start, const
     return Line3D(rtn.begin(), rtn.end());
 }
 
+Line3D Road::get_lane_marking_line(
+    const Lane& lane,
+    const double s_start,
+    const double s_end,
+    const bool inner_reference,
+    const double t_from_ref,
+    const double width,
+    const double eps) const
+{
+    Line3D           rtn;
+    std::set<double> s_vals = this->approximate_lane_border_linear(lane, s_start, s_end, eps, false);
+
+    for (const double& s : s_vals)
+    {
+        const double tRef = inner_reference ? lane.inner_border.get(s) : lane.outer_border.get(s);
+        const double t1 = tRef + t_from_ref + width / 2;
+        rtn.push_back(this->get_surface_pt(s, t1));
+    }
+
+    for (auto it = s_vals.crbegin(); it != s_vals.crend(); ++it) 
+    {
+        const double tRef = inner_reference ? lane.inner_border.get(*it) : lane.outer_border.get(*it);
+        const double t2 = tRef + t_from_ref - width / 2;
+        rtn.push_back(this->get_surface_pt(*it, t2));
+    }
+    return rtn;
+}
+
 Mesh3D Road::get_lane_mesh(const Lane& lane, const double s_start, const double s_end, const double eps, std::vector<uint32_t>* outline_indices) const
 {
     std::set<double> s_vals = this->ref_line.approximate_linear(eps, s_start, s_end);

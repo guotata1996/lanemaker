@@ -1030,16 +1030,20 @@ void OpenDriveMap::export_file(const std::string& fpath) const
                     if (roadMarkIt.width >= 0)
                         roadMark.append_attribute("width").set_value(roadMarkIt.width);
 
-                    for (auto roadMarkLineIt : roadMarkIt.roadmark_lines) 
+                    if (!roadMarkIt.roadmark_lines.empty()) 
                     {
-                        pugi::xml_node roadMarkLine = roadMark.append_child("line");
-                        roadMarkLine.append_attribute("length").set_value(roadMarkLineIt.length);
-                        roadMarkLine.append_attribute("space").set_value(roadMarkLineIt.space);
-                        roadMarkLine.append_attribute("width").set_value(roadMarkLineIt.width);
-                        roadMarkLine.append_attribute("sOffset").set_value(roadMarkLineIt.s_offset);
-                        roadMarkLine.append_attribute("tOffset").set_value(roadMarkLineIt.t_offset);
-                        if (!roadMarkLineIt.rule.empty() != 0)
-                            roadMarkLine.append_attribute("rule").set_value(roadMarkLineIt.rule.c_str());
+                        auto typeChild = roadMark.append_child("type");
+                        for (auto roadMarkLineIt : roadMarkIt.roadmark_lines)
+                        {
+                            pugi::xml_node roadMarkLine = typeChild.append_child("line");
+                            roadMarkLine.append_attribute("length").set_value(roadMarkLineIt.length);
+                            roadMarkLine.append_attribute("space").set_value(roadMarkLineIt.space);
+                            roadMarkLine.append_attribute("width").set_value(roadMarkLineIt.width);
+                            roadMarkLine.append_attribute("sOffset").set_value(roadMarkLineIt.s_offset);
+                            roadMarkLine.append_attribute("tOffset").set_value(roadMarkLineIt.t_offset);
+                            if (!roadMarkLineIt.rule.empty() != 0)
+                                roadMarkLine.append_attribute("rule").set_value(roadMarkLineIt.rule.c_str());
+                        }
                     }
                 }
                 // Missing user data

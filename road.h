@@ -59,6 +59,8 @@ namespace RoadRunner
         double SnapToSegmentBoundary(double key, double limit);
 
     private:
+        void PlaceRoadMarkings();
+
         // Prevent formation of too-short segment
         void SnapToSegmentBoundary(type_s& key, type_s limit = 10);
 

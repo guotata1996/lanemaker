@@ -28,11 +28,13 @@ namespace RoadRunner
         static QPolygonF LineToPoly(const odr::Line3D& line);
 
     private:
+        const double BrokenLength = 3;
+        const double BrokenGap = 6;
 
         std::map<double, QGraphicsItem*> sections;
     };
 
-    class LaneSegmentGraphics : QGraphicsPolygonItem
+    class LaneSegmentGraphics : public QGraphicsPolygonItem
     {
     public:
         LaneSegmentGraphics(const QPolygonF& poly, 

@@ -35,6 +35,7 @@ namespace RoadRunner
     void Road::Generate(bool notifyJunctions)
     {
         profile.Apply(Length(), generated);
+        PlaceRoadMarkings();
         generated.DeriveLaneBorders();
         IDGenerator::ForRoad()->NotifyChange(ID());
 
@@ -196,5 +197,53 @@ namespace RoadRunner
             return key;
         }
         return to_odr_unit(modifiedKey_s);
+    }
+
+    void Road::PlaceRoadMarkings()
+    {
+        auto roadID = ID();
+        const double MarkingWidth = 0.2f;
+        for (auto& sAndSection : generated.s_to_lanesection)
+        {
+            double sectionS0 = sAndSection.first;
+            auto& section = sAndSection.second;
+            auto rMostLaneID = section.id_to_lane.begin()->first;
+            auto lMostLaneID = section.id_to_lane.rbegin()->first;
+
+            for (int side : {-1, 1})
+            {
+                int innerUID = side == -1 || rMostLaneID == 0 ? 1 : 2;
+                int outerUID = side == -1 ? -rMostLaneID : lMostLaneID;
+
+                for (int uId = innerUID; uId <= outerUID; ++uId)
+                {
+                    int laneID = uId * side;
+                    odr::Lane& lane = section.id_to_lane.at(laneID);
+                    if (uId == innerUID)
+                    {
+                        odr::RoadMarkGroup centerMarking(roadID, sectionS0, laneID,
+                            0, 0, 0, "solid", "", "yellow", "standard", "none");
+                        centerMarking.roadmark_lines.emplace(odr::RoadMarksLine(
+                            roadID, sectionS0, laneID,
+                            0, MarkingWidth / 2, 0, 0,
+                            side * MarkingWidth / 2,      // t_offset from inner border
+                            0,
+                            "", ""));
+                        lane.roadmark_groups.emplace(std::move(centerMarking));
+                    }
+
+                    odr::RoadMarkGroup rightMarking(roadID, sectionS0, laneID,
+                        0, 0, 0, uId == outerUID ? "solid" : "broken",
+                        "", "white", "standard", "none");
+                    rightMarking.roadmark_lines.emplace(odr::RoadMarksLine(
+                        roadID, sectionS0, laneID,
+                        0, MarkingWidth, 0, 0,
+                        side * (RoadRunner::LaneWidth - MarkingWidth),      // t_offset from inner border
+                        0,
+                        "", ""));
+                    lane.roadmark_groups.emplace(std::move(rightMarking));
+                }
+            }
+        }
     }
 } // namespace

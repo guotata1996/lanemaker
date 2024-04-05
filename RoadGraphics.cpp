@@ -38,21 +38,66 @@ namespace RoadRunner
     void RoadGraphics::Update(const odr::LaneSection& section, double s_begin, double s_end)
     {
         odr::Road& gen = road.lock()->generated;
-        for (int side : {-1, 1})
-        {
-            for (const auto& id2Lane : section.id_to_lane)
-            {
-                const auto& lane = id2Lane.second;
-                if (lane.type == "median" || lane.type == "driving")
-                {
-                    odr::Line3D innerBorder, outerBorder;
-                    gen.get_lane_border_line(lane, s_begin, s_end, 0.1f, outerBorder, innerBorder);
-                    auto aggregateBorder = outerBorder;
-                    aggregateBorder.insert(aggregateBorder.end(), innerBorder.rbegin(), innerBorder.rend());
-                    QPolygonF poly = LineToPoly(aggregateBorder);
 
-                    auto polyItem = new LaneSegmentGraphics(poly, outerBorder, innerBorder,
-                        s_begin, s_end, road.lock()->ID(), lane.type, this);
+        for (const auto& id2Lane : section.id_to_lane)
+        {
+            const auto& lane = id2Lane.second;
+            if (lane.type == "median" || lane.type == "driving")
+            {
+                odr::Line3D innerBorder, outerBorder;
+                gen.get_lane_border_line(lane, s_begin, s_end, 0.1f, outerBorder, innerBorder);
+                auto aggregateBorder = outerBorder;
+                aggregateBorder.insert(aggregateBorder.end(), innerBorder.rbegin(), innerBorder.rend());
+                QPolygonF poly = LineToPoly(aggregateBorder);
+
+                auto laneSegmentItem = new LaneSegmentGraphics(poly, outerBorder, innerBorder,
+                    s_begin, s_end, road.lock()->ID(), lane.type, this);
+
+                for (const auto& markingGroup : lane.roadmark_groups)
+                {
+                    for (const auto& marking : markingGroup.roadmark_lines)
+                    {
+                        std::vector<odr::Line3D> lines;
+                        std::vector<std::string> colors;
+                        bool refInner = std::abs(marking.t_offset) < RoadRunner::LaneWidth / 2;
+                        double refOffset = marking.t_offset;
+                        if (!refInner)
+                        {
+                            refOffset += lane.id < 0 ? RoadRunner::LaneWidth : -RoadRunner::LaneWidth;
+                        }
+                        if (markingGroup.type == "solid")
+                        {
+                            lines.push_back(gen.get_lane_marking_line(lane, s_begin, s_end, refInner, refOffset, marking.width, 0.1f));
+                            colors.push_back(markingGroup.color);
+                        }
+                        else if (markingGroup.type == "broken")
+                        {
+                            int nMarkingsPast = std::floor(s_begin / (BrokenGap + BrokenLength));
+                            double nextMarkingBegin = nMarkingsPast * (BrokenGap + BrokenLength);
+                            for (double s = nextMarkingBegin; s <= s_end; s += BrokenGap + BrokenLength)
+                            {
+                                double sBeginInSegment = std::max(s, s_begin);
+                                double sEndInSegment = std::min(s + BrokenLength, s_end);
+                                if (sEndInSegment > sBeginInSegment + 0.1f)
+                                {
+                                    odr::Line3D markingLine = gen.get_lane_marking_line(lane, 
+                                        sBeginInSegment, sEndInSegment, refInner, refOffset, marking.width, 0.1f);
+                                    lines.push_back(markingLine);
+                                    colors.push_back(markingGroup.color);
+                                }
+                            }
+                        }
+
+                        for (int i = 0; i != lines.size(); ++i)
+                        {
+                            QPolygonF markingPoly = LineToPoly(lines[i]);
+                            auto markingItem = new QGraphicsPolygonItem(markingPoly, this);
+                            markingItem->setZValue(1);
+                            markingItem->setPen(Qt::NoPen);
+                            Qt::GlobalColor color = colors[i] == "yellow" ? Qt::yellow : Qt::white;
+                            markingItem->setBrush(QBrush(color, Qt::SolidPattern));
+                        }
+                    }
                 }
             }
         }
