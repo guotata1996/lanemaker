@@ -81,7 +81,6 @@ void GraphicsView::mouseMoveEvent(QMouseEvent* evt)
 
 void GraphicsView::keyPressEvent(QKeyEvent* evt)
 {
-    // End session, create road
     QGraphicsView::keyPressEvent(evt);
     if (evt->key() == Qt::Key_Escape)
     {
@@ -90,6 +89,15 @@ void GraphicsView::keyPressEvent(QKeyEvent* evt)
     else if (evt->key() == Qt::Key_Return)
     {
         confirmEdit();
+    }
+    else if (evt->key() == Qt::Key_I)
+    {
+        auto g_road = g_PointerRoad.lock();
+        if (g_road != nullptr)
+        {
+            spdlog::info("Road {0}: Length= {1:.3f}", g_road->ID(), g_road->Length());
+            g_road->profile.PrintDetails();
+        }
     }
 }
 

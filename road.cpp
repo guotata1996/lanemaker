@@ -21,7 +21,6 @@ namespace RoadRunner
         generated.ref_line.length = l->length;
         generated.ref_line.s0_to_geometry.emplace(0, l->clone());
         Generate();
-        //GenerateAllSectionGraphics();
     }
 
     Road::Road(const RoadProfile& p, odr::RefLine& l) :

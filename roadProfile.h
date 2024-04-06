@@ -58,7 +58,9 @@ namespace RoadRunner
 
         bool HasSide(int side);
 
-        void Apply(double length, odr::Road&) const;
+        void Apply(double length, odr::Road&);
+
+        void PrintDetails();
 
     protected:
         void ConvertSide(bool rightSide,

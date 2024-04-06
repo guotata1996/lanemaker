@@ -143,7 +143,18 @@ namespace RoadRunner
 
     SectionProfile RoadProfile::LeftEntrance() const
     {
-        return leftProfiles.empty() ? SectionProfile{ 0, 0 } : leftProfiles.rbegin()->second;
+        switch (leftProfiles.size())
+        {
+        case 0:
+            return SectionProfile{ 0, 0 };
+        case 1:
+            return leftProfiles.rbegin()->second;
+        default:
+            auto maxKey = leftProfiles.rbegin();
+            maxKey++;
+            return maxKey->second;
+            break;
+        }
     }
 
     SectionProfile RoadProfile::LeftExit() const
@@ -816,7 +827,7 @@ namespace RoadRunner
         }
     }
 
-    void RoadProfile::Apply(double _length, odr::Road& rtn) const
+    void RoadProfile::Apply(double _length, odr::Road& rtn)
     {
         // Fail if either side is undefined
         assert(_length > 0);
@@ -831,11 +842,40 @@ namespace RoadRunner
         std::map<double, odr::Poly3> leftOffsets, rightOffsets;
         if (!rightProfiles.empty())
         {
+            // Once length is set, no key beyond length
+            for (type_s key : odr::get_map_keys(rightProfiles))
+            {
+                if (key >= length)
+                {
+                    rightProfiles.erase(key);
+                }
+            }
             ConvertSide(true, rtn.id, length, rightSections, rightOffsets);
         }
 
         if (!leftProfiles.empty())
         {
+            // Once length is set, no key beyond length except max()
+            auto leftKeys = odr::get_map_keys(leftProfiles);
+            auto trueEntryKey = *leftKeys.lower_bound(length - 2);
+            if (trueEntryKey != length)
+            {
+                auto trueEntryProfile = leftProfiles.at(trueEntryKey);
+                if (trueEntryKey != std::numeric_limits<uint32_t>::max())
+                {
+                    leftProfiles.erase(trueEntryKey);
+                }
+                leftProfiles[length] = trueEntryProfile;
+            }
+
+            for (type_s key : leftKeys)
+            {
+                if (key == 0 || key > length && key != std::numeric_limits<uint32_t>::max())
+                {
+                    leftProfiles.erase(key);
+                }
+            }
+            
             ConvertSide(false, rtn.id, length, leftSections, leftOffsets);
         }
         // from this point, s keys align with road coordinate
@@ -875,5 +915,28 @@ namespace RoadRunner
         spdlog::trace("Center Keys:  {}", SPDLOG_CKEYS.str());
 
         _MergeSides(rtn, leftSections, centerWidths, rightSections, length);
-    } // class function
+    }
+
+    void RoadProfile::PrintDetails()
+    {
+        if (!rightProfiles.empty())
+        {
+            spdlog::info("======Right Profile======");
+            for (auto s_profile : rightProfiles)
+            {
+                spdlog::info("{} : {} Lane | {} OffsetX2", s_profile.first,
+                    s_profile.second.laneCount, s_profile.second.offsetx2);
+            }
+        }
+        if (!leftProfiles.empty())
+        {
+            spdlog::info("======Left Profile======");
+            for (auto it = leftProfiles.rbegin(); it != leftProfiles.rend(); ++it)
+            {
+                spdlog::info("{} : {} Lane | {} OffsetX2", it->first,
+                    it->second.laneCount, it->second.offsetx2);
+            }
+        }
+        spdlog::info("      End of profile======");
+    }
 }
