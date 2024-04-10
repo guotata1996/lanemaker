@@ -17,29 +17,34 @@ namespace RoadRunner
         // When profile changes, only changed part need to re-compute
         // Newly-created r has a length limit to save performance
 
-        RoadGraphics(std::shared_ptr<RoadRunner::Road> road);
+        RoadGraphics(std::shared_ptr<RoadRunner::Road> road, const odr::LaneSection& laneSection,
+            double s_begin, double s_end);
 
         ~RoadGraphics();
-
-        void Update(const odr::LaneSection& section, double s_begin, double s_end);
 
         std::weak_ptr<RoadRunner::Road> road;
 
         static QPolygonF LineToPoly(const odr::Line3D& line);
 
+        /*sBegin->sEnd follows the direction of generated LaneSegmentGraphics,
+        NOT the direction of road ref line, i.e. sBegin can > sEnd*/
+        double sBegin, sEnd;
+        const double Length;
+
     private:
+        void Create(const odr::LaneSection&);
+
         const double BrokenLength = 3;
         const double BrokenGap = 6;
-
-        std::map<double, QGraphicsItem*> sections;
     };
 
     class LaneSegmentGraphics : public QGraphicsPolygonItem
     {
+        friend RoadGraphics;
     public:
         LaneSegmentGraphics(const QPolygonF& poly, 
             odr::Line3D outerBorder, odr::Line3D innerBorder,
-            double aSBegin, double aSEnd, std::string roadID, std::string laneType,
+            std::string laneType,
             QGraphicsItem* parent);
 
         void hoverEnterEvent(QGraphicsSceneHoverEvent* event) override;
@@ -53,10 +58,8 @@ namespace RoadRunner
 
     private:
         std::vector<QPolygonF> subdivisionPolys;
-        std::vector<double> subdivisionS;
-
-        double sBegin, sEnd;
-        std::string roadID;
+        /*0, 0.05, ..., 0.95, 1*/
+        std::vector<double> subdivisionPortion;
     };
 }
 

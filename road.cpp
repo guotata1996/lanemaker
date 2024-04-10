@@ -34,7 +34,7 @@ namespace RoadRunner
     void Road::Generate(bool notifyJunctions)
     {
         profile.Apply(Length(), generated);
-        PlaceRoadMarkings();
+        PlaceOdrRoadMarkings();
         generated.DeriveLaneBorders();
         IDGenerator::ForRoad()->NotifyChange(ID());
 
@@ -92,6 +92,21 @@ namespace RoadRunner
         {
             predecessorJunction->NotifyPotentialChange(ChangeInConnecting{ shared_from_this(), ChangeInConnecting::Type_Reverse });
         }
+
+        // Re-index visual
+        decltype(s_to_section_graphics) temp_graphics(std::move(s_to_section_graphics));
+        s_to_section_graphics.clear();
+        const double roadLength = Length();
+        for (auto it = temp_graphics.begin(); it != temp_graphics.end(); ++it)
+        {
+            auto segEndIt = it;
+            segEndIt++;
+            double sRev = (segEndIt == temp_graphics.end()) ? 0 : roadLength - segEndIt->first;
+            auto graphics = std::move(it->second);
+            graphics->sBegin = roadLength - graphics->sBegin;
+            graphics->sEnd = roadLength - graphics->sEnd;
+            s_to_section_graphics.emplace(sRev, std::move(graphics));
+        }
     }
 
     Road::~Road()
@@ -111,28 +126,32 @@ namespace RoadRunner
         {
             spdlog::trace("del road {}", ID());
             IDGenerator::ForRoad()->FreeID(ID());
-            s_to_section_graphics.clear(); // ROADRUNNERTODO: don't need to clear everything
+            s_to_section_graphics.clear();
         }
     }
 
     void Road::GenerateAllSectionGraphics()
     {
-        s_to_section_graphics.clear();
+        GenerateSectionGraphicsBetween(0, Length());
+    }
 
-        for (auto it = generated.s_to_lanesection.begin();
-            it != generated.s_to_lanesection.end(); ++it)
+    void Road::GenerateSectionGraphicsBetween(double s1, double s2)
+    {
+        const double sBeginGlobal = generated.get_lanesection_s0(s1);
+        auto sIt = generated.s_to_lanesection.find(sBeginGlobal);
+        for (; sIt != generated.s_to_lanesection.end(); ++sIt)
         {
-            auto nextIt = it;
+            auto nextIt = sIt;
             nextIt++;
-            double startS = it->first;
-            double endS = nextIt == generated.s_to_lanesection.end() ? generated.length : nextIt->first;
-            
+            double endLocal = nextIt == generated.s_to_lanesection.end() ? generated.length : nextIt->first;
+            double startS = std::max(s1, sIt->first);
+            double endS = std::min(s2, endLocal);
+
             if (endS - startS < 0.1f)
             {
                 continue;
             }
 
-            odr::LaneSection& section = it->second;
             int nDivision = std::floor((endS - startS) / GraphicsDivision);
             nDivision = std::max(1, nDivision);
             double segmentLength = (endS - startS) / nDivision;
@@ -140,11 +159,38 @@ namespace RoadRunner
             {
                 double segStartS = startS + segmentLength * segmentIndex;
                 double segEndS = segmentIndex == nDivision - 1 ? endS : segStartS + segmentLength;
-                auto sectionGraphics = std::make_unique<RoadGraphics>(shared_from_this());
-                sectionGraphics->Update(it->second, segStartS, segEndS);
+                auto sectionGraphics = std::make_unique<RoadGraphics>(
+                    shared_from_this(), sIt->second, segStartS, segEndS);
                 s_to_section_graphics.emplace(segStartS, std::move(sectionGraphics));
             }
         }
+    }
+
+    void Road::GenerateOrUpdateSectionGraphicsBetween(double s1, double s2)
+    {
+        std::set<double> dueUpdate;
+        double createBegin = s1;
+        double createEnd = s2;
+
+        for (auto existingItr = s_to_section_graphics.begin(); 
+            existingItr != s_to_section_graphics.end(); ++existingItr)
+        {
+            double existingStart = existingItr->first;
+            double existingEnd = existingStart + existingItr->second->Length;
+            if (existingStart < s2 && existingEnd > s1)
+            {
+                createBegin = std::min(createBegin, existingStart);
+                createEnd = std::max(createEnd, existingEnd);
+                dueUpdate.insert(existingItr->first);
+            }
+        }
+
+        for (double toUpdate : dueUpdate)
+        {
+            s_to_section_graphics.erase(toUpdate);
+        }
+
+        GenerateSectionGraphicsBetween(createBegin, createEnd);
     }
 
     void Road::SnapToSegmentBoundary(type_s& key, type_s limit)
@@ -198,7 +244,7 @@ namespace RoadRunner
         return to_odr_unit(modifiedKey_s);
     }
 
-    void Road::PlaceRoadMarkings()
+    void Road::PlaceOdrRoadMarkings()
     {
         auto roadID = ID();
         const double MarkingWidth = 0.2f;

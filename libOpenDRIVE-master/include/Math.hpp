@@ -224,4 +224,12 @@ constexpr T lerp(T a, T b, S scalar)
     return add(mut(1 - scalar, a), mut(scalar, b));
 }
 
+template<typename T, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
+constexpr T clamp(T x, T a, T b)
+{
+    T low = std::min(a, b);
+    T hi = std::max(a, b);
+    return std::max(low, std::min(hi, x));
+}
+
 } // namespace odr

@@ -53,18 +53,26 @@ namespace RoadRunner
 
         std::shared_ptr<Junction> successorJunction, predecessorJunction;
 
-        // Expensive
+        // Expensive, but safe
         void GenerateAllSectionGraphics();
+
+        // Preferred
+        // Sections containing s1/s2 will be updated
+        void GenerateOrUpdateSectionGraphicsBetween(double s1, double s2);
 
         double SnapToSegmentBoundary(double key, double limit);
 
     private:
-        void PlaceRoadMarkings();
+        void GenerateSectionGraphicsBetween(double s1, double s2);
+
+        void PlaceOdrRoadMarkings();
 
         // Prevent formation of too-short segment
         void SnapToSegmentBoundary(type_s& key, type_s limit = 10);
 
         const double GraphicsDivision = 20;
+
+        const double NeglectableLength = 0.01f;
 
         // When updates road, remove RoadSectionGraphics then add new
         std::map<double, std::unique_ptr<RoadGraphics>> s_to_section_graphics;

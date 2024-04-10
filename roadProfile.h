@@ -4,6 +4,7 @@
 namespace RoadRunner
 {
     constexpr double LaneWidth = 3.25;
+    constexpr double MaxTransition = 20;
 
     typedef int8_t type_t;
     typedef uint32_t type_s;
@@ -90,7 +91,7 @@ namespace RoadRunner
             const std::map<double, odr::LaneSection>& rightSections,
             type_s length) const;
 
-        const type_s MaxTransitionS = 20 * 100;
+        const type_s MaxTransitionS = MaxTransition * 100;
 
         std::map<type_s, SectionProfile> leftProfiles, rightProfiles;
 

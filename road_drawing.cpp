@@ -7,6 +7,8 @@
 #include "Geometries/ParamPoly3.h"
 #include "curve_fitting.h"
 
+#include "stats.h"
+
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 
@@ -98,6 +100,7 @@ bool RoadCreationSession::Update(QMouseEvent* event)
 
 void RoadCreationSession::Complete()
 {
+    Stats s("LaneSegmentGraphics Created");
     CreateRoad();
 }
 
@@ -280,6 +283,7 @@ void RoadCreationSession::CreateRoad()
     {
         newRoad = std::make_shared<RoadRunner::Road>(config, refLine);
     }
+    newRoad->GenerateAllSectionGraphics();
 
     bool standaloneRoad = true;
 
@@ -294,7 +298,7 @@ void RoadCreationSession::CreateRoad()
             spdlog::warn("Extend error {}", joinResult);
         }
 
-        toExtend->GenerateAllSectionGraphics();
+        // toExtend->GenerateAllSectionGraphics();
         newRoad = toExtend;
     }
 
@@ -309,12 +313,12 @@ void RoadCreationSession::CreateRoad()
             spdlog::warn("Join error {}", joinResult);
         }
 
-        toJoin->GenerateAllSectionGraphics();
+        // toJoin->GenerateAllSectionGraphics();
     }
 
     if (standaloneRoad)
     {
-        newRoad->GenerateAllSectionGraphics();
+        // newRoad->GenerateAllSectionGraphics();
         world->allRoads.insert(newRoad);
     }
 }

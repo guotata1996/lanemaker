@@ -3,6 +3,8 @@
 #include <QGraphicsPathItem>
 #include <qevent.h>
 
+#include "stats.h"
+
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 
@@ -129,7 +131,8 @@ void RoadDestroySession::Complete()
     {
         return;
     }
-    
+    Stats s("LaneSegmentGraphics Created");
+
     double from = std::min(*s1, *s2);
     double to = std::max(*s1, *s2);
     auto target = targetRoad.lock();
@@ -144,20 +147,16 @@ void RoadDestroySession::Complete()
         auto nRemoved = world->allRoads.erase(target);
         assert(nRemoved == 1);
         world->allRoads.insert(secondHalf);
-        secondHalf->GenerateAllSectionGraphics();
     }
     else if (to == target->Length())
     {
         RoadRunner::Road::SplitRoad(target, from);
-        target->GenerateAllSectionGraphics();
     }
     else
     {
         auto third = RoadRunner::Road::SplitRoad(target, to);
         RoadRunner::Road::SplitRoad(target, from);
 
-        target->GenerateAllSectionGraphics();
-        third->GenerateAllSectionGraphics();
         world->allRoads.insert(third);
     }
 }

@@ -18,9 +18,11 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp
     IDGenerator.cpp MapExporter.cpp world.cpp
     mainwindow.cpp view.cpp ${srcs_for_exe} RoadGraphics.cpp
     road_drawing.cpp road_destruction.cpp CreateRoadOptionWidget.cpp
+    util/stats.cpp
 )
 
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE 
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    util
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/include
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/thirdparty)
 
