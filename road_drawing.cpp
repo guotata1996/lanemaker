@@ -15,15 +15,25 @@ extern double g_PointerRoadS;
 extern RoadRunner::SectionProfile activeLeftSetting;
 extern RoadRunner::SectionProfile activeRightSetting;
 
-float RoadDrawingSession::ScaleFromView() const
-{
-    auto trf = view->transform();
-    return std::sqrt(trf.m11() * trf.m11() + trf.m12() * trf.m12());
-}
+extern double g_zoom;
 
 float RoadDrawingSession::SnapDistFromScale() const
 {
-    return SnapToEndThreshold / std::sqrt(ScaleFromView());
+    return CustomCursorItem::SnapRadiusPx / g_zoom;
+}
+
+double CustomCursorItem::SnapRadiusPx = 20;
+double CustomCursorItem::InitialRadius = 2;
+
+void CustomCursorItem::EnableHighlight(bool enable)
+{
+    setBrush(enable ? QBrush(Qt::red, Qt::SolidPattern) : Qt::NoBrush);
+}
+
+void CustomCursorItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+{
+    this->setScale(SnapRadiusPx / InitialRadius / g_zoom);
+    QGraphicsEllipseItem::paint(painter, option, widget);
 }
 
 RoadCreationSession::RoadCreationSession(QGraphicsView* aView) :
@@ -35,7 +45,8 @@ RoadCreationSession::RoadCreationSession(QGraphicsView* aView) :
     hintPen.setColor(QColor(0, 200, 100, 80));
     hintPen.setStyle(Qt::DotLine);
     hintItem->setPen(hintPen);
-    cursorItem = scene->addEllipse(-2, -2, 4, 4);
+    cursorItem = new CustomCursorItem;
+    scene->addItem(cursorItem);
 
     ctrlPoints.push_back(QPointF());
 }
@@ -70,9 +81,8 @@ bool RoadCreationSession::Update(QMouseEvent* event)
     float maxSnapDist = ctrlPoints.size() % 2 == 1 ? SnapDistFromScale() : 1e9;
     bool onExisting = SnapCtrlPoint(maxSnapDist);
     cursorItem->setPos(ctrlPoints.back());
-    cursorItem->setBrush(onExisting ? QBrush(Qt::yellow, Qt::SolidPattern) : Qt::NoBrush);
+    cursorItem->EnableHighlight(onExisting);
 
-    // TODO: incremental path?
     ctrlPath.clear();
     if (!ctrlPoints.empty())
     {

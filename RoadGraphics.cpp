@@ -158,24 +158,18 @@ namespace RoadRunner
         spdlog::info("Mouse press evt on GraphicsItem @ {},{}", evt->pos().x(), evt->pos().y());
     }
 
-    void LaneSegmentGraphics::hoverEnterEvent(QGraphicsSceneHoverEvent* event)
-    {
-        hoverMoveEvent(event);
-    }
-
-    void LaneSegmentGraphics::hoverMoveEvent(QGraphicsSceneHoverEvent* event)
+    bool LaneSegmentGraphics::SnapCursor(QPointF scenePos)
     {
         auto parentRoad = dynamic_cast<RoadRunner::RoadGraphics*>(parentItem());
         double sBegin = parentRoad->sBegin;
         double sEnd = parentRoad->sEnd;
 
-        auto eventPos = event->scenePos();
-        QVector2D pEvent(eventPos);
+        QVector2D pEvent(scenePos);
 
         for (int i = 0; i != subdivisionPolys.size(); ++i)
         {
             const QPolygonF& subdivision = subdivisionPolys[i];
-            if (subdivision.containsPoint(eventPos, Qt::FillRule::OddEvenFill))
+            if (subdivision.containsPoint(scenePos, Qt::FillRule::OddEvenFill))
             {
                 double pMin = subdivisionPortion[i];
                 double pMax = subdivisionPortion[i + 1];
@@ -193,25 +187,17 @@ namespace RoadRunner
 
                 g_PointerRoad = parentRoad->road;
                 g_PointerRoadS = s;
-                break;
+                return true;
             }
         }
+
+        return false;
     }
 
-    void LaneSegmentGraphics::hoverLeaveEvent(QGraphicsSceneHoverEvent* event)
+    std::shared_ptr<Road> LaneSegmentGraphics::Road() const
     {
         auto parentRoad = dynamic_cast<RoadRunner::RoadGraphics*>(parentItem());
-        double sBegin = parentRoad->sBegin;
-        double sEnd = parentRoad->sEnd;
-        auto roadID = parentRoad->road.lock()->ID();
-
-        auto g_road = g_PointerRoad.lock();
-        if (g_road != nullptr && g_road->ID() == roadID &&
-            std::min(sBegin, sEnd) <= g_PointerRoadS && 
-            g_PointerRoadS <= std::max(sBegin, sEnd))
-        {
-            g_PointerRoad.reset();
-        }
+        return parentRoad->road.lock();
     }
 }
 

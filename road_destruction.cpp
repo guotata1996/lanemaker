@@ -11,7 +11,8 @@ extern double g_PointerRoadS;
 RoadDestroySession::RoadDestroySession(QGraphicsView* aView):
     RoadDrawingSession(aView)
 {
-    cursorItem = scene->addEllipse(-2, -2, 4, 4);
+    cursorItem = new CustomCursorItem;
+    scene->addItem(cursorItem);
     hintItem = scene->addPolygon(hintPolygon);
 }
 
@@ -28,14 +29,13 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
     if (g_road != nullptr)
     {
         auto snapped = g_road->generated.ref_line.get_xy(GetAdjustedS());
-        cursorItem->setX(snapped[0]);
-        cursorItem->setY(snapped[1]);
-        cursorItem->setBrush(QBrush(Qt::red, Qt::SolidPattern));
+        cursorItem->setPos(snapped[0], snapped[1]);
+        cursorItem->EnableHighlight(true);
     }
     else
     {
         cursorItem->setPos(scenePos);
-        cursorItem->setBrush(Qt::NoBrush);
+        cursorItem->EnableHighlight(false);
     }
 
     // Preview

@@ -47,11 +47,9 @@ namespace RoadRunner
             std::string laneType,
             QGraphicsItem* parent);
 
-        void hoverEnterEvent(QGraphicsSceneHoverEvent* event) override;
+        bool SnapCursor(QPointF p);
 
-        void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override;
-
-        void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
+        std::shared_ptr<Road> Road() const;
 
     protected:
         void mousePressEvent(QGraphicsSceneMouseEvent* event) override;

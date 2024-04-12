@@ -38,6 +38,14 @@ namespace RoadRunner
             return generated.ref_line.length;
         }
 
+        void GetEndPoint(bool start, double& x, double& y) const
+        {
+            double s = start ? 0 : Length();
+            auto p = generated.ref_line.get_xy(s);
+            x = p[0];
+            y = p[1];
+        }
+
         std::string ID() const { return generated.id; }
         odr::RefLine& RefLine() { return generated.ref_line; }
         

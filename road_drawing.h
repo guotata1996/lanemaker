@@ -2,6 +2,7 @@
 
 #include "world.h"
 #include "qgraphicsview.h"
+#include "qgraphicsitem.h"
 #include <vector>
 #include <QPainterPath>
 
@@ -22,15 +23,34 @@ public:
     virtual ~RoadDrawingSession() {}
 
 protected:
-    float ScaleFromView() const;
-
     float SnapDistFromScale() const;
 
     QGraphicsView* view;
     QGraphicsScene* scene;
     World* world;
+};
+
+class CustomCursorItem : public QGraphicsEllipseItem
+{
+public:
+    CustomCursorItem() : QGraphicsEllipseItem(
+        -InitialRadius, -InitialRadius, 
+        2 * InitialRadius, 2 * InitialRadius) {
+    }
+
+    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
+
+    virtual QPainterPath shape() const override
+    {
+        return QPainterPath();
+    }
+
+    void EnableHighlight(bool enable);
+
+    static double SnapRadiusPx;
+
 private:
-    const double SnapToEndThreshold = 10;
+    static double InitialRadius;
 };
 
 class RoadCreationSession: public RoadDrawingSession
@@ -71,7 +91,7 @@ private:
     QPainterPath hintPath;
     QGraphicsPathItem* hintItem;
 
-    QGraphicsEllipseItem* cursorItem;
+    CustomCursorItem* cursorItem;
 };
 
 class RoadDestroySession : public RoadDrawingSession
@@ -98,7 +118,7 @@ private:
     QPolygonF hintPolygon;
     QGraphicsPolygonItem* hintItem;
 
-    QGraphicsEllipseItem* cursorItem;
+    CustomCursorItem* cursorItem;
 
     std::weak_ptr<RoadRunner::Road> targetRoad;
     std::unique_ptr<double> s1, s2;

@@ -3,6 +3,7 @@
 
 #include "view.h"
 #include "road_drawing.h"
+#include "RoadGraphics.h"
 #include "CreateRoadOptionWidget.h"
 #include "spdlog/spdlog.h"
 
@@ -11,7 +12,9 @@
 #include <QtMath>
 
 std::weak_ptr<RoadRunner::Road> g_PointerRoad;
-double g_PointerRoadS;
+double g_PointerRoadS; /*Continous between 0 and Length() if g_PointerRoad is valid*/
+
+double g_zoom;
 
 GraphicsView::GraphicsView(View* v) : 
     QGraphicsView(), view(v)
@@ -57,9 +60,72 @@ void GraphicsView::SetEditMode(EditMode aMode)
     }
 }
 
+void GraphicsView::SnapCursor(const QPoint& viewPos)
+{
+    g_PointerRoad.reset();
+    double r = CustomCursorItem::SnapRadiusPx;
+    auto candidates = items(viewPos.x() - r, viewPos.y() - r, 2 * r, 2 * r);
+    std::set<std::shared_ptr<RoadRunner::Road>> nearbyRoads;
+    for (auto item: candidates)
+    {
+        while (item != nullptr)
+        {
+            auto laneGraphicsItem = dynamic_cast<RoadRunner::LaneSegmentGraphics*>(item);
+            if (laneGraphicsItem != nullptr)
+            {
+                if (laneGraphicsItem->SnapCursor(mapToScene(viewPos)))
+                {
+                    return;
+                }
+                nearbyRoads.insert(laneGraphicsItem->Road());
+                break;
+            }
+            item = item->parentItem();
+        }
+    }
+
+    double closestS;
+    std::shared_ptr<RoadRunner::Road> closestRoad;
+    QVector2D scenePos(mapToScene(viewPos));
+    double closestDistance = 1e9;
+    QPointF targetScenePos;
+    for (auto& nearbyRoad : nearbyRoads)
+    {
+        for (bool start : {false, true})
+        {
+            double x, y;
+            nearbyRoad->GetEndPoint(start, x, y);
+            QVector2D endPoint(x, y);
+            double dist = scenePos.distanceToPoint(endPoint);
+
+            if (dist < closestDistance)
+            {
+                closestRoad = nearbyRoad;
+                closestS = start ? 0 : nearbyRoad->Length();
+                closestDistance = dist;
+                targetScenePos.setX(x);
+                targetScenePos.setY(y);
+            }
+        }
+    }
+
+
+    if (closestRoad != nullptr)
+    {
+        QVector2D cursorViewPos(viewPos);
+        QVector2D targetViewPos(mapFromScene(targetScenePos));
+        if (targetViewPos.distanceToPoint(cursorViewPos) < CustomCursorItem::SnapRadiusPx)
+        {
+            g_PointerRoadS = closestS;
+            g_PointerRoad = closestRoad;
+        }
+    }
+}
+
 void GraphicsView::mousePressEvent(QMouseEvent* evt)
 {
     QGraphicsView::mousePressEvent(evt);
+    SnapCursor(evt->pos());
     if (editMode != Mode_None)
     {
         if (!drawingSession->Update(evt))
@@ -72,7 +138,7 @@ void GraphicsView::mousePressEvent(QMouseEvent* evt)
 void GraphicsView::mouseMoveEvent(QMouseEvent* evt)
 {
     QGraphicsView::mouseMoveEvent(evt);
-
+    SnapCursor(evt->pos());
     if (editMode != Mode_None)
     {
         drawingSession->Update(evt);
@@ -124,6 +190,8 @@ void GraphicsView::drawForeground(QPainter* painter, const QRectF& rect)
         painter->setWorldMatrixEnabled(true);
         painter->restore();
     }
+
+    // ROADRUNNERTODO: draw cursor
 
     viewport()->update();
 }
@@ -297,6 +365,7 @@ void View::setResetButtonEnabled()
 void View::setupMatrix()
 {
     qreal scale = qPow(qreal(2), (zoomSlider->value() - 250) / qreal(50));
+    g_zoom = scale;
 
     QTransform matrix;
     matrix.scale(scale, -scale);

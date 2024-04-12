@@ -60,6 +60,8 @@ private:
 
     void confirmEdit();
     void quitEdit();
+
+    void SnapCursor(const QPoint&);
 };
 
 class View : public QFrame
