@@ -6,8 +6,8 @@
 #include "spdlog/spdlog.h"
 
 #include "OpenDriveMap.h"
-#include "IDGenerator.h"
-#include "roadProfile.h"
+#include "id_generator.h"
+#include "road_profile.h"
 
 namespace RoadRunner
 {

@@ -1,6 +1,5 @@
-#include "MapExporter.h"
-
-#include "IDGenerator.h"
+#include "map_exporter.h"
+#include "id_generator.h"
 #include "road.h"
 #include "junction.h"
 

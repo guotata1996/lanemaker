@@ -16,7 +16,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     scene = std::make_unique<QGraphicsScene>(this);
     g_scene = scene.get();
     
-    auto view = new View("Main View");
+    auto view = new MainWidget("Main View");
     view->view()->setScene(g_scene);
 
     auto mainLayout = new QHBoxLayout;

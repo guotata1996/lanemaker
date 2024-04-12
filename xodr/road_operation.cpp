@@ -2,7 +2,7 @@
 #include "curve_fitting.h"
 #include "junction.h"
 
-#include "RoadGraphics.h"
+#include "road_graphics.h"
 
 #include <math.h>
 

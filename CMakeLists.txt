@@ -14,10 +14,11 @@ add_subdirectory(libOpenDRIVE-master)
 qt5_add_resources(srcs_for_exe ui/images.qrc) 
 
 add_executable(${CMAKE_PROJECT_NAME} main.cpp 
-    xodr/roadProfile.cpp xodr/road.cpp xodr/junction.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp
-    xodr/IDGenerator.cpp xodr/MapExporter.cpp xodr/world.cpp
-    ui/mainwindow.cpp ui/view.cpp ${srcs_for_exe} ui/RoadGraphics.cpp
-    ui/road_drawing.cpp ui/road_destruction.cpp ui/CreateRoadOptionWidget.cpp
+    xodr/road_profile.cpp xodr/road.cpp xodr/junction.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp
+    xodr/id_generator.cpp xodr/map_exporter.cpp xodr/world.cpp
+    ui/mainwindow.cpp ui/main_widget.cpp ui/map_view.cpp ${srcs_for_exe}
+    ui/road_graphics.cpp ui/road_drawing.cpp ui/road_destruction.cpp 
+    ui/CreateRoadOptionWidget.cpp
     util/stats.cpp
 )
 
@@ -55,8 +56,8 @@ enable_testing()
 add_executable(
   RoadRunnerTest
   test/test.cc test/randomization_utils.cpp
-  xodr/roadProfile.cpp xodr/road.cpp xodr/junction.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp
-  xodr/IDGenerator.cpp xodr/MapExporter.cpp
+  xodr/road_profile.cpp xodr/road.cpp xodr/junction.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp
+  xodr/id_generator.cpp xodr/map_exporter.cpp
 )
 
 target_include_directories(RoadRunnerTest PRIVATE

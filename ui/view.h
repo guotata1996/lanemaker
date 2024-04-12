@@ -14,17 +14,17 @@ class QSlider;
 class QToolButton;
 QT_END_NAMESPACE
 
-class View;
+class MainWidget;
 
 class RoadDrawingSession;
 
 class CreateRoadOptionWidget;
 
-class GraphicsView : public QGraphicsView
+class MapView : public QGraphicsView
 {
-    Q_OBJECT
+    // Q_OBJECT
 public:
-    GraphicsView(View* v);
+    MapView(MainWidget* v);
 
     enum EditMode
     {
@@ -53,7 +53,7 @@ protected:
 private:
     const double ViewPadding = 100; // meters
 
-    View* view;
+    MainWidget* view;
     RoadDrawingSession* drawingSession = nullptr;
 
     EditMode editMode = Mode_None;
@@ -64,11 +64,11 @@ private:
     void SnapCursor(const QPoint&);
 };
 
-class View : public QFrame
+class MainWidget : public QFrame
 {
-    Q_OBJECT
+    // Q_OBJECT
 public:
-    explicit View(const QString& name, QWidget* parent = nullptr);
+    explicit MainWidget(const QString& name, QWidget* parent = nullptr);
 
     QGraphicsView* view() const;
 
@@ -91,7 +91,7 @@ private slots:
     void rotateRight();
 
 private:
-    GraphicsView* graphicsView;
+    MapView* graphicsView;
     QLabel* label2;
     QToolButton* createModeButton;
     QToolButton* destroyModeButton;
