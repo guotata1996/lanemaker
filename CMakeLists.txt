@@ -11,18 +11,18 @@ find_package(spdlog REQUIRED)
 add_subdirectory(libOpenDRIVE-master)
 # TODO: make RoadRunner a library
 
-qt5_add_resources(srcs_for_exe images.qrc) 
+qt5_add_resources(srcs_for_exe ui/images.qrc) 
 
 add_executable(${CMAKE_PROJECT_NAME} main.cpp 
-    roadProfile.cpp road.cpp junction.cpp road_operation.cpp curve_fitting.cpp
-    IDGenerator.cpp MapExporter.cpp world.cpp
-    mainwindow.cpp view.cpp ${srcs_for_exe} RoadGraphics.cpp
-    road_drawing.cpp road_destruction.cpp CreateRoadOptionWidget.cpp
+    xodr/roadProfile.cpp xodr/road.cpp xodr/junction.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp
+    xodr/IDGenerator.cpp xodr/MapExporter.cpp xodr/world.cpp
+    ui/mainwindow.cpp ui/view.cpp ${srcs_for_exe} ui/RoadGraphics.cpp
+    ui/road_drawing.cpp ui/road_destruction.cpp ui/CreateRoadOptionWidget.cpp
     util/stats.cpp
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    util
+    xodr ui util
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/include
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/thirdparty)
 
@@ -55,8 +55,8 @@ enable_testing()
 add_executable(
   RoadRunnerTest
   test/test.cc test/randomization_utils.cpp
-  roadProfile.cpp road.cpp junction.cpp road_operation.cpp curve_fitting.cpp
-  IDGenerator.cpp MapExporter.cpp
+  xodr/roadProfile.cpp xodr/road.cpp xodr/junction.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp
+  xodr/IDGenerator.cpp xodr/MapExporter.cpp
 )
 
 target_include_directories(RoadRunnerTest PRIVATE

@@ -9,14 +9,6 @@ namespace RoadRunner
     class RoadGraphics : public QGraphicsRectItem
     {
     public:
-        // stores {(s_range_min, s_range_b): graphicsItem of LaneSection->children of lanes?}
-        // s_range has max length of _ M
-        // When r2 joins r1, r2's buffers get moved to r1 (except for the connecting part)
-        // When r2 splits from r1, r1's buffers get moved to r2
-        // when r reverses, only dict keys need update. No point calc is needed
-        // When profile changes, only changed part need to re-compute
-        // Newly-created r has a length limit to save performance
-
         RoadGraphics(std::shared_ptr<RoadRunner::Road> road, const odr::LaneSection& laneSection,
             double s_begin, double s_end);
 
@@ -26,8 +18,8 @@ namespace RoadRunner
 
         static QPolygonF LineToPoly(const odr::Line3D& line);
 
-        /*sBegin->sEnd follows the direction of generated LaneSegmentGraphics,
-        NOT the direction of road ref line, i.e. sBegin can > sEnd*/
+        /*sBegin->sEnd follows the direction of generated LaneSegmentGraphics, NOT the direction of road ref line
+          so it's possible that sBegin > sEnd*/
         double sBegin, sEnd;
         const double Length;
 
