@@ -41,7 +41,7 @@ namespace RoadRunner
         void GetEndPoint(bool start, double& x, double& y) const
         {
             double s = start ? 0 : Length();
-            auto p = generated.ref_line.get_xy(s);
+            auto p = generated.get_xyz(s, 0, 0);
             x = p[0];
             y = p[1];
         }
@@ -60,7 +60,7 @@ namespace RoadRunner
         RoadProfile profile;
 
         std::shared_ptr<Junction> successorJunction, predecessorJunction;
-
+#ifndef G_TEST
         // Expensive, but safe
         void GenerateAllSectionGraphics();
 
@@ -69,11 +69,12 @@ namespace RoadRunner
         void GenerateOrUpdateSectionGraphicsBetween(double s1, double s2);
 
         double SnapToSegmentBoundary(double key, double limit);
-
+#endif
     private:
-        void GenerateSectionGraphicsBetween(double s1, double s2);
-
         void PlaceOdrRoadMarkings();
+
+#ifndef G_TEST
+        void GenerateSectionGraphicsBetween(double s1, double s2);
 
         // Prevent formation of too-short segment
         void SnapToSegmentBoundary(type_s& key, type_s limit = 10);
@@ -84,5 +85,6 @@ namespace RoadRunner
 
         // When updates road, remove RoadSectionGraphics then add new
         std::map<double, std::unique_ptr<RoadGraphics>> s_to_section_graphics;
+#endif
     };
 }

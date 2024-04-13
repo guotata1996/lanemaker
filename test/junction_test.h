@@ -4,7 +4,7 @@
 #include "junction_verification.h"
 #include "randomization_utils.h"
 #include <math.h>
-#include "MapExporter.h"
+#include "xodr/map_exporter.h"
 #include "Geometries/Arc.h"
 
 namespace RoadRunnerTest
@@ -15,7 +15,10 @@ namespace RoadRunnerTest
     TEST_P(Seed_SingleJunction, SingleJunction) {
         auto seed = GetParam();
         srand(seed);
-
+        // std::string saveLoc = "C:\\Users\\guota\\Downloads\\junction";
+        // saveLoc += std::to_string(seed);
+        // saveLoc += ".xodr";
+        // RoadRunner::MapExporter exporter(saveLoc);
         const int NumRoads = RandomIntBetween(3, 6);
         const double SeparationAngle = M_PI * 2 / NumRoads;
         const type_s RoadLength = 30 * 100;
@@ -47,6 +50,7 @@ namespace RoadRunnerTest
             auto refLine = std::make_shared<odr::Line>(0, refLineOrigin[0], refLineOrigin[1], hdg, RoadLengthD);
 
             generatedRoads.push_back(std::make_shared<RoadRunner::Road>(cfg, refLine));
+            generatedRoads.back()->Generate();
             incomings.push_back(incoming);
         }
 
@@ -68,6 +72,7 @@ namespace RoadRunnerTest
         else
         {
             VerifyJunction(*j1);
+            // exporter.Update();
         }
     }
 

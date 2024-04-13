@@ -22,7 +22,8 @@ namespace RoadRunnerTest
         odr::Vec3D p2_out = road2.get_xyz(s2, t2_out, 0);
 #ifdef G_TEST
         EXPECT_LT(odr::euclDistance(p1_out, p2_out), epsilon)
-            << road1.id << " " << lane1 << " outer border doesn't meet " << road2.id << " " << lane2;
+            << road1.id << " " << lane1 << " outer border doesn't meet " << road2.id << " " << lane2
+            << "(" << p1_out[0] << " , " << p1_out[1] << ") vs (" << p2_out[0] << " , " << p2_out[1] << ")";
 #endif
 
         double t1_in = l1.inner_border.get(s1);

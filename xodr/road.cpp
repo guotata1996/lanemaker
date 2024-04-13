@@ -9,8 +9,9 @@
 #include "Geometries/ParamPoly3.h"
 
 #include "spdlog/spdlog.h"
-
+#ifndef G_TEST
 #include "road_graphics.h"
+#endif
 
 namespace RoadRunner
 {
@@ -34,8 +35,10 @@ namespace RoadRunner
     void Road::Generate(bool notifyJunctions)
     {
         profile.Apply(Length(), generated);
+
         PlaceOdrRoadMarkings();
         generated.DeriveLaneBorders();
+
         IDGenerator::ForRoad()->NotifyChange(ID());
 
         if (notifyJunctions)
@@ -94,6 +97,7 @@ namespace RoadRunner
         }
 
         // Re-index visual
+#ifndef G_TEST
         decltype(s_to_section_graphics) temp_graphics(std::move(s_to_section_graphics));
         s_to_section_graphics.clear();
         const double roadLength = Length();
@@ -107,6 +111,7 @@ namespace RoadRunner
             graphics->sEnd = roadLength - graphics->sEnd;
             s_to_section_graphics.emplace(sRev, std::move(graphics));
         }
+#endif
     }
 
     Road::~Road()
@@ -126,10 +131,12 @@ namespace RoadRunner
         {
             spdlog::trace("del road {}", ID());
             IDGenerator::ForRoad()->FreeID(ID());
+#ifndef G_TEST
             s_to_section_graphics.clear();
+#endif
         }
     }
-
+#ifndef G_TEST
     void Road::GenerateAllSectionGraphics()
     {
         GenerateSectionGraphicsBetween(0, Length());
@@ -244,6 +251,8 @@ namespace RoadRunner
         return to_odr_unit(modifiedKey_s);
     }
 
+#endif
+
     void Road::PlaceOdrRoadMarkings()
     {
         auto roadID = ID();
@@ -291,4 +300,5 @@ namespace RoadRunner
             }
         }
     }
+
 } // namespace

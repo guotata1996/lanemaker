@@ -1,7 +1,7 @@
 #pragma once
 
-#include "road.h"
-#include "junction.h"
+#include "xodr/road.h"
+#include "xodr/junction.h"
 
 #include "spdlog/spdlog.h"
 

@@ -1,8 +1,9 @@
 #include "road.h"
 #include "curve_fitting.h"
 #include "junction.h"
-
+#ifndef G_TEST
 #include "road_graphics.h"
+#endif
 
 #include <math.h>
 
@@ -89,10 +90,10 @@ namespace RoadRunner
             }
             road1->generated.ref_line.length = road1->Length() + road2->Length();
         }
-
+#ifndef G_TEST
         road1->SnapToSegmentBoundary(linkBase);
         road1->SnapToSegmentBoundary(road2Base);
-
+#endif
         // Join right profile
         if (road1->profile.HasSide(-1))
         {
@@ -107,8 +108,10 @@ namespace RoadRunner
             {
                 type_s newStart = road2section.first.first + road2Base;
                 type_s newEnd = road2section.first.second + road2Base;
+#ifndef G_TEST
                 road1->SnapToSegmentBoundary(newStart);
                 road1->SnapToSegmentBoundary(newEnd);
+#endif
                 road1->profile.OverwriteSection(-1, newStart, newEnd,
                     road2section.second.laneCount, road2section.second.offsetx2);
             }
@@ -127,15 +130,17 @@ namespace RoadRunner
             {
                 type_s newStart = road2section.first.first + road2Base;
                 type_s newEnd = road2section.first.second + road2Base;
+#ifndef G_TEST
                 road1->SnapToSegmentBoundary(newStart);
                 road1->SnapToSegmentBoundary(newEnd);
+#endif
                 road1->profile.OverwriteSection(1, newStart, newEnd,
                     road2section.second.laneCount, road2section.second.offsetx2);
             }
         }
 
         road1->Generate();
-        
+#ifndef G_TEST
         for (auto& s_graphics : road2->s_to_section_graphics)
         {
             auto graphics = std::move(s_graphics.second);
@@ -144,6 +149,7 @@ namespace RoadRunner
             graphics->sEnd += road2BaseD;
             road1->s_to_section_graphics.emplace(road2BaseD + s_graphics.first, std::move(graphics));
         }
+#endif
 
         if (road2->successorJunction != nullptr)
         {
@@ -151,12 +157,12 @@ namespace RoadRunner
                 { road2, RoadRunner::ChangeInConnecting::Type_DetachAtEnd_Temp });
             road2->successorJunction->Attach(RoadRunner::ConnectionInfo{ road1, odr::RoadLink::ContactPoint_End });
         }
-
+#ifndef G_TEST
         // Update transition part, up to max transition length
         road1->GenerateOrUpdateSectionGraphicsBetween(
-            std::max(0.0, linkBaseD - MaxTransition),
-            std::min(road2BaseD + MaxTransition, road1->Length()));
-
+            std::max(0.0, linkBaseD - 3 * MaxTransition),
+            std::min(road2BaseD + 3 * MaxTransition, road1->Length()));
+#endif
         road2.reset();
         return RoadJoin_Success;
     }
@@ -222,7 +228,7 @@ namespace RoadRunner
                 { roadAsPrev, RoadRunner::ChangeInConnecting::Type_DetachAtEnd_Temp });
             roadAsPrev->successorJunction->Attach(RoadRunner::ConnectionInfo{ part2, odr::RoadLink::ContactPoint_End });
         }
-        
+#ifndef G_TEST       
         // Move to part2
         auto sm1_it = roadAsPrev->s_to_section_graphics.lower_bound(s);
         std::set<double> sMovedFromPart1;
@@ -242,18 +248,17 @@ namespace RoadRunner
         else
         {
             // Update part2 near split
-            double part2CreateLength = std::max(MaxTransition, sm1_it->first - s);
+            double part2CreateLength = std::max(3 * MaxTransition, sm1_it->first - s);
             part2->GenerateOrUpdateSectionGraphicsBetween(0, std::min(part2CreateLength, part2->Length()));
         }
-
 
         // Update part1 near split
         for (double sMoved : sMovedFromPart1)
         {
             roadAsPrev->s_to_section_graphics.erase(sMoved);
         }
-        roadAsPrev->GenerateOrUpdateSectionGraphicsBetween(std::max(s - MaxTransition, 0.0), s);
-        
+        roadAsPrev->GenerateOrUpdateSectionGraphicsBetween(std::max(s - 3 * MaxTransition, 0.0), s);
+#endif       
         return part2;
     }
 }
