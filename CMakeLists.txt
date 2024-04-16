@@ -19,7 +19,7 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp
     ui/mainwindow.cpp ui/main_widget.cpp ui/map_view.cpp ${srcs_for_exe}
     ui/road_graphics.cpp ui/road_drawing.cpp ui/road_destruction.cpp 
     ui/CreateRoadOptionWidget.cpp
-    util/stats.cpp
+    util/stats.cpp util/multi_segment.cpp
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE

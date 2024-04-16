@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <map>
 #include <sstream>
 
 #include "Geometries/Line.h"
@@ -11,6 +12,7 @@
 #include "spdlog/spdlog.h"
 #ifndef G_TEST
 #include "road_graphics.h"
+#include "multi_segment.h"
 #endif
 
 namespace RoadRunner
@@ -249,6 +251,108 @@ namespace RoadRunner
             return key;
         }
         return to_odr_unit(modifiedKey_s);
+    }
+
+    std::unique_ptr<Road::RoadsOverlap> Road::FirstOverlapNonJunction(double sBegin, double sEnd) const
+    {
+        auto beginIt = s_to_section_graphics.upper_bound(sBegin - 1e-3f);
+        if (beginIt != s_to_section_graphics.begin())
+        {
+            beginIt--;
+        }
+        auto endIt = s_to_section_graphics.upper_bound(sEnd + 1e-3f);
+
+        std::map <std::shared_ptr<Road>, MultiSegment> collidings;
+        std::set< LaneSegmentGraphics*> myCollidingPieces;
+        for (auto it = beginIt; it != endIt; ++it)
+        {
+            for (auto child : it->second->childItems())
+            {
+                LaneSegmentGraphics* laneSegmentItem = dynamic_cast<LaneSegmentGraphics*>(child);
+                if (laneSegmentItem == nullptr)
+                {
+                    continue;
+                }
+                for (auto collision : laneSegmentItem->collidingItems())
+                {
+                    LaneSegmentGraphics* collisionSegmentItem = dynamic_cast<LaneSegmentGraphics*>(collision);
+                    if (collisionSegmentItem == nullptr)
+                    {
+                        continue;
+                    }
+                    
+                    RoadGraphics* collidingGraphicsSegment = dynamic_cast<RoadGraphics*>(collisionSegmentItem->parentItem());
+                    auto collidingRoad = collidingGraphicsSegment->road.lock();
+                    if (collidingRoad == shared_from_this())
+                    {
+                        // self-intersection is ignored for now
+                        continue;
+                    }
+                    if (collidingRoad->generated.junction == "-1")
+                    {
+                        if (collidings.find(collidingRoad) == collidings.end())
+                        {
+                            collidings.emplace(collidingRoad, MultiSegment(1));
+                        }
+                        collidings.at(collidingRoad).Insert(
+                            std::min(collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd),
+                            std::max(collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd));
+                        myCollidingPieces.insert(laneSegmentItem);
+                    }
+                }
+            }
+        }
+        
+        std::map<double, std::unique_ptr<RoadsOverlap>> sortedOverlap;
+        for (auto colliding : collidings)
+        {
+            for (auto otherCollidingArea : colliding.second.Merge())
+            {
+                MultiSegment myCollidingIntervals(1);
+
+                double sBeginOnOther = otherCollidingArea.first;
+                double sEndOnOther = otherCollidingArea.second;
+
+                for (auto mine: myCollidingPieces)
+                {
+                    RoadGraphics* mySegment = dynamic_cast<RoadGraphics*>(mine->parentItem());
+
+                    for (auto otherPiece : mine->collidingItems())
+                    {
+                        LaneSegmentGraphics* collisionSegmentItem = dynamic_cast<LaneSegmentGraphics*>(otherPiece);
+                        if (collisionSegmentItem == nullptr)
+                        {
+                            continue;
+                        }
+
+                        RoadGraphics* collidingGraphicsSegment = dynamic_cast<RoadGraphics*>(collisionSegmentItem->parentItem());
+                        if (collidingGraphicsSegment->road.lock() == colliding.first &&
+                            SegmentsIntersect(sBeginOnOther, sEndOnOther,
+                            collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd))
+                        {
+                            myCollidingIntervals.Insert(mySegment->sBegin, mySegment->sEnd);
+                        }
+                    }
+                }
+
+                for (const auto& myCollidingInterval : myCollidingIntervals.Merge())
+                {
+                    auto overlap = std::make_unique<RoadsOverlap>(
+                        myCollidingInterval.first, myCollidingInterval.second,
+                        colliding.first, sBeginOnOther , sEndOnOther );
+                    spdlog::trace("Collision detected between road {} @{}~{} vs road {} @{}~{}",
+                        ID(), overlap->sBegin1, overlap->sEnd1,
+                        colliding.first->ID(), overlap->sBegin2, overlap->sEnd2);
+                    sortedOverlap.emplace(overlap->sBegin1, std::move(overlap));
+                }
+            }
+        }
+
+        if (sortedOverlap.empty())
+        {
+            return nullptr;
+        }
+        return std::move(sortedOverlap.begin()->second);
     }
 
 #endif

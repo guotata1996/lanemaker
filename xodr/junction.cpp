@@ -8,7 +8,7 @@ namespace RoadRunner
 {
     int GenerateConnections(std::string junctionID,
         std::vector<ConnectionInfo> connected,
-        std::vector<std::unique_ptr<Road>>& connectings)
+        std::vector<std::shared_ptr<Road>>& connectings)
     {
         auto errorCode = 0;
         // Collect endpoint info of each connected road
@@ -29,8 +29,9 @@ namespace RoadRunner
                 if (rightEntrance.laneCount != 0)
                 {
                     double offset = to_odr_unit(rightEntrance.offsetx2);
-                    odr::Vec2D origin = road->ref_line.get_xy(meetAt, offset);
-                    odr::Vec2D forward = road->ref_line.get_grad_xy(meetAt);
+                    odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
+                    odr::Vec2D origin = { origin3[0], origin3[1] };
+                    odr::Vec2D forward = odr::normalize(road->ref_line.get_grad_xy(meetAt));
                     outgoingEndpoints.push_back(RoadEndpoint
                         {
                             road,
@@ -45,8 +46,9 @@ namespace RoadRunner
                 if (leftExit.laneCount != 0)
                 {
                     double offset = to_odr_unit(leftExit.offsetx2);
-                    odr::Vec2D origin = road->ref_line.get_xy(meetAt, offset);
-                    odr::Vec2D forward = odr::negate(road->ref_line.get_grad_xy(meetAt));
+                    odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
+                    odr::Vec2D origin = { origin3[0], origin3[1] };
+                    odr::Vec2D forward = odr::normalize(odr::negate(road->ref_line.get_grad_xy(meetAt)));
                     incomingEndpoints.push_back(RoadEndpoint
                         {
                             road,
@@ -66,8 +68,9 @@ namespace RoadRunner
                 if (rightExit.laneCount != 0)
                 {
                     double offset = to_odr_unit(rightExit.offsetx2);
-                    odr::Vec2D origin = road->ref_line.get_xy(meetAt, offset);
-                    odr::Vec2D forward = road->ref_line.get_grad_xy(meetAt);
+                    odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
+                    odr::Vec2D origin = { origin3[0], origin3[1] };
+                    odr::Vec2D forward = odr::normalize(road->ref_line.get_grad_xy(meetAt));
                     incomingEndpoints.push_back(RoadEndpoint
                         {
                             road,
@@ -83,8 +86,9 @@ namespace RoadRunner
                 if (leftEntrance.laneCount != 0)
                 {
                     double offset = to_odr_unit(leftEntrance.offsetx2);
-                    odr::Vec2D origin = road->ref_line.get_xy(meetAt, offset);
-                    odr::Vec2D forward = odr::negate(road->ref_line.get_grad_xy(road->length));
+                    odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
+                    odr::Vec2D origin = { origin3[0], origin3[1] };
+                    odr::Vec2D forward = odr::normalize(odr::negate(road->ref_line.get_grad_xy(road->length)));
                     outgoingEndpoints.push_back(RoadEndpoint
                         {
                             road,
@@ -262,7 +266,7 @@ namespace RoadRunner
 
             RoadRunner::RoadProfile connectingProfile(0, 0, turningGroup.nLanes, turningGroup.nLanes);
 
-            auto connecting = std::make_unique<Road>(connectingProfile, connectingRefLine);
+            auto connecting = std::make_shared<Road>(connectingProfile, connectingRefLine);
             connecting->Generate();
 
             // Assign linkage
@@ -536,6 +540,20 @@ namespace RoadRunner
                 roadPtr->successorJunction = shared_from_this();
             }
         });
+
+#ifndef G_TEST
+        for (auto& connecting : connectingRoads)
+        {
+            if (connecting->Length() < 500)
+            {
+                connecting->GenerateAllSectionGraphics();
+            }
+            else
+            {
+                spdlog::warn("Connecting road longer than usual. Discarded!");
+            }
+        }
+#endif
 
         IDGenerator::ForJunction()->NotifyChange(ID());
 

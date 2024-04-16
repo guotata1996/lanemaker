@@ -162,7 +162,7 @@ namespace RoadRunner
 
         std::string ID() { return generated.id; }
 
-        std::vector<std::unique_ptr<Road>> connectingRoads;
+        std::vector<std::shared_ptr<Road>> connectingRoads;
 
         odr::Junction generated;
 

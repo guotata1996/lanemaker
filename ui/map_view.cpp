@@ -154,7 +154,8 @@ void MapView::keyPressEvent(QKeyEvent* evt)
         auto g_road = g_PointerRoad.lock();
         if (g_road != nullptr)
         {
-            spdlog::info("Road {0}: Length= {1:.3f}", g_road->ID(), g_road->Length());
+            spdlog::info("Road {0}: Length= {1:.3f} Junction:{2}", g_road->ID(), g_road->Length(), 
+                g_road->generated.junction);
             g_road->profile.PrintDetails();
         }
     }

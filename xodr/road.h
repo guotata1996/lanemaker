@@ -69,6 +69,23 @@ namespace RoadRunner
         void GenerateOrUpdateSectionGraphicsBetween(double s1, double s2);
 
         double SnapToSegmentBoundary(double key, double limit);
+
+        struct RoadsOverlap
+        {
+            RoadsOverlap(double aSBegin1, double aSEnd1, 
+                std::weak_ptr<Road> aRoad2, double aSBegin2, double aSEnd2):
+                sBegin1(aSBegin1), sEnd1(aSEnd1), 
+                road2(aRoad2), sBegin2(aSBegin2), sEnd2(aSEnd2)
+            {
+
+            }
+            double sBegin1, sEnd1;
+            std::weak_ptr<Road> road2;
+            double sBegin2, sEnd2;
+            // TODO: join to an existing junction
+        };
+
+        std::unique_ptr<RoadsOverlap> FirstOverlapNonJunction(double sBegin, double sEnd) const;
 #endif
     private:
         void PlaceOdrRoadMarkings();
@@ -79,7 +96,8 @@ namespace RoadRunner
         // Prevent formation of too-short segment
         void SnapToSegmentBoundary(type_s& key, type_s limit = 10);
 
-        const double GraphicsDivision = 20;
+        // Determines resolution for collision detection
+        const double GraphicsDivision = 5;
 
         const double NeglectableLength = 0.01f;
 
