@@ -1,5 +1,14 @@
 #pragma once
-#include "OpenDriveMap.h"
+#include <map>
+#include <set>
+
+#include "Geometries/CubicSpline.h"
+#include "LaneSection.h"
+
+namespace odr
+{
+    class Road;
+}
 
 namespace RoadRunner
 {
@@ -59,7 +68,7 @@ namespace RoadRunner
 
         bool HasSide(int side);
 
-        void Apply(double length, odr::Road&);
+        void Apply(double length, odr::Road*);
 
         void PrintDetails();
 
@@ -85,7 +94,7 @@ namespace RoadRunner
             const std::map<double, odr::Poly3> rightOffsets,
             type_s length) const;
 
-        void _MergeSides(odr::Road& rtn,
+        void _MergeSides(odr::Road* rtn,
             const std::map<double, odr::LaneSection>& leftSections,
             const std::map<double, odr::Poly3>& centerWidths,
             const std::map<double, odr::LaneSection>& rightSections,

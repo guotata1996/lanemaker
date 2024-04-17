@@ -15,7 +15,7 @@ qt5_add_resources(srcs_for_exe ui/images.qrc)
 
 add_executable(${CMAKE_PROJECT_NAME} main.cpp 
     xodr/road_profile.cpp xodr/road.cpp xodr/junction.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp
-    xodr/id_generator.cpp xodr/map_exporter.cpp xodr/world.cpp
+    xodr/id_generator.cpp xodr/change_tracker.cpp xodr/world.cpp
     ui/mainwindow.cpp ui/main_widget.cpp ui/map_view.cpp ${srcs_for_exe}
     ui/road_graphics.cpp ui/road_drawing.cpp ui/road_destruction.cpp 
     ui/CreateRoadOptionWidget.cpp
@@ -57,7 +57,7 @@ add_executable(
   RoadRunnerTest
   test/test.cc test/randomization_utils.cpp
   xodr/road_profile.cpp xodr/road.cpp xodr/junction.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp
-  xodr/id_generator.cpp xodr/map_exporter.cpp
+  xodr/id_generator.cpp xodr/change_tracker.cpp
 )
 
 target_include_directories(RoadRunnerTest PRIVATE

@@ -1,4 +1,5 @@
 #include "road_profile.h"
+#include "Road.h"
 
 #include <sstream>
 #include <cassert>
@@ -677,7 +678,7 @@ namespace RoadRunner
         return centerWidths;
     }
 
-    void RoadProfile::_MergeSides(odr::Road& rtn,
+    void RoadProfile::_MergeSides(odr::Road* rtn,
         const std::map<double, odr::LaneSection>& leftSections,
         const std::map<double, odr::Poly3>& centerWidths,
         const std::map<double, odr::LaneSection>& rightSections,
@@ -711,8 +712,8 @@ namespace RoadRunner
             const odr::LaneSection& rightSection = rightSections.at(keyRight);
             odr::Poly3 centerWidth = centerWidths.at(keyCenter);
 
-            odr::LaneSection section(rtn.id, sectionStart);
-            odr::Lane center(rtn.id, sectionStart, 0, false, "");
+            odr::LaneSection section(rtn->id, sectionStart);
+            odr::Lane center(rtn->id, sectionStart, 0, false, "");
             section.id_to_lane.emplace(0, center);
 
             for (const auto& idToLane : rightSection.id_to_lane)
@@ -721,7 +722,7 @@ namespace RoadRunner
                 int newLaneID = idToLane.first;
                 if (newLaneID == 0) continue; // Skip center lane
 
-                odr::Lane newLane(rtn.id, sectionStart, newLaneID, false, "driving");
+                odr::Lane newLane(rtn->id, sectionStart, newLaneID, false, "driving");
                 for (auto s0_poly : rightLane.lane_width.s0_to_poly)
                 {
                     s0_poly.second.ComputeRelative(sectionStart);
@@ -757,7 +758,7 @@ namespace RoadRunner
 
             {
                 centerWidth.ComputeRelative(sectionStart);
-                odr::Lane medianLane(rtn.id, sectionStart, leftIDStart, false, "median");
+                odr::Lane medianLane(rtn->id, sectionStart, leftIDStart, false, "median");
                 if (std::abs(centerWidth.a) + std::abs(centerWidth.b) + std::abs(centerWidth.c) + std::abs(centerWidth.d) > 1e-3)
                     medianLane.lane_width.s0_to_poly.emplace(keyCenter, centerWidth);
                 section.id_to_lane.emplace(1, medianLane);
@@ -769,7 +770,7 @@ namespace RoadRunner
                 int newLaneID = idToLane.first + leftIDStart;
                 if (newLaneID == 1) continue; // Skip center lane
 
-                odr::Lane newLane(rtn.id, sectionStart, newLaneID, false, "driving");
+                odr::Lane newLane(rtn->id, sectionStart, newLaneID, false, "driving");
                 for (auto s0_poly : leftLane.lane_width.s0_to_poly)
                 {
                     s0_poly.second.ComputeRelative(sectionStart);
@@ -810,7 +811,7 @@ namespace RoadRunner
                 section.id_to_lane.emplace(newLaneID, newLane);
             }
 
-            rtn.s_to_lanesection.emplace(sectionStart, section);
+            rtn->s_to_lanesection.emplace(sectionStart, section);
 
             if (sectionEnd == nextLeft)
             {
@@ -827,14 +828,14 @@ namespace RoadRunner
         }
     }
 
-    void RoadProfile::Apply(double _length, odr::Road& rtn)
+    void RoadProfile::Apply(double _length, odr::Road* rtn)
     {
         // Fail if either side is undefined
         assert(_length > 0);
         assert(!leftProfiles.empty() || !rightProfiles.empty());
-        rtn.length = _length;
+        rtn->length = _length;
 
-        rtn.s_to_lanesection.clear();
+        rtn->s_to_lanesection.clear();
 
         type_s length = from_odr_unit(_length);
 
@@ -850,7 +851,7 @@ namespace RoadRunner
                     rightProfiles.erase(key);
                 }
             }
-            ConvertSide(true, rtn.id, length, rightSections, rightOffsets);
+            ConvertSide(true, rtn->id, length, rightSections, rightOffsets);
         }
 
         if (!leftProfiles.empty())
@@ -876,26 +877,26 @@ namespace RoadRunner
                 }
             }
             
-            ConvertSide(false, rtn.id, length, leftSections, leftOffsets);
+            ConvertSide(false, rtn->id, length, leftSections, leftOffsets);
         }
         // from this point, s keys align with road coordinate
 
         // Special cases: single-direction road
         if (rightProfiles.empty())
         {
-            rtn.lane_offset.s0_to_poly = leftOffsets;
-            rtn.s_to_lanesection = leftSections;
+            rtn->lane_offset.s0_to_poly = leftOffsets;
+            rtn->s_to_lanesection = leftSections;
             return;
         }
         if (leftProfiles.empty())
         {
-            rtn.lane_offset.s0_to_poly = rightOffsets;
-            rtn.s_to_lanesection = rightSections;
+            rtn->lane_offset.s0_to_poly = rightOffsets;
+            rtn->s_to_lanesection = rightSections;
             return;
         }
 
         // General case
-        rtn.lane_offset.s0_to_poly = rightOffsets;
+        rtn->lane_offset.s0_to_poly = rightOffsets;
 
         std::stringstream SPDLOG_LKEYS, SPDLOG_RKEYS;
         std::for_each(rightSections.cbegin(), rightSections.cend(),

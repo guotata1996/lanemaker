@@ -36,7 +36,7 @@ namespace RoadRunner
 
     void Road::Generate(bool notifyJunctions)
     {
-        profile.Apply(Length(), generated);
+        profile.Apply(Length(), &generated);
 
         PlaceOdrRoadMarkings();
         generated.DeriveLaneBorders();
