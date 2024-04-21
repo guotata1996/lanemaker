@@ -18,25 +18,32 @@
 namespace RoadRunner
 {
     Road::Road(const RoadProfile& p, std::shared_ptr<odr::RoadGeometry> l) :
-        generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1"),
-        profile(p)
+        generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1")
     {
+        generated.rr_profile = p;
         generated.ref_line.length = l->length;
         generated.ref_line.s0_to_geometry.emplace(0, l->clone());
         Generate();
     }
 
     Road::Road(const RoadProfile& p, odr::RefLine& l) :
-        generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1"),
-        profile(p)
+        generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1")
     {
+        generated.rr_profile = p;
         generated.ref_line = std::move(l);
+        Generate();
+    }
+
+    Road::Road(const odr::Road& serialized):
+        generated(serialized)
+    {
+        IDGenerator::ForRoad()->TakeID(ID(), this);
         Generate();
     }
 
     void Road::Generate(bool notifyJunctions)
     {
-        profile.Apply(Length(), &generated);
+        generated.rr_profile.Apply(Length(), &generated);
 
         PlaceOdrRoadMarkings();
         generated.DeriveLaneBorders();
@@ -61,6 +68,7 @@ namespace RoadRunner
         generated.ref_line.reverse();
 
         type_s length = from_odr_unit(Length());
+        auto profile = generated.rr_profile;
         decltype(profile) newProfile(
             profile.RightEntrance().laneCount, -profile.RightEntrance().offsetx2,
             profile.LeftEntrance().laneCount,  -profile.LeftEntrance().offsetx2);
@@ -81,7 +89,7 @@ namespace RoadRunner
                 rSectionInfo.second.laneCount, -rSectionInfo.second.offsetx2);
         }
         
-        profile = newProfile;
+        generated.rr_profile = newProfile;
         Generate(false);
 
         // Handle linkage
@@ -205,7 +213,7 @@ namespace RoadRunner
     void Road::SnapToSegmentBoundary(type_s& key, type_s limit)
     {
         type_s profileLength = RoadRunner::from_odr_unit(Length());
-        auto existingKeys = profile.GetAllKeys(profileLength);
+        auto existingKeys = generated.rr_profile.GetAllKeys(profileLength);
 
         if (key < limit)
         {

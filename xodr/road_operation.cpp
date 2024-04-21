@@ -34,8 +34,8 @@ namespace RoadRunner
             road2->ReverseRefLine();
         }
 
-        if (road1->profile.RightExit().laneCount > 0 != road2->profile.RightEntrance().laneCount > 0
-            || road2->profile.LeftExit().laneCount > 0 != road1->profile.LeftEntrance().laneCount > 0)
+        if (road1->generated.rr_profile.RightExit().laneCount > 0 != road2->generated.rr_profile.RightEntrance().laneCount > 0
+            || road2->generated.rr_profile.LeftExit().laneCount > 0 != road1->generated.rr_profile.LeftEntrance().laneCount > 0)
         {
             return RoadJoin_DirNoOutlet;
         }
@@ -95,16 +95,16 @@ namespace RoadRunner
         road1->SnapToSegmentBoundary(road2Base);
 #endif
         // Join right profile
-        if (road1->profile.HasSide(-1))
+        if (road1->generated.rr_profile.HasSide(-1))
         {
             if (road2Base != linkBase)
             {
-                road1->profile.OverwriteSection(-1,
+                road1->generated.rr_profile.OverwriteSection(-1,
                     linkBase, road2Base,
-                    road1->profile.RightExit().laneCount, road1->profile.RightExit().offsetx2);
+                    road1->generated.rr_profile.RightExit().laneCount, road1->generated.rr_profile.RightExit().offsetx2);
             }
 
-            for (const auto& road2section : road2->profile.GetAllSections(from_odr_unit(road2->Length()), -1))
+            for (const auto& road2section : road2->generated.rr_profile.GetAllSections(from_odr_unit(road2->Length()), -1))
             {
                 type_s newStart = road2section.first.first + road2Base;
                 type_s newEnd = road2section.first.second + road2Base;
@@ -112,21 +112,21 @@ namespace RoadRunner
                 road1->SnapToSegmentBoundary(newStart);
                 road1->SnapToSegmentBoundary(newEnd);
 #endif
-                road1->profile.OverwriteSection(-1, newStart, newEnd,
+                road1->generated.rr_profile.OverwriteSection(-1, newStart, newEnd,
                     road2section.second.laneCount, road2section.second.offsetx2);
             }
         }
         // Join left profile
-        if (road1->profile.HasSide(1))
+        if (road1->generated.rr_profile.HasSide(1))
         {
             if (road2Base != linkBase)
             {
-                road1->profile.OverwriteSection(1,
+                road1->generated.rr_profile.OverwriteSection(1,
                     road2Base, linkBase,
-                    road1->profile.LeftEntrance().laneCount, road1->profile.LeftEntrance().offsetx2);
+                    road1->generated.rr_profile.LeftEntrance().laneCount, road1->generated.rr_profile.LeftEntrance().offsetx2);
             }
 
-            for (const auto& road2section : road2->profile.GetAllSections(from_odr_unit(road2->Length()), 1))
+            for (const auto& road2section : road2->generated.rr_profile.GetAllSections(from_odr_unit(road2->Length()), 1))
             {
                 type_s newStart = road2section.first.first + road2Base;
                 type_s newEnd = road2section.first.second + road2Base;
@@ -134,7 +134,7 @@ namespace RoadRunner
                 road1->SnapToSegmentBoundary(newStart);
                 road1->SnapToSegmentBoundary(newEnd);
 #endif
-                road1->profile.OverwriteSection(1, newStart, newEnd,
+                road1->generated.rr_profile.OverwriteSection(1, newStart, newEnd,
                     road2section.second.laneCount, road2section.second.offsetx2);
             }
         }
@@ -171,7 +171,7 @@ namespace RoadRunner
     {
         type_s oldLength = from_odr_unit(roadAsPrev->Length());
         type_s splitPoint = from_odr_unit(s);
-        RoadProfile& oldProfile = roadAsPrev->profile;
+        RoadProfile& oldProfile = roadAsPrev->generated.rr_profile;
         RoadProfile profile1(oldProfile.LeftExit().laneCount, oldProfile.LeftExit().offsetx2,
             oldProfile.RightEntrance().laneCount, oldProfile.RightEntrance().offsetx2);
         RoadProfile profile2(oldProfile.LeftEntrance().laneCount, oldProfile.LeftEntrance().offsetx2,
@@ -219,7 +219,7 @@ namespace RoadRunner
 
         auto refLine2 = roadAsPrev->RefLine().split(s);
         auto part2 = std::make_shared<Road>(profile2, refLine2);
-        roadAsPrev->profile = profile1;
+        roadAsPrev->generated.rr_profile = profile1;
         roadAsPrev->Generate();
 
         if (roadAsPrev->successorJunction != nullptr)

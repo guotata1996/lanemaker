@@ -26,13 +26,5 @@ int main(int argc, char** argv)
     MainWindow window;
     window.show();
 
-    auto refLine1 = std::make_shared<odr::Line>(0, -50, 0, 0, 100);
-    RoadRunner::RoadProfile config(2, 1, 2, -1);
-    config.OverwriteSection(-1, 30.0, 70.0, 3, 0);
-    std::shared_ptr<RoadRunner::Road> r1 = std::make_shared<RoadRunner::Road>(config, refLine1);
-    r1->GenerateAllSectionGraphics();
-    World::Instance()->allRoads.insert(r1);
-    r1.reset();
-
     return app.exec();
 }

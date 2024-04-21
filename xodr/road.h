@@ -22,6 +22,8 @@ namespace RoadRunner
 
         Road(const RoadProfile& p, odr::RefLine& l);
 
+        Road(const odr::Road& serialized);
+
         ~Road();
 
         Road(const Road& another) = delete; // No copy costruct
@@ -55,11 +57,6 @@ namespace RoadRunner
 
         static std::shared_ptr<Road> SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s);
 
-        // Member variables
-        odr::Road generated;
-        RoadProfile profile;
-
-        std::shared_ptr<Junction> successorJunction, predecessorJunction;
 #ifndef G_TEST
         // Expensive, but safe
         void GenerateAllSectionGraphics();
@@ -87,6 +84,12 @@ namespace RoadRunner
 
         std::unique_ptr<RoadsOverlap> FirstOverlapNonJunction(double sBegin, double sEnd) const;
 #endif
+
+        // Member variables
+        odr::Road generated;
+
+        std::shared_ptr<Junction> successorJunction, predecessorJunction;
+
     private:
         void PlaceOdrRoadMarkings();
 

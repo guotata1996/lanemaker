@@ -18,7 +18,7 @@ namespace RoadRunner
             auto roadPtr = roadAndS.road.lock();
             odr::Road* road = &roadPtr->generated;
             double meetAt = roadAndS.contact == odr::RoadLink::ContactPoint_Start ? 0 : road->length;
-            RoadProfile config = roadPtr->profile;
+            RoadProfile config = roadPtr->generated.rr_profile;
             odr::LaneSection meetSection = meetAt == 0 ? 
                 road->s_to_lanesection.begin()->second : road->s_to_lanesection.rbegin()->second;
             
@@ -497,10 +497,16 @@ namespace RoadRunner
         }
     }
 
-    Junction::Junction(std::string id):
-        generated("", id.empty() ? IDGenerator::ForJunction()->GenerateID(this) : id)
+    Junction::Junction():
+        generated("", IDGenerator::ForJunction()->GenerateID(this))
     {
         generated.name = "Junction " + generated.id;
+    }
+
+    Junction::Junction(const odr::Junction& serialized):
+        generated(serialized)
+    {
+        IDGenerator::ForJunction()->TakeID(ID(), this);
     }
 
     int Junction::CreateFrom(const std::vector<ConnectionInfo>& connected)
@@ -685,7 +691,7 @@ namespace RoadRunner
         {
             if (!connectingRoad.road.expired())
             {
-                spdlog::error("Junction gets destroyed before its connecting road!");
+                spdlog::error("Junction gets destroyed before its connected road!");
             }
         }
 
@@ -699,6 +705,49 @@ namespace RoadRunner
             //}
             // connectingRoads.clear();
             IDGenerator::ForJunction()->FreeID(ID());
+        }
+    }
+
+    std::set<std::shared_ptr<Road>> Junction::StillConnectedRoads()
+    {
+        std::set<std::shared_ptr<Road>> rtn;
+        for (auto connected : formedFrom)
+        {
+            auto sharedPtr = connected.road.lock();
+            if (sharedPtr != nullptr)
+            {
+                rtn.insert(sharedPtr);
+            }
+        }
+        return rtn;
+    }
+
+    void Junction::AttachNoRegenerate(ConnectionInfo conn)
+    {
+        formedFrom.insert(conn);
+        if (conn.contact == odr::RoadLink::ContactPoint_Start)
+        {
+            conn.road.lock()->predecessorJunction = shared_from_this();
+        }
+        else
+        {
+            conn.road.lock()->successorJunction = shared_from_this();
+        }
+    }
+
+    void Junction::DetachNoRegenerate(std::shared_ptr<Road> road)
+    {
+        auto myPtr = shared_from_this();
+        if (road->successorJunction == myPtr)
+        {
+            formedFrom.erase(RoadRunner::ConnectionInfo(road, odr::RoadLink::ContactPoint_End));
+            road->successorJunction.reset();
+        }
+        
+        if (road->predecessorJunction == myPtr)
+        {
+            formedFrom.erase(RoadRunner::ConnectionInfo(road, odr::RoadLink::ContactPoint_Start));
+            road->predecessorJunction.reset();
         }
     }
 

@@ -19,16 +19,22 @@ namespace RoadRunner
     type_s from_odr_unit(type_s) = delete;
 
     RoadProfile::RoadProfile(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right)
+    { 
+        SetDefault(nLanes_Left, offsetX2_Left, nLanes_Right, offsetX2_Right);
+    }
+
+    void RoadProfile::SetDefault(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right) 
     {
+        assert(rightProfiles.empty());
+        assert(leftProfiles.empty());
+
         if (nLanes_Right != 0)
         {
-            rightProfiles.emplace(0,
-                SectionProfile{ offsetX2_Right, static_cast<int8_t>(nLanes_Right) });
+            rightProfiles.emplace(0, SectionProfile{offsetX2_Right, static_cast<int8_t>(nLanes_Right)});
         }
         if (nLanes_Left != 0)
         {
-            leftProfiles.emplace(std::numeric_limits<uint32_t>::max(),
-                SectionProfile{ offsetX2_Left, static_cast<int8_t>(nLanes_Left) });
+            leftProfiles.emplace(std::numeric_limits<uint32_t>::max(), SectionProfile{offsetX2_Left, static_cast<int8_t>(nLanes_Left)});
         }
     }
 

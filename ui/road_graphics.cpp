@@ -151,13 +151,6 @@ namespace RoadRunner
         Stats::Instance("LaneSegmentGraphics Created")->Increment();
     }
 
-    void LaneSegmentGraphics::mousePressEvent(QGraphicsSceneMouseEvent* evt)
-    {
-        QGraphicsPolygonItem::mousePressEvent(evt);
-
-        spdlog::info("Mouse press evt on GraphicsItem @ {},{}", evt->pos().x(), evt->pos().y());
-    }
-
     bool LaneSegmentGraphics::SnapCursor(QPointF scenePos)
     {
         auto parentRoad = dynamic_cast<RoadRunner::RoadGraphics*>(parentItem());

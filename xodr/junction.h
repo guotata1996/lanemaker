@@ -20,8 +20,8 @@ namespace RoadRunner
             if (inRoad != nullptr)
             {
                 bool contactAtStart = contact == odr::RoadLink::ContactPoint_Start;
-                leftProfile = contactAtStart ? inRoad->profile.LeftExit() : inRoad->profile.LeftEntrance();
-                rightProfile = contactAtStart ? inRoad->profile.RightEntrance() : inRoad->profile.RightExit();
+                leftProfile = contactAtStart ? inRoad->generated.rr_profile.LeftExit() : inRoad->generated.rr_profile.LeftEntrance();
+                rightProfile = contactAtStart ? inRoad->generated.rr_profile.RightEntrance() : inRoad->generated.rr_profile.RightExit();
                 refLinePos = inRoad->RefLine().get_xy(contactAtStart ? 0 : inRoad->Length());
                 refLineHdg = inRoad->RefLine().get_hdg(contactAtStart ? 0 : inRoad->Length());
             }
@@ -146,7 +146,9 @@ namespace RoadRunner
     class Junction: public std::enable_shared_from_this<Junction>
     {
     public:
-        Junction(std::string id="");
+        Junction();
+
+        Junction(const odr::Junction& serialized);
 
         Junction(const Junction& another) = delete; // No copy costruct
         Junction& operator=(const Junction& another) = delete; // No copy assignment
@@ -167,6 +169,12 @@ namespace RoadRunner
         odr::Junction generated;
 
         int generationError = 0;
+
+        std::set< std::shared_ptr<Road>> StillConnectedRoads();
+
+        void AttachNoRegenerate(ConnectionInfo);
+
+        void DetachNoRegenerate(std::shared_ptr<Road>);
 #ifndef G_TEST
     private:
 #endif

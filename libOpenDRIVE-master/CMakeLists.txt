@@ -18,6 +18,8 @@ else()
     set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif()
 
+find_package(spdlog REQUIRED)
+
 set(SOURCES 
     src/Geometries/Arc.cpp
     src/Geometries/CubicSpline.cpp
@@ -39,6 +41,7 @@ set(SOURCES
     src/RoadSignal.cpp
     src/RoutingGraph.cpp
     thirdparty/pugixml/pugixml.cpp
+    src/road_profile.cpp
 )
 
 add_library(OpenDrive ${SOURCES})
@@ -46,6 +49,7 @@ target_include_directories(OpenDrive
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/thirdparty>)
+target_link_libraries(OpenDrive PRIVATE spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)
 
 add_executable(test-xodr test.cpp)
 target_link_libraries(test-xodr OpenDrive)

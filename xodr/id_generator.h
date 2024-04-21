@@ -7,8 +7,6 @@
 // TODO: template? for type
 class IDGenerator
 {
-    typedef uint32_t IDType;
-
 public:
     IDGenerator(IDGenerator&) = delete;
     IDGenerator& operator=(const IDGenerator&) = delete;
@@ -19,8 +17,11 @@ public:
     std::string GenerateID(void* object); // Added to changeList
     void NotifyChange(const std::string&);  // Added to changeList
     bool FreeID(const std::string&);  // Added to changeList
+    void TakeID(std::string id, void* object); // Maintain ID from serialized
+    void* GetByID(std::string id);
 
-    std::map<IDType, void*> ConsumeChanges();
+    std::map<size_t, void*> ConsumeChanges();
+    void ClearChangeList();
     
 private:
     IDGenerator(std::string aType);
@@ -30,8 +31,8 @@ private:
 
     std::string type;
     std::vector<bool> assigned;
-    std::map<IDType, void*> assignTo;
+    std::map<size_t, void*> assignTo;
 
-    std::map<IDType, void*> changeList; // Changes since last time ConsumeChanges() was called
+    std::map<size_t, void*> changeList; // Changes since last time ConsumeChanges() was called
 };
 

@@ -43,9 +43,6 @@ namespace RoadRunner
 
         std::shared_ptr<Road> Road() const;
 
-    protected:
-        void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
-
     private:
         std::vector<QPolygonF> subdivisionPolys;
         /*0, 0.05, ..., 0.95, 1*/

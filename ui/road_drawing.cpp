@@ -303,12 +303,14 @@ void RoadCreationSession::CreateRoad()
     newRoad->GenerateAllSectionGraphics();
 
     bool standaloneRoad = true;
+    bool joinPlusExtend = false;
     // Which part of newRoad will be newly-created?
     double addedSBegin = 0;
     double newLength = newRoad->Length();
     if (!extendFromStart.expired())
     {
         standaloneRoad = false;
+        joinPlusExtend = true;
         auto toExtend = extendFromStart.lock();
         addedSBegin += toExtend->Length();
         int joinResult = RoadRunner::Road::JoinRoads(toExtend, extendFromStartContact,
@@ -323,9 +325,15 @@ void RoadCreationSession::CreateRoad()
 
     if (!joinAtEnd.expired())
     {
+        if (joinPlusExtend)
+        {
+            world->allRoads.erase(newRoad);
+        }
+
         standaloneRoad = false;
         auto toJoin = joinAtEnd.lock();
         addedSBegin = toJoin->Length();
+
         int joinResult = RoadRunner::Road::JoinRoads(toJoin, joinAtEndContact, 
             newRoad, odr::RoadLink::ContactPoint_End);
         if (joinResult != 0)

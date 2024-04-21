@@ -1,6 +1,8 @@
 #include "view.h"
 #include "road_drawing.h"
 #include "road_graphics.h"
+#include "change_tracker.h"
+#include "junction.h"
 
 #include <sstream>
 #include <qevent.h>
@@ -154,9 +156,30 @@ void MapView::keyPressEvent(QKeyEvent* evt)
         auto g_road = g_PointerRoad.lock();
         if (g_road != nullptr)
         {
-            spdlog::info("Road {0}: Length= {1:.3f} Junction:{2}", g_road->ID(), g_road->Length(), 
-                g_road->generated.junction);
-            g_road->profile.PrintDetails();
+            spdlog::info("Road {0}: Length= {1:.3f} Junc:{2} PredJunc:{3} SuccJunc:{4}", 
+                g_road->ID(), g_road->Length(), 
+                g_road->generated.junction,
+                g_road->generated.predecessor.type != odr::RoadLink::Type_Junction ? "-1" : g_road->generated.predecessor.id,
+                g_road->generated.successor.type != odr::RoadLink::Type_Junction ? "-1" : g_road->generated.successor.id);
+
+            if (g_road->generated.junction == "-1")
+            {
+                g_road->generated.rr_profile.PrintDetails();
+            }
+            else
+            {
+                auto junc = static_cast<RoadRunner::Junction*>(IDGenerator::ForJunction()->GetByID(g_road->generated.junction));
+                spdlog::info("Junction has {} connected and {} connecting",
+                    junc->StillConnectedRoads().size(),
+                    junc->connectingRoads.size());
+            }
+        }
+        else
+        {
+            spdlog::info("NonConnRoad={}, NRoadID={}, JuctionID={}",
+                World::Instance()->allRoads.size(),
+                IDGenerator::ForRoad()->size(),
+                IDGenerator::ForJunction()->size());
         }
     }
 }
@@ -200,7 +223,9 @@ void MapView::AdjustSceneRect()
 
 void MapView::confirmEdit()
 {
+    RoadRunner::ChangeTracker::Instance()->StartRecordEdit();
     drawingSession->Complete();
+    RoadRunner::ChangeTracker::Instance()->FinishRecordEdit();
     quitEdit();
 
     AdjustSceneRect();

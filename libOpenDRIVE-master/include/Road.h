@@ -7,6 +7,7 @@
 #include "RoadObject.h"
 #include "RoadSignal.h"
 #include "XmlNode.h"
+#include "road_profile.h"
 
 #include <cstddef>
 #include <map>
@@ -139,6 +140,7 @@ public:
     std::map<double, SpeedRecord>     s_to_speed;
     std::map<std::string, RoadObject> id_to_object;
     std::map<std::string, RoadSignal> id_to_signal;
+    RoadRunner::RoadProfile           rr_profile;
 };
 
 } // namespace odr

@@ -68,6 +68,29 @@ OpenDriveMap::OpenDriveMap(const std::string& xodr_file,
                            const bool         with_road_signals) :
     xodr_file(xodr_file)
 {
+    Load(xodr_file,
+         center_map,
+         with_road_objects,
+         with_lateral_profile,
+         with_lane_height,
+         abs_z_for_for_local_road_obj_outline,
+         fix_spiral_edge_cases,
+         with_road_signals);
+}
+
+bool OpenDriveMap::Load(const std::string& xodr_file,
+          const bool         center_map,
+          const bool         with_road_objects,
+          const bool         with_lateral_profile,
+          const bool         with_lane_height,
+          const bool         abs_z_for_for_local_road_obj_outline,
+          const bool         fix_spiral_edge_cases,
+          const bool         with_road_signals)
+{
+    id_to_road.clear();
+    id_to_junction.clear();
+    bool supported = true;
+
     pugi::xml_parse_result result = this->xml_doc.load_file(xodr_file.c_str());
     if (!result)
         printf("%s\n", result.description());
@@ -520,6 +543,40 @@ OpenDriveMap::OpenDriveMap(const std::string& xodr_file,
             }
         }
 
+        pugi::xml_node customProfile_node = road_node.child("roadRunnerProfile");
+        if (customProfile_node) 
+        {
+            pugi::xml_node leftProfile = customProfile_node.child("left");
+            if (leftProfile) 
+            {
+                for (auto sectionNode : leftProfile.children("section")) 
+                {
+                    auto s = sectionNode.attribute("type_s").as_uint();
+                    auto laneCount = sectionNode.attribute("laneCount").as_int();
+                    auto offsetX2 = sectionNode.attribute("offsetX2").as_int();
+                    RoadRunner::SectionProfile profile{offsetX2, laneCount};
+                    road.rr_profile.leftProfiles.emplace(s, profile);
+                }
+            }
+            
+            pugi::xml_node rightProfile = customProfile_node.child("right");
+            if (rightProfile) 
+            {
+                for (auto sectionNode : rightProfile.children("section"))
+                {
+                    auto                       s = sectionNode.attribute("type_s").as_uint();
+                    auto                       laneCount = sectionNode.attribute("laneCount").as_int();
+                    auto                       offsetX2 = sectionNode.attribute("offsetX2").as_int();
+                    RoadRunner::SectionProfile profile{offsetX2, laneCount};
+                    road.rr_profile.rightProfiles.emplace(s, profile);
+                }
+            }
+        }
+        else
+        {
+            supported = false;
+        }
+
         /* parse road objects */
         if (with_road_objects)
         {
@@ -679,6 +736,8 @@ OpenDriveMap::OpenDriveMap(const std::string& xodr_file,
             }
         }
     }
+
+    return supported;
 }
 
 std::vector<Road> OpenDriveMap::get_roads() const { return get_map_values(this->id_to_road); }
@@ -1047,6 +1106,30 @@ void OpenDriveMap::export_file(const std::string& fpath) const
                     }
                 }
                 // Missing user data
+            }
+        }
+        
+        pugi::xml_node customProfile = road_node.append_child("roadRunnerProfile");
+        if (!road.rr_profile.leftProfiles.empty()) 
+        {
+            pugi::xml_node customLeft = customProfile.append_child("left");
+            for (auto customProfile : road.rr_profile.leftProfiles)
+            {
+                pugi::xml_node section = customLeft.append_child("section");
+                section.append_attribute("type_s").set_value(customProfile.first);
+                section.append_attribute("laneCount").set_value(customProfile.second.laneCount);
+                section.append_attribute("offsetX2").set_value(customProfile.second.offsetx2);
+            }
+        }
+        if (!road.rr_profile.rightProfiles.empty()) 
+        {
+            pugi::xml_node customRight = customProfile.append_child("right");
+            for (auto customProfile : road.rr_profile.rightProfiles) 
+            {
+                pugi::xml_node section = customRight.append_child("section");
+                section.append_attribute("type_s").set_value(customProfile.first);
+                section.append_attribute("laneCount").set_value(customProfile.second.laneCount);
+                section.append_attribute("offsetX2").set_value(customProfile.second.offsetx2);
             }
         }
     }

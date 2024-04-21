@@ -43,7 +43,11 @@ namespace RoadRunner
     class RoadProfile
     {
     public:
+        RoadProfile(){};
+
         RoadProfile(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right);
+
+        void SetDefault(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right);
 
         RoadProfile& operator=(const RoadProfile& other);
 
@@ -71,6 +75,8 @@ namespace RoadRunner
         void Apply(double length, odr::Road*);
 
         void PrintDetails();
+
+        std::map<type_s, SectionProfile> leftProfiles, rightProfiles;
 
     protected:
         void ConvertSide(bool rightSide,
@@ -101,8 +107,6 @@ namespace RoadRunner
             type_s length) const;
 
         const type_s MaxTransitionS = MaxTransition * 100;
-
-        std::map<type_s, SectionProfile> leftProfiles, rightProfiles;
 
         struct TransitionInfo
         {

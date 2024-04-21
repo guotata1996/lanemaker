@@ -4,6 +4,8 @@
 #include <boost/optional.hpp>
 
 #include <string>
+#include <stack>
+#include <vector>
 namespace RoadRunner
 {
     class ChangeTracker
@@ -12,13 +14,14 @@ namespace RoadRunner
         ChangeTracker(ChangeTracker&) = delete;
         ChangeTracker& operator=(const ChangeTracker&) = delete;
         static ChangeTracker* Instance();
-
-        void Record();
+        
+        void StartRecordEdit();
+        void FinishRecordEdit();
         bool Undo();
         bool Redo();
 
         void Save(std::string path);
-        void load(std::string path);
+        bool Load(std::string path);
 
     private:
         ChangeTracker() {};
@@ -45,7 +48,9 @@ namespace RoadRunner
             std::vector< JunctionChange> junctionChanges;
         };
 
-        std::vector<MapChange> undoStack;
-        std::vector<MapChange> redoStack;
+        std::stack<MapChange> undoStack;
+        std::stack<MapChange> redoStack;
+
+        void RestoreChange(const MapChange& change);
     };
 }
