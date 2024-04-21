@@ -227,3 +227,8 @@ void MainWidget::rotateRight()
 {
     rotateSlider->setValue(rotateSlider->value() + 10);
 }
+
+void MainWidget::AdjustSceneRect()
+{
+    graphicsView->AdjustSceneRect();
+}

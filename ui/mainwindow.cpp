@@ -33,12 +33,12 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     scene = std::make_unique<QGraphicsScene>(this);
     g_scene = scene.get();
     
-    auto view = new MainWidget("Main View");
-    view->view()->setScene(g_scene);
+    mainWidget = new MainWidget("Main View");
+    mainWidget->view()->setScene(g_scene);
 
     auto mainLayout = new QVBoxLayout;
     mainLayout->addWidget(menu);
-    mainLayout->addWidget(view);
+    mainLayout->addWidget(mainWidget);
     
     setLayout(mainLayout);
 
@@ -77,6 +77,7 @@ void MainWindow::loadFromFile()
         {
             spdlog::error("xodr map needs to contain custom RoadProfile!");
         }
+        mainWidget->AdjustSceneRect();
     }
 }
 
@@ -86,6 +87,10 @@ void MainWindow::undo()
     {
         spdlog::warn("Cannot undo");
     }
+    else
+    {
+        mainWidget->AdjustSceneRect();
+    }
 }
 
 void MainWindow::redo()
@@ -93,5 +98,9 @@ void MainWindow::redo()
     if (!RoadRunner::ChangeTracker::Instance()->Redo())
     {
         spdlog::warn("Cannot redo");
+    }
+    else
+    {
+        mainWidget->AdjustSceneRect();
     }
 }

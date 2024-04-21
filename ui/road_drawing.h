@@ -36,6 +36,7 @@ public:
     CustomCursorItem() : QGraphicsEllipseItem(
         -InitialRadius, -InitialRadius, 
         2 * InitialRadius, 2 * InitialRadius) {
+        setZValue(99);
     }
 
     virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;

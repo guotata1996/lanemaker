@@ -35,6 +35,8 @@ public:
 
     void SetEditMode(EditMode aMode);
 
+    void AdjustSceneRect();
+
 protected:
 #if QT_CONFIG(wheelevent)
     void wheelEvent(QWheelEvent*) override;
@@ -47,8 +49,6 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
 
     void drawForeground(QPainter* painter, const QRectF& rect) override;
-
-    void AdjustSceneRect();
 
 private:
     const double ViewPadding = 100; // meters
@@ -71,6 +71,8 @@ public:
     explicit MainWidget(const QString& name, QWidget* parent = nullptr);
 
     QGraphicsView* view() const;
+
+    void AdjustSceneRect();
 
 public slots:
     void zoomIn();

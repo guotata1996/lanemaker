@@ -57,7 +57,7 @@ add_executable(
   RoadRunnerTest
   test/test.cc test/randomization_utils.cpp
   xodr/road.cpp xodr/junction.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp
-  xodr/id_generator.cpp xodr/change_tracker.cpp
+  xodr/id_generator.cpp
 )
 
 target_include_directories(RoadRunnerTest PRIVATE

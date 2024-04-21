@@ -305,14 +305,13 @@ void RoadCreationSession::CreateRoad()
     bool standaloneRoad = true;
     bool joinPlusExtend = false;
     // Which part of newRoad will be newly-created?
-    double addedSBegin = 0;
-    double newLength = newRoad->Length();
+    double newPartBegin = 0;
     if (!extendFromStart.expired())
     {
         standaloneRoad = false;
         joinPlusExtend = true;
         auto toExtend = extendFromStart.lock();
-        addedSBegin += toExtend->Length();
+        newPartBegin = toExtend->Length();
         int joinResult = RoadRunner::Road::JoinRoads(toExtend, extendFromStartContact,
             newRoad, odr::RoadLink::ContactPoint_Start);
         if (joinResult != 0)
@@ -332,7 +331,7 @@ void RoadCreationSession::CreateRoad()
 
         standaloneRoad = false;
         auto toJoin = joinAtEnd.lock();
-        addedSBegin = toJoin->Length();
+        newPartBegin = toJoin->Length();
 
         int joinResult = RoadRunner::Road::JoinRoads(toJoin, joinAtEndContact, 
             newRoad, odr::RoadLink::ContactPoint_End);
@@ -352,7 +351,7 @@ void RoadCreationSession::CreateRoad()
     const double JunctionExtaTrim = 10;
     while (true)
     {
-        auto overlap = newRoad->FirstOverlapNonJunction(addedSBegin, addedSBegin + newLength);
+        auto overlap = newRoad->FirstOverlapNonJunction(newPartBegin, newRoad->Length());
         if (overlap == nullptr)
         {
             break;
@@ -503,7 +502,6 @@ void RoadCreationSession::CreateRoad()
             break;
         }
         newRoad = newRoadPastJunction;
-        newLength = newRoad->Length();
-        addedSBegin = 0;
+        newPartBegin = 0;
     }
 }

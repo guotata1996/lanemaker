@@ -208,8 +208,6 @@ void MapView::drawForeground(QPainter* painter, const QRectF& rect)
         painter->restore();
     }
 
-    // ROADRUNNERTODO: draw cursor
-
     viewport()->update();
 }
 
