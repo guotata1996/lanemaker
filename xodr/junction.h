@@ -162,7 +162,7 @@ namespace RoadRunner
         void NotifyPotentialChange();
         void NotifyPotentialChange(const ChangeInConnecting&);
 
-        std::string ID() { return generated.id; }
+        std::string ID() const { return generated.id; }
 
         std::vector<std::shared_ptr<Road>> connectingRoads;
 
@@ -170,11 +170,13 @@ namespace RoadRunner
 
         int generationError = 0;
 
-        std::set< std::shared_ptr<Road>> StillConnectedRoads();
+        std::set< std::shared_ptr<Road>> StillConnectedRoads() const;
 
         void AttachNoRegenerate(ConnectionInfo);
 
         void DetachNoRegenerate(std::shared_ptr<Road>);
+
+        std::string Log() const;
 #ifndef G_TEST
     private:
 #endif

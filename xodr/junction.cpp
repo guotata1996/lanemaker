@@ -2,6 +2,7 @@
 #include "curve_fitting.h"
 #include <cmath> // floor, ceil
 #include <map>
+#include <sstream>
 #include "id_generator.h"
 
 namespace RoadRunner
@@ -608,14 +609,16 @@ namespace RoadRunner
             else if (detail._type == detail.Type_Reverse && subject == recordedRoad)
             {
                 needReGen = true;
-                updatedInfo.contact = record.contact == odr::RoadLink::ContactPoint_Start ?
+                
+                auto newContact = record.contact == odr::RoadLink::ContactPoint_Start ?
                     odr::RoadLink::ContactPoint_End : odr::RoadLink::ContactPoint_Start;
+                updatedInfo = ConnectionInfo(recordedRoad, newContact);
                 updatedInfoList.push_back(updatedInfo);
             }
             else if (detail._type == detail.Type_DetachAtEnd_Temp && record.contact == odr::RoadLink::ContactPoint_End && 
                 subject == recordedRoad)
             {
-                needReGen = true; // TODO: false
+                needReGen = true; // ROADRUNNERTODO: false
                 subject->generated.successor = odr::RoadLink();
             }
             else
@@ -708,7 +711,7 @@ namespace RoadRunner
         }
     }
 
-    std::set<std::shared_ptr<Road>> Junction::StillConnectedRoads()
+    std::set<std::shared_ptr<Road>> Junction::StillConnectedRoads() const
     {
         std::set<std::shared_ptr<Road>> rtn;
         for (auto connected : formedFrom)
@@ -749,6 +752,19 @@ namespace RoadRunner
             formedFrom.erase(RoadRunner::ConnectionInfo(road, odr::RoadLink::ContactPoint_Start));
             road->predecessorJunction.reset();
         }
+    }
+
+    std::string Junction::Log() const
+    {
+        std::stringstream ss;
+        ss << "Junction " << ID() << "\n";
+        for (auto contact : formedFrom)
+        {
+            auto contactStr = contact.contact == odr::RoadLink::ContactPoint_Start ? "Start" :
+                contact.contact == odr::RoadLink::ContactPoint_End ? "End" : "None";
+            ss << contact.road.lock()->ID() << " connected at " << contactStr << "\n";
+        }
+        return ss.str();
     }
 
 } // namespace RoadRunner

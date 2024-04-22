@@ -42,6 +42,54 @@ namespace RoadRunnerTest
         EXPECT_EQ(junction.generationError, 0);
 #endif
         auto allConnections = odr::get_map_values(junction.generated.id_to_connection);
+        // Make sure Road<->Junction pointers match what's declared on xodr
+        std::set<std::string> connectingIDFromOdr, connectingIDFromRR;
+        for (auto odrLink : junction.generated.id_to_connection)
+        {
+            connectingIDFromOdr.insert(odrLink.second.connecting_road);
+            auto incomingRRRoad = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(odrLink.second.incoming_road));
+            bool incomingContactEnd = incomingRRRoad->successorJunction == junction.shared_from_this();
+            bool incomingContactStart = incomingRRRoad->predecessorJunction == junction.shared_from_this();
+#ifdef G_TEST
+            EXPECT_TRUE(incomingContactEnd || incomingContactStart);
+#endif
+            if (incomingContactEnd)
+            {
+                RoadRunner::ConnectionInfo info(incomingRRRoad->shared_from_this(), odr::RoadLink::ContactPoint_End);
+                EXPECT_TRUE(junction.formedFrom.find(info) != junction.formedFrom.end());
+            }
+            if (incomingContactStart)
+            {
+                RoadRunner::ConnectionInfo info(incomingRRRoad->shared_from_this(), odr::RoadLink::ContactPoint_Start);
+                EXPECT_TRUE(junction.formedFrom.find(info) != junction.formedFrom.end());
+            }
+
+            auto outgoingRRRoad = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(odrLink.second.outgoing_road));
+            bool outgoingContactEnd = outgoingRRRoad->successorJunction == junction.shared_from_this();
+            bool outgoingContactStart = outgoingRRRoad->predecessorJunction == junction.shared_from_this();
+#ifdef G_TEST
+            EXPECT_TRUE(outgoingContactEnd || outgoingContactStart);
+#endif
+            if (outgoingContactEnd)
+            {
+                RoadRunner::ConnectionInfo info(outgoingRRRoad->shared_from_this(), odr::RoadLink::ContactPoint_End);
+                EXPECT_TRUE(junction.formedFrom.find(info) != junction.formedFrom.end());
+            }
+            if (outgoingContactStart)
+            {
+                RoadRunner::ConnectionInfo info(outgoingRRRoad->shared_from_this(), odr::RoadLink::ContactPoint_Start);
+                EXPECT_TRUE(junction.formedFrom.find(info) != junction.formedFrom.end());
+            }
+        }
+        for (auto road : junction.connectingRoads)
+        {
+            connectingIDFromRR.insert(road->ID());
+        }
+#ifdef G_TEST
+        EXPECT_EQ(connectingIDFromOdr, connectingIDFromRR);
+#else
+        assert(connectingIDFromOdr == connectingIDFromRR);
+#endif
 
         // Make sure all incoming roads' entering lanes have matching connectings
         for (auto& incomingInfo : junction.formedFrom)
