@@ -6,10 +6,13 @@
 #include <string>
 #include <stack>
 #include <vector>
+namespace RoadRunnerTest { class Validation; }
+
 namespace RoadRunner
 {
     class ChangeTracker
     {
+        friend class RoadRunnerTest::Validation;
     public:
         ChangeTracker(ChangeTracker&) = delete;
         ChangeTracker& operator=(const ChangeTracker&) = delete;

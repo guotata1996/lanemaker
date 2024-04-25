@@ -20,6 +20,7 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp
     ui/road_graphics.cpp ui/road_drawing.cpp ui/road_destruction.cpp 
     ui/CreateRoadOptionWidget.cpp
     util/stats.cpp util/multi_segment.cpp
+    test/validation.cpp test/junction_validation.cpp test/road_validation.cpp
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -55,12 +56,14 @@ enable_testing()
 
 add_executable(
   RoadRunnerTest
-  test/test.cc test/randomization_utils.cpp
+  test/test.cc test/randomization_utils.cpp 
+  test/validation.cpp test/junction_validation.cpp test/road_validation.cpp
   xodr/road.cpp xodr/junction.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp
   xodr/id_generator.cpp
 )
 
 target_include_directories(RoadRunnerTest PRIVATE
+    xodr
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/include
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/thirdparty
 )

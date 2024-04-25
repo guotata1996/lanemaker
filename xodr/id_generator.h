@@ -5,8 +5,12 @@
 #include <vector>
 
 // TODO: template? for type
+
+namespace RoadRunnerTest{class Validation; }
+
 class IDGenerator
 {
+    friend class RoadRunnerTest::Validation;
 public:
     IDGenerator(IDGenerator&) = delete;
     IDGenerator& operator=(const IDGenerator&) = delete;

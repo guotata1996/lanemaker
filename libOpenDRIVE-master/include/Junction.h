@@ -16,11 +16,10 @@ namespace odr
 
 struct JunctionLaneLink
 {
-    JunctionLaneLink(int from, int to, int next=0);
+    JunctionLaneLink(int from, int to);
 
     int from = 0;
     int to = 0;
-    int next = 0;
 };
 
 } // namespace odr
@@ -50,14 +49,12 @@ struct JunctionConnection
     };
 
     JunctionConnection(
-        std::string id, std::string incoming_road, std::string connecting_road, ContactPoint contact_point, 
-        std::string outgoing_road = "");
+        std::string id, std::string incoming_road, std::string connecting_road, ContactPoint contact_point);
 
     std::string  id = "";
     std::string  incoming_road = "";
     std::string  connecting_road = "";
     ContactPoint contact_point = ContactPoint_None;
-    std::string  outgoing_road = "";
 
     std::set<JunctionLaneLink> lane_links;
 };

@@ -6,11 +6,12 @@
 #include "Geometries/ParamPoly3.h"
 
 #include "spdlog/spdlog.h"
+#include "test_const.h"
 
 namespace RoadRunnerTest
 {
     constexpr int NGeometry = 5;
-    const std::unique_ptr< RoadGeometry> TestingGeo[NGeometry]
+    const std::unique_ptr< odr::RoadGeometry> TestingGeo[NGeometry]
     {
         std::make_unique<odr::Line>(0, 10, 20, 2.34, 40),
         std::make_unique<odr::Arc>(0, 20, 30, 1.45, 40, 1.0 / 30),

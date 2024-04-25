@@ -7,6 +7,7 @@
 
 #include "view.h"
 #include "change_tracker.h"
+#include "test/validation.h"
 
 #include "spdlog/spdlog.h"
 
@@ -30,6 +31,10 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     auto redoAction = edit->addAction("Redo");
     menu->addMenu(edit);
 
+    QMenu* view = new QMenu("&View");
+    auto verifyAction = view->addAction("Verify");
+    menu->addMenu(view);
+
     scene = std::make_unique<QGraphicsScene>(this);
     g_scene = scene.get();
     
@@ -46,6 +51,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(loadAction, &QAction::triggered, this, &MainWindow::loadFromFile);
     connect(undoAction, &QAction::triggered, this, &MainWindow::undo);
     connect(redoAction, &QAction::triggered, this, &MainWindow::redo);
+    connect(verifyAction, &QAction::triggered, this, &MainWindow::verifyMap);
 }
 
 void MainWindow::saveToFile()
@@ -103,4 +109,9 @@ void MainWindow::redo()
     {
         mainWidget->AdjustSceneRect();
     }
+}
+
+void MainWindow::verifyMap()
+{
+    RoadRunnerTest::Validation::ValidateMap();
 }

@@ -275,8 +275,8 @@ namespace RoadRunner
             odr::Road* incomingRoad = turningKv.first.first.road;
             odr::Road* outgoingRoad = turningKv.first.second.road;
             connRoad.junction = junctionID;
-            connRoad.predecessor = odr::RoadLink(incomingRoad->id, odr::RoadLink::Type_Road, odr::RoadLink::ContactPoint_Start);
-            connRoad.successor = odr::RoadLink(outgoingRoad->id, odr::RoadLink::Type_Road, odr::RoadLink::ContactPoint_End);
+            connRoad.predecessor = odr::RoadLink(incomingRoad->id, odr::RoadLink::Type_Road, turningGroup.fromContact);
+            connRoad.successor = odr::RoadLink(outgoingRoad->id, odr::RoadLink::Type_Road, turningGroup.toContact);
             odr::LaneSection& onlySection = connRoad.s_to_lanesection.begin()->second;
 
             auto& connectingLanes = onlySection.get_sorted_driving_lanes(-1);
@@ -520,16 +520,14 @@ namespace RoadRunner
         for (auto& connecting : connectingRoads)
         {
             auto incomingRoad = connecting->generated.predecessor.id;
-            auto outgoingRoad = connecting->generated.successor.id;
 
             odr::JunctionConnection prevConn(std::to_string(junctionConnID++),
                 incomingRoad, connecting->ID(),
-                odr::JunctionConnection::ContactPoint_Start,
-                outgoingRoad);
+                odr::JunctionConnection::ContactPoint_Start);
 
-            for (odr::Lane connectinglane : connecting->generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(-1))
+            for (odr::Lane connectinglane : connecting->generated.s_to_lanesection.rbegin()->second.get_sorted_driving_lanes(-1))
             {
-                prevConn.lane_links.insert(odr::JunctionLaneLink(connectinglane.predecessor, connectinglane.id, connectinglane.successor));
+                prevConn.lane_links.insert(odr::JunctionLaneLink(connectinglane.predecessor, connectinglane.id));
             }
             generated.id_to_connection.emplace(prevConn.id, prevConn);
         }

@@ -1,13 +1,10 @@
-#pragma once
+#include "validation.h"
 
 #include "road.h"
 #include "test_const.h"
-#include <Geometries/Line.h>
-
-#include "spdlog/spdlog.h"
 
 #ifdef G_TEST
-#include <gtest/gtest.h>
+    #include <gtest/gtest.h>
 #endif
 
 using namespace odr;
@@ -15,7 +12,16 @@ using namespace RoadRunner;
 
 namespace RoadRunnerTest
 {
-    void VerifyLaneWidthinBound(const odr::Road& road)
+    void Validation::VerifySingleRoad(const odr::Road& road)
+    {
+#ifdef G_TEST
+        VerifyLaneWidthinBound(road);
+#endif
+        VerifySingleRoadLinkage(road);
+        VerifyProfileIntegrity(road);
+    }
+
+    void Validation::VerifyLaneWidthinBound(const odr::Road& road)
     {
         constexpr int checkPoints = 15;
         auto sectionStart = road.s_to_lanesection.begin();
@@ -52,7 +58,7 @@ namespace RoadRunnerTest
         }
     }
 
-    void VerifySingleRoadLinkage(const odr::Road& road)
+    void Validation::VerifySingleRoadLinkage(const odr::Road& road)
     {
         auto curr = road.s_to_lanesection.cbegin();
         auto next = curr;
@@ -130,9 +136,7 @@ namespace RoadRunnerTest
                 int partnerID = currLaneID < 0 ? currLane.successor : currLane.predecessor;
                 if (partnerID == 0)
                 {
-#ifdef G_TEST
-                    EXPECT_NEAR(width, 0, epsilon);
-#endif
+                    ExpectNearOrAssert(width, 0, epsilon);
                 }
                 else
                 {
@@ -140,11 +144,9 @@ namespace RoadRunnerTest
                         transitionS, currLaneID, partnerID);
                     double partnerWidth = laneIDToWidth_Next.at(partnerID);
                     double partnerSBegin = laneIDToS_Next.at(partnerID);
-#ifdef G_TEST
-                    EXPECT_GT(currLaneID * partnerID, 0);
-                    EXPECT_NEAR(width, partnerWidth, epsilon);
-                    EXPECT_NEAR(sMin, partnerSBegin, epsilon);
-#endif
+                    ExpectGTOrAssert(currLaneID * partnerID, 0);
+                    ExpectNearOrAssert(width, partnerWidth, epsilon);
+                    ExpectNearOrAssert(sMin, partnerSBegin, epsilon);
                 }
             }
 
@@ -160,19 +162,15 @@ namespace RoadRunnerTest
                 int partnerID = nextLaneID < 0 ? nextLane.predecessor : nextLane.successor;
                 if (partnerID == 0)
                 {
-#ifdef G_TEST
-                    EXPECT_NEAR(width, 0, epsilon);
-#endif
+                    ExpectNearOrAssert(width, 0, epsilon);
                 }
                 else
                 {
                     double partnerWidth = laneIDToWidth_Curr.at(partnerID);
                     double partnerSBegin = laneIDToS_Curr.at(partnerID);
-#ifdef G_TEST
-                    EXPECT_GT(nextLaneID * partnerID, 0);
-                    EXPECT_NEAR(width, partnerWidth, epsilon);
-                    EXPECT_NEAR(sMin, partnerSBegin, epsilon);
-#endif
+                    ExpectGTOrAssert(nextLaneID * partnerID, 0);
+                    ExpectNearOrAssert(width, partnerWidth, epsilon);
+                    ExpectNearOrAssert(sMin, partnerSBegin, epsilon);
                 }
             }
 
@@ -181,24 +179,13 @@ namespace RoadRunnerTest
             {
                 double currMedianWidth = laneIDToS_Curr.at(1);
                 double nextMedianWidth = laneIDToS_Next.at(1);
-#ifdef G_TEST
-                EXPECT_NEAR(currMedianWidth, nextMedianWidth, epsilon);
-#endif
+                ExpectNearOrAssert(currMedianWidth, nextMedianWidth, epsilon);
             }
         } // For each section
     }
 
-    class RoadForTest : public RoadRunner::RoadProfile
+    void Validation::VerifyProfileIntegrity(const odr::Road& gen)
     {
-    public:
-        const auto& GetLeftProfiles() { return leftProfiles; }
-        const auto& GetRightProfiles() { return rightProfiles; }
-    };
-
-    void VerifySingleRoadIntegrity(RoadRunner::RoadProfile configs, const odr::Road& gen)
-    {
-        RoadForTest* rt = reinterpret_cast<RoadForTest*>(&configs);
-
         std::set<double> laneSectionKeys = odr::get_map_keys(gen.s_to_lanesection);
         std::set<double> laneOffsetKeys = odr::get_map_keys(gen.lane_offset.s0_to_poly);
         laneSectionKeys.insert(laneOffsetKeys.begin(), laneOffsetKeys.end());
@@ -216,7 +203,7 @@ namespace RoadRunnerTest
         // Right side
         //////////////////////
         std::map<type_s, SectionProfile> rProfileCopy;
-        for (auto s2Profile : rt->GetRightProfiles())
+        for (auto s2Profile : gen.rr_profile.rightProfiles)
         {
             // We don't care about out-of-range(0-length) SectionConfigs
             if (to_odr_unit(s2Profile.first) < gen.length - epsilon)
@@ -224,7 +211,7 @@ namespace RoadRunnerTest
                 rProfileCopy.insert(s2Profile);
             }
         }
-        
+
         auto sToSectionIt = rProfileCopy.begin();
 
         for (auto probe = allProbeS.begin();
@@ -276,18 +263,16 @@ namespace RoadRunnerTest
             }
         }
 
-#ifdef G_TEST
-        EXPECT_EQ(sToSectionIt, rProfileCopy.end());
-#endif
+        ExpectOrAssert(sToSectionIt == rProfileCopy.end());
 
         {
-            bool hasMedianLane = !rt->GetRightProfiles().empty();
+            bool hasMedianLane = !gen.rr_profile.rightProfiles.empty();
 
             //////////////////////
             // Left side
             //////////////////////
             std::map<type_s, SectionProfile> lProfileCopy;
-            for (auto s2Profile : rt->GetLeftProfiles())
+            for (auto s2Profile : gen.rr_profile.leftProfiles)
             {
                 // We don't care about out-of-range(1-length) SectionConfigs
                 if (0 < s2Profile.first && to_odr_unit(s2Profile.first) < gen.length - epsilon)
@@ -351,49 +336,7 @@ namespace RoadRunnerTest
                 }
             }
 
-#ifdef G_TEST
-            EXPECT_EQ(sToSectionIt, lProfileCopy.rend());
-#endif
+        ExpectOrAssert(sToSectionIt == lProfileCopy.rend());
         }
-    }
-
-
-    void GenerateAndVerify(const RoadRunner::RoadProfile& configs, double refLineLength)
-    {
-#ifdef G_TEST
-        const testing::TestInfo* const test_info =
-            testing::UnitTest::GetInstance()->current_test_info();
-        std::string outName = test_info->name();
-        if (test_info->value_param() != NULL)
-        {
-            outName = std::string(test_info->value_param());
-        }
-#else
-        std::string outName("output");
-#endif
-        auto refLine = std::make_shared<odr::Line>(0, 0, 0, 0, refLineLength);
-        RoadRunner::Road road(configs, refLine);
-        const odr::Road& gen = road.generated;
-
-#ifndef G_TEST
-        odr::OpenDriveMap test_map;
-        test_map.id_to_road.insert({ road.ID(), road .generated});
-        test_map.export_file("C:\\Users\\guota\\Downloads\\normal_" + outName + ".xodr");
-#endif
-
-        VerifyLaneWidthinBound(road.generated);
-        VerifySingleRoadLinkage(road.generated);
-        VerifySingleRoadIntegrity(configs, road.generated);
-
-        road.ReverseRefLine();
-        road.ReverseRefLine();
-#ifndef G_TEST
-        odr::OpenDriveMap test_map2;
-        test_map2.id_to_road.insert({ road.ID(), road.generated });
-        test_map2.export_file("C:\\Users\\guota\\Downloads\\reverse_" + outName + ".xodr");
-#endif
-        VerifyLaneWidthinBound(road.generated);
-        VerifySingleRoadLinkage(road.generated);
-        VerifySingleRoadIntegrity(configs, road.generated);
     }
 }

@@ -24,5 +24,7 @@ private slots:
     void undo();
 
     void redo();
+
+    void verifyMap();
 };
 

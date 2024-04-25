@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "junction.h"
-#include "junction_verification.h"
+#include "validation.h"
 #include "randomization_utils.h"
 #include <math.h>
 #include "Geometries/Arc.h"
@@ -16,7 +16,7 @@ namespace RoadRunnerTest
         srand(seed);
         const int NumRoads = RandomIntBetween(3, 6);
         const double SeparationAngle = M_PI * 2 / NumRoads;
-        const type_s RoadLength = 30 * 100;
+        const RoadRunner::type_s RoadLength = 30 * 100;
         const double RoadLengthD = RoadRunner::to_odr_unit(RoadLength);
         const odr::Vec2D nearEnd{ 25, 0 };
         const odr::Vec2D farEnd{ 55, 0 };
@@ -66,7 +66,7 @@ namespace RoadRunnerTest
         }
         else
         {
-            VerifyJunction(*j1);
+            Validation::VerifyJunction(j1.get());
         }
     }
 
@@ -89,7 +89,7 @@ namespace RoadRunnerTest
         auto j1 = std::make_shared<RoadRunner::Junction>();
         j1->CreateFrom(connectionInfo);
 
-        VerifyJunction(*j1);
+        Validation::VerifyJunction(j1.get());
     }
 
     INSTANTIATE_TEST_SUITE_P(

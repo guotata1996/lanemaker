@@ -3,10 +3,10 @@
 namespace odr
 {
 
-JunctionLaneLink::JunctionLaneLink(int from, int to, int next) : from(from), to(to), next(next) {}
+JunctionLaneLink::JunctionLaneLink(int from, int to) : from(from), to(to) {}
 
-JunctionConnection::JunctionConnection(std::string id, std::string incoming_road, std::string connecting_road, ContactPoint contact_point, std::string outgoing_road) :
-    id(id),incoming_road(incoming_road), connecting_road(connecting_road), contact_point(contact_point), outgoing_road(outgoing_road)
+JunctionConnection::JunctionConnection(std::string id, std::string incoming_road, std::string connecting_road, ContactPoint contact_point) :
+    id(id),incoming_road(incoming_road), connecting_road(connecting_road), contact_point(contact_point)
 {
 }
 

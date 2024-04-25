@@ -510,7 +510,7 @@ bool OpenDriveMap::Load(const std::string& xodr_file,
             auto id_lane_iter1 = std::next(id_lane_iter0);
             for (auto iter = id_lane_iter1; iter != lanesection.id_to_lane.end(); iter++)
             {
-                if (iter == id_lane_iter0)
+                if (iter == id_lane_iter1)
                 {
                     iter->second.outer_border = iter->second.lane_width;
                 }

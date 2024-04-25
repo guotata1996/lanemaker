@@ -38,7 +38,6 @@ namespace RoadRunner
         generated(serialized)
     {
         IDGenerator::ForRoad()->TakeID(ID(), this);
-        Generate();
     }
 
     void Road::Generate(bool notifyJunctions)

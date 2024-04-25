@@ -2,10 +2,47 @@
 
 #include "road.h"
 #include "randomization_utils.h"
-#include "road_verification.h"
+#include "validation.h"
+
+#include "Geometries/Line.h"
 
 namespace RoadRunnerTest
 {
+    void GenerateAndVerify(const RoadRunner::RoadProfile& configs, double refLineLength)
+    {
+#ifdef G_TEST
+        const testing::TestInfo* const test_info =
+            testing::UnitTest::GetInstance()->current_test_info();
+        std::string outName = test_info->name();
+        if (test_info->value_param() != NULL)
+        {
+            outName = std::string(test_info->value_param());
+        }
+#else
+        std::string outName("output");
+#endif
+        auto refLine = std::make_shared<odr::Line>(0, 0, 0, 0, refLineLength);
+        RoadRunner::Road road(configs, refLine);
+        const odr::Road& gen = road.generated;
+
+#ifndef G_TEST
+        odr::OpenDriveMap test_map;
+        test_map.id_to_road.insert({ road.ID(), road.generated });
+        test_map.export_file("C:\\Users\\guota\\Downloads\\normal_" + outName + ".xodr");
+#endif
+
+        Validation::VerifySingleRoad(road.generated);
+
+        road.ReverseRefLine();
+        road.ReverseRefLine();
+#ifndef G_TEST
+        odr::OpenDriveMap test_map2;
+        test_map2.id_to_road.insert({ road.ID(), road.generated });
+        test_map2.export_file("C:\\Users\\guota\\Downloads\\reverse_" + outName + ".xodr");
+#endif
+        Validation::VerifySingleRoad(road.generated);
+    }
+
     struct Seed_SingleRoad
         : public testing::TestWithParam<int> {};
 

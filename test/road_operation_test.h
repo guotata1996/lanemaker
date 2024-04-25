@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "junction.h"
-#include "junction_verification.h"
+#include "validation.h"
 
 
 namespace RoadRunnerTest
@@ -50,8 +50,8 @@ namespace RoadRunnerTest
         EXPECT_EQ(part2->generated.successor.id, j2_weak.lock()->ID());
         EXPECT_EQ(j2_weak.lock()->formedFrom.size(), 3);
 
-        VerifyJunction(*j1_weak.lock());
-        VerifyJunction(*j2_weak.lock());
+        Validation::VerifyJunction(j1_weak.lock().get());
+        Validation::VerifyJunction(j2_weak.lock().get());
 
         // Join r1
         RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, part2, odr::RoadLink::ContactPoint_Start);
@@ -64,8 +64,8 @@ namespace RoadRunnerTest
         EXPECT_EQ(r1->generated.successor.id, j2_weak.lock()->ID());
         EXPECT_EQ(j2_weak.lock()->formedFrom.size(), 3);
 
-        VerifyJunction(*j1_weak.lock());
-        VerifyJunction(*j2_weak.lock());
+        Validation::VerifyJunction(j1_weak.lock().get());
+        Validation::VerifyJunction(j2_weak.lock().get());
 
         // Reverse r1
         r1->ReverseRefLine();
@@ -77,20 +77,20 @@ namespace RoadRunnerTest
         EXPECT_EQ(r1->generated.successor.id, j1_weak.lock()->ID());
         EXPECT_EQ(j1_weak.lock()->formedFrom.size(), 3);
 
-        VerifyJunction(*j1_weak.lock());
-        VerifyJunction(*j2_weak.lock());
+        Validation::VerifyJunction(j1_weak.lock().get());
+        Validation::VerifyJunction(j2_weak.lock().get());
 
         // Reverse rRight
         rRight->ReverseRefLine();
         EXPECT_EQ(j2_weak.lock()->formedFrom.size(), 3);
-        VerifyJunction(*j2_weak.lock());
+        Validation::VerifyJunction(j2_weak.lock().get());
 
         // Destroy r1
         r1.reset();
         EXPECT_EQ(j1_weak.lock()->formedFrom.size(), 2);
         EXPECT_EQ(j1_weak.lock()->formedFrom.size(), 2);
-        VerifyJunction(*j1_weak.lock());
-        VerifyJunction(*j2_weak.lock());
+        Validation::VerifyJunction(j1_weak.lock().get());
+        Validation::VerifyJunction(j2_weak.lock().get());
 
         // Destroy remainig
         rRight.reset();

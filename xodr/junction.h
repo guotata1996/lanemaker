@@ -6,6 +6,8 @@
 #include <vector>
 #include <functional>
 
+namespace RoadRunnerTest { class Validation; }
+
 namespace RoadRunner
 {
     // public
@@ -145,6 +147,7 @@ namespace RoadRunner
     // TODO: inherit same class as Road to manage ID
     class Junction: public std::enable_shared_from_this<Junction>
     {
+        friend class RoadRunnerTest::Validation;
     public:
         Junction();
 
