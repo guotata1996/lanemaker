@@ -3,6 +3,7 @@
 #include "road.h"
 #include "junction.h"
 #include "world.h"
+#include "test/validation.h"
 
 #include <spdlog/spdlog.h>
 
@@ -17,6 +18,12 @@ namespace RoadRunner
             instance = new ChangeTracker;
         }
         return instance;
+    }
+
+    void ChangeTracker::PostChangeActions()
+    {
+        if (VerifyUponChange)
+            RoadRunnerTest::Validation::ValidateMap();
     }
 
     void ChangeTracker::StartRecordEdit()
@@ -91,6 +98,8 @@ namespace RoadRunner
         {
             redoStack.pop();
         }
+
+        PostChangeActions();
     }
 
     void ChangeTracker::Save(std::string path)
@@ -162,6 +171,8 @@ namespace RoadRunner
         {
             undoStack.pop();
         }
+
+        PostChangeActions();
         return true;
     }
 
@@ -340,5 +351,7 @@ namespace RoadRunner
                 juncPtr->AttachNoRegenerate(RoadRunner::ConnectionInfo(rrRoad, odr::RoadLink::ContactPoint_Start));
             }
         }
+
+        PostChangeActions();
     }
 }

@@ -32,7 +32,10 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     menu->addMenu(edit);
 
     QMenu* view = new QMenu("&View");
-    auto verifyAction = view->addAction("Verify");
+    auto verifyAction = view->addAction("Verify Now");
+    auto alwaysVerifyAction = view->addAction("Always Verify");
+    alwaysVerifyAction->setCheckable(true);
+    alwaysVerifyAction->setChecked(RoadRunner::ChangeTracker::Instance()->VerifyUponChange);
     menu->addMenu(view);
 
     scene = std::make_unique<QGraphicsScene>(this);
@@ -52,6 +55,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(undoAction, &QAction::triggered, this, &MainWindow::undo);
     connect(redoAction, &QAction::triggered, this, &MainWindow::redo);
     connect(verifyAction, &QAction::triggered, this, &MainWindow::verifyMap);
+    connect(alwaysVerifyAction, &QAction::triggered, this, &MainWindow::toggleAlwaysVerifyMap);
 }
 
 void MainWindow::saveToFile()
@@ -114,4 +118,9 @@ void MainWindow::redo()
 void MainWindow::verifyMap()
 {
     RoadRunnerTest::Validation::ValidateMap();
+}
+
+void MainWindow::toggleAlwaysVerifyMap(bool enable)
+{
+    RoadRunner::ChangeTracker::Instance()->VerifyUponChange = enable;
 }

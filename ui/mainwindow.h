@@ -26,5 +26,7 @@ private slots:
     void redo();
 
     void verifyMap();
+
+    void toggleAlwaysVerifyMap(bool);
 };
 
