@@ -348,7 +348,8 @@ void RoadCreationSession::CreateRoad()
     }
 
     // Check if we need a junction
-    const double JunctionExtaTrim = 10;
+    const double JunctionExtaTrim = 10; // Space for connecting road curvature
+    const double RoadMinLength = 5; // Discard if any leftover road is too short
     while (true)
     {
         auto overlap = newRoad->FirstOverlapNonJunction(newPartBegin, newRoad->Length());
@@ -365,7 +366,8 @@ void RoadCreationSession::CreateRoad()
         double sBegin2 = overlap->sBegin2 - JunctionExtaTrim;
         double sEnd2 = overlap->sEnd2 + JunctionExtaTrim;
 
-        if (sBegin1 < 0)
+        int incomingCount = 0;
+        if (sBegin1 < RoadMinLength)
         {
             if (newRoad->predecessorJunction != nullptr)
             {
@@ -377,7 +379,11 @@ void RoadCreationSession::CreateRoad()
                 sBegin1 = 0; // T junction
             }
         }
-        if (sEnd1 > newRoad->Length())
+        else
+        {
+            incomingCount++;
+        }
+        if (sEnd1 > newRoad->Length() - RoadMinLength)
         {
             if (newRoad->successorJunction != nullptr)
             {
@@ -389,7 +395,12 @@ void RoadCreationSession::CreateRoad()
                 sEnd1 = newRoad->Length();  // T junction
             }
         }
-        if (sBegin2 < 0)
+        else
+        {
+            incomingCount++;
+        }
+
+        if (sBegin2 < RoadMinLength)
         {
             if (road2->predecessorJunction != nullptr)
             {
@@ -401,7 +412,11 @@ void RoadCreationSession::CreateRoad()
                 sBegin2 = 0;
             }
         }
-        if (sEnd2 > road2->Length())
+        else
+        {
+            incomingCount++;
+        }
+        if (sEnd2 > road2->Length() - RoadMinLength)
         {
             if (road2->successorJunction != nullptr)
             {
@@ -413,94 +428,89 @@ void RoadCreationSession::CreateRoad()
                 sEnd2 = road2->Length();
             }
         }
+        else
+        {
+            incomingCount++;
+        }
 
+        if (incomingCount < 3)
+        {
+            spdlog::info("No enough incoming road! Cannot create Junction.");
+            newPartBegin = sEnd1 + RoadMinLength;
+            continue;
+        }
+        if (!canCreateJunction)
+        {
+            spdlog::info("Existing junction is too close! Cannot create Junction.");
+            newPartBegin = sEnd1 + RoadMinLength;
+            continue;
+        }
+
+        // Can create junction
         std::shared_ptr<RoadRunner::Road> newRoadBeforeJunction, newRoadPastJunction;
         std::shared_ptr<RoadRunner::Road> road2BeforeJunction, road2PastJunction;
 
-        if (canCreateJunction)
+        if (sEnd1 != newRoad->Length())
         {
-            if (sEnd1 != newRoad->Length())
-            {
-                newRoadPastJunction = RoadRunner::Road::SplitRoad(newRoad, sEnd1);
-                world->allRoads.insert(newRoadPastJunction);
-            }
-            if (sBegin1 != 0)
-            {
-                RoadRunner::Road::SplitRoad(newRoad, sBegin1);
-                newRoadBeforeJunction = newRoad;
-            }
-            else
-            {
-                world->allRoads.erase(newRoad);
-            }
-
-            if (newRoadBeforeJunction == nullptr && newRoadPastJunction == nullptr)
-            {
-                // newRoad is too short
-                canCreateJunction = false;
-            }
-
-            if (sEnd2 != road2->Length())
-            {
-                road2PastJunction = RoadRunner::Road::SplitRoad(road2, sEnd2);
-                world->allRoads.insert(road2PastJunction);
-            }
-            if (sBegin2 != 0)
-            {
-                RoadRunner::Road::SplitRoad(road2, sBegin2);
-                road2BeforeJunction = road2;
-            }
-            else
-            {
-                world->allRoads.erase(road2);
-            }
-            if (road2BeforeJunction == nullptr && road2PastJunction == nullptr)
-            {
-                // road2 is too short
-                canCreateJunction = false;
-            }
+            newRoadPastJunction = RoadRunner::Road::SplitRoad(newRoad, sEnd1);
+            world->allRoads.insert(newRoadPastJunction);
         }
-
-        std::vector<RoadRunner::ConnectionInfo> junctionInfo;
-        if (canCreateJunction)
+        if (sBegin1 != 0)
         {
-            if (newRoadBeforeJunction != nullptr)
-            {
-                junctionInfo.push_back(RoadRunner::ConnectionInfo{ newRoadBeforeJunction, odr::RoadLink::ContactPoint_End });
-            }
-            if (newRoadPastJunction != nullptr)
-            {
-                junctionInfo.push_back(RoadRunner::ConnectionInfo{ newRoadPastJunction, odr::RoadLink::ContactPoint_Start });
-            }
-            if (road2BeforeJunction != nullptr)
-            {
-                junctionInfo.push_back(RoadRunner::ConnectionInfo{ road2BeforeJunction, odr::RoadLink::ContactPoint_End });
-            }
-            if (road2PastJunction != nullptr)
-            {
-                junctionInfo.push_back(RoadRunner::ConnectionInfo{ road2PastJunction, odr::RoadLink::ContactPoint_Start });
-            }
-            if (junctionInfo.size() < 3)
-            {
-                // 2-road junction, should really be a Join
-                canCreateJunction = false;
-            }
-        }
-
-        if (canCreateJunction)
-        {
-            auto junction = std::make_shared<RoadRunner::Junction>();
-            junction->CreateFrom(junctionInfo);
+            RoadRunner::Road::SplitRoad(newRoad, sBegin1);
+            newRoadBeforeJunction = newRoad;
         }
         else
         {
-            spdlog::info("Collision detected, but cannot create Junction");
+            world->allRoads.erase(newRoad);
         }
+
+        if (sEnd2 != road2->Length())
+        {
+            road2PastJunction = RoadRunner::Road::SplitRoad(road2, sEnd2);
+            world->allRoads.insert(road2PastJunction);
+        }
+        if (sBegin2 != 0)
+        {
+            RoadRunner::Road::SplitRoad(road2, sBegin2);
+            road2BeforeJunction = road2;
+        }
+        else
+        {
+            world->allRoads.erase(road2);
+        }
+
+        std::vector<RoadRunner::ConnectionInfo> junctionInfo;
+
+        if (newRoadBeforeJunction != nullptr)
+        {
+            junctionInfo.push_back(RoadRunner::ConnectionInfo{ newRoadBeforeJunction, odr::RoadLink::ContactPoint_End });
+        }
+        if (newRoadPastJunction != nullptr)
+        {
+            junctionInfo.push_back(RoadRunner::ConnectionInfo{ newRoadPastJunction, odr::RoadLink::ContactPoint_Start });
+        }
+        if (road2BeforeJunction != nullptr)
+        {
+            junctionInfo.push_back(RoadRunner::ConnectionInfo{ road2BeforeJunction, odr::RoadLink::ContactPoint_End });
+        }
+        if (road2PastJunction != nullptr)
+        {
+            junctionInfo.push_back(RoadRunner::ConnectionInfo{ road2PastJunction, odr::RoadLink::ContactPoint_Start });
+        }
+        if (junctionInfo.size() < 3)
+        {
+            // 2-road junction, should really be a Join
+            canCreateJunction = false;
+        }
+        auto junction = std::make_shared<RoadRunner::Junction>();
+        junction->CreateFrom(junctionInfo);
 
         if (newRoadPastJunction == nullptr)
         {
             break;
         }
+
         newRoad = newRoadPastJunction;
         newPartBegin = 0;
     }

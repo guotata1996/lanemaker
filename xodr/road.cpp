@@ -262,6 +262,8 @@ namespace RoadRunner
 
     std::unique_ptr<Road::RoadsOverlap> Road::FirstOverlapNonJunction(double sBegin, double sEnd) const
     {
+        if (sBegin >= sEnd) 
+            return nullptr;
         auto beginIt = s_to_section_graphics.upper_bound(sBegin - 1e-3f);
         if (beginIt != s_to_section_graphics.begin())
         {
