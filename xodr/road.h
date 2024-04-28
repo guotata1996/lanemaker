@@ -83,6 +83,8 @@ namespace RoadRunner
         };
 
         std::unique_ptr<RoadsOverlap> FirstOverlapNonJunction(double sBegin, double sEnd) const;
+
+        void EnableHighlight(bool enabled);
 #endif
 
         // Member variables
@@ -106,6 +108,8 @@ namespace RoadRunner
 
         // When updates road, remove RoadSectionGraphics then add new
         std::map<double, std::unique_ptr<RoadGraphics>> s_to_section_graphics;
+
+        bool highlighted = false;
 #endif
     };
 }

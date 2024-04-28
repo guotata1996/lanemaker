@@ -19,6 +19,23 @@ extern RoadRunner::SectionProfile activeRightSetting;
 
 extern double g_zoom;
 
+void RoadDrawingSession::SetHighlightTo(std::shared_ptr<RoadRunner::Road> target)
+{
+    auto currHighlighted = highlighted.lock();
+    if (target == currHighlighted) return;
+    
+    if (currHighlighted != nullptr)
+    {
+        currHighlighted->EnableHighlight(false);
+    }
+    if (target != nullptr)
+    {
+        target->EnableHighlight(true);
+    }
+    
+    highlighted = target;
+}
+
 float RoadDrawingSession::SnapDistFromScale() const
 {
     return CustomCursorItem::SnapRadiusPx / g_zoom;
@@ -62,6 +79,8 @@ RoadCreationSession::RoadCreationSession(QGraphicsView* aView) :
 
 bool RoadCreationSession::Update(QMouseEvent* event)
 {
+    SetHighlightTo(g_PointerRoad.lock());
+
     QPointF scenePos = view->mapToScene(event->pos().x(), event->pos().y());
 
     if (event->button() == Qt::MouseButton::LeftButton)
@@ -160,6 +179,7 @@ RoadCreationSession::~RoadCreationSession()
     scene->removeItem(flexPreviewItem);
     scene->removeItem(hintItem);
     scene->removeItem(cursorItem);
+    SetHighlightTo(nullptr);
 }
 
 bool RoadCreationSession::SnapCtrlPoint(float maxOffset)

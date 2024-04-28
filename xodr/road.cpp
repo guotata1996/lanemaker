@@ -364,6 +364,16 @@ namespace RoadRunner
         return std::move(sortedOverlap.begin()->second);
     }
 
+    void Road::EnableHighlight(bool enabled)
+    {
+        if (highlighted == enabled) return;
+
+        for (auto& s_and_graphics : s_to_section_graphics)
+        {
+            s_and_graphics.second->EnableHighlight(enabled);
+        }
+        highlighted = enabled;
+    }
 #endif
 
     void Road::PlaceOdrRoadMarkings()

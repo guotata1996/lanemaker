@@ -31,6 +31,21 @@ namespace RoadRunner
         g_scene->removeItem(this);
     }
 
+    void RoadGraphics::EnableHighlight(bool enabled)
+    {
+        for (auto child : childItems())
+        {
+            auto laneSegment = static_cast<LaneSegmentGraphics*>(child);
+            if (laneSegment == nullptr)
+                continue;
+            auto brush = laneSegment->brush();
+            auto color = brush.color();
+            color.setAlphaF(enabled ? 0.6 : 1);
+            brush.setColor(color);
+            laneSegment->setBrush(brush);
+        }
+    }
+
     QPolygonF RoadGraphics::LineToPoly(const odr::Line3D& line)
     {
         QPolygonF rtn;

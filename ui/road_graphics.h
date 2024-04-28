@@ -14,6 +14,8 @@ namespace RoadRunner
 
         ~RoadGraphics();
 
+        void EnableHighlight(bool enabled);
+
         std::weak_ptr<RoadRunner::Road> road;
 
         static QPolygonF LineToPoly(const odr::Line3D& line);

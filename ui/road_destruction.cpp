@@ -20,6 +20,7 @@ RoadDestroySession::~RoadDestroySession()
 {
     scene->removeItem(cursorItem);
     scene->removeItem(hintItem);
+    SetHighlightTo(nullptr);
 }
 
 bool RoadDestroySession::Update(QMouseEvent* evt)
@@ -37,6 +38,7 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
         cursorItem->setPos(scenePos);
         cursorItem->EnableHighlight(false);
     }
+    SetHighlightTo(g_road);
 
     // Preview
     hintPolygon.clear();

@@ -22,12 +22,17 @@ public:
 
     virtual ~RoadDrawingSession() {}
 
+    void SetHighlightTo(std::shared_ptr<RoadRunner::Road>);
+
 protected:
     float SnapDistFromScale() const;
 
     QGraphicsView* view;
     QGraphicsScene* scene;
     World* world;
+
+private:
+    std::weak_ptr<RoadRunner::Road> highlighted;
 };
 
 class CustomCursorItem : public QGraphicsEllipseItem
