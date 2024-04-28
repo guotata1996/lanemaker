@@ -18,7 +18,7 @@ namespace RoadRunner
     class Road: public std::enable_shared_from_this<Road>
     {
     public:
-        Road(const RoadProfile& p, std::shared_ptr<odr::RoadGeometry> l);
+        Road(const RoadProfile& p, std::unique_ptr<odr::RoadGeometry> l);
 
         Road(const RoadProfile& p, odr::RefLine& l);
 

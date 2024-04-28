@@ -3,7 +3,9 @@
 #include <cmath> // floor, ceil
 #include <map>
 #include <sstream>
+
 #include "id_generator.h"
+#include "constants.h"
 
 namespace RoadRunner
 {
@@ -267,7 +269,7 @@ namespace RoadRunner
 
             RoadRunner::RoadProfile connectingProfile(0, 0, turningGroup.nLanes, turningGroup.nLanes);
 
-            auto connecting = std::make_shared<Road>(connectingProfile, connectingRefLine);
+            auto connecting = std::make_shared<Road>(connectingProfile, std::move(connectingRefLine));
             connecting->Generate();
 
             // Assign linkage
@@ -549,7 +551,7 @@ namespace RoadRunner
 #ifndef G_TEST
         for (auto& connecting : connectingRoads)
         {
-            if (connecting->Length() < 500)
+            if (connecting->Length() < RoadRunner::ValidGeoMaxLength)
             {
                 connecting->GenerateAllSectionGraphics();
             }

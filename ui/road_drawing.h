@@ -76,6 +76,9 @@ public:
     }
 
 private:
+    std::unique_ptr<odr::RoadGeometry> createJoinAtEndGeo(bool forPreview);
+
+    void tryCreateJunction(std::shared_ptr<RoadRunner::Road>, double);
 
     std::vector<QPointF> ctrlPoints;
     
@@ -86,8 +89,11 @@ private:
     std::weak_ptr<RoadRunner::Road> joinAtEnd;
     odr::RoadLink::ContactPoint joinAtEndContact;
     
-    QPainterPath ctrlPath;
-    QGraphicsPathItem* previewItem;
+    QPainterPath setPath;
+    QGraphicsPathItem* setPreviewItem;
+
+    QPainterPath flexPath;
+    QGraphicsPathItem* flexPreviewItem;
 
     QPainterPath hintPath;
     QGraphicsPathItem* hintItem;

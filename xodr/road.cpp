@@ -17,12 +17,12 @@
 
 namespace RoadRunner
 {
-    Road::Road(const RoadProfile& p, std::shared_ptr<odr::RoadGeometry> l) :
+    Road::Road(const RoadProfile& p, std::unique_ptr<odr::RoadGeometry> l) :
         generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1")
     {
         generated.rr_profile = p;
         generated.ref_line.length = l->length;
-        generated.ref_line.s0_to_geometry.emplace(0, l->clone());
+        generated.ref_line.s0_to_geometry.emplace(0, std::move(l));
         Generate();
     }
 

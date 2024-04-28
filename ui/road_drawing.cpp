@@ -9,6 +9,7 @@
 #include "junction.h"
 
 #include "stats.h"
+#include "constants.h"
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
@@ -40,12 +41,19 @@ void CustomCursorItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* 
 RoadCreationSession::RoadCreationSession(QGraphicsView* aView) :
     RoadDrawingSession(aView)
 {
-    previewItem = scene->addPath(ctrlPath);
+    setPreviewItem = scene->addPath(setPath);
+
+    flexPreviewItem = scene->addPath(flexPath);
+    QPen flexPen;
+    flexPen.setStyle(Qt::DashLine);
+    flexPreviewItem->setPen(flexPen);
+
     hintItem = scene->addPath(hintPath);
     QPen hintPen;
     hintPen.setColor(QColor(0, 200, 100, 80));
     hintPen.setStyle(Qt::DotLine);
     hintItem->setPen(hintPen);
+
     cursorItem = new CustomCursorItem;
     scene->addItem(cursorItem);
 
@@ -84,26 +92,57 @@ bool RoadCreationSession::Update(QMouseEvent* event)
     cursorItem->setPos(ctrlPoints.back());
     cursorItem->EnableHighlight(onExisting);
 
-    ctrlPath.clear();
-    if (!ctrlPoints.empty())
+    setPath.clear();
+    flexPath.clear();
+
+    if (ctrlPoints.size() >= 2)
     {
-        ctrlPath.moveTo(ctrlPoints[0]);
-    }
-    int i = 1;
-    for (; i + 2 < ctrlPoints.size(); i += 2)
-    {
-        ctrlPath.quadTo(ctrlPoints[i], ctrlPoints[i + 1]);
-    }
-    if (i == ctrlPoints.size() - 1)
-    {
-        ctrlPath.lineTo(ctrlPoints[i]);
-    }
-    else if (i == ctrlPoints.size() - 2)
-    {
-        ctrlPath.quadTo(ctrlPoints[i], ctrlPoints[i + 1]);
+        if (!ctrlPoints.empty())
+        {
+            setPath.moveTo(ctrlPoints[0]);
+        }
+        int i = 1;
+        for (; i + 2 < ctrlPoints.size(); i += 2)
+        {
+            setPath.quadTo(ctrlPoints[i], ctrlPoints[i + 1]);
+        }
+
+        auto toJoin = joinAtEnd.lock();
+        if (toJoin == nullptr)
+        {
+            if (i == ctrlPoints.size() - 1)
+            {
+                flexPath.moveTo(ctrlPoints[i - 1]);
+                flexPath.lineTo(ctrlPoints[i]);
+            }
+            else if (i == ctrlPoints.size() - 2)
+            {
+                flexPath.moveTo(ctrlPoints[i - 1]);
+                flexPath.quadTo(ctrlPoints[i], ctrlPoints[i + 1]);
+            }
+        }
+        else
+        {
+            auto flexGeometry = createJoinAtEndGeo(true);
+            double flexLen = flexGeometry->length;
+            for (int subDiv = 0; subDiv != 51; ++subDiv)
+            {
+                auto p = flexGeometry->get_xy(flexLen / 50 * subDiv);
+                QPointF qp(p[0], p[1]);
+                if (subDiv == 0)
+                {
+                    flexPath.moveTo(qp);
+                }
+                else
+                {
+                    flexPath.lineTo(qp);
+                }
+            }
+        }
     }
 
-    previewItem->setPath(ctrlPath);
+    setPreviewItem->setPath(setPath);
+    flexPreviewItem->setPath(flexPath);
     hintItem->setPath(hintPath);
 
     return true;
@@ -117,7 +156,8 @@ void RoadCreationSession::Complete()
 
 RoadCreationSession::~RoadCreationSession()
 {
-    scene->removeItem(previewItem);
+    scene->removeItem(setPreviewItem);
+    scene->removeItem(flexPreviewItem);
     scene->removeItem(hintItem);
     scene->removeItem(cursorItem);
 }
@@ -242,64 +282,58 @@ void RoadCreationSession::CreateRoad()
         return;
     }
 
-    odr::RefLine refLine("", 0);
-    double cumLength = 0;
-    /*Discard last CtrlPoints since we are gonna auto connect*/
-    int validCtrlPoints = joinAtEnd.expired() ? ctrlPoints.size() - 1 : ctrlPoints.size() - 2;
-    for (int i = 0; i + 2 < validCtrlPoints; i += 2)
-    {
-        std::unique_ptr<odr::RoadGeometry> localGeometry;
-
-        QVector2D start(ctrlPoints[i]);
-        QVector2D middle(ctrlPoints[i + 1]);
-        QVector2D end(ctrlPoints[i + 2]);
-        odr::Vec2D point1{ start.x(), start.y() };
-        odr::Vec2D point2{ middle.x(), middle.y() };
-        odr::Vec2D point3{ end.x(), end.y() };
-
-        if (middle.distanceToLine(start, end - start) < 0.1f)
-        {
-            localGeometry = std::make_unique<odr::Line>(cumLength, point1, point3);
-        }
-        else
-        {
-            localGeometry = std::make_unique<odr::ParamPoly3>(cumLength, point1, point2, point2, point3);
-        }
-        double cumLengthPrev = cumLength;
-        cumLength += localGeometry->length;
-        refLine.s0_to_geometry.emplace(cumLengthPrev, std::move(localGeometry));
-    }
-    refLine.length = cumLength;
-
-    RoadRunner::RoadProfile config(
-        activeLeftSetting.laneCount, activeLeftSetting.offsetx2, 
-        activeRightSetting.laneCount, activeRightSetting.offsetx2);
     std::shared_ptr<RoadRunner::Road> newRoad;
-    if (cumLength == 0)
+    RoadRunner::RoadProfile config(
+        activeLeftSetting.laneCount, activeLeftSetting.offsetx2,
+        activeRightSetting.laneCount, activeRightSetting.offsetx2);
+    if (!joinAtEnd.expired() && ctrlPoints.size() == 4)
     {
-        auto p0 = ctrlPoints[0];
-        auto p1 = ctrlPoints[1];
-        auto p2 = ctrlPoints[2];
-        odr::Vec2D pos0{ p0.x(), p0.y() };
-        odr::Vec2D pos1{ p1.x(), p1.y() };
-        odr::Vec2D dir0 = odr::normalize(odr::sub(pos1, pos0));
-        odr::Vec2D pos2{ p2.x(), p2.y() };
-        auto toJoin = joinAtEnd.lock();
-        odr::Vec2D dir2 = toJoin->generated.ref_line.get_grad_xy(
-            joinAtEndContact == odr::RoadLink::ContactPoint_Start ? 0 : toJoin->Length());
-        if (joinAtEndContact == odr::RoadLink::ContactPoint_End)
+        auto roadGeometry = createJoinAtEndGeo(false);
+        if (roadGeometry->length > RoadRunner::ValidGeoMaxLength)
         {
-            dir2 = odr::negate(dir2);
+            spdlog::warn("Abort create road: Potential invalid shape!");
+            return;
         }
-        odr::normalize(dir2);
-        auto roadGeometry = ConnectLines(pos0, dir0, pos2, dir2);
-        // TODO: if roadGeometry too long, return failure
-        newRoad = std::make_shared<RoadRunner::Road>(config, roadGeometry);
+        newRoad = std::make_shared<RoadRunner::Road>(config, std::move(roadGeometry));
+    }
+    else if (ctrlPoints.size() >= 4)
+    {
+        odr::RefLine refLine("", 0);
+        double cumLength = 0;
+        // Last ctrl point is a duplicate. Do not use in any case.
+        int validCtrlPoints = joinAtEnd.expired() ? ctrlPoints.size() - 1 : ctrlPoints.size() - 2;
+        for (int i = 0; i + 2 < validCtrlPoints; i += 2)
+        {
+            std::unique_ptr<odr::RoadGeometry> localGeometry;
+
+            QVector2D start(ctrlPoints[i]);
+            QVector2D middle(ctrlPoints[i + 1]);
+            QVector2D end(ctrlPoints[i + 2]);
+            odr::Vec2D point1{ start.x(), start.y() };
+            odr::Vec2D point2{ middle.x(), middle.y() };
+            odr::Vec2D point3{ end.x(), end.y() };
+
+            if (middle.distanceToLine(start, end - start) < 0.1f)
+            {
+                localGeometry = std::make_unique<odr::Line>(cumLength, point1, point3);
+            }
+            else
+            {
+                localGeometry = std::make_unique<odr::ParamPoly3>(cumLength, point1, point2, point2, point3);
+            }
+            double cumLengthPrev = cumLength;
+            cumLength += localGeometry->length;
+            refLine.s0_to_geometry.emplace(cumLengthPrev, std::move(localGeometry));
+        }
+        refLine.length = cumLength;
+        newRoad = std::make_shared<RoadRunner::Road>(config, refLine);
     }
     else
     {
-        newRoad = std::make_shared<RoadRunner::Road>(config, refLine);
+        // Not enough control points placed
+        return;
     }
+
     newRoad->GenerateAllSectionGraphics();
 
     bool standaloneRoad = true;
@@ -316,7 +350,7 @@ void RoadCreationSession::CreateRoad()
             newRoad, odr::RoadLink::ContactPoint_Start);
         if (joinResult != 0)
         {
-            spdlog::warn("Extend error {}", joinResult);
+            spdlog::error("Extend error {}", joinResult);
         }
 
         newRoad = toExtend;
@@ -337,7 +371,7 @@ void RoadCreationSession::CreateRoad()
             newRoad, odr::RoadLink::ContactPoint_End);
         if (joinResult != 0)
         {
-            spdlog::warn("Join error {}", joinResult);
+            spdlog::error("Join error {}", joinResult);
         }
         newRoad = toJoin;
     }
@@ -347,7 +381,53 @@ void RoadCreationSession::CreateRoad()
         world->allRoads.insert(newRoad);
     }
 
-    // Check if we need a junction
+    tryCreateJunction(std::move(newRoad), newPartBegin);
+}
+
+std::unique_ptr<odr::RoadGeometry> RoadCreationSession::createJoinAtEndGeo(bool forPreview)
+{
+    QPointF p0, p1, p2;
+    if (forPreview)
+    {
+        p0 = ctrlPoints[ctrlPoints.size() - 3];
+        p1 = ctrlPoints[ctrlPoints.size() - 2];
+        p2 = ctrlPoints[ctrlPoints.size() - 1];
+    }
+    else
+    {
+        p0 = ctrlPoints[0];
+        p1 = ctrlPoints[1];
+        p2 = ctrlPoints[2];
+    }
+    odr::Vec2D pos0{ p0.x(), p0.y() };
+    odr::Vec2D pos1{ p1.x(), p1.y() };
+    odr::Vec2D pos2{ p2.x(), p2.y() };
+    odr::Vec2D dir0 = odr::normalize(odr::sub(pos1, pos0));
+
+    auto toJoin = joinAtEnd.lock();
+    odr::Vec2D dir2 = toJoin->generated.ref_line.get_grad_xy(
+        joinAtEndContact == odr::RoadLink::ContactPoint_Start ? 0 : toJoin->Length());
+    if (joinAtEndContact == odr::RoadLink::ContactPoint_End)
+    {
+        dir2 = odr::negate(dir2);
+    }
+    odr::normalize(dir2);
+
+    if (forPreview && ctrlPoints.size() % 2 == 0)
+    {
+        // "abruply" join at end
+        return RoadRunner::ConnectLines(pos1, dir0, pos2, dir2);
+    }
+    else
+    {
+        return RoadRunner::ConnectLines(pos0, dir0, pos2, dir2);
+    }
+
+    
+}
+
+void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> newRoad, double newPartBegin)
+{
     const double JunctionExtaTrim = 10; // Space for connecting road curvature
     const double RoadMinLength = 5; // Discard if any leftover road is too short
     while (true)
@@ -435,13 +515,13 @@ void RoadCreationSession::CreateRoad()
 
         if (incomingCount < 3)
         {
-            spdlog::info("No enough incoming road! Cannot create Junction.");
+            spdlog::info("No enough incoming road! Cannot create Junction with Road{} @{}", road2->ID(), sEnd1);
             newPartBegin = sEnd1 + RoadMinLength;
             continue;
         }
         if (!canCreateJunction)
         {
-            spdlog::info("Existing junction is too close! Cannot create Junction.");
+            spdlog::info("Existing junction is too close! Cannot create Junction with Road{} @{}", road2->ID(), sEnd1);
             newPartBegin = sEnd1 + RoadMinLength;
             continue;
         }

@@ -9,16 +9,16 @@ namespace RoadRunnerTest
     TEST(RoadOperation, ReverseSplitJoin)
     {
         // Create 3 roads, C-(flipped C)
-        auto refLine1 = std::make_shared<odr::Line>(0, -30, 0, 0, 60);
+        auto refLine1 = std::make_unique<odr::Line>(0, -30, 0, 0, 60);
         RoadRunner::RoadProfile config(2, 1, 2, -1);
-        std::shared_ptr<RoadRunner::Road> r1 = std::make_shared<RoadRunner::Road>(config, refLine1);
+        std::shared_ptr<RoadRunner::Road> r1 = std::make_shared<RoadRunner::Road>(config, std::move(refLine1));
 
         const double R = 30;
-        auto refLine2 = std::make_shared<odr::Arc>(0, 50, 20, M_PI_4, 0.75 * M_PI * 2 * R, -1 / R);
-        auto rRight = std::make_shared<RoadRunner::Road>(config, refLine2);
+        auto refLine2 = std::make_unique<odr::Arc>(0, 50, 20, M_PI_4, 0.75 * M_PI * 2 * R, -1 / R);
+        auto rRight = std::make_shared<RoadRunner::Road>(config, std::move(refLine2));
 
-        auto refLine3 = std::make_shared<odr::Arc>(0, -50, 20, M_PI_4 * 3, 0.75 * M_PI * 2 * R, 1 / R);
-        auto rLeft = std::make_shared<RoadRunner::Road>(config, refLine3);
+        auto refLine3 = std::make_unique<odr::Arc>(0, -50, 20, M_PI_4 * 3, 0.75 * M_PI * 2 * R, 1 / R);
+        auto rLeft = std::make_shared<RoadRunner::Road>(config, std::move(refLine3));
         // Create right junction, but don't keep its ptr
         auto j2 = std::make_shared<RoadRunner::Junction>();
         j2->CreateFrom({

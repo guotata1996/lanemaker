@@ -108,25 +108,25 @@ namespace RoadRunnerTest
 
     std::shared_ptr<RoadRunner::Road> GenerateComplexRoad()
     {
-        auto refLine1 = std::make_shared<odr::Line>(0, 0, 0, M_PI_2, 40);
+        auto refLine1 = std::make_unique<odr::Line>(0, 0, 0, M_PI_2, 40);
         RoadRunner::RoadProfile config(2, 0, 2, 0);
-        auto r1 = std::make_shared<RoadRunner::Road>(config, refLine1); // (0, 40)
+        auto r1 = std::make_shared<RoadRunner::Road>(config, std::move(refLine1)); // (0, 40)
 
         {
-            auto refLine2 = std::make_shared<odr::Arc>(0, 0, 50, M_PI_2, 60, -1 / 20.0); // about (40, 50)
-            auto r2 = std::make_shared<RoadRunner::Road>(config, refLine2);
+            auto refLine2 = std::make_unique<odr::Arc>(0, 0, 50, M_PI_2, 60, -1 / 20.0); // about (40, 50)
+            auto r2 = std::make_shared<RoadRunner::Road>(config, std::move(refLine2));
             int err = RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r2, odr::RoadLink::ContactPoint_Start);
         }
 
         {
-            auto refLine3 = std::make_shared<odr::Spiral>(0, 90, 10, M_PI / 8, 50, 1 / 60.0, 1 / 30.0);
-            auto r3 = std::make_shared<RoadRunner::Road>(config, refLine3);
+            auto refLine3 = std::make_unique<odr::Spiral>(0, 90, 10, M_PI / 8, 50, 1 / 60.0, 1 / 30.0);
+            auto r3 = std::make_shared<RoadRunner::Road>(config, std::move(refLine3));
             int err = RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r3, odr::RoadLink::ContactPoint_Start);
         }
 
         {
-            auto refLine4 = std::make_shared<odr::Line>(0, 50, 80, 0, 30);
-            auto r4 = std::make_shared<RoadRunner::Road>(config, refLine4);
+            auto refLine4 = std::make_unique<odr::Line>(0, 50, 80, 0, 30);
+            auto r4 = std::make_shared<RoadRunner::Road>(config, std::move(refLine4));
             int err = RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r4, odr::RoadLink::ContactPoint_End);
         }
 

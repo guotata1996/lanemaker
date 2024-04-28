@@ -42,9 +42,9 @@ namespace RoadRunnerTest
             refLineOrigin = odr::rotateCCW(refLineOrigin, SeparationAngle * i);
             double hdg = SeparationAngle * i;
             if (incoming) hdg += M_PI;
-            auto refLine = std::make_shared<odr::Line>(0, refLineOrigin[0], refLineOrigin[1], hdg, RoadLengthD);
+            auto refLine = std::make_unique<odr::Line>(0, refLineOrigin[0], refLineOrigin[1], hdg, RoadLengthD);
 
-            generatedRoads.push_back(std::make_shared<RoadRunner::Road>(cfg, refLine));
+            generatedRoads.push_back(std::make_shared<RoadRunner::Road>(cfg, std::move(refLine)));
             generatedRoads.back()->Generate();
             incomings.push_back(incoming);
         }
@@ -73,10 +73,10 @@ namespace RoadRunnerTest
     TEST(SingleJunction, BothEnds)
     {
         RoadRunner::RoadProfile commonProfile(2, 0, 2, 0);
-        auto circleRRef = std::make_shared<odr::Arc>(0, 20, 0, 0, 2 * M_PI * 20 * 0.75, 1 / 20.0);
-        auto circleR = std::make_shared<RoadRunner::Road>(commonProfile, circleRRef);
-        auto circleLRef = std::make_shared<odr::Arc>(0, 0, -20, M_PI_2 * 3, 2 * M_PI * 20 * 0.75, -1 / 20.0);
-        auto circleL = std::make_shared<RoadRunner::Road>(commonProfile, circleLRef);
+        auto circleRRef = std::make_unique<odr::Arc>(0, 20, 0, 0, 2 * M_PI * 20 * 0.75, 1 / 20.0);
+        auto circleR = std::make_shared<RoadRunner::Road>(commonProfile, std::move(circleRRef));
+        auto circleLRef = std::make_unique<odr::Arc>(0, 0, -20, M_PI_2 * 3, 2 * M_PI * 20 * 0.75, -1 / 20.0);
+        auto circleL = std::make_shared<RoadRunner::Road>(commonProfile, std::move(circleLRef));
        
         std::vector< RoadRunner::ConnectionInfo> connectionInfo
         {
