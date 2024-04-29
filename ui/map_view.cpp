@@ -130,6 +130,15 @@ void MapView::mousePressEvent(QMouseEvent* evt)
     }
 }
 
+void MapView::mouseDoubleClickEvent(QMouseEvent* evt)
+{
+    SnapCursor(evt->pos());
+    if (editMode != Mode_None)
+    {
+        drawingSession->Update(evt);
+    }
+}
+
 void MapView::mouseMoveEvent(QMouseEvent* evt)
 {
     QGraphicsView::mouseMoveEvent(evt);

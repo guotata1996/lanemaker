@@ -134,5 +134,4 @@ private:
 
     std::weak_ptr<RoadRunner::Road> targetRoad;
     std::unique_ptr<double> s1, s2;
-    std::set<RoadRunner::type_s> targetSectionKeys;
 };

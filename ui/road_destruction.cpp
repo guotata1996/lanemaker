@@ -78,11 +78,6 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
     hintItem->setPolygon(hintPolygon);
 
     // Change target, s1, s2
-    if (target != g_road)
-    {
-        targetSectionKeys.clear();
-    }
-
     if (evt->button() == Qt::LeftButton && g_road != nullptr)
     {
         if (target == nullptr)
@@ -92,20 +87,30 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
         }
         else if (g_road == target)
         {
-            s2 = std::make_unique<double>(GetAdjustedS());
+            if (evt->type() == QEvent::Type::MouseButtonPress)
+            {
+                s2 = std::make_unique<double>(GetAdjustedS());
+            }
+            else if (evt->type() == QEvent::Type::MouseButtonDblClick)
+            {
+                if (s2 == nullptr)
+                {
+                    s1 = std::make_unique<double>(0);
+                    s2 = std::make_unique<double>(target->Length());
+                }
+                else
+                {
+                    s2 = std::make_unique<double>(*s2 > *s1 ? target->Length() : 0);
+                }
+                
+            }
         }
     }
     else if (evt->button() == Qt::RightButton)
     {
-        if (s2 != nullptr)
-        {
-            s2.reset();
-        }
-        else if (s1 != nullptr)
-        {
-            targetRoad.reset();
-            s1.reset();
-        }
+        targetRoad.reset();
+        s1.reset();
+        s2.reset();
     }
 
     return true;

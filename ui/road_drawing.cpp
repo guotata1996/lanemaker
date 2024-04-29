@@ -85,10 +85,26 @@ bool RoadCreationSession::Update(QMouseEvent* event)
 
     if (event->button() == Qt::MouseButton::LeftButton)
     {
-        ctrlPoints.push_back(scenePos);
-        if (ctrlPoints.size() >= 3 && !joinAtEnd.expired())
+        if (event->type() == QEvent::Type::MouseButtonPress)
         {
-            return false;
+            ctrlPoints.push_back(scenePos);
+            if (ctrlPoints.size() >= 3 && !joinAtEnd.expired())
+            {
+                return false;
+            }
+        }
+        else if (event->type() == QEvent::Type::MouseButtonDblClick
+            && ctrlPoints.size() > 2
+            && ctrlPoints.size() % 2 == 1)
+        {
+            auto last3Point = ctrlPoints[ctrlPoints.size() - 3];
+            auto& last2Point = ctrlPoints[ctrlPoints.size() - 2];
+            auto lastPoint = ctrlPoints.back();
+            auto midPoint = (lastPoint + last3Point) / 2;
+            last2Point.setX(midPoint.x());
+            last2Point.setY(midPoint.y());
+
+            ctrlPoints.push_back(scenePos);
         }
     }
     else if (event->button() == Qt::MouseButton::RightButton)
@@ -283,6 +299,7 @@ bool RoadCreationSession::SnapCtrlPoint(float maxOffset)
         QPointF lastPoint = ctrlPoints[ctrlPoints.size() - 2];
         QVector2D last2Next(nextPoint - lastPoint);
         auto projLength = QVector2D::dotProduct(last2Next, nextDir);
+        projLength = std::max(0.0f, projLength);
         QVector2D projected = QVector2D(lastPoint) + projLength * nextDir;
         if (projected.distanceToPoint(QVector2D(nextPoint)) < maxOffset)
         {
