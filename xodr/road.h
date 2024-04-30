@@ -79,10 +79,9 @@ namespace RoadRunner
             double sBegin1, sEnd1;
             std::weak_ptr<Road> road2;
             double sBegin2, sEnd2;
-            // TODO: join to an existing junction
         };
 
-        std::unique_ptr<RoadsOverlap> FirstOverlapNonJunction(double sBegin, double sEnd) const;
+        std::unique_ptr<RoadsOverlap> FirstOverlap(double sBegin, double sEnd) const;
 
         void EnableHighlight(bool enabled);
 #endif

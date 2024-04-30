@@ -260,7 +260,7 @@ namespace RoadRunner
         return to_odr_unit(modifiedKey_s);
     }
 
-    std::unique_ptr<Road::RoadsOverlap> Road::FirstOverlapNonJunction(double sBegin, double sEnd) const
+    std::unique_ptr<Road::RoadsOverlap> Road::FirstOverlap(double sBegin, double sEnd) const
     {
         if (sBegin >= sEnd) 
             return nullptr;
@@ -282,6 +282,8 @@ namespace RoadRunner
                 {
                     continue;
                 }
+                RoadGraphics* myGraphicsSegment = dynamic_cast<RoadGraphics*>(laneSegmentItem->parentItem());
+
                 for (auto collision : laneSegmentItem->collidingItems())
                 {
                     LaneSegmentGraphics* collisionSegmentItem = dynamic_cast<LaneSegmentGraphics*>(collision);
@@ -297,17 +299,35 @@ namespace RoadRunner
                         // self-intersection is ignored for now
                         continue;
                     }
-                    if (collidingRoad->generated.junction == "-1")
+
+                    if (collidingRoad->generated.junction != "-1")
                     {
-                        if (collidings.find(collidingRoad) == collidings.end())
+                        auto junctionPtr = IDGenerator::ForJunction()->GetByID(collidingRoad->generated.junction);
+                        auto junction = static_cast<RoadRunner::Junction*>(junctionPtr)->shared_from_this();
+                        if (predecessorJunction == junction && 
+                            (myGraphicsSegment->sBegin < GraphicsDivision ||
+                            myGraphicsSegment->sEnd < GraphicsDivision))
                         {
-                            collidings.emplace(collidingRoad, MultiSegment(1));
+                            // Already joined this junction
+                            continue;
                         }
-                        collidings.at(collidingRoad).Insert(
-                            std::min(collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd),
-                            std::max(collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd));
-                        myCollidingPieces.insert(laneSegmentItem);
+                        if (successorJunction == junction &&
+                            (myGraphicsSegment->sBegin > Length() - GraphicsDivision ||
+                                myGraphicsSegment->sEnd > Length() - GraphicsDivision))
+                        {
+                            // Already joined this junction
+                            continue;
+                        }
                     }
+                    
+                    if (collidings.find(collidingRoad) == collidings.end())
+                    {
+                        collidings.emplace(collidingRoad, MultiSegment(1));
+                    }
+                    collidings.at(collidingRoad).Insert(
+                        std::min(collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd),
+                        std::max(collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd));
+                    myCollidingPieces.insert(laneSegmentItem);
                 }
             }
         }

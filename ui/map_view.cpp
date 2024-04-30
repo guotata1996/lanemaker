@@ -178,9 +178,7 @@ void MapView::keyPressEvent(QKeyEvent* evt)
             else
             {
                 auto junc = static_cast<RoadRunner::Junction*>(IDGenerator::ForJunction()->GetByID(g_road->generated.junction));
-                spdlog::info("Junction has {} connected and {} connecting",
-                    junc->StillConnectedRoads().size(),
-                    junc->connectingRoads.size());
+                spdlog::info("{}", junc->Log());
             }
         }
         else
