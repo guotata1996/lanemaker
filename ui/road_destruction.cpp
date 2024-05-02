@@ -14,6 +14,11 @@ RoadDestroySession::RoadDestroySession(QGraphicsView* aView):
     cursorItem = new CustomCursorItem;
     scene->addItem(cursorItem);
     hintItem = scene->addPolygon(hintPolygon);
+    hintItem->setZValue(10);
+    QPen pen;
+    pen.setColor(Qt::red);
+    pen.setWidthF(0.5);
+    hintItem->setPen(pen);
 }
 
 RoadDestroySession::~RoadDestroySession()
@@ -78,7 +83,8 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
     hintItem->setPolygon(hintPolygon);
 
     // Change target, s1, s2
-    if (evt->button() == Qt::LeftButton && g_road != nullptr)
+    if (evt->button() == Qt::LeftButton 
+        && g_road != nullptr && g_road->generated.junction == "-1")
     {
         if (target == nullptr)
         {

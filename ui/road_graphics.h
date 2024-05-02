@@ -6,6 +6,8 @@
 
 namespace RoadRunner
 {
+    class LaneSegmentGraphics;
+
     class RoadGraphics : public QGraphicsRectItem
     {
     public:
@@ -30,6 +32,8 @@ namespace RoadRunner
 
         const double BrokenLength = 3;
         const double BrokenGap = 6;
+
+        std::vector< LaneSegmentGraphics*> allSegmentGraphics;
     };
 
     class LaneSegmentGraphics : public QGraphicsPolygonItem
@@ -41,14 +45,20 @@ namespace RoadRunner
             std::string laneType,
             QGraphicsItem* parent);
 
-        bool SnapCursor(QPointF p);
+        std::weak_ptr<Road> SnapCursor(QPointF p, double& outS);
 
         std::shared_ptr<Road> Road() const;
+
+        void EnableHighlight(bool enabled);
 
     private:
         std::vector<QPolygonF> subdivisionPolys;
         /*0, 0.05, ..., 0.95, 1*/
         std::vector<double> subdivisionPortion;
+
+        const QColor NormalColor;
+        const QColor HighlightColor;
+        bool isMedian;
     };
 }
 

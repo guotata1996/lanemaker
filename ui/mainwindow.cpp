@@ -18,7 +18,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 {
     setWindowTitle(tr("Road Runner"));
     setMinimumWidth(1600);
-    setMinimumHeight(900);
+    setMinimumHeight(1200);
 
     QMenuBar* menu = new QMenuBar;
     QMenu* file = new QMenu("&File");

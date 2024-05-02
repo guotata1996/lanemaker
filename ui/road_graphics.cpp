@@ -11,8 +11,6 @@
 
 extern QGraphicsScene* g_scene;
 
-extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
-extern double g_PointerRoadS;
 
 namespace RoadRunner
 {
@@ -33,16 +31,13 @@ namespace RoadRunner
 
     void RoadGraphics::EnableHighlight(bool enabled)
     {
-        for (auto child : childItems())
+        setZValue(enabled ? 1 : 0);
+        for (auto laneSegment : allSegmentGraphics)
         {
-            auto laneSegment = static_cast<LaneSegmentGraphics*>(child);
-            if (laneSegment == nullptr)
-                continue;
-            auto brush = laneSegment->brush();
-            auto color = brush.color();
-            color.setAlphaF(enabled ? 0.6 : 1);
-            brush.setColor(color);
-            laneSegment->setBrush(brush);
+            if (laneSegment != nullptr)
+            {
+                laneSegment->EnableHighlight(enabled);
+            }
         }
     }
 
@@ -74,6 +69,7 @@ namespace RoadRunner
 
                 auto laneSegmentItem = new LaneSegmentGraphics(poly, outerBorder, innerBorder,
                     lane.type, this);
+                allSegmentGraphics.push_back(laneSegmentItem);
 
                 for (const auto& markingGroup : lane.roadmark_groups)
                 {
@@ -131,12 +127,15 @@ namespace RoadRunner
         odr::Line3D innerBorder,
         std::string laneType,
         QGraphicsItem* parent) :
-        QGraphicsPolygonItem(poly, parent) 
+        QGraphicsPolygonItem(poly, parent),
+        NormalColor(134, 132, 130),
+        HighlightColor(189, 187, 185),
+        isMedian(laneType == "median")
     {
         setAcceptHoverEvents(true);
 
         setPen(Qt::NoPen);
-        setBrush(QBrush(laneType == "median" ? Qt::yellow : Qt::gray, Qt::SolidPattern));
+        EnableHighlight(false);
         
         assert(outerBorder.size() == innerBorder.size());
         assert(outerBorder.size() >= 2);
@@ -166,7 +165,7 @@ namespace RoadRunner
         Stats::Instance("LaneSegmentGraphics Created")->Increment();
     }
 
-    bool LaneSegmentGraphics::SnapCursor(QPointF scenePos)
+    std::weak_ptr<Road> LaneSegmentGraphics::SnapCursor(QPointF scenePos, double& outS)
     {
         auto parentRoad = dynamic_cast<RoadRunner::RoadGraphics*>(parentItem());
         double sBegin = parentRoad->sBegin;
@@ -191,21 +190,24 @@ namespace RoadRunner
                 double portion = dDown / (dDown + dUp);
                 portion = pMin * (1 - portion) + pMax * portion;
                 double s = sBegin * (1 - portion) + sEnd * portion;
-                s = odr::clamp(s, sBegin, sEnd);
+                outS = odr::clamp(s, sBegin, sEnd);
 
-                g_PointerRoad = parentRoad->road;
-                g_PointerRoadS = s;
-                return true;
+                return parentRoad->road;
             }
         }
 
-        return false;
+        return std::weak_ptr<RoadRunner::Road>();
     }
 
     std::shared_ptr<Road> LaneSegmentGraphics::Road() const
     {
         auto parentRoad = dynamic_cast<RoadRunner::RoadGraphics*>(parentItem());
         return parentRoad->road.lock();
+    }
+
+    void LaneSegmentGraphics::EnableHighlight(bool enabled)
+    {
+        setBrush(QBrush(isMedian ? Qt::yellow : (enabled ? HighlightColor : NormalColor), Qt::SolidPattern));
     }
 }
 
