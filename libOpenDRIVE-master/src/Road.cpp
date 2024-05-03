@@ -315,6 +315,32 @@ Line3D Road::get_side_border_line(const int8_t side, const double s_start, const
     return Line3D(rtn.begin(), rtn.end());
 }
 
+Line3D Road::get_road_border_line(const double s_start, const double s_end, const double eps) const
+{
+    const auto& firstSection = s_to_lanesection.begin()->second;
+    Line3D      one, two;
+    if (firstSection.get_sorted_driving_lanes(-1).empty())
+    {
+        // Single dir: left side only
+        one = get_side_border_line(1, s_start, s_end, false, eps);
+        two = get_side_border_line(1, s_start, s_end, true, eps);
+        one.insert(one.end(), two.rbegin(), two.rend());
+    }
+    else if (firstSection.get_sorted_driving_lanes(1).empty())
+    {
+        // Single dir: right side only
+        one = get_side_border_line(-1, s_start, s_end, false, eps);
+        two = get_side_border_line(-1, s_start, s_end, true, eps);
+        one.insert(one.end(), two.rbegin(), two.rend());
+    }
+    else
+    {
+        one = get_side_border_line(1, s_start, s_end, true, eps);
+        two = get_side_border_line(-1, s_start, s_end, true, eps);
+        one.insert(one.end(), two.begin(), two.end());
+    }
+    return one;
+}
 Line3D Road::get_lane_marking_line(
     const Lane& lane,
     const double s_start,

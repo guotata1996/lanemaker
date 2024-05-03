@@ -68,13 +68,8 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
         if (fromS >= 0)
         {
             // Can preview
-            auto rightBorder = target->generated.get_side_border_line(-1, fromS, toS, true, 1);
-            auto leftBorder = target->generated.get_side_border_line(1, fromS, toS, true, 1);
-            rightBorder.insert(rightBorder.end(), leftBorder.begin(), leftBorder.end());
-            
-            bool initial = true;
-
-            for (const odr::Vec3D& p : rightBorder)
+            auto border = target->generated.get_road_border_line(fromS, toS, 1);
+            for (const odr::Vec3D& p : border)
             {
                 hintPolygon.append(QPointF(p[0], p[1]));
             }
