@@ -481,7 +481,6 @@ void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
         double sBegin2 = overlap->sBegin2 - JunctionExtaTrim;
         double sEnd2 = overlap->sEnd2 + JunctionExtaTrim;
 
-        int incomingCount = 0;
         if (sBegin1 < RoadMinLength)
         {
             if (newRoad->predecessorJunction != nullptr)
@@ -494,10 +493,6 @@ void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
                 sBegin1 = 0; // T junction
             }
         }
-        else
-        {
-            incomingCount++;
-        }
         if (sEnd1 > newRoad->Length() - RoadMinLength)
         {
             if (newRoad->successorJunction != nullptr)
@@ -509,10 +504,6 @@ void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
             {
                 sEnd1 = newRoad->Length();  // T junction
             }
-        }
-        else
-        {
-            incomingCount++;
         }
 
         bool joinExistingJunction = road2->generated.junction != "-1";
@@ -531,10 +522,6 @@ void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
                     sBegin2 = 0;
                 }
             }
-            else
-            {
-                incomingCount++;
-            }
             if (sEnd2 > road2->Length() - RoadMinLength)
             {
                 if (road2->successorJunction != nullptr)
@@ -547,14 +534,11 @@ void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
                     sEnd2 = road2->Length();
                 }
             }
-            else
-            {
-                incomingCount++;
-            }
 
-            if (incomingCount < 3)
+            if (sBegin1 == 0 && sEnd1 == newRoad->Length()
+                || sBegin2 == 0 && sEnd2 == road2->Length())
             {
-                spdlog::warn("No enough incoming road! Cannot create Junction with Road{} @{}", road2->ID(), sEnd1);
+                spdlog::warn("Road is too short! Cannot create Junction with Road{} @{}", road2->ID(), sEnd1);
                 newPartBegin = sEnd1 + RoadMinLength;
                 continue;
             }

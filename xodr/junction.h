@@ -131,7 +131,8 @@ namespace RoadRunner
     void assignOutgoingLanes(std::vector<TurningGroup>& incomingLanes);
 
     // Clear any connection of regularRoad towards junction
-    // void clearLinkage(std::string junctionID, std::string regularRoad);
+    // Only used to unlink the last (only) road when all rest
+    void clearLinkage(std::string junctionID, std::string regularRoad);
 
     struct ChangeInConnecting
     {

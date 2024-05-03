@@ -153,9 +153,10 @@ namespace RoadRunner
 
         if (road2->successorJunction != nullptr)
         {
-            road2->successorJunction->NotifyPotentialChange(ChangeInConnecting
+            auto successorJunction = road2->successorJunction;
+            successorJunction->NotifyPotentialChange(ChangeInConnecting
                 { road2, RoadRunner::ChangeInConnecting::Type_DetachAtEnd_Temp });
-            road2->successorJunction->Attach(RoadRunner::ConnectionInfo{ road1, odr::RoadLink::ContactPoint_End });
+            successorJunction->Attach(RoadRunner::ConnectionInfo{ road1, odr::RoadLink::ContactPoint_End });
         }
 #ifndef G_TEST
         // Update transition part, up to max transition length
@@ -224,9 +225,10 @@ namespace RoadRunner
 
         if (roadAsPrev->successorJunction != nullptr)
         {
-            roadAsPrev->successorJunction->NotifyPotentialChange(ChangeInConnecting
+            auto successorJunction = roadAsPrev->successorJunction;
+            successorJunction->NotifyPotentialChange(ChangeInConnecting
                 { roadAsPrev, RoadRunner::ChangeInConnecting::Type_DetachAtEnd_Temp });
-            roadAsPrev->successorJunction->Attach(RoadRunner::ConnectionInfo{ part2, odr::RoadLink::ContactPoint_End });
+            successorJunction->Attach(RoadRunner::ConnectionInfo{ part2, odr::RoadLink::ContactPoint_End });
         }
 #ifndef G_TEST       
         // Move to part2

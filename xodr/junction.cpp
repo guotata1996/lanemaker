@@ -618,8 +618,8 @@ namespace RoadRunner
             else if (detail._type == detail.Type_DetachAtEnd_Temp && record.contact == odr::RoadLink::ContactPoint_End && 
                 subject == recordedRoad)
             {
-                needReGen = true; // ROADRUNNERTODO: false
                 subject->generated.successor = odr::RoadLink();
+                subject->successorJunction.reset();
             }
             else
             {
@@ -629,64 +629,87 @@ namespace RoadRunner
             }
         }
 
-        if (needReGen && updatedInfoList.size() > 1) // TODO: case where size() == 1
+        if (detail._type == detail.Type_DetachAtEnd_Temp)
         {
-            spdlog::trace("Junction regen from {} roads", updatedInfoList.size());
+            formedFrom.clear();
+            formedFrom.insert(updatedInfoList.cbegin(), updatedInfoList.cend());
+        }
+        else if (needReGen && updatedInfoList.size() > 1)
+        {
+            spdlog::trace("Junction {} regen from {} roads", ID(), updatedInfoList.size());
             CreateFrom(updatedInfoList);
+        }
+        else if (updatedInfoList.size() == 1)
+        {
+            auto onlyRoad = updatedInfoList.begin()->road.lock();
+            if (updatedInfoList.begin()->contact == odr::RoadLink::ContactPoint_Start)
+            {
+                onlyRoad->predecessorJunction.reset();
+            }
+            else if (updatedInfoList.begin()->contact == odr::RoadLink::ContactPoint_End)
+            {
+                onlyRoad->successorJunction.reset();
+            }
+            else
+            {
+                assert(false);
+            }
+
+            clearLinkage(ID(), onlyRoad->ID());
+            IDGenerator::ForRoad()->NotifyChange(onlyRoad->ID());
+            formedFrom.clear();
+            // Junction will then be destroyed
         }
     }
 
-    // Probably not needed: 
-    // there's no way to directly destroy a junction
-    // Junction will be deleted once all connecting roads get deleted
-
-    //void clearLinkage(std::string junctionID, std::string regularRoad)
-    //{
-    //    auto road = IDGenerator::ForRoad()->GetByID(regularRoad);
-    //    if (road == nullptr)
-    //    {
-    //        return;
-    //    }
-    //    odr::Road& affectedRoad = static_cast<Road*>(road)->generated;
-    //    if (affectedRoad.successor.type == odr::RoadLink::Type_Junction && 
-    //        affectedRoad.successor.id == junctionID)
-    //    {
-    //        affectedRoad.successor.type = odr::RoadLink::Type_None;
-    //        affectedRoad.successor.id = "";
-    //        auto lastSection = affectedRoad.s_to_lanesection.rbegin()->second;
-    //        // right side loses next
-    //        for (auto& lane : lastSection.get_sorted_driving_lanes(-1))
-    //        {
-    //            lane.successor = 0;
-    //            lastSection.id_to_lane.find(lane.id)->second = lane;
-    //        }
-    //        // left side loses prev
-    //        for (auto& lane : lastSection.get_sorted_driving_lanes(1))
-    //        {
-    //            lane.predecessor = 0;
-    //            lastSection.id_to_lane.find(lane.id)->second = lane;
-    //        }
-    //    }
-    //    if (affectedRoad.predecessor.type == odr::RoadLink::Type_Junction &&
-    //        affectedRoad.predecessor.id == junctionID)
-    //    {
-    //        affectedRoad.predecessor.type = odr::RoadLink::Type_None;
-    //        affectedRoad.predecessor.id = "";
-    //        auto firstSection = affectedRoad.s_to_lanesection.begin()->second;
-    //        // right side loses prev
-    //        for (auto& lane : firstSection.get_sorted_driving_lanes(-1))
-    //        {
-    //            lane.predecessor = 0;
-    //            firstSection.id_to_lane.find(lane.id)->second = lane;
-    //        }
-    //        // left side loses next
-    //        for (auto& lane : firstSection.get_sorted_driving_lanes(1))
-    //        {
-    //            lane.successor = 0;
-    //            firstSection.id_to_lane.find(lane.id)->second = lane;
-    //        }
-    //    }
-    //}
+    void clearLinkage(std::string junctionID, std::string regularRoad)
+    {
+        auto road = IDGenerator::ForRoad()->GetByID(regularRoad);
+        if (road == nullptr)
+        {
+            return;
+        }
+        
+        odr::Road& affectedRoad = static_cast<Road*>(road)->generated;
+        if (affectedRoad.successor.type == odr::RoadLink::Type_Junction && 
+            affectedRoad.successor.id == junctionID)
+        {
+            affectedRoad.successor.type = odr::RoadLink::Type_None;
+            affectedRoad.successor.id = "";
+            auto lastSection = affectedRoad.s_to_lanesection.rbegin()->second;
+            // right side loses next
+            for (auto& lane : lastSection.get_sorted_driving_lanes(-1))
+            {
+                lane.successor = 0;
+                lastSection.id_to_lane.find(lane.id)->second = lane;
+            }
+            // left side loses prev
+            for (auto& lane : lastSection.get_sorted_driving_lanes(1))
+            {
+                lane.predecessor = 0;
+                lastSection.id_to_lane.find(lane.id)->second = lane;
+            }
+        }
+        if (affectedRoad.predecessor.type == odr::RoadLink::Type_Junction &&
+            affectedRoad.predecessor.id == junctionID)
+        {
+            affectedRoad.predecessor.type = odr::RoadLink::Type_None;
+            affectedRoad.predecessor.id = "";
+            auto firstSection = affectedRoad.s_to_lanesection.begin()->second;
+            // right side loses prev
+            for (auto& lane : firstSection.get_sorted_driving_lanes(-1))
+            {
+                lane.predecessor = 0;
+                firstSection.id_to_lane.find(lane.id)->second = lane;
+            }
+            // left side loses next
+            for (auto& lane : firstSection.get_sorted_driving_lanes(1))
+            {
+                lane.successor = 0;
+                firstSection.id_to_lane.find(lane.id)->second = lane;
+            }
+        }
+    }
 
     Junction::~Junction()
     {
@@ -701,12 +724,6 @@ namespace RoadRunner
         if (!ID().empty())
         {
             spdlog::trace("del junction {} w/ {} connections", ID(), connectingRoads.size());
-            //for (auto& connectingRoad : connectingRoads)
-            //{
-            //    clearLinkage(ID(), connectingRoad.generated.successor.id);
-            //    clearLinkage(ID(), connectingRoad.generated.predecessor.id);
-            //}
-            // connectingRoads.clear();
             IDGenerator::ForJunction()->FreeID(ID());
         }
     }
