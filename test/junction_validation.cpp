@@ -88,7 +88,9 @@ namespace RoadRunnerTest
                 }
             }
 
-            auto enteringLanes = incomingRoad.s_to_lanesection.begin()->second.get_sorted_driving_lanes(
+            auto enteringSection = incomingInfo.contact == odr::RoadLink::ContactPoint_Start ?
+                incomingRoad.s_to_lanesection.begin()->second : incomingRoad.s_to_lanesection.rbegin()->second;
+            auto enteringLanes = enteringSection.get_sorted_driving_lanes(
                 incomingInfo.contact == odr::RoadLink::ContactPoint_Start ? 1 : -1);
             for (const odr::Lane& enteringLane : enteringLanes)
             {
