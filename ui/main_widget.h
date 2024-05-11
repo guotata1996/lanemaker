@@ -51,7 +51,6 @@ private slots:
 
 private:
     MapView* graphicsView;
-    QLabel* label2;
     QToolButton* createModeButton;
     QToolButton* destroyModeButton;
     QToolButton* dragModeButton;

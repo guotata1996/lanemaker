@@ -77,7 +77,6 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
 
     // Label layout
     QHBoxLayout* labelLayout = new QHBoxLayout;
-    label2 = new QLabel(tr("Pointer Mode"));
     createModeButton = new QToolButton;
     createModeButton->setText(tr("Create"));
     createModeButton->setCheckable(true);
@@ -102,9 +101,12 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     pointerModeGroup->addButton(dragModeButton);
 
     labelLayout->addWidget(createRoadOption);
+    QSizePolicy sp_retain = createRoadOption->sizePolicy();
+    sp_retain.setRetainSizeWhenHidden(true);
+    createRoadOption->setSizePolicy(sp_retain);
     createRoadOption->hide();
-    labelLayout->addStretch();
-    labelLayout->addWidget(label2);
+    labelLayout->addSpacing(50);
+    labelLayout->addWidget(new QLabel(tr("Edit Mode")));
     labelLayout->addWidget(createModeButton);
     labelLayout->addWidget(destroyModeButton);
     labelLayout->addWidget(dragModeButton);
