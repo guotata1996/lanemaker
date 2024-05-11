@@ -1,4 +1,5 @@
-#include "view.h"
+#include "map_view.h"
+#include "main_widget.h"
 #include "road_drawing.h"
 #include "road_graphics.h"
 #include "change_tracker.h"
@@ -150,6 +151,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
         rotatingRoads.clear();
     }
 
+    QString txt;
     if (rotatingRoads.empty())
     {
         g_PointerRoad.reset();
@@ -158,7 +160,12 @@ void MapView::SnapCursor(const QPoint& viewPos)
     {
         g_PointerRoad = rotatingRoads[rotatingIndex].first;
         g_PointerRoadS = rotatingRoads[rotatingIndex].second;
+        std::stringstream ss;
+        ss << "Road " << g_PointerRoad.lock()->ID() << " @ " << g_PointerRoadS;
+        txt = QString::fromStdString(ss.str());
     }
+
+    view->SetHovering(txt);
 }
 
 void MapView::mousePressEvent(QMouseEvent* evt)
@@ -227,10 +234,11 @@ void MapView::keyPressEvent(QKeyEvent* evt)
         }
         else
         {
-            spdlog::info("NonConnRoad={}, NRoadID={}, JuctionID={}",
+            spdlog::info("NonConnRoad={}, NRoadID={}, JuctionID={}, N visible graphics items={}",
                 World::Instance()->allRoads.size(),
                 IDGenerator::ForRoad()->size(),
-                IDGenerator::ForJunction()->size());
+                IDGenerator::ForJunction()->size(),
+                scene()->items(mapToScene(viewport()->geometry())).size());
         }
         break;
     }
@@ -247,33 +255,6 @@ void MapView::keyPressEvent(QKeyEvent* evt)
         }
         break;
     }
-}
-
-void MapView::drawForeground(QPainter* painter, const QRectF& rect)
-{
-    QGraphicsView::drawForeground(painter, rect);
-
-    auto g_road = g_PointerRoad.lock();
-    if (g_road != nullptr)
-    {
-        painter->save();
-
-        QFont font = painter->font();
-        font.setPointSize(20);
-        painter->setFont(font);
-
-        painter->setWorldMatrixEnabled(false);
-        QRectF vpRect = viewport()->rect();
-
-        std::stringstream ss;
-        ss << "Road " << g_road->ID() << " @ " << g_PointerRoadS;
-        QString txt = QString::fromStdString(ss.str());
-        painter->drawText(vpRect.bottomLeft(), txt);
-        painter->setWorldMatrixEnabled(true);
-        painter->restore();
-    }
-
-    viewport()->update();
 }
 
 void MapView::AdjustSceneRect()

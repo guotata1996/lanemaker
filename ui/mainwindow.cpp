@@ -4,8 +4,9 @@
 #include <QVBoxLayout>
 #include <QMenuBar>
 #include <QFileDialog>
+#include <QStatusBar>
 
-#include "view.h"
+#include "main_widget.h"
 #include "change_tracker.h"
 #include "test/validation.h"
 
@@ -47,6 +48,8 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     auto mainLayout = new QVBoxLayout;
     mainLayout->addWidget(menu);
     mainLayout->addWidget(mainWidget);
+    statusBar = new QStatusBar;
+    mainLayout->addWidget(statusBar);
     
     setLayout(mainLayout);
 
@@ -56,6 +59,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(redoAction, &QAction::triggered, this, &MainWindow::redo);
     connect(verifyAction, &QAction::triggered, this, &MainWindow::verifyMap);
     connect(alwaysVerifyAction, &QAction::triggered, this, &MainWindow::toggleAlwaysVerifyMap);
+    connect(mainWidget, &MainWidget::HoveringChanged, this, &MainWindow::setHint);
 }
 
 void MainWindow::saveToFile()
@@ -123,4 +127,9 @@ void MainWindow::verifyMap()
 void MainWindow::toggleAlwaysVerifyMap(bool enable)
 {
     RoadRunner::ChangeTracker::Instance()->VerifyUponChange = enable;
+}
+
+void MainWindow::setHint(QString msg) 
+{
+    statusBar->showMessage(msg);
 }

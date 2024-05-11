@@ -46,11 +46,6 @@ public:
 
     virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
 
-    virtual QPainterPath shape() const override
-    {
-        return QPainterPath();
-    }
-
     void EnableHighlight(bool enable);
 
     static double SnapRadiusPx;

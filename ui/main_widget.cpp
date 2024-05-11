@@ -1,7 +1,9 @@
 // Copyright (C) 2016 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
-#include "view.h"
+#include "main_widget.h"
+#include "map_view.h"
+#include "mainwindow.h"
 
 #include "CreateRoadOptionWidget.h"
 #include "spdlog/spdlog.h"
@@ -231,4 +233,9 @@ void MainWidget::rotateRight()
 void MainWidget::AdjustSceneRect()
 {
     graphicsView->AdjustSceneRect();
+}
+
+void MainWidget::SetHovering(QString a)
+{
+    emit HoveringChanged(a);
 }
