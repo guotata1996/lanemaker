@@ -257,6 +257,12 @@ void MapView::keyPressEvent(QKeyEvent* evt)
     }
 }
 
+void MapView::paintEvent(QPaintEvent* evt)
+{
+    QGraphicsView::paintEvent(evt);
+    view->Painted();
+}
+
 void MapView::AdjustSceneRect()
 {
     auto original = scene()->itemsBoundingRect();

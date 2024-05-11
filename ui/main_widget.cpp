@@ -239,3 +239,20 @@ void MainWidget::SetHovering(QString a)
 {
     emit HoveringChanged(a);
 }
+
+void MainWidget::Painted()
+{
+    auto t = QDateTime::currentMSecsSinceEpoch();
+    nRepaints++;
+    auto deltaMS = t - lastUpdateFPSMS;
+    if (deltaMS > 1000)
+    {
+        auto fps = static_cast<double>(nRepaints) * 1000 / deltaMS;
+        auto fpsInt = static_cast<int>(fps);
+        auto displayStr = QString::fromStdString(std::to_string(fpsInt)) + tr(" FPS");
+        emit FPSChanged(displayStr);
+
+        lastUpdateFPSMS = t;
+        nRepaints = 0;
+    }
+}

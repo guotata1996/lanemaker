@@ -36,6 +36,8 @@ protected:
 
     void keyPressEvent(QKeyEvent* event) override;
 
+    void paintEvent(QPaintEvent*) override;
+
 private:
     const double ViewPadding = 100; // meters
 

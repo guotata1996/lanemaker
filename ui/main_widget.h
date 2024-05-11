@@ -24,8 +24,12 @@ public:
 
     void SetHovering(QString);
 
+    void Painted();
+
 signals:
     void HoveringChanged(QString);
+
+    void FPSChanged(QString);
 
 public slots:
     void zoomIn();
@@ -57,4 +61,7 @@ private:
     QSlider* rotateSlider;
 
     CreateRoadOptionWidget* createRoadOption;
+
+    unsigned int nRepaints = 0;
+    qint64 lastUpdateFPSMS = 0;
 };

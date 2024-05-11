@@ -15,12 +15,15 @@ public:
 private:
     std::unique_ptr<QGraphicsScene> scene;
 
-    QStatusBar* statusBar;
+    QStatusBar* hintStatus;
+    QStatusBar* fpsStatus;
 
     MainWidget* mainWidget;
 
 public slots:
     void setHint(QString);
+
+    void setFPS(QString);
 
 private slots:
     void saveToFile();

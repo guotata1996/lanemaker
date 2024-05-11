@@ -48,8 +48,13 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     auto mainLayout = new QVBoxLayout;
     mainLayout->addWidget(menu);
     mainLayout->addWidget(mainWidget);
-    statusBar = new QStatusBar;
-    mainLayout->addWidget(statusBar);
+    auto bottomLayout = new QHBoxLayout;
+    hintStatus = new QStatusBar;
+    bottomLayout->addWidget(hintStatus);
+    fpsStatus = new QStatusBar;
+    bottomLayout->addStretch();
+    bottomLayout->addWidget(fpsStatus);
+    mainLayout->addLayout(bottomLayout);
     
     setLayout(mainLayout);
 
@@ -60,6 +65,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(verifyAction, &QAction::triggered, this, &MainWindow::verifyMap);
     connect(alwaysVerifyAction, &QAction::triggered, this, &MainWindow::toggleAlwaysVerifyMap);
     connect(mainWidget, &MainWidget::HoveringChanged, this, &MainWindow::setHint);
+    connect(mainWidget, &MainWidget::FPSChanged, this, &MainWindow::setFPS);
 }
 
 void MainWindow::saveToFile()
@@ -131,5 +137,10 @@ void MainWindow::toggleAlwaysVerifyMap(bool enable)
 
 void MainWindow::setHint(QString msg) 
 {
-    statusBar->showMessage(msg);
+    hintStatus->showMessage(msg);
+}
+
+void MainWindow::setFPS(QString msg)
+{
+    fpsStatus->showMessage(msg);
 }
