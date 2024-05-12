@@ -81,12 +81,13 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
     if (evt->button() == Qt::LeftButton 
         && g_road != nullptr && g_road->generated.junction == "-1")
     {
-        if (target == nullptr)
+        if (g_road != target)
         {
             targetRoad = g_road;
             s1 = std::make_unique<double>(GetAdjustedS());
+            s2.reset();
         }
-        else if (g_road == target)
+        else
         {
             if (evt->type() == QEvent::Type::MouseButtonPress)
             {
@@ -106,12 +107,6 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
                 
             }
         }
-    }
-    else if (evt->button() == Qt::RightButton)
-    {
-        targetRoad.reset();
-        s1.reset();
-        s2.reset();
     }
 
     return true;

@@ -57,6 +57,9 @@ namespace RoadRunner
 
         static std::shared_ptr<Road> SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s);
 
+        void ModifyProfile(double s1, double s2, 
+            const SectionProfile& newLeftProfile, const SectionProfile& newRightProfile);
+
 #ifndef G_TEST
         // Expensive, but safe
         void GenerateAllSectionGraphics();

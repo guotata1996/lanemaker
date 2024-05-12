@@ -78,15 +78,19 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
 
     // Label layout
     QHBoxLayout* labelLayout = new QHBoxLayout;
-    createModeButton = new QToolButton;
+    auto createModeButton = new QToolButton;
     createModeButton->setText(tr("Create"));
     createModeButton->setCheckable(true);
     createModeButton->setChecked(false);
-    destroyModeButton = new QToolButton;
+    auto destroyModeButton = new QToolButton;
     destroyModeButton->setText(tr("Destroy"));
     destroyModeButton->setCheckable(true);
     destroyModeButton->setChecked(false);
-    dragModeButton = new QToolButton;
+    auto modifyModeButton = new QToolButton;
+    modifyModeButton->setText(tr("Modify"));
+    modifyModeButton->setCheckable(true);
+    modifyModeButton->setChecked(false);
+    auto dragModeButton = new QToolButton;
     dragModeButton->setText(tr("Drag"));
     dragModeButton->setCheckable(true);
     dragModeButton->setChecked(false);
@@ -99,6 +103,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     pointerModeGroup->setExclusive(true);
     pointerModeGroup->addButton(createModeButton);
     pointerModeGroup->addButton(destroyModeButton);
+    pointerModeGroup->addButton(modifyModeButton);
     pointerModeGroup->addButton(dragModeButton);
 
     labelLayout->addWidget(createRoadOption);
@@ -111,6 +116,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     labelLayout->addWidget(new QLabel(tr("Edit Mode")));
     labelLayout->addWidget(createModeButton);
     labelLayout->addWidget(destroyModeButton);
+    labelLayout->addWidget(modifyModeButton);
     labelLayout->addWidget(dragModeButton);
     labelLayout->addStretch();
     labelLayout->addWidget(antialiasButton);
@@ -132,6 +138,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
         this, &MainWidget::setResetButtonEnabled);
     connect(createModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateMode);
     connect(destroyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDestroyMode);
+    connect(modifyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoModifyMode);
     connect(dragModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDragMode);
     connect(antialiasButton, &QAbstractButton::toggled, this, &MainWidget::toggleAntialiasing);
     connect(rotateLeftIcon, &QAbstractButton::clicked, this, &MainWidget::rotateLeft);
@@ -189,6 +196,14 @@ void MainWidget::gotoDestroyMode()
     graphicsView->setInteractive(true);
     graphicsView->SetEditMode(MapView::Mode_Destroy);
     createRoadOption->hide();
+}
+
+void MainWidget::gotoModifyMode()
+{
+    graphicsView->setDragMode(QGraphicsView::RubberBandDrag);
+    graphicsView->setInteractive(true);
+    graphicsView->SetEditMode(MapView::Mode_Modify);
+    createRoadOption->show();
 }
 
 void MainWidget::gotoDragMode()

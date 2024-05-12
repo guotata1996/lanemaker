@@ -16,7 +16,8 @@ public:
     {
         Mode_None,
         Mode_Create,
-        Mode_Destroy
+        Mode_Destroy,
+        Mode_Modify
     };
 
     void SetEditMode(EditMode aMode);

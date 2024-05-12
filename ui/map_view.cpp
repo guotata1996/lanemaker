@@ -53,6 +53,9 @@ void MapView::SetEditMode(EditMode aMode)
     case Mode_Destroy:
         drawingSession = new RoadDestroySession(this);
         break;
+    case Mode_Modify:
+        drawingSession = new RoadModificationSession(this);
+        break;
     default:
         break;
     }

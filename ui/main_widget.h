@@ -44,6 +44,7 @@ private slots:
 
     void gotoCreateMode();
     void gotoDestroyMode();
+    void gotoModifyMode();
     void gotoDragMode();
     void toggleAntialiasing();
     void rotateLeft();
@@ -51,9 +52,6 @@ private slots:
 
 private:
     MapView* graphicsView;
-    QToolButton* createModeButton;
-    QToolButton* destroyModeButton;
-    QToolButton* dragModeButton;
     QToolButton* antialiasButton;
     QToolButton* resetButton;
     QSlider* zoomSlider;

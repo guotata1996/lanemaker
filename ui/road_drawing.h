@@ -16,8 +16,6 @@ public:
     /*return false if force complete*/
     virtual bool Update(QMouseEvent* event) = 0;
 
-    virtual bool IsValid() = 0;
-
     virtual void Complete() = 0;
 
     virtual ~RoadDrawingSession() {}
@@ -70,11 +68,6 @@ public:
 
     void CreateRoad();
 
-    virtual bool IsValid() override 
-    { 
-        return ctrlPoints.size() > 3 || ctrlPoints.size() == 3 && !joinAtEnd.expired(); 
-    }
-
 private:
     std::unique_ptr<odr::RoadGeometry> createJoinAtEndGeo(bool forPreview);
 
@@ -110,14 +103,9 @@ public:
 
     virtual bool Update(QMouseEvent* event) override;
 
-    virtual bool IsValid() override
-    {
-        return false;
-    }
-
     virtual void Complete() override;
 
-private:
+protected:
     double GetAdjustedS();
 
     QGraphicsPathItem* previewItem;
@@ -129,4 +117,16 @@ private:
 
     std::weak_ptr<RoadRunner::Road> targetRoad;
     std::unique_ptr<double> s1, s2;
+};
+
+class RoadModificationSession : public RoadDestroySession
+{
+public:
+    RoadModificationSession(QGraphicsView* aView);
+
+    //virtual ~RoadModificationSession() override;
+
+    virtual bool Update(QMouseEvent* event) override;
+
+    virtual void Complete() override;
 };

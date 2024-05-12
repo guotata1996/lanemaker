@@ -221,7 +221,7 @@ namespace RoadRunner
         auto refLine2 = roadAsPrev->RefLine().split(s);
         auto part2 = std::make_shared<Road>(profile2, refLine2);
         roadAsPrev->generated.rr_profile = profile1;
-        roadAsPrev->Generate();
+        roadAsPrev->Generate(false);
 
         if (roadAsPrev->successorJunction != nullptr)
         {
@@ -262,5 +262,32 @@ namespace RoadRunner
         roadAsPrev->GenerateOrUpdateSectionGraphicsBetween(std::max(s - 3 * MaxTransition, 0.0), s);
 #endif       
         return part2;
+    }
+
+    void Road::ModifyProfile(double s1, double s2,
+        const SectionProfile& newLeftProfile, const SectionProfile& newRightProfile)
+    {
+        if (s1 > s2) std::swap(s1, s2);
+        type_s s1RR = from_odr_unit(s1);
+        type_s s2RR = from_odr_unit(s2);
+        auto& profile = generated.rr_profile;
+        profile.OverwriteSection(1, s2RR, s1RR, newLeftProfile.laneCount, newLeftProfile.offsetx2);
+        profile.OverwriteSection(-1, s1RR, s2RR, newRightProfile.laneCount, newRightProfile.offsetx2);
+        Generate(false);
+
+        if (s1 == 0 && predecessorJunction != nullptr)
+        {
+            predecessorJunction->NotifyPotentialChange();
+        }
+        if (s2 == Length() && successorJunction != nullptr)
+        {
+            successorJunction->NotifyPotentialChange();
+        }
+
+#ifndef G_TEST   
+        GenerateOrUpdateSectionGraphicsBetween(
+            std::max(s1 - 3 * MaxTransition, 0.0),
+            std::min(s2 + 3 * MaxTransition, Length()));
+#endif
     }
 }
