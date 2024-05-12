@@ -5,8 +5,24 @@
 
 #include <spdlog/spdlog.h>
 
-RoadRunner::SectionProfile activeLeftSetting { 1, 1 };
-RoadRunner::SectionProfile activeRightSetting{ -1, 1 };
+CreateRoadOptionWidget* g_createRoadOption;
+
+RoadRunner::SectionProfile CreateRoadOptionWidget::LeftResult() const
+{
+    return activeLeftSetting;
+}
+
+RoadRunner::SectionProfile CreateRoadOptionWidget::RightResult() const
+{
+    return activeRightSetting;
+}
+
+void CreateRoadOptionWidget::SetOption(const RoadRunner::SectionProfile& l, const RoadRunner::SectionProfile& r)
+{
+    activeLeftSetting = l;
+    activeRightSetting = r;
+    update();
+}
 
 QSize CreateRoadOptionWidget::sizeHint() const
 {

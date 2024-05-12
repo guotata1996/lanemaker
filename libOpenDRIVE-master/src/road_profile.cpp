@@ -223,7 +223,7 @@ namespace RoadRunner
         return rtn;
     }
 
-    std::set<type_s> RoadProfile::GetAllKeys(type_s length)
+    std::set<type_s> RoadProfile::GetAllKeys(type_s length) const
     {
         std::set<type_s> rtn{0, length };
         auto rightKeys = odr::get_map_keys(rightProfiles);
@@ -245,7 +245,7 @@ namespace RoadRunner
         return rtn;
     }
 
-    bool RoadProfile::HasSide(int side)
+    bool RoadProfile::HasSide(int side) const
     {
         return side < 0 ? !rightProfiles.empty() : !leftProfiles.empty();
     }
@@ -924,7 +924,7 @@ namespace RoadRunner
         _MergeSides(rtn, leftSections, centerWidths, rightSections, length);
     }
 
-    void RoadProfile::PrintDetails()
+    void RoadProfile::PrintDetails() const
     {
         if (!rightProfiles.empty())
         {
@@ -945,5 +945,26 @@ namespace RoadRunner
             }
         }
         spdlog::info("      End of profile======");
+    }
+
+    SectionProfile RoadProfile::ProfileAt(double s, int side) const 
+    { 
+        type_s key = from_odr_unit(s);
+        auto&   lookup = side < 0 ? rightProfiles : leftProfiles;
+        if (lookup.empty()) 
+        {
+            return SectionProfile{0, 0};
+        }
+        if (side < 0) 
+        {
+            auto it = rightProfiles.upper_bound(key);
+            if (it != rightProfiles.cbegin())
+                it--;
+            return it->second;
+        }
+        auto   it = leftProfiles.upper_bound(key);
+        if (it == leftProfiles.end())
+            it--;
+        return it->second;
     }
 }

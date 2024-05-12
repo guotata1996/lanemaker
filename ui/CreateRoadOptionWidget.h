@@ -10,13 +10,15 @@ class CreateRoadOptionWidget :
 {
     Q_OBJECT
 public:
-    RoadRunner::SectionProfile lResult;
-    RoadRunner::SectionProfile rResult;
+    RoadRunner::SectionProfile LeftResult() const;
+    RoadRunner::SectionProfile RightResult() const;
 
-    virtual QSize sizeHint() const override;
+    void SetOption(const RoadRunner::SectionProfile&, const RoadRunner::SectionProfile&);
 
 protected:
     const int SingleSideLaneLimit = 10;
+
+    virtual QSize sizeHint() const override;
 
     void paintEvent(QPaintEvent* event) override;
 
@@ -25,6 +27,9 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
 
     void mouseReleaseEvent(QMouseEvent* event) override;
+
+    RoadRunner::SectionProfile activeLeftSetting{ 1, 1 };
+    RoadRunner::SectionProfile activeRightSetting{ -1, 1 };
 
     float TickInterval;
     int XCenter, YCenter, XLeft, XRight;

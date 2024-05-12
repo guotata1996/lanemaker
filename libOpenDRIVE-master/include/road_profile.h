@@ -68,13 +68,15 @@ namespace RoadRunner
         std::map<std::pair<type_s, type_s>, SectionProfile> GetAllSections(type_s length, int side) const;
 
         // begins with 0, ends at length
-        std::set<type_s> GetAllKeys(type_s length);
+        std::set<type_s> GetAllKeys(type_s length) const;
 
-        bool HasSide(int side);
+        bool HasSide(int side) const;
 
         void Apply(double length, odr::Road*);
 
-        void PrintDetails();
+        void PrintDetails() const;
+
+        SectionProfile ProfileAt(double s, int side) const;
 
         std::map<type_s, SectionProfile> leftProfiles, rightProfiles;
 

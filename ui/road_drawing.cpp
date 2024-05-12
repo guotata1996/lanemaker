@@ -7,15 +7,14 @@
 #include "Geometries/ParamPoly3.h"
 #include "curve_fitting.h"
 #include "junction.h"
-
+#include "CreateRoadOptionWidget.h"
 #include "stats.h"
 #include "constants.h"
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 
-extern RoadRunner::SectionProfile activeLeftSetting;
-extern RoadRunner::SectionProfile activeRightSetting;
+extern CreateRoadOptionWidget* g_createRoadOption;
 
 extern double g_zoom;
 
@@ -113,6 +112,14 @@ bool RoadCreationSession::Update(QMouseEvent* event)
         {
             // At least keep one
             ctrlPoints.pop_back();
+        }
+        else if (!g_PointerRoad.expired())
+        {
+            // Pick road profile
+            auto pickFromRoad = g_PointerRoad.lock();
+            auto leftProfile = pickFromRoad->generated.rr_profile.ProfileAt(g_PointerRoadS, 1);
+            auto rightProfile = pickFromRoad->generated.rr_profile.ProfileAt(g_PointerRoadS, -1);
+            g_createRoadOption->SetOption(leftProfile, rightProfile);
         }
     }
     else if (event->button() == Qt::MouseButton::NoButton)
@@ -321,8 +328,8 @@ void RoadCreationSession::CreateRoad()
 
     std::shared_ptr<RoadRunner::Road> newRoad;
     RoadRunner::RoadProfile config(
-        activeLeftSetting.laneCount, activeLeftSetting.offsetx2,
-        activeRightSetting.laneCount, activeRightSetting.offsetx2);
+        g_createRoadOption->LeftResult().laneCount, g_createRoadOption->LeftResult().offsetx2,
+        g_createRoadOption->RightResult().laneCount, g_createRoadOption->RightResult().offsetx2);
     if (!joinAtEnd.expired() && ctrlPoints.size() == 4)
     {
         auto roadGeometry = createJoinAtEndGeo(false);

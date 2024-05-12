@@ -12,6 +12,7 @@
 #include <QtMath>
 
 double g_zoom;
+extern CreateRoadOptionWidget* g_createRoadOption;
 
 MainWidget::MainWidget(const QString& name, QWidget* parent)
     : QFrame(parent), createRoadOption(new CreateRoadOptionWidget)
@@ -105,6 +106,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     sp_retain.setRetainSizeWhenHidden(true);
     createRoadOption->setSizePolicy(sp_retain);
     createRoadOption->hide();
+    g_createRoadOption = createRoadOption;
     labelLayout->addSpacing(50);
     labelLayout->addWidget(new QLabel(tr("Edit Mode")));
     labelLayout->addWidget(createModeButton);
