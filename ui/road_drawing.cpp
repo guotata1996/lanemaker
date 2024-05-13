@@ -18,6 +18,14 @@ extern CreateRoadOptionWidget* g_createRoadOption;
 
 extern double g_zoom;
 
+RoadDrawingSession::RoadDrawingSession(QGraphicsView* aView) :
+    view(aView), scene(aView->scene()), world(World::Instance())
+{
+    cursorItem = new CustomCursorItem;
+    scene->addItem(cursorItem);
+    cursorItem->hide(); // Hide until we receive mouse position
+}
+
 void RoadDrawingSession::SetHighlightTo(std::shared_ptr<RoadRunner::Road> target)
 {
     auto currHighlighted = highlighted.lock();
@@ -69,9 +77,6 @@ RoadCreationSession::RoadCreationSession(QGraphicsView* aView) :
     hintPen.setColor(QColor(0, 200, 100, 80));
     hintPen.setStyle(Qt::DotLine);
     hintItem->setPen(hintPen);
-
-    cursorItem = new CustomCursorItem;
-    scene->addItem(cursorItem);
 
     ctrlPoints.push_back(QPointF());
 }
@@ -133,6 +138,7 @@ bool RoadCreationSession::Update(QMouseEvent* event)
     bool onExisting = SnapCtrlPoint(maxSnapDist);
     cursorItem->setPos(ctrlPoints.back());
     cursorItem->EnableHighlight(onExisting);
+    cursorItem->show();
 
     setPath.clear();
     flexPath.clear();

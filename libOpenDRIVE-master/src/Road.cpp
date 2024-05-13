@@ -315,31 +315,26 @@ Line3D Road::get_side_border_line(const int8_t side, const double s_start, const
     return Line3D(rtn.begin(), rtn.end());
 }
 
-Line3D Road::get_road_border_line(const double s_start, const double s_end, const double eps) const
+std::pair<Line3D, Line3D> Road::get_road_border_line(const double s_start, const double s_end, const double eps) const
 {
     const auto& firstSection = s_to_lanesection.begin()->second;
-    Line3D      one, two;
-    if (firstSection.get_sorted_driving_lanes(-1).empty())
+    Line3D      left, right;
+    if (!firstSection.get_sorted_driving_lanes(1).empty())
     {
-        // Single dir: left side only
-        one = get_side_border_line(1, s_start, s_end, false, eps);
-        two = get_side_border_line(1, s_start, s_end, true, eps);
-        one.insert(one.end(), two.rbegin(), two.rend());
+        // Has left side
+        left = get_side_border_line(1, s_start, s_end, false, eps);
+        auto leftBack = get_side_border_line(1, s_start, s_end, true, eps);
+        left.insert(left.end(), leftBack.rbegin(), leftBack.rend());
     }
-    else if (firstSection.get_sorted_driving_lanes(1).empty())
+    if (!firstSection.get_sorted_driving_lanes(-1).empty())
     {
-        // Single dir: right side only
-        one = get_side_border_line(-1, s_start, s_end, false, eps);
-        two = get_side_border_line(-1, s_start, s_end, true, eps);
-        one.insert(one.end(), two.rbegin(), two.rend());
+        // Has right side
+        right = get_side_border_line(-1, s_start, s_end, false, eps);
+        auto rightBack = get_side_border_line(-1, s_start, s_end, true, eps);
+        right.insert(right.end(), rightBack.rbegin(), rightBack.rend());
     }
-    else
-    {
-        one = get_side_border_line(1, s_start, s_end, true, eps);
-        two = get_side_border_line(-1, s_start, s_end, true, eps);
-        one.insert(one.end(), two.begin(), two.end());
-    }
-    return one;
+
+    return std::make_pair(left, right);
 }
 Line3D Road::get_lane_marking_line(
     const Lane& lane,

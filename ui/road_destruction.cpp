@@ -11,20 +11,24 @@ extern double g_PointerRoadS;
 RoadDestroySession::RoadDestroySession(QGraphicsView* aView):
     RoadDrawingSession(aView)
 {
-    cursorItem = new CustomCursorItem;
-    scene->addItem(cursorItem);
-    hintItem = scene->addPolygon(hintPolygon);
-    hintItem->setZValue(10);
+    hintItemLeft = scene->addPolygon(hintPolygonLeft);
+    hintItemLeft->setZValue(10);
     QPen pen;
     pen.setColor(Qt::red);
     pen.setWidthF(0.5);
-    hintItem->setPen(pen);
+    hintItemLeft->setPen(pen);
+
+    hintItemRight = scene->addPolygon(hintPolygonRight);
+    hintItemRight->setZValue(10);
+    pen.setColor(Qt::green);
+    hintItemRight->setPen(pen);
 }
 
 RoadDestroySession::~RoadDestroySession()
 {
     scene->removeItem(cursorItem);
-    scene->removeItem(hintItem);
+    scene->removeItem(hintItemLeft);
+    scene->removeItem(hintItemRight);
     SetHighlightTo(nullptr);
 }
 
@@ -43,10 +47,12 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
         cursorItem->setPos(scenePos);
         cursorItem->EnableHighlight(false);
     }
+    cursorItem->show();
     SetHighlightTo(g_road);
 
     // Preview
-    hintPolygon.clear();
+    hintPolygonLeft.clear();
+    hintPolygonRight.clear();
     auto target = targetRoad.lock();
     if (target != nullptr)
     {
@@ -68,14 +74,21 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
         if (fromS >= 0)
         {
             // Can preview
-            auto border = target->generated.get_road_border_line(fromS, toS, 1);
-            for (const odr::Vec3D& p : border)
+            auto borders = target->generated.get_road_border_line(fromS, toS, 1);
+            auto& leftBorder = borders.first;
+            auto& rightBorder = borders.second;
+            for (const odr::Vec3D& p : leftBorder)
             {
-                hintPolygon.append(QPointF(p[0], p[1]));
+                hintPolygonLeft.append(QPointF(p[0], p[1]));
+            }
+            for (const odr::Vec3D& p : rightBorder)
+            {
+                hintPolygonRight.append(QPointF(p[0], p[1]));
             }
         }
     }
-    hintItem->setPolygon(hintPolygon);
+    hintItemLeft->setPolygon(hintPolygonLeft);
+    hintItemRight->setPolygon(hintPolygonRight);
 
     // Change target, s1, s2
     if (evt->button() == Qt::LeftButton 

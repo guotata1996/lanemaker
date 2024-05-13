@@ -6,12 +6,29 @@
 #include <vector>
 #include <QPainterPath>
 
+class CustomCursorItem : public QGraphicsEllipseItem
+{
+public:
+    CustomCursorItem() : QGraphicsEllipseItem(
+        -InitialRadius, -InitialRadius,
+        2 * InitialRadius, 2 * InitialRadius) {
+        setZValue(99);
+    }
+
+    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
+
+    void EnableHighlight(bool enable);
+
+    static double SnapRadiusPx;
+
+private:
+    static double InitialRadius;
+};
+
 class RoadDrawingSession
 {
 public:
-    RoadDrawingSession(QGraphicsView* aView):
-        view(aView), scene(aView->scene()), world(World::Instance())
-    {}
+    RoadDrawingSession(QGraphicsView* aView);
 
     /*return false if force complete*/
     virtual bool Update(QMouseEvent* event) = 0;
@@ -29,27 +46,10 @@ protected:
     QGraphicsScene* scene;
     World* world;
 
+    CustomCursorItem* cursorItem;
+
 private:
     std::weak_ptr<RoadRunner::Road> highlighted;
-};
-
-class CustomCursorItem : public QGraphicsEllipseItem
-{
-public:
-    CustomCursorItem() : QGraphicsEllipseItem(
-        -InitialRadius, -InitialRadius, 
-        2 * InitialRadius, 2 * InitialRadius) {
-        setZValue(99);
-    }
-
-    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
-
-    void EnableHighlight(bool enable);
-
-    static double SnapRadiusPx;
-
-private:
-    static double InitialRadius;
 };
 
 class RoadCreationSession: public RoadDrawingSession
@@ -90,8 +90,6 @@ private:
 
     QPainterPath hintPath;
     QGraphicsPathItem* hintItem;
-
-    CustomCursorItem* cursorItem;
 };
 
 class RoadDestroySession : public RoadDrawingSession
@@ -110,10 +108,8 @@ protected:
 
     QGraphicsPathItem* previewItem;
 
-    QPolygonF hintPolygon;
-    QGraphicsPolygonItem* hintItem;
-
-    CustomCursorItem* cursorItem;
+    QPolygonF  hintPolygonLeft, hintPolygonRight;
+    QGraphicsPolygonItem* hintItemLeft, *hintItemRight;
 
     std::weak_ptr<RoadRunner::Road> targetRoad;
     std::unique_ptr<double> s1, s2;
