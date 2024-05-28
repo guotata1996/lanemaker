@@ -42,6 +42,8 @@ public:
 protected:
     float SnapDistFromScale() const;
 
+    double GetAdjustedS() const;
+
     QGraphicsView* view;
     QGraphicsScene* scene;
     World* world;
@@ -64,23 +66,35 @@ public:
 
     virtual ~RoadCreationSession() override;
 
+protected:
+    virtual bool SnapFirstPointToExisting(QPointF&);
+    virtual bool SnapLastPointToExisting(QPointF&);
+
     bool SnapCtrlPoint(float maxOffset);
 
-    void CreateRoad();
+    odr::RefLine RefLineFromCtrlPoints() const;
 
-private:
-    std::unique_ptr<odr::RoadGeometry> createJoinAtEndGeo(bool forPreview);
+    enum class ForceDirection
+    {
+        None, Original, Negate
+    };
 
-    void tryCreateJunction(std::shared_ptr<RoadRunner::Road>, double);
+    virtual std::unique_ptr<odr::RoadGeometry> CreateJoinAtEndGeo(bool forPreview) const;
+
+    virtual void CreateRoad();
+
+    std::unique_ptr<odr::RoadGeometry> createJoinAtEndGeo(bool forPreview, ForceDirection joinPointDir) const;
 
     std::vector<QPointF> ctrlPoints;
-    
+
     std::unique_ptr<QVector2D> startDir;
     std::weak_ptr<RoadRunner::Road> extendFromStart;
-    odr::RoadLink::ContactPoint extendFromStartContact;
-
     std::weak_ptr<RoadRunner::Road> joinAtEnd;
-    odr::RoadLink::ContactPoint joinAtEndContact;
+
+    double extendFromStartS, joinAtEndS;
+
+private:
+    void tryCreateJunction(std::shared_ptr<RoadRunner::Road>, double);
     
     QPainterPath setPath;
     QGraphicsPathItem* setPreviewItem;
@@ -90,6 +104,30 @@ private:
 
     QPainterPath hintPath;
     QGraphicsPathItem* hintItem;
+};
+
+
+class LanesCreationSession : public RoadCreationSession
+{
+public:
+    LanesCreationSession(QGraphicsView* aView);
+
+    virtual void CreateRoad() override;
+
+    virtual ~LanesCreationSession() override;
+
+protected:
+    virtual bool SnapFirstPointToExisting(QPointF&) override;
+    virtual bool SnapLastPointToExisting(QPointF&) override;
+
+    virtual std::unique_ptr<odr::RoadGeometry> CreateJoinAtEndGeo(bool forPreview) const override;
+
+private:
+    RoadRunner::type_t rLanes; // If lLanes == 0, becomes required lanes
+    RoadRunner::type_t lLanes; // If 0, single-directional
+    RoadRunner::type_t rOffsetX2, lOffsetX2;
+    int startLanesInner, endLanesInner; // If lLanes != 0, becomes useless
+    bool startFullyMatch, endFullyMatch; // If true, extend instead of creating direct junction
 };
 
 class RoadDestroySession : public RoadDrawingSession
@@ -104,8 +142,6 @@ public:
     virtual void Complete() override;
 
 protected:
-    double GetAdjustedS();
-
     QGraphicsPathItem* previewItem;
 
     QPolygonF  hintPolygonLeft, hintPolygonRight;

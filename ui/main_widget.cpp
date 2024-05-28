@@ -79,9 +79,13 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     // Label layout
     QHBoxLayout* labelLayout = new QHBoxLayout;
     auto createModeButton = new QToolButton;
-    createModeButton->setText(tr("Create"));
+    createModeButton->setText(tr("Road"));
     createModeButton->setCheckable(true);
     createModeButton->setChecked(false);
+    auto createLaneModeButton = new QToolButton;
+    createLaneModeButton->setText(tr("Lane"));
+    createLaneModeButton->setCheckable(true);
+    createLaneModeButton->setChecked(false);
     auto destroyModeButton = new QToolButton;
     destroyModeButton->setText(tr("Destroy"));
     destroyModeButton->setCheckable(true);
@@ -102,6 +106,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     QButtonGroup* pointerModeGroup = new QButtonGroup(this);
     pointerModeGroup->setExclusive(true);
     pointerModeGroup->addButton(createModeButton);
+    pointerModeGroup->addButton(createLaneModeButton);
     pointerModeGroup->addButton(destroyModeButton);
     pointerModeGroup->addButton(modifyModeButton);
     pointerModeGroup->addButton(dragModeButton);
@@ -115,6 +120,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     labelLayout->addSpacing(50);
     labelLayout->addWidget(new QLabel(tr("Edit Mode")));
     labelLayout->addWidget(createModeButton);
+    labelLayout->addWidget(createLaneModeButton);
     labelLayout->addWidget(destroyModeButton);
     labelLayout->addWidget(modifyModeButton);
     labelLayout->addWidget(dragModeButton);
@@ -137,6 +143,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     connect(graphicsView->horizontalScrollBar(), &QAbstractSlider::valueChanged,
         this, &MainWidget::setResetButtonEnabled);
     connect(createModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateMode);
+    connect(createLaneModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateLaneMode);
     connect(destroyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDestroyMode);
     connect(modifyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoModifyMode);
     connect(dragModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDragMode);
@@ -187,6 +194,14 @@ void MainWidget::gotoCreateMode()
     graphicsView->setDragMode(QGraphicsView::RubberBandDrag);
     graphicsView->setInteractive(true);
     graphicsView->SetEditMode(MapView::Mode_Create);
+    createRoadOption->show();
+}
+
+void MainWidget::gotoCreateLaneMode()
+{
+    graphicsView->setDragMode(QGraphicsView::RubberBandDrag);
+    graphicsView->setInteractive(true);
+    graphicsView->SetEditMode(MapView::Mode_CreateLanes);
     createRoadOption->show();
 }
 

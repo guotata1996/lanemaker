@@ -120,9 +120,12 @@ bool OpenDriveMap::Load(const std::string& xodr_file,
     {
         /* make junction */
         const std::string junction_id = junction_node.attribute("id").as_string("");
+        const JunctionType _type = junction_node.attribute("type").as_string("") == "direct" ? JunctionType::Direct : JunctionType::Common;
 
         Junction& junction =
-            this->id_to_junction.insert({junction_id, Junction(junction_node.attribute("name").as_string(""), junction_id)}).first->second;
+            this->id_to_junction.insert({junction_id, 
+                Junction(junction_node.attribute("name").as_string(""), 
+                    junction_id, _type)}).first->second;
         junction.xml_node = junction_node;
 
         for (pugi::xml_node connection_node : junction_node.children("connection"))
@@ -1139,6 +1142,10 @@ void OpenDriveMap::export_file(const std::string& fpath) const
         pugi::xml_node junction = main.append_child("junction");
         junction.append_attribute("id").set_value(j.id.c_str());
         junction.append_attribute("name").set_value(j.name.c_str());
+        if (j.type == JunctionType::Direct) 
+        {
+            junction.append_attribute("type").set_value("direct");   
+        }
         for (auto c : j.id_to_connection) 
         {
             auto connection = junction.append_child("connection");

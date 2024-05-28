@@ -48,6 +48,21 @@ float RoadDrawingSession::SnapDistFromScale() const
     return CustomCursorItem::SnapRadiusPx / g_zoom;
 }
 
+double RoadDrawingSession::GetAdjustedS() const
+{
+    auto g_road = g_PointerRoad.lock();
+    const double snapThreshold = SnapDistFromScale();
+    if (g_PointerRoadS < snapThreshold)
+    {
+        return 0;
+    }
+    else if (g_PointerRoadS > g_road->Length() - snapThreshold)
+    {
+        return g_road->Length();
+    }
+    return g_road->SnapToSegmentBoundary(g_PointerRoadS, snapThreshold);
+}
+
 double CustomCursorItem::SnapRadiusPx = 20;
 double CustomCursorItem::InitialRadius = 2;
 
@@ -66,13 +81,16 @@ RoadCreationSession::RoadCreationSession(QGraphicsView* aView) :
     RoadDrawingSession(aView)
 {
     setPreviewItem = scene->addPath(setPath);
+    setPreviewItem->setZValue(10);
 
     flexPreviewItem = scene->addPath(flexPath);
+    flexPreviewItem->setZValue(10);
     QPen flexPen;
     flexPen.setStyle(Qt::DashLine);
     flexPreviewItem->setPen(flexPen);
 
     hintItem = scene->addPath(hintPath);
+    hintItem->setZValue(10);
     QPen hintPen;
     hintPen.setColor(QColor(0, 200, 100, 80));
     hintPen.setStyle(Qt::DotLine);
@@ -85,7 +103,7 @@ bool RoadCreationSession::Update(QMouseEvent* event)
 {
     SetHighlightTo(g_PointerRoad.lock());
 
-    QPointF scenePos = view->mapToScene(event->pos().x(), event->pos().y());
+    QPointF scenePos = view->mapToScene(event->pos());
 
     if (event->button() == Qt::MouseButton::LeftButton)
     {
@@ -169,9 +187,9 @@ bool RoadCreationSession::Update(QMouseEvent* event)
                 flexPath.quadTo(ctrlPoints[i], ctrlPoints[i + 1]);
             }
         }
-        else
+        else if (ctrlPoints.size() >= 3)
         {
-            auto flexGeometry = createJoinAtEndGeo(true);
+            auto flexGeometry = CreateJoinAtEndGeo(true);
             double flexLen = flexGeometry->length;
             for (int subDiv = 0; subDiv != 51; ++subDiv)
             {
@@ -211,53 +229,86 @@ RoadCreationSession::~RoadCreationSession()
     SetHighlightTo(nullptr);
 }
 
+bool RoadCreationSession::SnapFirstPointToExisting(QPointF& point)
+{
+    auto g_road = g_PointerRoad.lock();
+    if (g_road == nullptr) return false;
+
+    const double snapThreshold = SnapDistFromScale();
+    double snapS = g_PointerRoadS;
+    bool onExisting = false;
+    if (g_PointerRoadS < snapThreshold)
+    {
+        snapS = 0;
+        auto grad = g_road->generated.ref_line.get_grad_xy(snapS);
+        startDir = std::make_unique<QVector2D>(-grad[0], -grad[1]);
+        extendFromStart = g_PointerRoad;
+        extendFromStartS = 0;
+    }
+    else if (g_PointerRoadS > g_road->Length() - snapThreshold)
+    {
+        snapS = g_road->Length();
+        auto grad = g_road->generated.ref_line.get_grad_xy(snapS);
+        startDir = std::make_unique<QVector2D>(grad[0], grad[1]);
+        extendFromStart = g_PointerRoad;
+        extendFromStartS = g_road->Length();
+    }
+
+    if (!extendFromStart.expired())
+    {
+        // only snap to ends
+        auto snapped = g_road->generated.ref_line.get_xy(snapS);
+        point.setX(snapped[0]);
+        point.setY(snapped[1]);
+        onExisting = true;
+    }
+    return onExisting;
+}
+
+bool RoadCreationSession::SnapLastPointToExisting(QPointF& point)
+{
+    auto g_road = g_PointerRoad.lock();
+    if (g_road == nullptr) return false;
+
+    bool onExisting = false;
+
+    // Join to existing
+    double snapS;
+    const double snapThreshold = SnapDistFromScale();
+    if (g_PointerRoadS < snapThreshold)
+    {
+        snapS = 0;
+        joinAtEnd = g_PointerRoad;
+    }
+    else if (g_PointerRoadS > g_road->Length() - snapThreshold)
+    {
+        snapS = g_road->Length();
+        joinAtEnd = g_PointerRoad;
+    }
+    if (!joinAtEnd.expired())
+    {
+        auto snapped = g_road->generated.ref_line.get_xy(snapS);
+        point.setX(snapped[0]);
+        point.setY(snapped[1]);
+        onExisting = true;
+        joinAtEndS = snapS;
+    }
+    return onExisting;
+}
+
 bool RoadCreationSession::SnapCtrlPoint(float maxOffset)
 {
     QPointF& nextPoint = ctrlPoints.back();
 
     QVector2D nextDir;
     bool onExisting = false;
-    const double snapThreshold = SnapDistFromScale();
 
     if (ctrlPoints.size() == 1)
     {
         startDir.reset();
         extendFromStart.reset();
-        extendFromStartContact = odr::RoadLink::ContactPoint_None;
 
-        auto g_road = g_PointerRoad.lock();
-        if (g_road != nullptr)
-        {
-            // Do point snap
-            double snapS = g_PointerRoadS;
-            if (g_PointerRoadS < snapThreshold)
-            {
-                snapS = 0;
-                auto grad = g_road->generated.ref_line.get_grad_xy(snapS);
-                startDir = std::make_unique<QVector2D>(-grad[0], -grad[1]);
-                extendFromStart = g_PointerRoad;
-                extendFromStartContact = odr::RoadLink::ContactPoint_Start;
-            }
-            else if (g_PointerRoadS > g_road->Length() - snapThreshold)
-            {
-                snapS = g_road->Length();
-                auto grad = g_road->generated.ref_line.get_grad_xy(snapS);
-                startDir = std::make_unique<QVector2D>(grad[0], grad[1]);
-                extendFromStart = g_PointerRoad;
-                extendFromStartContact = odr::RoadLink::ContactPoint_End;
-            }
-
-            if (extendFromStartContact != odr::RoadLink::ContactPoint_None)
-            {
-                // only snap to ends
-                auto snapped = g_road->generated.ref_line.get_xy(snapS);
-                nextPoint.setX(snapped[0]);
-                nextPoint.setY(snapped[1]);
-                onExisting = true;
-            }
-        }
-
-        return onExisting;
+        return SnapFirstPointToExisting(nextPoint);
     }
     else if (ctrlPoints.size() == 2)
     {
@@ -270,33 +321,9 @@ bool RoadCreationSession::SnapCtrlPoint(float maxOffset)
     else
     {
         joinAtEnd.reset();
-        auto g_road = g_PointerRoad.lock();
+        onExisting = SnapLastPointToExisting(nextPoint);
 
-        if (g_road != nullptr)
-        {
-            // Join to existing
-            double snapS;
-            if (g_PointerRoadS < snapThreshold)
-            {
-                snapS = 0;
-                joinAtEnd = g_PointerRoad;
-                joinAtEndContact = odr::RoadLink::ContactPoint_Start;
-            }
-            else if (g_PointerRoadS > g_road->Length() - snapThreshold)
-            {
-                snapS = g_road->Length();
-                joinAtEnd = g_PointerRoad;
-                joinAtEndContact = odr::RoadLink::ContactPoint_End;
-            }
-            if (!joinAtEnd.expired())
-            {
-                auto snapped = g_road->generated.ref_line.get_xy(snapS);
-                nextPoint.setX(snapped[0]);
-                nextPoint.setY(snapped[1]);
-                onExisting = true;
-            }
-        }
-        else
+        if (!onExisting)
         {
             nextDir = QVector2D(ctrlPoints[ctrlPoints.size() - 2] - ctrlPoints[ctrlPoints.size() - 3]);
         }
@@ -324,31 +351,22 @@ bool RoadCreationSession::SnapCtrlPoint(float maxOffset)
     return onExisting;
 }
 
-void RoadCreationSession::CreateRoad()
+odr::RefLine RoadCreationSession::RefLineFromCtrlPoints() const
 {
-    if (!extendFromStart.expired() && extendFromStart.lock() == joinAtEnd.lock())
-    {
-        spdlog::warn("Self-loop is not supported!");
-        return;
-    }
-
-    std::shared_ptr<RoadRunner::Road> newRoad;
-    RoadRunner::RoadProfile config(
-        g_createRoadOption->LeftResult().laneCount, g_createRoadOption->LeftResult().offsetx2,
-        g_createRoadOption->RightResult().laneCount, g_createRoadOption->RightResult().offsetx2);
+    odr::RefLine rtn("", 0);
     if (!joinAtEnd.expired() && ctrlPoints.size() == 4)
     {
-        auto roadGeometry = createJoinAtEndGeo(false);
+        auto roadGeometry = CreateJoinAtEndGeo(false);
         if (roadGeometry->length > RoadRunner::ValidGeoMaxLength)
         {
             spdlog::warn("Abort create road: Potential invalid shape!");
-            return;
+            return rtn;
         }
-        newRoad = std::make_shared<RoadRunner::Road>(config, std::move(roadGeometry));
+        rtn.length = roadGeometry->length;
+        rtn.s0_to_geometry.emplace(0, std::move(roadGeometry));
     }
     else if (ctrlPoints.size() >= 4)
     {
-        odr::RefLine refLine("", 0);
         double cumLength = 0;
         // Last ctrl point is a duplicate. Do not use in any case.
         int validCtrlPoints = joinAtEnd.expired() ? ctrlPoints.size() - 1 : ctrlPoints.size() - 2;
@@ -373,30 +391,44 @@ void RoadCreationSession::CreateRoad()
             }
             double cumLengthPrev = cumLength;
             cumLength += localGeometry->length;
-            refLine.s0_to_geometry.emplace(cumLengthPrev, std::move(localGeometry));
+            rtn.s0_to_geometry.emplace(cumLengthPrev, std::move(localGeometry));
         }
-        refLine.length = cumLength;
-        newRoad = std::make_shared<RoadRunner::Road>(config, refLine);
+        rtn.length = cumLength;
     }
-    else
+    return rtn;
+}
+
+void RoadCreationSession::CreateRoad()
+{
+    if (!extendFromStart.expired() && extendFromStart.lock() == joinAtEnd.lock())
     {
-        // Not enough control points placed
+        spdlog::warn("Self-loop is not supported!");
+        return;
+    }
+    auto refLine = RefLineFromCtrlPoints();
+    if (refLine.length == 0)
+    {
+        spdlog::warn("Not enough control points placed");
         return;
     }
 
+    RoadRunner::RoadProfile config(
+        g_createRoadOption->LeftResult().laneCount, g_createRoadOption->LeftResult().offsetx2,
+        g_createRoadOption->RightResult().laneCount, g_createRoadOption->RightResult().offsetx2);
+
+    auto newRoad = std::make_shared<RoadRunner::Road>(config, refLine);
     newRoad->GenerateAllSectionGraphics();
 
     bool standaloneRoad = true;
-    bool joinPlusExtend = false;
     // Which part of newRoad will be newly-created?
     double newPartBegin = 0;
     if (!extendFromStart.expired())
     {
         standaloneRoad = false;
-        joinPlusExtend = true;
         auto toExtend = extendFromStart.lock();
         newPartBegin = toExtend->Length();
-        int joinResult = RoadRunner::Road::JoinRoads(toExtend, extendFromStartContact,
+        int joinResult = RoadRunner::Road::JoinRoads(toExtend, 
+            extendFromStartS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End,
             newRoad, odr::RoadLink::ContactPoint_Start);
         if (joinResult != 0)
         {
@@ -408,7 +440,7 @@ void RoadCreationSession::CreateRoad()
 
     if (!joinAtEnd.expired())
     {
-        if (joinPlusExtend)
+        if (!standaloneRoad)
         {
             world->allRoads.erase(newRoad);
         }
@@ -417,7 +449,8 @@ void RoadCreationSession::CreateRoad()
         auto toJoin = joinAtEnd.lock();
         newPartBegin = toJoin->Length();
 
-        int joinResult = RoadRunner::Road::JoinRoads(toJoin, joinAtEndContact, 
+        int joinResult = RoadRunner::Road::JoinRoads(toJoin, 
+            joinAtEndS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End,
             newRoad, odr::RoadLink::ContactPoint_End);
         if (joinResult != 0)
         {
@@ -434,7 +467,13 @@ void RoadCreationSession::CreateRoad()
     tryCreateJunction(std::move(newRoad), newPartBegin);
 }
 
-std::unique_ptr<odr::RoadGeometry> RoadCreationSession::createJoinAtEndGeo(bool forPreview)
+std::unique_ptr<odr::RoadGeometry> RoadCreationSession::CreateJoinAtEndGeo(bool forPreview) const
+{
+    return createJoinAtEndGeo(forPreview, ForceDirection::None);
+}
+
+std::unique_ptr<odr::RoadGeometry> RoadCreationSession::createJoinAtEndGeo(bool forPreview, 
+    ForceDirection joinPointDir) const
 {
     QPointF p0, p1, p2;
     if (forPreview)
@@ -445,9 +484,12 @@ std::unique_ptr<odr::RoadGeometry> RoadCreationSession::createJoinAtEndGeo(bool 
     }
     else
     {
-        p0 = ctrlPoints[0];
-        p1 = ctrlPoints[1];
-        p2 = ctrlPoints[2];
+        //p0 = ctrlPoints[0];
+        //p1 = ctrlPoints[1];
+        //p2 = ctrlPoints[2];
+        p0 = ctrlPoints[ctrlPoints.size() - 4];
+        p1 = ctrlPoints[ctrlPoints.size() - 3];
+        p2 = ctrlPoints[ctrlPoints.size() - 2];
     }
     odr::Vec2D pos0{ p0.x(), p0.y() };
     odr::Vec2D pos1{ p1.x(), p1.y() };
@@ -455,15 +497,16 @@ std::unique_ptr<odr::RoadGeometry> RoadCreationSession::createJoinAtEndGeo(bool 
     odr::Vec2D dir0 = odr::normalize(odr::sub(pos1, pos0));
 
     auto toJoin = joinAtEnd.lock();
-    odr::Vec2D dir2 = toJoin->generated.ref_line.get_grad_xy(
-        joinAtEndContact == odr::RoadLink::ContactPoint_Start ? 0 : toJoin->Length());
-    if (joinAtEndContact == odr::RoadLink::ContactPoint_End)
+    odr::Vec2D dir2 = toJoin->generated.ref_line.get_grad_xy(joinAtEndS);
+    if (joinPointDir == ForceDirection::None && joinAtEndS == toJoin->Length()
+        || joinPointDir == ForceDirection::Negate)
     {
         dir2 = odr::negate(dir2);
     }
+
     odr::normalize(dir2);
 
-    if (forPreview && ctrlPoints.size() % 2 == 0)
+    if (forPreview && ctrlPoints.size() % 2 == 0 || !forPreview && ctrlPoints.size() % 2 == 1)
     {
         // "abruply" join at end
         return RoadRunner::ConnectLines(pos1, dir0, pos2, dir2);

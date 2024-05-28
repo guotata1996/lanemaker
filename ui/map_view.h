@@ -16,6 +16,7 @@ public:
     {
         Mode_None,
         Mode_Create,
+        Mode_CreateLanes,
         Mode_Destroy,
         Mode_Modify
     };

@@ -93,13 +93,20 @@ struct JunctionController
     std::uint32_t sequence = 0;
 };
 
+enum class JunctionType
+{
+    Common,
+    Direct
+};
+
 class Junction : public XmlNode
 {
 public:
-    Junction(std::string name, std::string id);
+    Junction(std::string name, std::string id, JunctionType type);
 
     std::string name = "";
     std::string id = "";
+    JunctionType type = JunctionType::Common;
 
     std::map<std::string, JunctionConnection> id_to_connection;
     std::map<std::string, JunctionController> id_to_controller;

@@ -43,6 +43,7 @@ private slots:
     void setupMatrix();
 
     void gotoCreateMode();
+    void gotoCreateLaneMode();
     void gotoDestroyMode();
     void gotoModifyMode();
     void gotoDragMode();

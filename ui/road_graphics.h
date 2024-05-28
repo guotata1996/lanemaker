@@ -42,12 +42,14 @@ namespace RoadRunner
     public:
         LaneSegmentGraphics(const QPolygonF& poly, 
             odr::Line3D outerBorder, odr::Line3D innerBorder,
-            std::string laneType,
+            int laneID, std::string laneType,
             QGraphicsItem* parent);
 
         std::weak_ptr<Road> SnapCursor(QPointF p, double& outS);
 
         std::shared_ptr<Road> Road() const;
+
+        const int LaneID;
 
         void EnableHighlight(bool enabled);
 

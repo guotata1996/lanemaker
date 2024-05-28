@@ -68,7 +68,7 @@ namespace RoadRunner
                 QPolygonF poly = LineToPoly(aggregateBorder);
 
                 auto laneSegmentItem = new LaneSegmentGraphics(poly, outerBorder, innerBorder,
-                    lane.type, this);
+                    id2Lane.first, lane.type, this);
                 allSegmentGraphics.push_back(laneSegmentItem);
 
                 for (const auto& markingGroup : lane.roadmark_groups)
@@ -125,11 +125,13 @@ namespace RoadRunner
         const QPolygonF& poly,
         odr::Line3D outerBorder, 
         odr::Line3D innerBorder,
+        int laneID,
         std::string laneType,
         QGraphicsItem* parent) :
         QGraphicsPolygonItem(poly, parent),
         NormalColor(134, 132, 130),
         HighlightColor(189, 187, 185),
+        LaneID(laneID),
         isMedian(laneType == "median")
     {
         setAcceptHoverEvents(true);

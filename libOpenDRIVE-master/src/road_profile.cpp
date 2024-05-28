@@ -963,7 +963,7 @@ namespace RoadRunner
             return it->second;
         }
         auto   it = leftProfiles.upper_bound(key);
-        if (it == leftProfiles.end())
+        if (it->first == std::numeric_limits<uint32_t>::max())
             it--;
         return it->second;
     }

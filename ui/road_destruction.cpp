@@ -125,22 +125,6 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
     return true;
 }
 
-double RoadDestroySession::GetAdjustedS()
-{
-    auto g_road = g_PointerRoad.lock();
-    const double snapThreshold = SnapDistFromScale();
-    if (g_PointerRoadS < snapThreshold)
-    {
-        return 0;
-    }
-    else if (g_PointerRoadS > g_road->Length() - snapThreshold)
-    {
-        return g_road->Length();
-    }
-    return g_road->SnapToSegmentBoundary(g_PointerRoadS, snapThreshold);
-
-}
-
 void RoadDestroySession::Complete()
 {
     if (s2 == nullptr)

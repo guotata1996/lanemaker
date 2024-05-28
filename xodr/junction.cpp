@@ -501,7 +501,7 @@ namespace RoadRunner
     }
 
     Junction::Junction():
-        generated("", IDGenerator::ForJunction()->GenerateID(this))
+        generated("", IDGenerator::ForJunction()->GenerateID(this), odr::JunctionType::Common)
     {
         generated.name = "Junction " + generated.id;
     }
