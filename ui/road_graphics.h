@@ -33,7 +33,8 @@ namespace RoadRunner
         const double BrokenLength = 3;
         const double BrokenGap = 6;
 
-        std::vector< LaneSegmentGraphics*> allSegmentGraphics;
+        std::vector< LaneSegmentGraphics*> allLaneGraphics;
+        QGraphicsPathItem* refLineHint;
     };
 
     class LaneSegmentGraphics : public QGraphicsPolygonItem

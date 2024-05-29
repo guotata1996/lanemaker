@@ -32,13 +32,14 @@ namespace RoadRunner
     void RoadGraphics::EnableHighlight(bool enabled)
     {
         setZValue(enabled ? 1 : 0);
-        for (auto laneSegment : allSegmentGraphics)
+        for (auto laneSegment : allLaneGraphics)
         {
             if (laneSegment != nullptr)
             {
                 laneSegment->EnableHighlight(enabled);
             }
         }
+        refLineHint->setVisible(enabled);
     }
 
     QPolygonF RoadGraphics::LineToPoly(const odr::Line3D& line)
@@ -69,7 +70,7 @@ namespace RoadRunner
 
                 auto laneSegmentItem = new LaneSegmentGraphics(poly, outerBorder, innerBorder,
                     id2Lane.first, lane.type, this);
-                allSegmentGraphics.push_back(laneSegmentItem);
+                allLaneGraphics.push_back(laneSegmentItem);
 
                 for (const auto& markingGroup : lane.roadmark_groups)
                 {
@@ -119,6 +120,38 @@ namespace RoadRunner
                 }
             }
         }
+
+        auto lineAppox = gen.ref_line.get_line(sBegin, sEnd, 0.1f);
+        refLineHint = new QGraphicsPathItem(this);
+        if (lineAppox.size() >= 2)
+        {
+            // Ref line
+            auto initial = lineAppox[0];
+            QPainterPath refLinePath;
+            refLinePath.moveTo(initial[0], initial[1]);
+            for (int i = 1; i < lineAppox.size(); ++i)
+            {
+                auto p = lineAppox[i];
+                refLinePath.lineTo(p[0], p[1]);
+            }
+            // Arrow
+            const auto& last = lineAppox.back();
+            const auto& last2 = lineAppox[lineAppox.size() - 2];
+            QVector2D lastDir(last[0] - last2[0], last[1] - last2[1]);
+            lastDir.normalize();
+            QVector2D arrowHead(last[0], last[1]);
+            QVector2D arrowTail = arrowHead - lastDir * 1;
+            QVector2D arrowLeftDir(-lastDir.y(), lastDir.x());
+            QVector2D arrowLeft = arrowTail + arrowLeftDir * 1;
+            QVector2D arrowRight = arrowTail - arrowLeftDir * 1;
+            refLinePath.moveTo(arrowLeft.toPointF());
+            refLinePath.lineTo(arrowHead.toPointF());
+            refLinePath.lineTo(arrowRight.toPointF());
+
+            refLineHint->setPath(refLinePath);
+            refLineHint->setPen(QPen(Qt::green, 0.3, Qt::SolidLine));
+        }
+        refLineHint->hide();
     }
 
     LaneSegmentGraphics::LaneSegmentGraphics(
