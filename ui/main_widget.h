@@ -10,7 +10,7 @@ QT_END_NAMESPACE
 
 class MapView;
 
-class CreateRoadOptionWidget;
+class SectionProfileConfigWidget;
 
 class MainWidget : public QFrame
 {
@@ -42,7 +42,7 @@ private slots:
     void setResetButtonEnabled();
     void setupMatrix();
 
-    void gotoCreateMode();
+    void gotoCreateRoadMode();
     void gotoCreateLaneMode();
     void gotoDestroyMode();
     void gotoModifyMode();
@@ -58,7 +58,7 @@ private:
     QSlider* zoomSlider;
     QSlider* rotateSlider;
 
-    CreateRoadOptionWidget* createRoadOption;
+    SectionProfileConfigWidget* createRoadOption;
 
     unsigned int nRepaints = 0;
     qint64 lastUpdateFPSMS = 0;

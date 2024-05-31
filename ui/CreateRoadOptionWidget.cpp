@@ -4,8 +4,9 @@
 #include <qpainter.h>
 
 #include <spdlog/spdlog.h>
+#include <sstream>
 
-CreateRoadOptionWidget* g_createRoadOption;
+SectionProfileConfigWidget* g_createRoadOption;
 
 RoadRunner::SectionProfile CreateRoadOptionWidget::LeftResult() const
 {
@@ -22,11 +23,6 @@ void CreateRoadOptionWidget::SetOption(const RoadRunner::SectionProfile& l, cons
     activeLeftSetting = l;
     activeRightSetting = r;
     update();
-}
-
-QSize CreateRoadOptionWidget::sizeHint() const
-{
-    return QSize(500, 20);
 }
 
 void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
@@ -143,4 +139,101 @@ void CreateRoadOptionWidget::mouseReleaseEvent(QMouseEvent* evt)
         dragIndex = -1;
         update();
     }
+}
+
+CreateLaneOptionWidget::CreateLaneOptionWidget()
+{
+    auto mainLayout = new QHBoxLayout;
+    leftSlider = new QSlider(Qt::Horizontal);
+    leftSlider->setRange(0, 5);
+    leftSlider->setTickPosition(QSlider::TicksBelow);
+    rightSlider = new QSlider(Qt::Horizontal);
+    rightSlider->setRange(1, 5);
+    rightSlider->setTickPosition(QSlider::TicksBelow);
+    resultLabel = new QLabel("L:0|R:1");
+    resultLabel->setFont(QFont("Helvetica", 14));
+    mainLayout->addWidget(leftSlider);
+    mainLayout->addWidget(resultLabel);
+    mainLayout->addWidget(rightSlider);
+    setLayout(mainLayout);
+
+    connect(leftSlider, &QSlider::valueChanged, this, &CreateLaneOptionWidget::updateLabel);
+    connect(rightSlider, &QSlider::valueChanged, this, &CreateLaneOptionWidget::updateLabel);
+}
+
+RoadRunner::SectionProfile CreateLaneOptionWidget::LeftResult() const
+{
+    return RoadRunner::SectionProfile{ 0, static_cast<RoadRunner::type_t>(leftSlider->value()) };
+}
+
+RoadRunner::SectionProfile CreateLaneOptionWidget::RightResult() const
+{
+    return RoadRunner::SectionProfile{ 0, static_cast<RoadRunner::type_t>(rightSlider->value()) };
+}
+
+void CreateLaneOptionWidget::SetOption(const RoadRunner::SectionProfile& l, const RoadRunner::SectionProfile& r)
+{
+    leftSlider->setValue(l.laneCount);
+    rightSlider->setValue(r.laneCount);
+}
+
+void CreateLaneOptionWidget::updateLabel()
+{
+    std::stringstream ss;
+    ss << "L:" << leftSlider->value() << "|R:" << rightSlider->value();
+    resultLabel->setText(QString::fromStdString(ss.str()));
+}
+
+SectionProfileConfigWidget::SectionProfileConfigWidget():
+    roadMode(new CreateRoadOptionWidget),
+    laneMode(new CreateLaneOptionWidget)
+{
+    addWidget(roadMode);
+    addWidget(laneMode);
+    setMaximumHeight(40);
+}
+
+RoadRunner::SectionProfile SectionProfileConfigWidget::LeftResult() const
+{
+    switch (currentIndex())
+    {
+    case 0:
+        return roadMode->LeftResult();
+    default:
+        return laneMode->LeftResult();
+    }
+}
+
+RoadRunner::SectionProfile SectionProfileConfigWidget::RightResult() const
+{
+    switch (currentIndex())
+    {
+    case 0:
+        return roadMode->RightResult();
+    default:
+        return laneMode->RightResult();
+    }
+}
+
+void SectionProfileConfigWidget::SetOption(const RoadRunner::SectionProfile& l, const RoadRunner::SectionProfile& r)
+{
+    roadMode->SetOption(l, r);
+    laneMode->SetOption(l, r);
+}
+
+QSize SectionProfileConfigWidget::sizeHint() const
+{
+    return QSize(500, 20);
+}
+
+void SectionProfileConfigWidget::GotoRoadMode()
+{
+    show();
+    setCurrentIndex(0);
+}
+
+void SectionProfileConfigWidget::GotoLaneMode()
+{
+    show();
+    setCurrentIndex(1);
 }

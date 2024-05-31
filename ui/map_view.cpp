@@ -179,7 +179,6 @@ void MapView::SnapCursor(const QPoint& viewPos)
 void MapView::mousePressEvent(QMouseEvent* evt)
 {
     QGraphicsView::mousePressEvent(evt);
-    SnapCursor(evt->pos());
     if (editMode != Mode_None)
     {
         if (!drawingSession->Update(evt))
@@ -191,7 +190,6 @@ void MapView::mousePressEvent(QMouseEvent* evt)
 
 void MapView::mouseDoubleClickEvent(QMouseEvent* evt)
 {
-    SnapCursor(evt->pos());
     if (editMode != Mode_None)
     {
         drawingSession->Update(evt);
@@ -202,6 +200,15 @@ void MapView::mouseMoveEvent(QMouseEvent* evt)
 {
     QGraphicsView::mouseMoveEvent(evt);
     SnapCursor(evt->pos());
+    if (editMode != Mode_None)
+    {
+        drawingSession->Update(evt);
+    }
+}
+
+void MapView::mouseReleaseEvent(QMouseEvent* evt)
+{
+    QGraphicsView::mouseReleaseEvent(evt);
     if (editMode != Mode_None)
     {
         drawingSession->Update(evt);

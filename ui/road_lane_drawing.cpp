@@ -6,7 +6,7 @@
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern int g_PointerLane;
-extern CreateRoadOptionWidget* g_createRoadOption;
+extern SectionProfileConfigWidget* g_createRoadOption;
 
 LanesCreationSession::LanesCreationSession(QGraphicsView* aView) :
     RoadCreationSession(aView), lLanes(0), rLanes(0)
@@ -147,6 +147,7 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
     const auto leftProfile = g_roadProfile.ProfileAt(g_roadS, 1);
     auto grad = g_road->generated.ref_line.get_grad_xy(g_roadS);
     QVector2D g_dir(grad[0], grad[1]);
+    g_dir.normalize();
     startFullyMatch = false;
 
     if (lLanes != 0)
@@ -154,13 +155,11 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
         // Bi-directional ramp
         if (g_roadS == 0 || g_roadS == g_road->Length())
         {
-            int actualGap = std::abs(rightProfile.offsetx2 - leftProfile.offsetx2);
             int actualLeftLanes = g_roadS == 0 ? rightProfile.laneCount : leftProfile.laneCount;
             int actualRightLanes = g_roadS == 0 ? leftProfile.laneCount : rightProfile.laneCount;
 
             if (actualRightLanes >= rLanes
-                && actualLeftLanes >= lLanes
-                && actualGap == std::abs(rightQuery.offsetx2 - leftQuery.offsetx2))
+                && actualLeftLanes >= lLanes)
             {
                 if (g_roadS == 0)
                 {
@@ -358,25 +357,37 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
                 && actualLeftLanes >= lLanes
                 && actualGap == std::abs(rOffsetX2 - lOffsetX2))
             {
-                RoadRunner::type_t refLineShift = 0;
-                if (!extendFromStart.expired())
-                {
-                    if (g_roadS == g_road->Length())
-                    {
-                        refLineShift = leftProfile.offsetx2 + rOffsetX2;
-                    }
-                    else
-                    {
-                        refLineShift = rightProfile.offsetx2 - rOffsetX2;
-                    }
-                }
-
-                auto snapPos = g_road->generated.get_xyz(g_roadS, RoadRunner::LaneWidth * refLineShift / 2, 0);
-                point.setX(snapPos[0]);
-                point.setY(snapPos[1]);
-
                 joinAtEnd = g_road;
-                endFullyMatch = actualRightLanes == rLanes && actualLeftLanes == lLanes;
+                // Last check of FullyMatch: Creating new road shouldn't affect original junction
+                //      Form 2-road direct junction in this case
+                endFullyMatch = actualRightLanes == rLanes && actualLeftLanes == lLanes
+                    && (extendFromStart.expired() || rightProfile.offsetx2 == rOffsetX2 && leftProfile.offsetx2 == lOffsetX2);
+                if (endFullyMatch)
+                {
+                    // Make sure ref line connects
+                    auto snapPos = g_road->generated.get_xyz(g_roadS, 0, 0);
+                    point.setX(snapPos[0]);
+                    point.setY(snapPos[1]);
+                }
+                else
+                {
+                    RoadRunner::type_t refLineShift = 0;
+                    if (!extendFromStart.expired())
+                    {
+                        if (g_roadS == g_road->Length())
+                        {
+                            refLineShift = leftProfile.offsetx2 + rOffsetX2;
+                        }
+                        else
+                        {
+                            refLineShift = rightProfile.offsetx2 - rOffsetX2;
+                        }
+                    }
+
+                    auto snapPos = g_road->generated.get_xyz(g_roadS, RoadRunner::LaneWidth * refLineShift / 2, 0);
+                    point.setX(snapPos[0]);
+                    point.setY(snapPos[1]);
+                }
             }
         }
     }

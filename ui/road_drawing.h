@@ -44,14 +44,23 @@ protected:
 
     double GetAdjustedS() const;
 
+    void BeginPickingProfile();
+    void ContinuePickingProfile();
+    void EndPickingProfile();
+
     QGraphicsView* view;
     QGraphicsScene* scene;
     World* world;
 
     CustomCursorItem* cursorItem;
 
+    bool PickProfileMode() const { return !beginPickingRoad.expired(); }
+
 private:
     std::weak_ptr<RoadRunner::Road> highlighted;
+
+    double beginPickingS;
+    std::weak_ptr<RoadRunner::Road> beginPickingRoad;
 };
 
 class RoadCreationSession: public RoadDrawingSession

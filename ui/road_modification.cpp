@@ -6,7 +6,7 @@
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 
-extern CreateRoadOptionWidget* g_createRoadOption;
+extern SectionProfileConfigWidget* g_createRoadOption;
 
 RoadModificationSession::RoadModificationSession(QGraphicsView* aView) : RoadDestroySession(aView)
 {}
@@ -15,13 +15,17 @@ bool RoadModificationSession::Update(QMouseEvent* evt)
 {
     RoadDestroySession::Update(evt);
 
-    if (evt->button() == Qt::RightButton && !g_PointerRoad.expired())
+    if (!g_PointerRoad.expired() && evt->type() == QEvent::Type::MouseButtonPress)
     {
-        // Pick road profile
-        auto pickFromRoad = g_PointerRoad.lock();
-        auto leftProfile = pickFromRoad->generated.rr_profile.ProfileAt(g_PointerRoadS, 1);
-        auto rightProfile = pickFromRoad->generated.rr_profile.ProfileAt(g_PointerRoadS, -1);
-        g_createRoadOption->SetOption(leftProfile, rightProfile);
+        BeginPickingProfile();
+    }
+    else if (evt->type() == QEvent::Type::MouseButtonRelease)
+    {
+        EndPickingProfile();
+    }
+    if (PickProfileMode())
+    {
+        ContinuePickingProfile();
     }
     return true;
 }

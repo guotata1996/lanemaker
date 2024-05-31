@@ -12,10 +12,10 @@
 #include <QtMath>
 
 double g_zoom;
-extern CreateRoadOptionWidget* g_createRoadOption;
+extern SectionProfileConfigWidget* g_createRoadOption;
 
 MainWidget::MainWidget(const QString& name, QWidget* parent)
-    : QFrame(parent), createRoadOption(new CreateRoadOptionWidget)
+    : QFrame(parent), createRoadOption(new SectionProfileConfigWidget)
 {
     setFrameStyle(Sunken | StyledPanel);
     graphicsView = new MapView(this);
@@ -142,7 +142,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
         this, &MainWidget::setResetButtonEnabled);
     connect(graphicsView->horizontalScrollBar(), &QAbstractSlider::valueChanged,
         this, &MainWidget::setResetButtonEnabled);
-    connect(createModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateMode);
+    connect(createModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateRoadMode);
     connect(createLaneModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateLaneMode);
     connect(destroyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDestroyMode);
     connect(modifyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoModifyMode);
@@ -189,25 +189,25 @@ void MainWidget::setupMatrix()
     setResetButtonEnabled();
 }
 
-void MainWidget::gotoCreateMode()
+void MainWidget::gotoCreateRoadMode()
 {
-    graphicsView->setDragMode(QGraphicsView::RubberBandDrag);
+    graphicsView->setDragMode(QGraphicsView::NoDrag);
     graphicsView->setInteractive(true);
     graphicsView->SetEditMode(MapView::Mode_Create);
-    createRoadOption->show();
+    createRoadOption->GotoRoadMode();
 }
 
 void MainWidget::gotoCreateLaneMode()
 {
-    graphicsView->setDragMode(QGraphicsView::RubberBandDrag);
+    graphicsView->setDragMode(QGraphicsView::NoDrag);
     graphicsView->setInteractive(true);
     graphicsView->SetEditMode(MapView::Mode_CreateLanes);
-    createRoadOption->show();
+    createRoadOption->GotoLaneMode();
 }
 
 void MainWidget::gotoDestroyMode()
 {
-    graphicsView->setDragMode(QGraphicsView::RubberBandDrag);
+    graphicsView->setDragMode(QGraphicsView::NoDrag);
     graphicsView->setInteractive(true);
     graphicsView->SetEditMode(MapView::Mode_Destroy);
     createRoadOption->hide();
@@ -215,10 +215,10 @@ void MainWidget::gotoDestroyMode()
 
 void MainWidget::gotoModifyMode()
 {
-    graphicsView->setDragMode(QGraphicsView::RubberBandDrag);
+    graphicsView->setDragMode(QGraphicsView::NoDrag);
     graphicsView->setInteractive(true);
     graphicsView->SetEditMode(MapView::Mode_Modify);
-    createRoadOption->show();
+    createRoadOption->GotoRoadMode();
 }
 
 void MainWidget::gotoDragMode()

@@ -14,7 +14,7 @@
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 
-extern CreateRoadOptionWidget* g_createRoadOption;
+extern SectionProfileConfigWidget* g_createRoadOption;
 
 extern double g_zoom;
 
@@ -61,6 +61,36 @@ double RoadDrawingSession::GetAdjustedS() const
         return g_road->Length();
     }
     return g_road->SnapToSegmentBoundary(g_PointerRoadS, snapThreshold);
+}
+
+void RoadDrawingSession::BeginPickingProfile()
+{
+    beginPickingS = g_PointerRoadS;
+    beginPickingRoad = g_PointerRoad;
+}
+
+void RoadDrawingSession::ContinuePickingProfile()
+{
+    if (beginPickingRoad.expired() || g_PointerRoad.lock() != beginPickingRoad.lock())
+    {
+        return;
+    }
+    
+    auto pickFromRoad = beginPickingRoad.lock();
+    auto leftProfile = pickFromRoad->generated.rr_profile.ProfileAt(beginPickingS, 1);
+    auto rightProfile = pickFromRoad->generated.rr_profile.ProfileAt(beginPickingS, -1);
+    if (g_PointerRoadS < beginPickingS)
+    {
+        std::swap(leftProfile, rightProfile);
+        leftProfile.offsetx2 = -leftProfile.offsetx2;
+        rightProfile.offsetx2 = -rightProfile.offsetx2;
+    }
+    g_createRoadOption->SetOption(leftProfile, rightProfile);
+}
+
+void RoadDrawingSession::EndPickingProfile()
+{
+    beginPickingRoad.reset();
 }
 
 double CustomCursorItem::SnapRadiusPx = 20;
@@ -136,19 +166,24 @@ bool RoadCreationSession::Update(QMouseEvent* event)
             // At least keep one
             ctrlPoints.pop_back();
         }
-        else if (!g_PointerRoad.expired())
+        else if (!g_PointerRoad.expired() && event->type() == QEvent::Type::MouseButtonPress)
         {
-            // Pick road profile
-            auto pickFromRoad = g_PointerRoad.lock();
-            auto leftProfile = pickFromRoad->generated.rr_profile.ProfileAt(g_PointerRoadS, 1);
-            auto rightProfile = pickFromRoad->generated.rr_profile.ProfileAt(g_PointerRoadS, -1);
-            g_createRoadOption->SetOption(leftProfile, rightProfile);
+            BeginPickingProfile();
+        }
+        else if (event->type() == QEvent::Type::MouseButtonRelease)
+        {
+            EndPickingProfile();
         }
     }
     else if (event->button() == Qt::MouseButton::NoButton)
     {
         ctrlPoints.back().setX(scenePos.x());
         ctrlPoints.back().setY(scenePos.y());
+    }
+
+    if (PickProfileMode())
+    {
+        ContinuePickingProfile();
     }
 
     hintPath.clear();
