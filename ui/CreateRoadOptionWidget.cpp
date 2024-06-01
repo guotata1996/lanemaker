@@ -8,6 +8,11 @@
 
 SectionProfileConfigWidget* g_createRoadOption;
 
+CreateRoadOptionWidget::CreateRoadOptionWidget()
+{
+    SetOption(RoadRunner::SectionProfile{ 1, 1 }, RoadRunner::SectionProfile{ -1, 1 });
+}
+
 RoadRunner::SectionProfile CreateRoadOptionWidget::LeftResult() const
 {
     return activeLeftSetting;
@@ -22,6 +27,7 @@ void CreateRoadOptionWidget::SetOption(const RoadRunner::SectionProfile& l, cons
 {
     activeLeftSetting = l;
     activeRightSetting = r;
+    changedExternally = true;
     update();
 }
 
@@ -42,12 +48,13 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
     painter.setBrush(QColor(210, 210, 210));
     painter.setPen(Qt::NoPen);
     painter.drawRect(0, 0, rect.width() / 2, rect.height());
-    // Draw line
+    // Draw ruler
+    TickInterval = static_cast<float>(XRight - XLeft) / (2 * SingleSideLaneLimit);
     QPen colorPen;
     painter.setPen(colorPen);
-    painter.drawLine(XLeft, YCenter, XRight, YCenter);
+    painter.drawLine(XCenter - SingleSideLaneLimit * TickInterval, YCenter, 
+                     XCenter + SingleSideLaneLimit * TickInterval, YCenter);
     // Draw ticks
-    TickInterval = static_cast<float>(XRight - XLeft) / (2 * SingleSideLaneLimit);
     const int TickHeight = rect.height() / 2;
     for (int tick = -SingleSideLaneLimit; tick <= SingleSideLaneLimit; ++tick)
     {
@@ -55,17 +62,18 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
         painter.drawLine(TickX, YCenter - TickHeight / 2, TickX, YCenter + TickHeight / 2);
     }
 
-    int lOuterResult = XCenter - static_cast<float>(activeLeftSetting.offsetx2 + activeLeftSetting.laneCount * 2) * TickInterval;
-    int lInnerResult = XCenter - static_cast<float>(activeLeftSetting.offsetx2) * TickInterval;
-    int rOuterResult = XCenter + static_cast<float>(-activeRightSetting.offsetx2 + activeRightSetting.laneCount * 2) * TickInterval; 
-    int rInnerResult = XCenter + static_cast<float>(-activeRightSetting.offsetx2) * TickInterval;
+    lOuterResult = XCenter - static_cast<float>(activeLeftSetting.offsetx2 + activeLeftSetting.laneCount * 2) * TickInterval;
+    lInnerResult = XCenter - static_cast<float>(activeLeftSetting.offsetx2) * TickInterval;
+    rOuterResult = XCenter + static_cast<float>(-activeRightSetting.offsetx2 + activeRightSetting.laneCount * 2) * TickInterval; 
+    rInnerResult = XCenter + static_cast<float>(-activeRightSetting.offsetx2) * TickInterval;
 
-    if (dragIndex == -1)
+    if (changedExternally)
     {
         handleX[0] = lOuterResult;
         handleX[1] = lInnerResult;
         handleX[2] = rInnerResult;
         handleX[3] = rOuterResult;
+        changedExternally = false;
     }
 
     // Draw result
@@ -85,13 +93,13 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
     painter.drawText(XRight + TickInterval / 2, YCenter, QString::fromStdString(std::to_string(activeRightSetting.laneCount)));
 
     // Draw Handles
-    colorPen.setColor(Qt::darkYellow);
-    painter.setPen(colorPen);
-
-    decltype(handleX) handleXCopy(handleX);
-    std::sort(handleXCopy.begin(), handleXCopy.end());
-    for (int handle : handleXCopy)
+    for (int i = 0; i != handleX.size(); ++i)
     {
+        auto handle = handleX[i];
+        colorPen.setColor(dragIndex.empty() || 
+            std::find(dragIndex.begin(), dragIndex.end(), i) == dragIndex.end() ?
+            Qt::darkYellow : Qt::blue);
+        painter.setPen(colorPen);
         painter.drawLine(handle, YCenter - TickHeight / 2, handle, YCenter + TickHeight / 2);
     }
 }
@@ -104,29 +112,63 @@ void CreateRoadOptionWidget::mousePressEvent(QMouseEvent* evt)
         {
             if (std::abs(evt->x() - handleX[i]) < TickInterval / 2)
             {
-                dragIndex = i;
-                break;
+                dragIndex.push_back(i);
+                handleOrigin.push_back(handleX[i]);
+                dragOrigin = evt->x();
+                update();
+                return;
             }
+        }
+
+        if (lOuterResult < evt->x() && evt->x() < lInnerResult)
+        {
+            std::sort(handleX.begin(), handleX.end());
+            dragIndex.push_back(0);
+            dragIndex.push_back(1);
+            handleOrigin.push_back(handleX[0]);
+            handleOrigin.push_back(handleX[1]);
+            dragOrigin = evt->x();
+            update();
+            return;
+        }
+
+        if (rInnerResult < evt->x() && evt->x() < rOuterResult)
+        {
+            dragIndex.push_back(2);
+            dragIndex.push_back(3);
+            handleOrigin.push_back(handleX[2]);
+            handleOrigin.push_back(handleX[3]);
+            dragOrigin = evt->x();
+            update();
+            return;
         }
     }
 }
 
 void CreateRoadOptionWidget::mouseMoveEvent(QMouseEvent* evt)
 {
-    if (dragIndex < 0) return;
-    auto dragX = static_cast<int>(evt->localPos().x());
-    dragX = std::max(XLeft, dragX);
-    dragX = std::min(XRight - 1, dragX);
-    handleX[dragIndex] = dragX;
+    if (dragIndex.empty()) return;
+
+    int dragDelta = evt->localPos().x() - dragOrigin;
+    for (int i = 0; i != dragIndex.size(); ++i)
+    {
+        int dragX = handleOrigin[i] + dragDelta;
+        dragX = std::max(XLeft, dragX);
+        dragX = std::min(XRight - 1, dragX);
+        int tickAt = std::round((dragX - XCenter) / TickInterval);
+        dragX = tickAt * TickInterval + XCenter;
+        handleX[dragIndex[i]] = dragX;
+    }
+
 
     decltype(handleX) handleXCopy(handleX);
     std::sort(handleXCopy.begin(), handleXCopy.end());
 
     activeLeftSetting.offsetx2 = std::round(static_cast<float>(XCenter - handleXCopy[1]) / TickInterval);
-    activeLeftSetting.laneCount = std::round(static_cast<float>(handleXCopy[1] - handleXCopy[0]) / TickInterval / 2);
+    activeLeftSetting.laneCount = std::floor(static_cast<float>(handleXCopy[1] - handleXCopy[0]) / TickInterval / 2);
 
     activeRightSetting.offsetx2 = std::round(static_cast<float>(XCenter - handleXCopy[2]) / TickInterval);
-    activeRightSetting.laneCount = std::round(static_cast<float>(handleXCopy[3] - handleXCopy[2]) / TickInterval / 2);
+    activeRightSetting.laneCount = std::floor(static_cast<float>(handleXCopy[3] - handleXCopy[2]) / TickInterval / 2);
 
     update();
 }
@@ -136,7 +178,8 @@ void CreateRoadOptionWidget::mouseReleaseEvent(QMouseEvent* evt)
     if (evt->button() == Qt::MouseButton::LeftButton)
     {
         // Quit drag
-        dragIndex = -1;
+        dragIndex.clear();
+        handleOrigin.clear();
         update();
     }
 }

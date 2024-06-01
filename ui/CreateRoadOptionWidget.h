@@ -6,12 +6,14 @@
 #include <qlabel.h>
 
 #include <array>
+#include <vector>
 
 class CreateRoadOptionWidget :
     public QWidget
 {
     Q_OBJECT
 public:
+    CreateRoadOptionWidget();
     RoadRunner::SectionProfile LeftResult() const;
     RoadRunner::SectionProfile RightResult() const;
 
@@ -28,14 +30,20 @@ protected:
 
     void mouseReleaseEvent(QMouseEvent* event) override;
 
-    RoadRunner::SectionProfile activeLeftSetting{ 1, 1 };
-    RoadRunner::SectionProfile activeRightSetting{ -1, 1 };
+    RoadRunner::SectionProfile activeLeftSetting;
+    RoadRunner::SectionProfile activeRightSetting;
 
     float TickInterval;
     int XCenter, YCenter, XLeft, XRight;
 
     std::array<int, 4> handleX;
-    int dragIndex = -1;
+    std::vector<int> dragIndex;;
+    std::vector<int> handleOrigin;
+    int lOuterResult, lInnerResult, rOuterResult, rInnerResult;
+
+    int dragOrigin;
+
+    bool changedExternally = false;
 };
 
 class CreateLaneOptionWidget :
