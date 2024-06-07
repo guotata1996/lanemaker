@@ -53,7 +53,7 @@ struct RoadLink : public XmlNode
     };
 
     RoadLink() = default;
-    RoadLink(std::string id, Type type, ContactPoint contact_point);
+    RoadLink(std::string id, Type type, ContactPoint contact_point = ContactPoint::ContactPoint_None);
 
     std::string  id = "";
     Type         type = Type_None;

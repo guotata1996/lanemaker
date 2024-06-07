@@ -1,7 +1,11 @@
 #pragma once
 
 namespace odr { class Road; }
-namespace RoadRunner { class Junction; }
+namespace RoadRunner {
+    class AbstractJunction;
+    class Junction;
+    class DirectJunction;
+}
 
 namespace RoadRunnerTest
 {
@@ -13,7 +17,7 @@ namespace RoadRunnerTest
 #endif
         static void VerifySingleRoad(const odr::Road& road);
 
-        static void VerifyJunction(const RoadRunner::Junction* junction);
+        static void VerifyJunction(RoadRunner::AbstractJunction* junction);
 
     private:
 #ifndef G_TEST
@@ -31,6 +35,10 @@ namespace RoadRunnerTest
         static void VerifySingleRoadLinkage(const odr::Road& road);
 
         static void VerifyProfileIntegrity(const odr::Road& road);
+
+        static void VerifyCommonJunction(const RoadRunner::Junction* junction);
+
+        static void VerifyDirectJunction(const RoadRunner::DirectJunction* junction);
     };
     
 }

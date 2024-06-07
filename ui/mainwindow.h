@@ -26,6 +26,8 @@ public slots:
     void setFPS(QString);
 
 private slots:
+    void newMap();
+
     void saveToFile();
 
     void loadFromFile();

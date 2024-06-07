@@ -23,6 +23,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 
     QMenuBar* menu = new QMenuBar;
     QMenu* file = new QMenu("&File");
+    auto newAction = file->addAction("New");
     auto loadAction = file->addAction("Open");
     auto saveAction = file->addAction("Save");
     menu->addMenu(file);
@@ -58,6 +59,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     
     setLayout(mainLayout);
 
+    connect(newAction, &QAction::triggered, this, &MainWindow::newMap);
     connect(saveAction, &QAction::triggered, this, &MainWindow::saveToFile);
     connect(loadAction, &QAction::triggered, this, &MainWindow::loadFromFile);
     connect(undoAction, &QAction::triggered, this, &MainWindow::undo);
@@ -66,6 +68,11 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(alwaysVerifyAction, &QAction::triggered, this, &MainWindow::toggleAlwaysVerifyMap);
     connect(mainWidget, &MainWidget::HoveringChanged, this, &MainWindow::setHint);
     connect(mainWidget, &MainWidget::FPSChanged, this, &MainWindow::setFPS);
+}
+
+void MainWindow::newMap()
+{
+    RoadRunner::ChangeTracker::Instance()->Clear();
 }
 
 void MainWindow::saveToFile()

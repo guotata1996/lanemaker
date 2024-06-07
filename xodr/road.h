@@ -11,7 +11,7 @@
 
 namespace RoadRunner
 {
-    class Junction;
+    class AbstractJunction;
 
     class RoadGraphics;
 
@@ -92,7 +92,7 @@ namespace RoadRunner
         // Member variables
         odr::Road generated;
 
-        std::shared_ptr<Junction> successorJunction, predecessorJunction;
+        std::shared_ptr<AbstractJunction> successorJunction, predecessorJunction;
 
     private:
         void PlaceOdrRoadMarkings();

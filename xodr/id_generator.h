@@ -16,6 +16,7 @@ public:
     IDGenerator& operator=(const IDGenerator&) = delete;
     static IDGenerator* ForJunction();
     static IDGenerator* ForRoad();
+    static void Reset();
 
     size_t size() const;
     std::string GenerateID(void* object); // Added to changeList
@@ -29,6 +30,7 @@ public:
     
 private:
     IDGenerator(std::string aType);
+    void reset();
 
     static IDGenerator* _junction;
     static IDGenerator* _road;

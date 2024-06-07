@@ -120,8 +120,7 @@ bool OpenDriveMap::Load(const std::string& xodr_file,
     {
         /* make junction */
         const std::string junction_id = junction_node.attribute("id").as_string("");
-        const JunctionType _type = junction_node.attribute("type").as_string("") == "direct" ? JunctionType::Direct : JunctionType::Common;
-
+        const JunctionType _type = strcmp(junction_node.attribute("type").as_string(""), "direct") == 0 ? JunctionType::Direct : JunctionType::Common;
         Junction& junction =
             this->id_to_junction.insert({junction_id, 
                 Junction(junction_node.attribute("name").as_string(""), 
@@ -142,7 +141,8 @@ bool OpenDriveMap::Load(const std::string& xodr_file,
                                                           .insert({junction_connection_id,
                                                                    JunctionConnection(junction_connection_id,
                                                                                       connection_node.attribute("incomingRoad").as_string(""),
-                                                                                      connection_node.attribute("connectingRoad").as_string(""),
+                                                                                      connection_node.attribute(_type == JunctionType::Common ? 
+                                                                                          "connectingRoad" : "linkedRoad").as_string(""),
                                                                                       junction_conn_contact_point)})
                                                           .first->second;
 
@@ -1154,7 +1154,7 @@ void OpenDriveMap::export_file(const std::string& fpath) const
             std::string incomingRoad = c.second.incoming_road;
             if (incomingRoad.size() > 0)
                 connection.append_attribute("incomingRoad").set_value(incomingRoad.c_str());
-            connection.append_attribute("connectingRoad").set_value(c.second.connecting_road.c_str());
+            connection.append_attribute(j.type == JunctionType::Common ? "connectingRoad" : "linkedRoad").set_value(c.second.connecting_road.c_str());
 
             std::string contectPoint;
             switch (c.second.contact_point)

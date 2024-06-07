@@ -1,7 +1,4 @@
 #include "junction.h"
-#include "curve_fitting.h"
-#include <cmath> // floor, ceil
-#include <map>
 #include <sstream>
 
 #include "id_generator.h"
@@ -9,565 +6,19 @@
 
 namespace RoadRunner
 {
-    int GenerateConnections(std::string junctionID,
-        std::vector<ConnectionInfo> connected,
-        std::vector<std::shared_ptr<Road>>& connectings)
-    {
-        auto errorCode = 0;
-        // Collect endpoint info of each connected road
-        std::vector<RoadEndpoint> incomingEndpoints, outgoingEndpoints;
-        for (auto& roadAndS : connected)
-        {
-            auto roadPtr = roadAndS.road.lock();
-            odr::Road* road = &roadPtr->generated;
-            double meetAt = roadAndS.contact == odr::RoadLink::ContactPoint_Start ? 0 : road->length;
-            RoadProfile config = roadPtr->generated.rr_profile;
-            odr::LaneSection meetSection = meetAt == 0 ? 
-                road->s_to_lanesection.begin()->second : road->s_to_lanesection.rbegin()->second;
-            
-            if (meetAt == 0)
-            {
-                road->predecessor = odr::RoadLink(junctionID, odr::RoadLink::Type_Junction, odr::RoadLink::ContactPoint_Start);
-                SectionProfile rightEntrance = config.RightEntrance();
-                if (rightEntrance.laneCount != 0)
-                {
-                    double offset = to_odr_unit(rightEntrance.offsetx2);
-                    odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
-                    odr::Vec2D origin = { origin3[0], origin3[1] };
-                    odr::Vec2D forward = odr::normalize(road->ref_line.get_grad_xy(meetAt));
-                    outgoingEndpoints.push_back(RoadEndpoint
-                        {
-                            road,
-                            odr::RoadLink::ContactPoint_Start,
-                            -1,
-                            origin,
-                            forward,
-                            static_cast<uint8_t>(rightEntrance.laneCount)
-                        });
-                }
-                SectionProfile leftExit = config.LeftExit();
-                if (leftExit.laneCount != 0)
-                {
-                    double offset = to_odr_unit(leftExit.offsetx2);
-                    odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
-                    odr::Vec2D origin = { origin3[0], origin3[1] };
-                    odr::Vec2D forward = odr::normalize(odr::negate(road->ref_line.get_grad_xy(meetAt)));
-                    incomingEndpoints.push_back(RoadEndpoint
-                        {
-                            road,
-                            odr::RoadLink::ContactPoint_Start,
-                            1,
-                            origin,
-                            forward,
-                            static_cast<uint8_t>(leftExit.laneCount),
-                            roadAndS.dirSplit
-                        });
-                }
-            }
-            else
-            {
-                road->successor = odr::RoadLink(junctionID, odr::RoadLink::Type_Junction, odr::RoadLink::ContactPoint_End);
-                SectionProfile rightExit = config.RightExit();
-                if (rightExit.laneCount != 0)
-                {
-                    double offset = to_odr_unit(rightExit.offsetx2);
-                    odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
-                    odr::Vec2D origin = { origin3[0], origin3[1] };
-                    odr::Vec2D forward = odr::normalize(road->ref_line.get_grad_xy(meetAt));
-                    incomingEndpoints.push_back(RoadEndpoint
-                        {
-                            road,
-                            odr::RoadLink::ContactPoint_End,
-                            -1,
-                            origin,
-                            forward,
-                            static_cast<uint8_t>(rightExit.laneCount),
-                            roadAndS.dirSplit
-                        });
-                }
-                SectionProfile leftEntrance = config.LeftEntrance();
-                if (leftEntrance.laneCount != 0)
-                {
-                    double offset = to_odr_unit(leftEntrance.offsetx2);
-                    odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
-                    odr::Vec2D origin = { origin3[0], origin3[1] };
-                    odr::Vec2D forward = odr::normalize(odr::negate(road->ref_line.get_grad_xy(road->length)));
-                    outgoingEndpoints.push_back(RoadEndpoint
-                        {
-                            road,
-                            odr::RoadLink::ContactPoint_End,
-                            1,
-                            origin,
-                            forward,
-                            static_cast<uint8_t>(leftEntrance.laneCount)
-                        });
-                }
-            }
-        }
-
-        std::map<std::pair<RoadEndpoint, RoadEndpoint>, TurningGroup> turningGroups;
-
-        // Determine incoming info for turningGroups
-        for (const RoadEndpoint& incomingRoad : incomingEndpoints)
-        {
-            // Sort outgoing road in CW order
-            std::sort(outgoingEndpoints.begin(), outgoingEndpoints.end(),
-                [&incomingRoad](const RoadEndpoint& a, const RoadEndpoint& b)
-            {
-                odr::Vec2D va = odr::sub(a.origin, incomingRoad.origin);
-                odr::Vec2D vb = odr::sub(b.origin, incomingRoad.origin);
-                if (odr::norm(va) < 1e-2f)
-                {
-                    // A's UTurn, place in front
-                    return true;
-                }
-                if (odr::norm(vb) < 1e-2f)
-                {
-                    // B's UTurn, place in front
-                    return false;
-                }
-
-                va = odr::normalize(va);
-                vb = odr::normalize(vb);
-                return odr::crossProduct(va, incomingRoad.forward) < odr::crossProduct(vb, incomingRoad.forward);
-            });
-
-            std::vector<TurningGroup> allPossibleOutgoings;
-            allPossibleOutgoings.reserve(outgoingEndpoints.size());
-            
-            for (auto outgoingRoad :outgoingEndpoints)
-            {
-                double turnAngle = odr::angle(incomingRoad.forward, outgoingRoad.forward);
-                auto turningSemantics = RoadRunner::Turn_No;
-                if (incomingRoad.road == outgoingRoad.road && incomingRoad.contact == outgoingRoad.contact)
-                {
-                    turningSemantics = TurningSemantics::Turn_U;
-                }
-                else if (turnAngle > M_PI / 4)
-                {
-                    turningSemantics = TurningSemantics::Turn_Left;
-                }
-                else if (turnAngle < -M_PI / 4)
-                {
-                    turningSemantics = TurningSemantics::Turn_Right;
-                }
-                allPossibleOutgoings.emplace_back(
-                    TurningGroup{
-                        incomingRoad.origin, incomingRoad.forward,
-                        outgoingRoad.origin, outgoingRoad.forward,
-                        incomingRoad.contact,outgoingRoad.contact,
-                        incomingRoad.side,   outgoingRoad.side,
-                        turningSemantics, outgoingRoad.nLanes});                
-            }
-
-            // Fetch or compute dir split
-            std::vector<double> dirSplit = incomingRoad.dirSplit;
-            if (dirSplit.size() != outgoingEndpoints.size() - 1)
-            {
-                dirSplit = assignIncomingLanes(incomingRoad.nLanes, allPossibleOutgoings, errorCode);
-
-                if (dirSplit.size() != outgoingEndpoints.size() - 1)
-                {
-                    // Generate dir split failed. Skip this incoming road.
-                    continue;
-                }
-            }
-
-            // Filter out vanishing out directions
-            int8_t outgoingIndex = 0;
-            for (std::pair<uint8_t, uint8_t>& beginAndCount : splitPointToLaneCount(incomingRoad.nLanes, dirSplit))
-            {
-                int nLanes = beginAndCount.second;
-                if (nLanes != 0)
-                {
-                    auto outgoingRoad = outgoingEndpoints[outgoingIndex];
-                    TurningGroup outgoingGroup = allPossibleOutgoings[outgoingIndex];
-                    outgoingGroup.fromLaneIDBase = beginAndCount.first;
-                    outgoingGroup.nLanes = nLanes;
-                    turningGroups.emplace(
-                        std::make_pair(incomingRoad, outgoingRoad),
-                        outgoingGroup);
-                }
-                outgoingIndex++;
-            }
-        }
-        // Determine outgoing lane for turningGroups
-        for (const RoadEndpoint& outgoingRoad : outgoingEndpoints)
-        {
-            // Sort incoming road in CCW order
-            std::sort(incomingEndpoints.begin(), incomingEndpoints.end(),
-                [&outgoingRoad](const RoadEndpoint& a, const RoadEndpoint& b)
-            {
-                odr::Vec2D va = odr::sub(a.origin, outgoingRoad.origin);
-                odr::Vec2D vb = odr::sub(b.origin, outgoingRoad.origin);
-                if (odr::norm(va) < 1e-2f)
-                {
-                    // A's UTurn, place in front
-                    return true;
-                }
-                if (odr::norm(vb) < 1e-2f)
-                {
-                    // B's UTurn, place in front
-                    return false;
-                }
-                return odr::crossProduct(va, outgoingRoad.forward) < odr::crossProduct(vb, outgoingRoad.forward);
-            });
-
-            std::vector<TurningGroup> existingIncomingGroups;
-            for (const auto& incomingRoad : incomingEndpoints)
-            {
-                auto inOutKey = std::make_pair(incomingRoad, outgoingRoad);
-                if (turningGroups.find(inOutKey) != turningGroups.end())
-                {
-                    existingIncomingGroups.push_back(turningGroups.at(inOutKey));
-                }
-            }
-            assignOutgoingLanes(existingIncomingGroups);
-
-            auto assignResult = existingIncomingGroups.begin();
-            for (const auto& incomingRoad : incomingEndpoints)
-            {
-                auto inOutKey = std::make_pair(incomingRoad, outgoingRoad);
-                if (turningGroups.find(inOutKey) != turningGroups.end())
-                {
-                    turningGroups.at(inOutKey).toLaneIDBase = assignResult++->toLaneIDBase;
-                }
-            }
-        }
-
-        // Compute ref lines
-        for (const auto& turningKv : turningGroups)
-        {
-            TurningGroup turningGroup = turningKv.second;
-
-            odr::Vec2D incomingRight{ turningGroup.fromForward[1], -turningGroup.fromForward[0]};
-            double incomingCenterS = 
-                RoadRunner::LaneWidth * turningGroup.fromLaneIDBase +
-                RoadRunner::LaneWidth * turningGroup.nLanes / 2;
-            odr::Vec2D incomingCenter = odr::add(
-                turningGroup.fromOrigin,
-                odr::mut(incomingCenterS, incomingRight));
-
-            // Assume outgoing always start from leftmost lane for now
-            odr::Vec2D outgoingRight{ turningGroup.toForward[1], -turningGroup.toForward[0] };
-            double outgoingCenetrS = 
-                RoadRunner::LaneWidth * turningGroup.toLaneIDBase +
-                RoadRunner::LaneWidth * turningGroup.nLanes / 2;
-            odr::Vec2D outgoingCenter = odr::add(
-                turningGroup.toOrigin,
-                odr::mut(outgoingCenetrS, outgoingRight));
-
-            auto connectingRefLine = ConnectLines(
-                incomingCenter, turningGroup.fromForward,
-                outgoingCenter, turningGroup.toForward);
-
-            if (connectingRefLine == nullptr)
-            {
-                errorCode |= Junction_ConnectionInvalidShape;
-                continue;
-            }
-
-            RoadRunner::RoadProfile connectingProfile(0, 0, turningGroup.nLanes, turningGroup.nLanes);
-
-            auto connecting = std::make_shared<Road>(connectingProfile, std::move(connectingRefLine));
-            connecting->Generate();
-
-            // Assign linkage
-            odr::Road& connRoad = connecting->generated;
-            odr::Road* incomingRoad = turningKv.first.first.road;
-            odr::Road* outgoingRoad = turningKv.first.second.road;
-            connRoad.junction = junctionID;
-            connRoad.predecessor = odr::RoadLink(incomingRoad->id, odr::RoadLink::Type_Road, turningGroup.fromContact);
-            connRoad.successor = odr::RoadLink(outgoingRoad->id, odr::RoadLink::Type_Road, turningGroup.toContact);
-            odr::LaneSection& onlySection = connRoad.s_to_lanesection.begin()->second;
-
-            auto& connectingLanes = onlySection.get_sorted_driving_lanes(-1);
-            auto& incomingSection = turningGroup.fromContact == odr::RoadLink::ContactPoint_Start ?
-                incomingRoad->s_to_lanesection.begin()->second : incomingRoad->s_to_lanesection.rbegin()->second;
-            auto& incomingLanes = incomingSection.get_sorted_driving_lanes(turningGroup.fromSide);
-            auto& outgoingSection = turningGroup.toContact == odr::RoadLink::ContactPoint_Start ?
-                outgoingRoad->s_to_lanesection.begin()->second : outgoingRoad->s_to_lanesection.rbegin()->second;
-            auto& outgoingLanes = outgoingSection.get_sorted_driving_lanes(turningGroup.toSide);
-
-            for (int i = 0; i != connectingLanes.size(); ++i)
-            {
-                // from center to side
-                int connectingID = connectingLanes[i].id;
-                int incomingID = incomingLanes[std::abs(turningGroup.fromLaneIDBase) + i].id;
-                onlySection.id_to_lane.at(connectingID).predecessor = incomingID;
-                int outgoingID = outgoingLanes[std::abs(turningGroup.toLaneIDBase) + i].id;
-                onlySection.id_to_lane.at(connectingID).successor = outgoingID;
-            }
-
-            connectings.push_back(std::move(connecting));
-        } // For each turning direction
-        return errorCode;
-    }
-
-    std::vector<std::pair<uint8_t, uint8_t>> splitPointToLaneCount(int8_t nLanes, std::vector<double> splitPoints)
-    {
-        splitPoints.insert(splitPoints.begin(), 0);
-        splitPoints.push_back(nLanes);
-        std::vector<std::pair<uint8_t, uint8_t>> rtn;
-
-        for (auto dirBegin = splitPoints.begin(), dirEnd = ++splitPoints.begin();
-            dirEnd != splitPoints.end(); ++dirBegin, ++dirEnd)
-        {
-            double beginLane = *dirBegin;
-            double endLane = *dirEnd;
-            int beginIndex, endIndex;
-            if (std::abs(beginLane - std::round(beginLane)) < 1e-4)
-            {
-                beginIndex = std::round(beginLane);
-            }
-            else
-            {
-                beginIndex = std::floor(beginLane);
-            }
-
-            if (std::abs(endLane - std::round(endLane)) < 1e-4)
-            {
-                endIndex = std::round(endLane);
-            }
-            else
-            {
-                endIndex = std::ceil(endLane);
-            }
-            int laneCount = std::abs(beginLane - endLane) < 1e-4 ? 0 : endIndex - beginIndex;
-            rtn.push_back(std::make_pair(beginIndex, laneCount));
-        }
-        return rtn;
-    }
-
-    std::vector<double> assignIncomingLanes(int8_t nLanes, const std::vector<TurningGroup>& outgoings, int& errorCode)
-    {
-        int totalOutgoingLanes = 0;
-        std::for_each(outgoings.begin(), outgoings.end(), [&totalOutgoingLanes](const TurningGroup& group)
-        {totalOutgoingLanes += group.toTotalLanes; });
-        if (totalOutgoingLanes < nLanes)
-        {
-            spdlog::error("Not enough outgoing lanes for incomings to distribute!");
-            errorCode |= Junction_TooManyIncomingLanes;
-            return {};
-        }
-
-        constexpr double idealSemanticsWeight[4]{ 1, 0.01, 0.99, 0.5 }; // No, U, Left, Right
-
-        std::vector<double> rtn;
-        for (int semanticsFactor = 5; semanticsFactor >= 0; --semanticsFactor)
-        {
-            double factor01 = (double)semanticsFactor / 5;
-            double semanticsWeight[4]{
-                idealSemanticsWeight[0] * factor01 + 1.0 * (1 - factor01),
-                idealSemanticsWeight[1] * factor01 + 1.0 * (1 - factor01),
-                idealSemanticsWeight[2] * factor01 + 1.0 * (1 - factor01),
-                idealSemanticsWeight[3] * factor01 + 1.0 * (1 - factor01),
-            };
-            // Raw distribution by semantic_weight * inflated_nLanes
-            std::vector<double> weights(outgoings.size());
-            std::transform(outgoings.begin(), outgoings.end(), weights.begin(),
-                [&semanticsWeight](const TurningGroup& p) {
-                return p.toTotalLanes * semanticsWeight[(int)p.direction]; });
-            // Turn weight into normalized cumulative
-            double init = 0;
-            double sumWeight = std::accumulate(weights.begin(), weights.end(), init);
-            assert(sumWeight > 1e-4);
-            std::transform(weights.begin(), weights.end(), weights.begin(),
-                [nLanes, sumWeight](double w) {return w / sumWeight * nLanes; });
-
-            rtn.clear();
-            for (double w : weights)
-            {
-                double cum = rtn.empty() ? w : rtn.back() + w;
-                rtn.push_back(cum);
-            }
-            rtn.pop_back();
-
-            // Adjust result to obey out lane limit
-            for (int adjustment = 0; adjustment != 20; ++adjustment)
-            {
-                std::vector<std::pair<uint8_t, uint8_t>> proposal = splitPointToLaneCount(nLanes, rtn);
-                assert(proposal.size() == outgoings.size());
-
-                bool pass = true;
-                bool dead = false;
-                for (int i = 0; i != proposal.size(); ++i)
-                {
-                    int proposedLanes = proposal[i].second;
-                    int limit = outgoings[i].toTotalLanes;
-                    if (proposedLanes > limit)
-                    {
-                        pass = false;
-                        double moveLeftCost = 10, moveRightCost = 10;
-                        if (i != 0)
-                        {
-                            // left boundary can be moved right
-                            moveLeftCost = std::ceil(rtn[i - 1]) - rtn[i - 1];
-                        }
-                        if (i != proposal.size() - 1)
-                        {
-                            // right boundary can be moved left
-                            moveRightCost = rtn[i] - std::floor(rtn[i]);
-                        }
-
-                        if (1e-4 <= moveLeftCost && moveLeftCost <= moveRightCost)
-                        {
-                            // moving left boundary is easier
-                            rtn[i - 1] = std::ceil(rtn[i - 1]);
-                        }
-                        else if (1e-4 <= moveRightCost && moveRightCost <= moveLeftCost)
-                        {
-                            // moving right boundary is easier
-                            rtn[i] = std::floor(rtn[i]);
-                        }
-                        else
-                        {
-                            // No further adjustment can be made
-                            dead = true;
-                        }
-                    }
-                }
-                if (pass)
-                {
-                    // Prevent multi-direction lanes unless necessary
-                    std::vector<std::pair<uint8_t, uint8_t>> resulting = splitPointToLaneCount(nLanes, rtn);
-                    for (int lane = 0; lane != resulting.size(); ++lane)
-                    {
-                        int number = resulting[lane].second;
-                        if (number == 1)
-                        {
-                            // section cannot shrink
-                            continue;
-                        }
-
-                        // If there's an overlap with a higher-importance neighbor
-                        // Try shrinking self At the cost of -1 lane to eliminate overlap
-                        if (lane > 0)
-                        {
-                            double ceil = std::ceil(rtn[lane - 1]);
-                            if (std::abs(rtn[lane - 1] - std::round(rtn[lane - 1])) > 1e-4 && std::abs(rtn[lane - 1] > ceil) > 1e-4 &&
-                                idealSemanticsWeight[outgoings[lane - 1].direction] > idealSemanticsWeight[outgoings[lane].direction])
-                            {
-                                // left boundary can be moved right, so that my section will not share lane with left neighbor
-                                rtn[lane - 1] = ceil;
-                            }
-                        }
-
-                        if (lane < resulting.size() - 1)
-                        {
-                            double floor = std::floor(rtn[lane]);
-                            if (std::abs(rtn[lane] - std::round(rtn[lane])) > 1e-4 && rtn[lane] - floor > 1e-4
-                                && idealSemanticsWeight[outgoings[lane + 1].direction] > idealSemanticsWeight[outgoings[lane].direction])
-                            {
-                                // right boundary can be moved left, so that my section will not share lane with right neighbor
-                                rtn[lane] = floor;
-                            }
-                        }
-                    }
-
-                    return rtn;
-                }
-                if (dead)
-                {
-                    break;
-                }
-            }
-        }
-
-        spdlog::error("Can't find a suitable incoming lane distribution. Algo failed!");
-        errorCode |= Junction_AlgoFail;
-        return {};
-    }
-
-    void assignOutgoingLanes(std::vector<TurningGroup>& incomingLanes)
-    {
-        for (TurningGroup& group : incomingLanes)
-        {
-            switch (group.direction)
-            {
-            case TurningSemantics::Turn_U:
-            case TurningSemantics::Turn_Left:
-                group.toLaneIDBase = 0;
-                break;
-            case TurningSemantics::Turn_No:
-                // TODO: make those as straight as possible
-                group.toLaneIDBase = 0;
-                break;
-            case TurningSemantics::Turn_Right:
-                group.toLaneIDBase = group.toTotalLanes - group.nLanes;
-                break;
-            }
-        }
-    }
-
-    Junction::Junction():
+    AbstractJunction::AbstractJunction() :
         generated("", IDGenerator::ForJunction()->GenerateID(this), odr::JunctionType::Common)
     {
         generated.name = "Junction " + generated.id;
     }
 
-    Junction::Junction(const odr::Junction& serialized):
+    AbstractJunction::AbstractJunction(const odr::Junction& serialized) :
         generated(serialized)
     {
         IDGenerator::ForJunction()->TakeID(ID(), this);
     }
 
-    int Junction::CreateFrom(const std::vector<ConnectionInfo>& connected)
-    {
-        connectingRoads.clear();
-        generationError = GenerateConnections(generated.id, connected, connectingRoads);
-
-        generated.id_to_connection.clear();
-        int junctionConnID = 0;
-        for (auto& connecting : connectingRoads)
-        {
-            auto incomingRoad = connecting->generated.predecessor.id;
-
-            odr::JunctionConnection prevConn(std::to_string(junctionConnID++),
-                incomingRoad, connecting->ID(),
-                odr::JunctionConnection::ContactPoint_Start);
-
-            for (odr::Lane connectinglane : connecting->generated.s_to_lanesection.rbegin()->second.get_sorted_driving_lanes(-1))
-            {
-                prevConn.lane_links.insert(odr::JunctionLaneLink(connectinglane.predecessor, connectinglane.id));
-            }
-            generated.id_to_connection.emplace(prevConn.id, prevConn);
-        }
-
-        formedFrom.clear();
-        std::for_each(connected.begin(), connected.end(), [this](const ConnectionInfo& info) {
-            formedFrom.insert(info);
-            auto roadPtr = info.road.lock();
-            if (info.contact == odr::RoadLink::ContactPoint_Start)
-            {
-                roadPtr->predecessorJunction = shared_from_this();
-            }
-            else
-            {
-                roadPtr->successorJunction = shared_from_this();
-            }
-        });
-
-#ifndef G_TEST
-        for (auto& connecting : connectingRoads)
-        {
-            if (connecting->Length() < RoadRunner::ValidGeoMaxLength)
-            {
-                connecting->GenerateAllSectionGraphics();
-            }
-            else
-            {
-                spdlog::warn("Connecting road longer than usual. Discarded!");
-            }
-        }
-#endif
-
-        IDGenerator::ForJunction()->NotifyChange(ID());
-
-        return generationError;
-    }
-
-    int Junction::Attach(ConnectionInfo conn)
+    int AbstractJunction::Attach(ConnectionInfo conn)
     {
         if (formedFrom.find(conn) != formedFrom.end())
         {
@@ -576,18 +27,19 @@ namespace RoadRunner
         std::vector<ConnectionInfo> newConnections = { conn };
         for (auto existing : formedFrom)
         {
-            ConnectionInfo existingInfo{ existing.road.lock(), existing.contact };
+            ConnectionInfo existingInfo{ existing.road.lock(), existing.contact, existing.skipProviderLanes };
             newConnections.push_back(existingInfo);
         }
+        formedFrom.clear();
         return CreateFrom(newConnections);
     }
 
-    void Junction::NotifyPotentialChange()
+    void AbstractJunction::NotifyPotentialChange()
     {
         NotifyPotentialChange(ChangeInConnecting());
     }
 
-    void Junction::NotifyPotentialChange(const ChangeInConnecting& detail)
+    void AbstractJunction::NotifyPotentialChange(const ChangeInConnecting& detail)
     {
         std::shared_ptr<Road> subject;
         if (detail._type != detail.Type_Others)
@@ -600,7 +52,7 @@ namespace RoadRunner
         for (const auto record : formedFrom)
         {
             auto recordedRoad = record.road.lock();
-            auto updatedInfo = ConnectionInfo(recordedRoad, record.contact);
+            auto updatedInfo = record;
 
             if (recordedRoad == nullptr)
             {
@@ -609,13 +61,13 @@ namespace RoadRunner
             else if (detail._type == detail.Type_Reverse && subject == recordedRoad)
             {
                 needReGen = true;
-                
+
                 auto newContact = record.contact == odr::RoadLink::ContactPoint_Start ?
                     odr::RoadLink::ContactPoint_End : odr::RoadLink::ContactPoint_Start;
-                updatedInfo = ConnectionInfo(recordedRoad, newContact);
+                updatedInfo = ConnectionInfo(recordedRoad, newContact, record.skipProviderLanes);
                 updatedInfoList.push_back(updatedInfo);
             }
-            else if (detail._type == detail.Type_DetachAtEnd_Temp && record.contact == odr::RoadLink::ContactPoint_End && 
+            else if (detail._type == detail.Type_DetachAtEnd_Temp && record.contact == odr::RoadLink::ContactPoint_End &&
                 subject == recordedRoad)
             {
                 subject->generated.successor = odr::RoadLink();
@@ -637,6 +89,7 @@ namespace RoadRunner
         else if (needReGen && updatedInfoList.size() > 1)
         {
             spdlog::trace("Junction {} regen from {} roads", ID(), updatedInfoList.size());
+            formedFrom.clear();
             CreateFrom(updatedInfoList);
         }
         else if (updatedInfoList.size() == 1)
@@ -669,9 +122,9 @@ namespace RoadRunner
         {
             return;
         }
-        
+
         odr::Road& affectedRoad = static_cast<Road*>(road)->generated;
-        if (affectedRoad.successor.type == odr::RoadLink::Type_Junction && 
+        if (affectedRoad.successor.type == odr::RoadLink::Type_Junction &&
             affectedRoad.successor.id == junctionID)
         {
             affectedRoad.successor.type = odr::RoadLink::Type_None;
@@ -711,24 +164,7 @@ namespace RoadRunner
         }
     }
 
-    Junction::~Junction()
-    {
-        for (const auto& connectingRoad : formedFrom)
-        {
-            if (!connectingRoad.road.expired())
-            {
-                spdlog::error("Junction gets destroyed before its connected road!");
-            }
-        }
-
-        if (!ID().empty())
-        {
-            spdlog::trace("del junction {} w/ {} connections", ID(), connectingRoads.size());
-            IDGenerator::ForJunction()->FreeID(ID());
-        }
-    }
-
-    std::set<std::shared_ptr<Road>> Junction::StillConnectedRoads() const
+    std::set<std::shared_ptr<Road>> AbstractJunction::StillConnectedRoads() const
     {
         std::set<std::shared_ptr<Road>> rtn;
         for (auto connected : formedFrom)
@@ -742,7 +178,7 @@ namespace RoadRunner
         return rtn;
     }
 
-    void Junction::AttachNoRegenerate(ConnectionInfo conn)
+    void AbstractJunction::AttachNoRegenerate(ConnectionInfo conn)
     {
         formedFrom.insert(conn);
         if (conn.contact == odr::RoadLink::ContactPoint_Start)
@@ -755,7 +191,7 @@ namespace RoadRunner
         }
     }
 
-    void Junction::DetachNoRegenerate(std::shared_ptr<Road> road)
+    void AbstractJunction::DetachNoRegenerate(std::shared_ptr<Road> road)
     {
         auto myPtr = shared_from_this();
         if (road->successorJunction == myPtr)
@@ -763,7 +199,7 @@ namespace RoadRunner
             formedFrom.erase(RoadRunner::ConnectionInfo(road, odr::RoadLink::ContactPoint_End));
             road->successorJunction.reset();
         }
-        
+
         if (road->predecessorJunction == myPtr)
         {
             formedFrom.erase(RoadRunner::ConnectionInfo(road, odr::RoadLink::ContactPoint_Start));
@@ -771,7 +207,7 @@ namespace RoadRunner
         }
     }
 
-    std::string Junction::Log() const
+    std::string AbstractJunction::Log() const
     {
         std::stringstream ss;
         ss << "Junction " << ID() << "\n";
@@ -784,4 +220,254 @@ namespace RoadRunner
         return ss.str();
     }
 
+    Junction::Junction() : AbstractJunction() {}
+
+    Junction::Junction(const odr::Junction& serialized) : AbstractJunction(serialized)
+    {
+        // Link connecting road
+        for (const auto& id2Connection : generated.id_to_connection)
+        {
+            auto connectingRoadID = id2Connection.second.connecting_road;
+            auto roadPtr = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(connectingRoadID));
+            connectingRoads.push_back(roadPtr->shared_from_this());
+        }
+    }
+
+    int Junction::CreateFrom(const std::vector<ConnectionInfo>& connected)
+    {
+        connectingRoads.clear();
+        generationError = GenerateConnections(generated.id, connected, connectingRoads);
+
+        generated.id_to_connection.clear();
+        int junctionConnID = 0;
+        for (auto& connecting : connectingRoads)
+        {
+            auto incomingRoad = connecting->generated.predecessor.id;
+
+            odr::JunctionConnection prevConn(std::to_string(junctionConnID++),
+                incomingRoad, connecting->ID(),
+                odr::JunctionConnection::ContactPoint_Start);
+
+            for (odr::Lane connectinglane : connecting->generated.s_to_lanesection.rbegin()->second.get_sorted_driving_lanes(-1))
+            {
+                prevConn.lane_links.insert(odr::JunctionLaneLink(connectinglane.predecessor, connectinglane.id));
+            }
+            generated.id_to_connection.emplace(prevConn.id, prevConn);
+        }
+
+        std::for_each(connected.begin(), connected.end(), [this](const ConnectionInfo& info) {
+            formedFrom.insert(info);
+            auto roadPtr = info.road.lock();
+            if (info.contact == odr::RoadLink::ContactPoint_Start)
+            {
+                roadPtr->predecessorJunction = shared_from_this();
+            }
+            else
+            {
+                roadPtr->successorJunction = shared_from_this();
+            }
+            });
+
+#ifndef G_TEST
+        for (auto& connecting : connectingRoads)
+        {
+            if (connecting->Length() < RoadRunner::ValidGeoMaxLength)
+            {
+                connecting->GenerateAllSectionGraphics();
+            }
+            else
+            {
+                spdlog::warn("Connecting road longer than usual. Discarded!");
+            }
+        }
+#endif
+
+        IDGenerator::ForJunction()->NotifyChange(ID());
+
+        return generationError;
+    }
+
+    AbstractJunction::~AbstractJunction()
+    {
+        for (const auto& connectingRoad : formedFrom)
+        {
+            if (!connectingRoad.road.expired())
+            {
+                spdlog::error("Junction gets destroyed before its connected road!");
+            }
+        }
+
+        if (!ID().empty())
+        {
+            IDGenerator::ForJunction()->FreeID(ID());
+        }
+    }
+
+    DirectJunction::DirectJunction(ConnectionInfo aInterfaceProvider) : AbstractJunction()
+    {
+        formedFrom.insert(aInterfaceProvider);
+        generated.type = odr::JunctionType::Direct;
+
+        interfaceDir = calcInterfaceDir(aInterfaceProvider);
+    }
+
+    DirectJunction::DirectJunction(const odr::Junction& serialized) : AbstractJunction(serialized)
+    {
+        generated.type = odr::JunctionType::Direct;
+        auto interfaceProviderID = serialized.id_to_connection.cbegin()->second.incoming_road;
+        
+        auto interfaceProvider = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(interfaceProviderID));
+        odr::RoadLink::ContactPoint interfaceContact;
+        if (interfaceProvider->generated.predecessor.type == odr::RoadLink::Type_Junction &&
+            interfaceProvider->generated.predecessor.id == ID())
+        {
+            interfaceContact = odr::RoadLink::ContactPoint_Start;
+        }
+        else if (interfaceProvider->generated.successor.type == odr::RoadLink::Type_Junction &&
+            interfaceProvider->generated.successor.id == ID())
+        {
+            interfaceContact = odr::RoadLink::ContactPoint_End;
+        }
+        else throw;
+
+        interfaceDir = calcInterfaceDir(ConnectionInfo(interfaceProvider->shared_from_this(), interfaceContact));
+    }
+
+    int DirectJunction::CreateFrom(const std::vector<ConnectionInfo>& connectedInfo)
+    {
+        formedFrom.insert(connectedInfo.begin(), connectedInfo.end());
+        if (StillConnectedRoads().size() != connectedInfo.size())
+        {
+            spdlog::error("A road cannot appear in the same direct junction twice!");
+            return JunctionError::Junction_DuplicateConn;
+        }
+
+        std::shared_ptr<Road> interfaceProviderRoad;
+        odr::RoadLink::ContactPoint interfaceContact;
+        
+        bool matchFound = false;
+        for (const auto& connInfo : connectedInfo)
+        {
+            auto connDir = calcInterfaceDir(connInfo);
+            if (odr::dot(interfaceDir, connDir) > 0.9)
+            {
+                interfaceProviderRoad = connInfo.road.lock();
+                interfaceContact = connInfo.contact;
+                if (matchFound)
+                {
+                    spdlog::error("More than one road match interface direction!");
+                }
+                matchFound = true;
+            }
+        }
+
+        if (interfaceProviderRoad == nullptr)
+        {
+            // Direct junction no longer holds without interface provider
+            for (auto contactInfo : connectedInfo)
+            {
+                auto connectedRoad = contactInfo.road.lock();
+                if (contactInfo.contact == odr::RoadLink::ContactPoint_Start)
+                {
+                    connectedRoad->predecessorJunction.reset();
+                }
+                else if (contactInfo.contact == odr::RoadLink::ContactPoint_End)
+                {
+                    connectedRoad->successorJunction.reset();
+                }
+                else
+                {
+                    assert(false);
+                }
+                clearLinkage(ID(), connectedRoad->ID());
+                IDGenerator::ForRoad()->NotifyChange(connectedRoad->ID());
+            }
+            // Junction will then be destroyed
+            return 0;
+        }
+
+        for (const ConnectionInfo& info: connectedInfo)
+        {
+            auto connectedRoad = info.road.lock();
+            if (info.contact == odr::RoadLink::ContactPoint_Start)
+            {
+                connectedRoad->predecessorJunction = shared_from_this();
+                connectedRoad->generated.predecessor = odr::RoadLink(ID(), odr::RoadLink::Type_Junction);
+            }
+            else
+            {
+                connectedRoad->successorJunction = shared_from_this();
+                connectedRoad->generated.successor = odr::RoadLink(ID(), odr::RoadLink::Type_Junction);
+            }
+            IDGenerator::ForRoad()->NotifyChange(connectedRoad->ID());
+        }
+
+        generated.id_to_connection.clear();
+        int junctionConnID = 0;
+        const auto& sectionProvider = interfaceProviderRoad->generated.get_lanesection(
+            interfaceContact == odr::RoadLink::ContactPoint_Start ? 0 : interfaceProviderRoad->Length());
+        for (auto rampInfo: connectedInfo)
+        {
+            auto linkedRoad = rampInfo.road.lock();
+            auto linkedContact = rampInfo.contact;
+            if (linkedRoad == interfaceProviderRoad)
+            {
+                continue;
+            }
+            // Here we just let incomingRoad be interface provider; while linkedRoad be narrower ramp
+            odr::JunctionConnection conn(std::to_string(junctionConnID++), interfaceProviderRoad->ID(), linkedRoad->ID(),
+                linkedContact == odr::RoadLink::ContactPoint_Start ? odr::JunctionConnection::ContactPoint_Start : odr::JunctionConnection::ContactPoint_End);
+
+            const auto& sectionLinked = linkedRoad->generated.get_lanesection(linkedContact == odr::RoadLink::ContactPoint_Start == 0 ? 0 : linkedRoad->Length());
+            
+            // Link lanes from Provider to Linked
+            if (linkedRoad->generated.rr_profile.HasSide(1) ||      // bi-dir
+                linkedContact == odr::RoadLink::ContactPoint_Start) // or single-dir lane split
+            {
+                auto lanesOnProvider = sectionProvider.get_sorted_driving_lanes(interfaceContact == odr::RoadLink::ContactPoint_End ? -1 : 1);
+                auto lanesOnLinked = sectionLinked.get_sorted_driving_lanes(linkedContact == odr::RoadLink::ContactPoint_Start ? -1 : 1);
+
+                for (int i = 0; i != lanesOnLinked.size(); ++i)
+                {
+                    conn.lane_links.insert(odr::JunctionLaneLink(lanesOnProvider[i + rampInfo.skipProviderLanes].id, lanesOnLinked[i].id));
+                }
+            }
+            
+            // Link lanes from Linked to Provider
+            if (linkedRoad->generated.rr_profile.HasSide(-1) ||      // bi-dir
+                linkedContact == odr::RoadLink::ContactPoint_End)   // or single-dir lane merge
+            {
+                auto lanesOnLinked = sectionLinked.get_sorted_driving_lanes(linkedContact == odr::RoadLink::ContactPoint_End ? -1 : 1);
+                auto lanesOnProvider = sectionProvider.get_sorted_driving_lanes(interfaceContact == odr::RoadLink::ContactPoint_Start ? -1 : 1);
+                for (int i = 0; i != lanesOnLinked.size(); ++i)
+                {
+                    conn.lane_links.insert(odr::JunctionLaneLink(lanesOnProvider[i + rampInfo.skipProviderLanes].id, lanesOnLinked[i].id));
+                }
+            }
+
+            generated.id_to_connection.emplace(conn.id, conn);
+        }
+
+        IDGenerator::ForJunction()->NotifyChange(ID());
+
+        // Debug
+        return 0;
+    }
+
+    odr::Vec2D DirectJunction::calcInterfaceDir(const ConnectionInfo& aInterfaceProvider)
+    {
+        odr::Vec2D rtn;
+        auto interfaceRoad = aInterfaceProvider.road.lock();
+        if (aInterfaceProvider.contact == odr::RoadLink::ContactPoint_Start)
+        {
+            rtn = interfaceRoad->RefLine().get_grad_xy(0);
+        }
+        else
+        {
+            rtn = interfaceRoad->RefLine().get_grad_xy(interfaceRoad->Length());
+            rtn = odr::negate(rtn);
+        }
+        rtn = odr::normalize(rtn);
+        return rtn;
+    }
 } // namespace RoadRunner

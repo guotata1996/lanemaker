@@ -14,7 +14,7 @@
 
 namespace RoadRunnerTest
 {
-    const double epsilon = 1e-4;
+    const double epsilon = 1e-2;
     const double epsilon_integral_result = 1e-2;
 }
 

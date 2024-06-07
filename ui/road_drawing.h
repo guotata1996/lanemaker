@@ -135,7 +135,8 @@ private:
     RoadRunner::type_t rLanes; // If lLanes == 0, becomes required lanes
     RoadRunner::type_t lLanes; // If 0, single-directional
     RoadRunner::type_t rOffsetX2, lOffsetX2;
-    int startLanesInner, endLanesInner; // If lLanes != 0, becomes useless
+    uint8_t startLanesSkip, endLanesSkip; // If lLanes != 0, equals 0. 
+    int startSide, endSide; // If lLanes != 0, equals 0. 
     bool startFullyMatch, endFullyMatch; // If true, extend instead of creating direct junction
 };
 

@@ -10,7 +10,7 @@
 
 namespace RoadRunnerTest
 {
-    void Validation::VerifyJunction(const RoadRunner::Junction* junction)
+    void Validation::VerifyJunction(RoadRunner::AbstractJunction* junction)
     {
 #ifdef G_TEST
         EXPECT_EQ(junction->generationError, 0);
@@ -19,7 +19,20 @@ namespace RoadRunnerTest
             spdlog::warn("Junction {} has non-zero error code {}",
                 junction->ID(), junction->generationError);
 #endif
-        auto allConnections = odr::get_map_values(junction->generated.id_to_connection);
+        auto commonJunction = dynamic_cast<RoadRunner::Junction*>(junction);
+        if (commonJunction != nullptr)
+        {
+            VerifyCommonJunction(commonJunction);
+        }
+        auto directJunction = dynamic_cast<RoadRunner::DirectJunction*>(junction);
+        if (directJunction != nullptr)
+        {
+            VerifyDirectJunction(directJunction);
+        }
+    }
+
+    void Validation::VerifyCommonJunction(const RoadRunner::Junction* junction)
+    {
         // Make sure Road<->Junction pointers match what's declared on xodr
         std::set<std::string> connectingIDFromOdr, connectingIDFromRR;
         for (auto odrLink : junction->generated.id_to_connection)
@@ -67,6 +80,7 @@ namespace RoadRunnerTest
         ExpectOrAssert(connectingIDFromOdr == connectingIDFromRR);
 
         // Make sure all incoming roads' entering lanes have matching connectings
+        auto allConnections = odr::get_map_values(junction->generated.id_to_connection);
         for (auto& incomingInfo : junction->formedFrom)
         {
             const odr::Road& incomingRoad = incomingInfo.road.lock()->generated;
@@ -162,5 +176,44 @@ namespace RoadRunnerTest
 #else
         assert(odr::euclDistance(p1_in, p2_in) < epsilon);
 #endif
+    }
+
+    void Validation::VerifyDirectJunction(const RoadRunner::DirectJunction* junction)
+    {
+        for (auto id2Conn : junction->generated.id_to_connection)
+        {
+            auto incoming = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(id2Conn.second.incoming_road));
+            double sOnIncoming, sOnConnecting;
+            ExpectOrAssert(incoming->predecessorJunction.get() == junction
+                || incoming->successorJunction.get() == junction);
+
+            if (incoming->predecessorJunction.get() == junction)
+            {
+                sOnIncoming = 0;
+            }
+            else if (incoming->successorJunction.get() == junction)
+            {
+                sOnIncoming = incoming->Length();
+            }
+
+            auto connecting = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(id2Conn.second.connecting_road));
+            ExpectOrAssert(id2Conn.second.contact_point != odr::JunctionConnection::ContactPoint_None);
+            if (id2Conn.second.contact_point == odr::JunctionConnection::ContactPoint_Start)
+            {
+                ExpectOrAssert(connecting->predecessorJunction.get() == junction);
+                sOnConnecting = 0;
+            }
+            else
+            {
+                ExpectOrAssert(connecting->successorJunction.get() == junction);
+                sOnConnecting = connecting->Length();
+            }
+            
+            for (auto laneLink : id2Conn.second.lane_links)
+            {
+                EnsureEndsMeet(&incoming->generated, sOnIncoming, laneLink.from,
+                    &connecting->generated, sOnConnecting, laneLink.to);
+            }
+        }
     }
 }

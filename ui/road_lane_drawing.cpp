@@ -2,7 +2,9 @@
 
 #include <qvector2d.h>
 #include <qevent.h>
+
 #include "CreateRoadOptionWidget.h"
+#include "junction.h"
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern int g_PointerLane;
@@ -54,7 +56,22 @@ void LanesCreationSession::CreateRoad()
         auto toExtend = extendFromStart.lock();
         if (extendFromStartS == 0 || extendFromStartS == toExtend->Length())
         {
-            if (startFullyMatch)
+            RoadRunner::ConnectionInfo linkedInfo(newRoad, odr::RoadLink::ContactPoint_Start, startLanesSkip);
+            std::shared_ptr<RoadRunner::AbstractJunction> directJunction;
+            if (extendFromStartS == 0 && toExtend->predecessorJunction != nullptr)
+            {
+                directJunction = toExtend->predecessorJunction;
+            }
+            else if (extendFromStartS == toExtend->Length() && toExtend->successorJunction != nullptr)
+            {
+                directJunction = toExtend->successorJunction;
+            }
+
+            if (directJunction != nullptr)
+            {
+                directJunction->Attach(linkedInfo);
+            }
+            else if (startFullyMatch)
             {
                 standaloneRoad = false;
                 int joinResult = RoadRunner::Road::JoinRoads(toExtend,
@@ -69,14 +86,38 @@ void LanesCreationSession::CreateRoad()
             }
             else
             {
-                // TODO: create direct junction
+                if (extendFromStartS == 0)
+                {
+                    directJunction = std::make_shared<RoadRunner::DirectJunction>(
+                        RoadRunner::ConnectionInfo(toExtend, odr::RoadLink::ContactPoint_Start));
+                }
+                else
+                {
+                    directJunction = std::make_shared<RoadRunner::DirectJunction>(
+                        RoadRunner::ConnectionInfo(toExtend, odr::RoadLink::ContactPoint_End));
+                }
+                directJunction->Attach(linkedInfo);
             }
         }
         else
         {
             auto secondHalf = RoadRunner::Road::SplitRoad(toExtend, extendFromStartS);
             world->allRoads.insert(secondHalf);
-            // TODO: create direct junction
+
+            std::shared_ptr<RoadRunner::AbstractJunction> directJunction;
+            if (startSide < 0)
+            {
+                directJunction = std::make_shared< RoadRunner::DirectJunction>(
+                    RoadRunner::ConnectionInfo(toExtend, odr::RoadLink::ContactPoint_End));
+                directJunction->Attach(RoadRunner::ConnectionInfo(secondHalf, odr::RoadLink::ContactPoint_Start));
+            }
+            else
+            {
+                directJunction = std::make_shared< RoadRunner::DirectJunction>(
+                    RoadRunner::ConnectionInfo(secondHalf, odr::RoadLink::ContactPoint_Start));
+                directJunction->Attach(RoadRunner::ConnectionInfo(toExtend, odr::RoadLink::ContactPoint_End));
+            }
+            directJunction->Attach(RoadRunner::ConnectionInfo(newRoad, odr::RoadLink::ContactPoint_Start, startLanesSkip));
         }
     }
     
@@ -85,7 +126,23 @@ void LanesCreationSession::CreateRoad()
         auto toJoin = joinAtEnd.lock();
         if (joinAtEndS == 0 || joinAtEndS == toJoin->Length())
         {
-            if (endFullyMatch)
+            RoadRunner::ConnectionInfo linkedInfo(newRoad, odr::RoadLink::ContactPoint_End, endLanesSkip);
+
+            std::shared_ptr<RoadRunner::AbstractJunction> directJunction;
+            if (joinAtEndS == 0 && toJoin->predecessorJunction != nullptr)
+            {
+                directJunction = toJoin->predecessorJunction;
+            }
+            else if (joinAtEndS == toJoin->Length() && toJoin->successorJunction != nullptr)
+            {
+                directJunction = toJoin->successorJunction;
+            }
+
+            if (directJunction != nullptr)
+            {
+                directJunction->Attach(linkedInfo);
+            }
+            else if (endFullyMatch)
             {
                 standaloneRoad = false;
                 int joinResult = RoadRunner::Road::JoinRoads(toJoin,
@@ -99,14 +156,38 @@ void LanesCreationSession::CreateRoad()
             }
             else
             {
-                // TODO: create direct junction
+                if (joinAtEndS == 0)
+                {
+                    directJunction = std::make_shared<RoadRunner::DirectJunction>(
+                        RoadRunner::ConnectionInfo(toJoin, odr::RoadLink::ContactPoint_Start));
+                }
+                else
+                {
+                    directJunction = std::make_shared<RoadRunner::DirectJunction>(
+                        RoadRunner::ConnectionInfo(toJoin, odr::RoadLink::ContactPoint_End));
+                }
+                directJunction->Attach(linkedInfo);
             }
         }
         else
         {
             auto secondHalf = RoadRunner::Road::SplitRoad(toJoin, joinAtEndS);
             world->allRoads.insert(secondHalf);
-            // TODO: create direct junction
+
+            std::shared_ptr<RoadRunner::AbstractJunction> directJunction;
+            if (endSide < 0)
+            {
+                directJunction = std::make_shared< RoadRunner::DirectJunction>(
+                    RoadRunner::ConnectionInfo(secondHalf, odr::RoadLink::ContactPoint_Start));
+                directJunction->Attach(RoadRunner::ConnectionInfo(toJoin, odr::RoadLink::ContactPoint_End));
+            }
+            else
+            {
+                directJunction = std::make_shared<RoadRunner::DirectJunction>(
+                    RoadRunner::ConnectionInfo(toJoin, odr::RoadLink::ContactPoint_End));
+                directJunction->Attach(RoadRunner::ConnectionInfo(secondHalf, odr::RoadLink::ContactPoint_Start));
+            }
+            directJunction->Attach(RoadRunner::ConnectionInfo(newRoad, odr::RoadLink::ContactPoint_End, endLanesSkip));
         }
     }
     
@@ -149,6 +230,7 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
     QVector2D g_dir(grad[0], grad[1]);
     g_dir.normalize();
     startFullyMatch = false;
+    startLanesSkip = 0;
 
     if (lLanes != 0)
     {
@@ -188,7 +270,7 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
         uint8_t searchLaneMin = 1; // Inclusive
         uint8_t searchLaneMax = 0; // Inclusive
         double baseOffset;
-        // TODO: certain lane subset unavailable
+        startSide = g_PointerLane < 0 ? -1 : 1;
         if (g_roadS == g_road->Length())
         {
             if (g_PointerLane < 0 && rightProfile.laneCount >= lanesRequired)
@@ -249,13 +331,12 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
             int8_t bestInner;
             QVector2D bestSnapPos;
 
-            int tSign = g_PointerLane < 0 ? -1 : 1;
             for (uint8_t searchInner = searchLaneMin, searchOuter = searchInner + lanesRequired - 1;
                 searchOuter <= searchLaneMax;
                 ++searchInner, ++searchOuter)
             {
                 double middleDist = static_cast<double>((int)searchInner + (int)searchOuter - 1) / 2;
-                double t = (baseOffset + tSign * middleDist) * RoadRunner::LaneWidth;
+                double t = (baseOffset + startSide * middleDist) * RoadRunner::LaneWidth;
                 auto p = g_road->generated.get_xyz(g_roadS, t, 0);
 
                 QVector2D medianPos(p[0], p[1]);
@@ -273,10 +354,10 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
                 point.setX(bestSnapPos.x());
                 point.setY(bestSnapPos.y());
                 extendFromStart = g_road;
-                startLanesInner = tSign * bestInner;
+                startLanesSkip = bestInner - searchLaneMin;
                 lOffsetX2 = 0;
                 rOffsetX2 = rLanes;
-                if (tSign > 0) g_dir = -g_dir;
+                if (startSide > 0) g_dir = -g_dir;
             }
         }
     }
@@ -329,6 +410,7 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
     const auto rightProfile = g_roadProfile.ProfileAt(g_roadS, -1);
     const auto leftProfile = g_roadProfile.ProfileAt(g_roadS, 1);
     endFullyMatch = false;
+    endLanesSkip = 0;
 
     if (extendFromStart.expired() && lLanes != 0)
     {
@@ -398,7 +480,7 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
         uint8_t searchLaneMin = 1; // Inclusive
         uint8_t searchLaneMax = 0; // Inclusive
         double baseOffset;
-        // TODO: certain lane subset unavailable
+        endSide = g_PointerLane < 0 ? -1 : 1;
         if (g_roadS == 0)
         {
             if (g_PointerLane < 0 && rightProfile.laneCount >= lanesRequired)
@@ -454,13 +536,12 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
             int8_t bestInner;
             QVector2D bestSnapPos;
 
-            int tSign = g_PointerLane < 0 ? -1 : 1;
             for (uint8_t searchInner = searchLaneMin, searchOuter = searchInner + lanesRequired - 1;
                 searchOuter <= searchLaneMax;
                 ++searchInner, ++searchOuter)
             {
                 double middleDist = static_cast<double>((int)searchInner + (int)searchOuter - 1) / 2;
-                double t = (baseOffset + tSign * middleDist) * RoadRunner::LaneWidth;
+                double t = (baseOffset + endSide * middleDist) * RoadRunner::LaneWidth;
                 auto p = g_road->generated.get_xyz(g_roadS, t, 0);
 
                 QVector2D medianPos(p[0], p[1]);
@@ -480,7 +561,7 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
                 lOffsetX2 = 0;
                 rOffsetX2 = rLanes;
                 joinAtEnd = g_road;
-                endLanesInner = tSign * bestInner;
+                endLanesSkip = bestInner - searchLaneMin;
             }
         }
     }

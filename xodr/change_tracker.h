@@ -23,6 +23,7 @@ namespace RoadRunner
         bool Undo();
         bool Redo();
 
+        void Clear();
         void Save(std::string path);
         bool Load(std::string path);
 

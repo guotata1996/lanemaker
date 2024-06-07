@@ -169,7 +169,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
         g_PointerLane = rotatingRoads[rotatingIndex].first->LaneID;
         g_PointerRoadS = rotatingRoads[rotatingIndex].second;
         std::stringstream ss;
-        ss << "Road " << g_PointerRoad.lock()->ID() << " @ " << g_PointerRoadS;
+        ss << "Road " << g_PointerRoad.lock()->ID() << " @ " << g_PointerRoadS << " Lane " << g_PointerLane;
         txt = QString::fromStdString(ss.str());
     }
 

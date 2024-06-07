@@ -440,6 +440,21 @@ void RoadCreationSession::CreateRoad()
         spdlog::warn("Self-loop is not supported!");
         return;
     }
+    if (!extendFromStart.expired() && extendFromStartS == 0 &&
+        dynamic_cast<RoadRunner::DirectJunction*>(extendFromStart.lock()->predecessorJunction.get()) != nullptr
+        ||
+        !extendFromStart.expired() && extendFromStartS > 0 &&
+        dynamic_cast<RoadRunner::DirectJunction*>(extendFromStart.lock()->successorJunction.get()) != nullptr
+        ||
+        !joinAtEnd.expired() && joinAtEndS == 0 &&
+        dynamic_cast<RoadRunner::DirectJunction*>(joinAtEnd.lock()->predecessorJunction.get()) != nullptr
+        ||
+        !joinAtEnd.expired() && joinAtEndS > 0 &&
+        dynamic_cast<RoadRunner::DirectJunction*>(joinAtEnd.lock()->successorJunction.get()) != nullptr)
+    {
+        spdlog::warn("Please switch to Lane mode to connect to Direct junction.");
+        return;
+    }
     auto refLine = RefLineFromCtrlPoints();
     if (refLine.length == 0)
     {

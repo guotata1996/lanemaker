@@ -23,7 +23,7 @@ namespace RoadRunnerTest
         // Each junction geometry okay
         for (auto idAndJunction : IDGenerator::ForJunction()->assignTo)
         {
-            RoadRunner::Junction* junc = static_cast<RoadRunner::Junction*>(idAndJunction.second);
+            auto junc = static_cast<RoadRunner::AbstractJunction*>(idAndJunction.second);
             VerifyJunction(junc);
         }
 
@@ -79,7 +79,7 @@ namespace RoadRunnerTest
         {
             assert(idAndJunction.first == idAndJunction.second.id);
             junctionIDsFromSerialized.insert(idAndJunction.first);
-            auto juncPtr = static_cast<RoadRunner::Junction*>(IDGenerator::ForJunction()->GetByID(idAndJunction.first));
+            auto juncPtr = static_cast<RoadRunner::AbstractJunction*>(IDGenerator::ForJunction()->GetByID(idAndJunction.first));
             assert(juncPtr != nullptr);
         }
 
@@ -109,6 +109,14 @@ namespace RoadRunnerTest
         }
         for (const auto& idAndJunction : serializedMap.id_to_junction)
         {
+            auto junctionPtr = static_cast<RoadRunner::AbstractJunction*>(IDGenerator::ForJunction()->GetByID(idAndJunction.first));
+            auto commonPtr = dynamic_cast<RoadRunner::Junction*>(junctionPtr);
+
+            if (commonPtr == nullptr)
+            {
+                // Direct junction has no connecting road
+                continue;
+            }
             auto serializedJunction = idAndJunction.second;
             std::set<std::string> connectingsFromSerialized;
             for (const auto& idAndConn : serializedJunction.id_to_connection)
@@ -117,9 +125,8 @@ namespace RoadRunnerTest
                 connectingsFromSerialized.insert(connRoad);
             }
 
-            auto junctionPtr = static_cast<RoadRunner::Junction*>(IDGenerator::ForJunction()->GetByID(idAndJunction.first));
             std::set<std::string> connectingsFromPointer;
-            for (auto info : junctionPtr->connectingRoads)
+            for (auto info : commonPtr->connectingRoads)
             {
                 connectingsFromPointer.insert(info->ID());
             }
@@ -127,5 +134,4 @@ namespace RoadRunnerTest
         }
     }
 #endif
-    
 }

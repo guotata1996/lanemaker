@@ -28,6 +28,12 @@ IDGenerator* IDGenerator::ForRoad()
     return _road;
 }
 
+void IDGenerator::Reset()
+{
+    IDGenerator::ForRoad()->reset();
+    IDGenerator::ForJunction()->reset();
+}
+
 size_t IDGenerator::size() const
 {
     return assignTo.size();
@@ -116,5 +122,12 @@ void* IDGenerator::GetByID(std::string sid)
 
 void IDGenerator::ClearChangeList()
 {
+    changeList.clear();
+}
+
+void IDGenerator::reset()
+{
+    assigned.clear();
+    assignTo.clear();
     changeList.clear();
 }

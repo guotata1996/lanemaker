@@ -16,8 +16,8 @@ namespace RoadRunner
     public:
         ConnectionInfo() = delete;
 
-        ConnectionInfo(std::shared_ptr<Road> inRoad, odr::RoadLink::ContactPoint ct) :
-            road(inRoad), contact(ct) 
+        ConnectionInfo(std::shared_ptr<Road> inRoad, odr::RoadLink::ContactPoint ct, uint8_t skipInner=0) :
+            road(inRoad), contact(ct), skipProviderLanes(skipInner)
         {
             if (inRoad != nullptr)
             {
@@ -58,6 +58,8 @@ namespace RoadRunner
         odr::RoadLink::ContactPoint contact;
         std::vector<double> dirSplit; // not needed for outgoing-only connection
 
+        uint8_t skipProviderLanes; // Skip number of innermost linked lanes of InterfaceProvider
+
     private:
         SectionProfile leftProfile;
         SectionProfile rightProfile;
@@ -76,7 +78,7 @@ namespace RoadRunner
     int GenerateConnections(
         std::string junctionID,
         std::vector<ConnectionInfo> connected,
-        std::vector<std::unique_ptr<Road>>& connectings);
+        std::vector<std::shared_ptr<Road>>& connectings);
 
     // internal
     // ALL lanes of a single direction, going into or coming from a junction
@@ -145,10 +147,44 @@ namespace RoadRunner
         Type _type;
     };
 
-    // TODO: inherit same class as Road to manage ID
-    class Junction: public std::enable_shared_from_this<Junction>
+    class AbstractJunction : public std::enable_shared_from_this<AbstractJunction>
     {
         friend class RoadRunnerTest::Validation;
+    public:
+        AbstractJunction();
+
+        AbstractJunction(const odr::Junction& serialized);
+
+        ~AbstractJunction();
+
+        virtual int CreateFrom(const std::vector<ConnectionInfo>&) = 0;
+
+        int Attach(ConnectionInfo);
+
+        void NotifyPotentialChange(); /*Call this when connected roads get deleted or modified*/
+        void NotifyPotentialChange(const ChangeInConnecting&);
+
+        void AttachNoRegenerate(ConnectionInfo);
+        void DetachNoRegenerate(std::shared_ptr<Road>);
+
+        std::string ID() const { return generated.id; }
+
+        std::set< std::shared_ptr<Road>> StillConnectedRoads() const;
+
+        virtual std::string Log() const;
+
+        odr::Junction generated;
+
+        int generationError = 0;
+#ifndef G_TEST
+    protected:
+#endif
+        std::unordered_set<ConnectionInfo, ConnectionInfo::Hasher> formedFrom;
+    };
+
+    // TODO: inherit same class as Road to manage ID
+    class Junction: public AbstractJunction
+    {
     public:
         Junction();
 
@@ -157,33 +193,24 @@ namespace RoadRunner
         Junction(const Junction& another) = delete; // No copy costruct
         Junction& operator=(const Junction& another) = delete; // No copy assignment
 
-        ~Junction();
-
-        int CreateFrom(const std::vector<ConnectionInfo>&);
-        int Attach(ConnectionInfo);
-
-        /*Call this when connected roads get deleted or modified*/
-        void NotifyPotentialChange();
-        void NotifyPotentialChange(const ChangeInConnecting&);
-
-        std::string ID() const { return generated.id; }
+        virtual int CreateFrom(const std::vector<ConnectionInfo>&);
 
         std::vector<std::shared_ptr<Road>> connectingRoads;
+    };
 
-        odr::Junction generated;
+    class DirectJunction : public AbstractJunction
+    {
+    public:
+        DirectJunction(ConnectionInfo aInterfaceProvider);
 
-        int generationError = 0;
+        DirectJunction(const odr::Junction& serialized);
 
-        std::set< std::shared_ptr<Road>> StillConnectedRoads() const;
+        virtual int CreateFrom(const std::vector<ConnectionInfo>&);
 
-        void AttachNoRegenerate(ConnectionInfo);
-
-        void DetachNoRegenerate(std::shared_ptr<Road>);
-
-        std::string Log() const;
-#ifndef G_TEST
     private:
-#endif
-        std::unordered_set<ConnectionInfo, ConnectionInfo::Hasher> formedFrom;
+        // ConnectionInfo interfaceInfo;
+        odr::Vec2D interfaceDir; // Vector pointing into the interface provider
+
+        static odr::Vec2D calcInterfaceDir(const ConnectionInfo&);
     };
 }

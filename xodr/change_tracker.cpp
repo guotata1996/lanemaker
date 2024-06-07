@@ -84,7 +84,7 @@ namespace RoadRunner
 
             if (ptr != nullptr)
             {
-                Junction* newJunction = static_cast<Junction*>(ptr);
+                AbstractJunction* newJunction = static_cast<AbstractJunction*>(ptr);
                 junctionChange.after.emplace(newJunction->generated);
                 assert(odrMap.id_to_junction.find(newJunction->ID()) == odrMap.id_to_junction.end());
                 odrMap.id_to_junction.emplace(newJunction->ID(), newJunction->generated);
@@ -102,6 +102,12 @@ namespace RoadRunner
         PostChangeActions();
     }
 
+    void ChangeTracker::Clear()
+    {
+        World::Instance()->allRoads.clear();
+        IDGenerator::Reset();
+    }
+
     void ChangeTracker::Save(std::string path)
     {
         odrMap.export_file(path);
@@ -109,7 +115,7 @@ namespace RoadRunner
 
     bool ChangeTracker::Load(std::string path)
     {
-        World::Instance()->allRoads.clear();
+        Clear();
 
         if (!odrMap.Load(path))
         {
@@ -133,20 +139,21 @@ namespace RoadRunner
         }
         
         // Temporarily hold shared_ptr to Junction until they get owned by connected road
-        std::map<std::string, std::shared_ptr<RoadRunner::Junction>> id2RRJunction;
+        std::map<std::string, std::shared_ptr<RoadRunner::AbstractJunction>> id2RRJunction;
 
-        // Link connecting road <-> junction
+        // Load junctions and their connecting roads
         for (const auto& id2Junction : odrMap.id_to_junction)
         {
-            auto rrJunc = std::make_shared<RoadRunner::Junction>(id2Junction.second);
-            id2RRJunction.emplace(id2Junction.first, rrJunc);
-            // Link connecting road to junctions
-            for (const auto& id2Connection : id2Junction.second.id_to_connection)
+            std::shared_ptr<RoadRunner::AbstractJunction> rrJunc;
+            if (id2Junction.second.type == odr::JunctionType::Common)
             {
-                auto connectingRoadID = id2Connection.second.connecting_road;
-                auto roadPtr = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(connectingRoadID));
-                rrJunc->connectingRoads.push_back(roadPtr->shared_from_this());
+                rrJunc = std::make_shared<RoadRunner::Junction>(id2Junction.second);
             }
+            else
+            {
+                rrJunc = std::make_shared<RoadRunner::DirectJunction>(id2Junction.second);
+            }
+            id2RRJunction.emplace(id2Junction.first, rrJunc);
         }
         // Link connected road <-> pred/succ junction
         for (auto& road : World::Instance()->allRoads)
@@ -227,6 +234,7 @@ namespace RoadRunner
     void ChangeTracker::RestoreChange(const MapChange& change)
     {
         // Tear down after
+        // ROADRUNNERTODO: can be costly for long road
         for (const auto& change : change.roadChanges)
         {
             if (change.after.has_value())
@@ -269,18 +277,23 @@ namespace RoadRunner
                 {
                     // Junction could have already been destroyed after deleting all connecting roads
                     continue;
+                }                
+
+                auto junctionPtr = static_cast<RoadRunner::AbstractJunction*>(junctionPtrUntyped);
+                auto commonJunctionPtr = dynamic_cast<RoadRunner::Junction*>(junctionPtr);
+                if (commonJunctionPtr != nullptr)
+                {
+                    commonJunctionPtr->connectingRoads.clear();
                 }
-                auto junctionPtr = static_cast<RoadRunner::Junction*>(junctionPtrUntyped)->shared_from_this();
-                junctionPtr->connectingRoads.clear();
 
                 for (auto road: junctionPtr->StillConnectedRoads())
                 {
-                    if (road->successorJunction == junctionPtr)
+                    if (road->successorJunction.get() == junctionPtr)
                     {
                         junctionPtr->DetachNoRegenerate(road);
                         roadAffected.insert(road);
                     }
-                    if (road->predecessorJunction == junctionPtr)
+                    if (road->predecessorJunction.get() == junctionPtr)
                     {
                         junctionPtr->DetachNoRegenerate(road);
                         roadAffected.insert(road);
@@ -289,7 +302,7 @@ namespace RoadRunner
             }
         }
 
-        // Restore before
+        // Restore before (Roads)
         for (const auto& change : change.roadChanges)
         {
             if (change.before.has_value())
@@ -309,25 +322,26 @@ namespace RoadRunner
             }
         }
 
-        std::vector<std::shared_ptr<RoadRunner::Junction>> junctionRestored;
+        // Restore before (Junctions)
+        std::vector<std::shared_ptr<RoadRunner::AbstractJunction>> junctionRestored;
         for (const auto& change : change.junctionChanges)
         {
             if (change.before.has_value())
             {
                 assert(odrMap.id_to_junction.find(change.before->id) == odrMap.id_to_junction.end());
                 odrMap.id_to_junction.emplace(change.before->id, change.before.get());
-
-                auto rrJunc = std::make_shared<RoadRunner::Junction>(change.before.get());
+                const auto& odrJunction = change.before.get();
+                std::shared_ptr<RoadRunner::AbstractJunction> rrJunc;
+                if (odrJunction.type == odr::JunctionType::Common)
+                {
+                    rrJunc = std::make_shared<RoadRunner::Junction>(odrJunction);
+                }
+                else
+                {
+                    rrJunc = std::make_shared<RoadRunner::DirectJunction>(odrJunction);
+                }
                 junctionRestored.push_back(rrJunc);
                 spdlog::trace("Undo::Restore Junction {}", rrJunc->ID());
-
-                // Link connecting road to junctions
-                for (const auto& id2Connection : rrJunc->generated.id_to_connection)
-                {
-                    auto connectingRoadID = id2Connection.second.connecting_road;
-                    auto roadPtr = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(connectingRoadID));
-                    rrJunc->connectingRoads.push_back(roadPtr->shared_from_this());
-                }
             }
         }
 
@@ -340,14 +354,14 @@ namespace RoadRunner
             if (odrRoad.successor.type == odr::RoadLink::Type_Junction &&
                 odrRoad.successor.id != "-1")
             {
-                auto juncPtr = static_cast<RoadRunner::Junction*>(IDGenerator::ForJunction()->GetByID(odrRoad.successor.id));
+                auto juncPtr = static_cast<RoadRunner::AbstractJunction*>(IDGenerator::ForJunction()->GetByID(odrRoad.successor.id));
                 juncPtr->AttachNoRegenerate(RoadRunner::ConnectionInfo(rrRoad, odr::RoadLink::ContactPoint_End));
             }
 
             if (odrRoad.predecessor.type == odr::RoadLink::Type_Junction &&
                 odrRoad.predecessor.id != "-1")
             {
-                auto juncPtr = static_cast<RoadRunner::Junction*>(IDGenerator::ForJunction()->GetByID(odrRoad.predecessor.id));
+                auto juncPtr = static_cast<RoadRunner::AbstractJunction*>(IDGenerator::ForJunction()->GetByID(odrRoad.predecessor.id));
                 juncPtr->AttachNoRegenerate(RoadRunner::ConnectionInfo(rrRoad, odr::RoadLink::ContactPoint_Start));
             }
         }
