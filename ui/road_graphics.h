@@ -6,23 +6,37 @@
 
 namespace RoadRunner
 {
-    class LaneSegmentGraphics;
+    namespace
+    {
+        QPolygonF LineToPoly(const odr::Line3D& line)
+        {
+            QPolygonF rtn;
+            for (const odr::Vec3D& p : line)
+            {
+                rtn.append(QPointF(p[0], p[1]));
+            }
+            return rtn;
+        }
+    }
 
-    class RoadGraphics : public QGraphicsRectItem
+    class LaneGraphics;
+
+    class SectionGraphics : public QGraphicsRectItem
     {
     public:
-        RoadGraphics(std::shared_ptr<RoadRunner::Road> road, const odr::LaneSection& laneSection,
+        SectionGraphics(std::shared_ptr<RoadRunner::Road> road, const odr::LaneSection& laneSection,
             double s_begin, double s_end);
 
-        ~RoadGraphics();
+        ~SectionGraphics();
 
         void EnableHighlight(bool enabled);
 
+        /*Depends on ref line direction. Only this part needs updating upon reverse.*/
+        void UpdateRefLineHint();
+
         std::weak_ptr<RoadRunner::Road> road;
 
-        static QPolygonF LineToPoly(const odr::Line3D& line);
-
-        /*sBegin->sEnd follows the direction of generated LaneSegmentGraphics, NOT the direction of road ref line
+        /*sBegin->sEnd follows the direction of generated LaneGraphics, NOT the direction of road ref line
           so it's possible that sBegin > sEnd*/
         double sBegin, sEnd;
         const double Length;
@@ -33,15 +47,15 @@ namespace RoadRunner
         const double BrokenLength = 3;
         const double BrokenGap = 6;
 
-        std::vector< LaneSegmentGraphics*> allLaneGraphics;
+        std::vector< LaneGraphics*> allLaneGraphics;
         QGraphicsPathItem* refLineHint;
     };
 
-    class LaneSegmentGraphics : public QGraphicsPolygonItem
+    class LaneGraphics : public QGraphicsPolygonItem
     {
-        friend RoadGraphics;
+        friend SectionGraphics;
     public:
-        LaneSegmentGraphics(const QPolygonF& poly, 
+        LaneGraphics(const QPolygonF& poly, 
             odr::Line3D outerBorder, odr::Line3D innerBorder,
             int laneID, std::string laneType,
             QGraphicsItem* parent);
@@ -64,6 +78,3 @@ namespace RoadRunner
         bool isMedian;
     };
 }
-
-
-

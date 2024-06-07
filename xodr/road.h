@@ -13,7 +13,7 @@ namespace RoadRunner
 {
     class AbstractJunction;
 
-    class RoadGraphics;
+    class SectionGraphics;
 
     class Road: public std::enable_shared_from_this<Road>
     {
@@ -109,7 +109,7 @@ namespace RoadRunner
         const double NeglectableLength = 0.01f;
 
         // When updates road, remove RoadSectionGraphics then add new
-        std::map<double, std::unique_ptr<RoadGraphics>> s_to_section_graphics;
+        std::map<double, std::unique_ptr<SectionGraphics>> s_to_section_graphics;
 
         bool highlighted = false;
 #endif

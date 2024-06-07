@@ -12,7 +12,7 @@ std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 double g_PointerRoadS; /*Continous between 0 and Length() if g_PointerRoad is valid*/
 int g_PointerLane;
 
-std::vector<std::pair<RoadRunner::LaneSegmentGraphics*, double>> rotatingRoads;
+std::vector<std::pair<RoadRunner::LaneGraphics*, double>> rotatingRoads;
 int rotatingIndex;
 
 MapView::MapView(MainWidget* v) :
@@ -80,7 +80,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
     {
         while (item != nullptr)
         {
-            auto laneGraphicsItem = dynamic_cast<RoadRunner::LaneSegmentGraphics*>(item);
+            auto laneGraphicsItem = dynamic_cast<RoadRunner::LaneGraphics*>(item);
             if (laneGraphicsItem != nullptr)
             {
                 double s;

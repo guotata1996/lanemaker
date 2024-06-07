@@ -105,7 +105,7 @@ namespace RoadRunner
             predecessorJunction->NotifyPotentialChange(ChangeInConnecting{ shared_from_this(), ChangeInConnecting::Type_Reverse });
         }
 
-        // Re-index visual
+        // Re-index visual; reverse ref line hint
 #ifndef G_TEST
         decltype(s_to_section_graphics) temp_graphics(std::move(s_to_section_graphics));
         s_to_section_graphics.clear();
@@ -118,6 +118,7 @@ namespace RoadRunner
             auto graphics = std::move(it->second);
             graphics->sBegin = roadLength - graphics->sBegin;
             graphics->sEnd = roadLength - graphics->sEnd;
+            graphics->UpdateRefLineHint();
             s_to_section_graphics.emplace(sRev, std::move(graphics));
         }
 #endif
@@ -175,7 +176,7 @@ namespace RoadRunner
             {
                 double segStartS = startS + segmentLength * segmentIndex;
                 double segEndS = segmentIndex == nDivision - 1 ? endS : segStartS + segmentLength;
-                auto sectionGraphics = std::make_unique<RoadGraphics>(
+                auto sectionGraphics = std::make_unique<SectionGraphics>(
                     shared_from_this(), sIt->second, segStartS, segEndS);
                 s_to_section_graphics.emplace(segStartS, std::move(sectionGraphics));
             }
@@ -272,27 +273,27 @@ namespace RoadRunner
         auto endIt = s_to_section_graphics.upper_bound(sEnd + 1e-3f);
 
         std::map <std::shared_ptr<Road>, MultiSegment> collidings;
-        std::set< LaneSegmentGraphics*> myCollidingPieces;
+        std::set< LaneGraphics*> myCollidingPieces;
         for (auto it = beginIt; it != endIt; ++it)
         {
             for (auto child : it->second->childItems())
             {
-                LaneSegmentGraphics* laneSegmentItem = dynamic_cast<LaneSegmentGraphics*>(child);
+                LaneGraphics* laneSegmentItem = dynamic_cast<LaneGraphics*>(child);
                 if (laneSegmentItem == nullptr)
                 {
                     continue;
                 }
-                RoadGraphics* myGraphicsSegment = dynamic_cast<RoadGraphics*>(laneSegmentItem->parentItem());
+                SectionGraphics* myGraphicsSegment = dynamic_cast<SectionGraphics*>(laneSegmentItem->parentItem());
 
                 for (auto collision : laneSegmentItem->collidingItems())
                 {
-                    LaneSegmentGraphics* collisionSegmentItem = dynamic_cast<LaneSegmentGraphics*>(collision);
+                    LaneGraphics* collisionSegmentItem = dynamic_cast<LaneGraphics*>(collision);
                     if (collisionSegmentItem == nullptr)
                     {
                         continue;
                     }
                     
-                    RoadGraphics* collidingGraphicsSegment = dynamic_cast<RoadGraphics*>(collisionSegmentItem->parentItem());
+                    SectionGraphics* collidingGraphicsSegment = dynamic_cast<SectionGraphics*>(collisionSegmentItem->parentItem());
                     auto collidingRoad = collidingGraphicsSegment->road.lock();
                     if (collidingRoad == shared_from_this())
                     {
@@ -344,17 +345,17 @@ namespace RoadRunner
 
                 for (auto mine: myCollidingPieces)
                 {
-                    RoadGraphics* mySegment = dynamic_cast<RoadGraphics*>(mine->parentItem());
+                    SectionGraphics* mySegment = dynamic_cast<SectionGraphics*>(mine->parentItem());
 
                     for (auto otherPiece : mine->collidingItems())
                     {
-                        LaneSegmentGraphics* collisionSegmentItem = dynamic_cast<LaneSegmentGraphics*>(otherPiece);
+                        LaneGraphics* collisionSegmentItem = dynamic_cast<LaneGraphics*>(otherPiece);
                         if (collisionSegmentItem == nullptr)
                         {
                             continue;
                         }
 
-                        RoadGraphics* collidingGraphicsSegment = dynamic_cast<RoadGraphics*>(collisionSegmentItem->parentItem());
+                        SectionGraphics* collidingGraphicsSegment = dynamic_cast<SectionGraphics*>(collisionSegmentItem->parentItem());
                         if (collidingGraphicsSegment->road.lock() == colliding.first &&
                             SegmentsIntersect(sBeginOnOther, sEndOnOther,
                             collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd))

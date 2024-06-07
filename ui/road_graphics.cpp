@@ -14,7 +14,7 @@ extern QGraphicsScene* g_scene;
 
 namespace RoadRunner
 {
-    RoadGraphics::RoadGraphics(std::shared_ptr<RoadRunner::Road> _road,
+    SectionGraphics::SectionGraphics(std::shared_ptr<RoadRunner::Road> _road,
         const odr::LaneSection& laneSection,
         double s_begin, double s_end) : 
         sBegin(s_begin), sEnd(s_end), Length(std::abs(s_begin - s_end)),
@@ -24,12 +24,12 @@ namespace RoadRunner
         Create(laneSection);
     }
 
-    RoadGraphics::~RoadGraphics()
+    SectionGraphics::~SectionGraphics()
     {
         g_scene->removeItem(this);
     }
 
-    void RoadGraphics::EnableHighlight(bool enabled)
+    void SectionGraphics::EnableHighlight(bool enabled)
     {
         setZValue(enabled ? 1 : 0);
         for (auto laneSegment : allLaneGraphics)
@@ -42,17 +42,7 @@ namespace RoadRunner
         refLineHint->setVisible(enabled);
     }
 
-    QPolygonF RoadGraphics::LineToPoly(const odr::Line3D& line)
-    {
-        QPolygonF rtn;
-        for (const odr::Vec3D & p : line)
-        {
-            rtn.append(QPointF(p[0], p[1]));
-        }
-        return rtn;
-    }
-
-    void RoadGraphics::Create(const odr::LaneSection& laneSection)
+    void SectionGraphics::Create(const odr::LaneSection& laneSection)
     {
         odr::Road& gen = road.lock()->generated;
         const double sMin = std::min(sBegin, sEnd);
@@ -68,7 +58,7 @@ namespace RoadRunner
                 aggregateBorder.insert(aggregateBorder.end(), innerBorder.rbegin(), innerBorder.rend());
                 QPolygonF poly = LineToPoly(aggregateBorder);
 
-                auto laneSegmentItem = new LaneSegmentGraphics(poly, outerBorder, innerBorder,
+                auto laneSegmentItem = new LaneGraphics(poly, outerBorder, innerBorder,
                     id2Lane.first, lane.type, this);
                 allLaneGraphics.push_back(laneSegmentItem);
 
@@ -121,13 +111,22 @@ namespace RoadRunner
             }
         }
 
-        auto lineAppox = gen.ref_line.get_line(sBegin, sEnd, 0.1f);
         refLineHint = new QGraphicsPathItem(this);
+        refLineHint->hide();
+        UpdateRefLineHint();
+    }
+
+    void SectionGraphics::UpdateRefLineHint()
+    {
+        odr::Road& gen = road.lock()->generated;
+        auto lineAppox = gen.ref_line.get_line(std::min(sBegin, sEnd), std::max(sBegin, sEnd), 0.1f);
+        QPainterPath refLinePath;
+
         if (lineAppox.size() >= 2)
         {
             // Ref line
             auto initial = lineAppox[0];
-            QPainterPath refLinePath;
+            
             refLinePath.moveTo(initial[0], initial[1]);
             for (int i = 1; i < lineAppox.size(); ++i)
             {
@@ -147,14 +146,12 @@ namespace RoadRunner
             refLinePath.moveTo(arrowLeft.toPointF());
             refLinePath.lineTo(arrowHead.toPointF());
             refLinePath.lineTo(arrowRight.toPointF());
-
-            refLineHint->setPath(refLinePath);
-            refLineHint->setPen(QPen(Qt::green, 0.3, Qt::SolidLine));
         }
-        refLineHint->hide();
+        refLineHint->setPath(refLinePath);
+        refLineHint->setPen(QPen(Qt::green, 0.3, Qt::SolidLine));
     }
 
-    LaneSegmentGraphics::LaneSegmentGraphics(
+    LaneGraphics::LaneGraphics(
         const QPolygonF& poly,
         odr::Line3D outerBorder, 
         odr::Line3D innerBorder,
@@ -187,7 +184,7 @@ namespace RoadRunner
             subdivision.push_back(outerP2);
             subdivision.push_back(innerP2);
             subdivision.push_back(innerP1);
-            subdivisionPolys.push_back(RoadGraphics::LineToPoly(subdivision));
+            subdivisionPolys.push_back(LineToPoly(subdivision));
             subdivisionPortion.push_back(outerCumLength);
             outerCumLength += odr::euclDistance(outerP1, outerP2);
         }
@@ -197,12 +194,12 @@ namespace RoadRunner
         {
             subdivisionPortion[i] /= outerCumLength;
         }
-        Stats::Instance("LaneSegmentGraphics Created")->Increment();
+        Stats::Instance("LaneGraphics Created")->Increment();
     }
 
-    std::weak_ptr<Road> LaneSegmentGraphics::SnapCursor(QPointF scenePos, double& outS)
+    std::weak_ptr<Road> LaneGraphics::SnapCursor(QPointF scenePos, double& outS)
     {
-        auto parentRoad = dynamic_cast<RoadRunner::RoadGraphics*>(parentItem());
+        auto parentRoad = dynamic_cast<RoadRunner::SectionGraphics*>(parentItem());
         double sBegin = parentRoad->sBegin;
         double sEnd = parentRoad->sEnd;
 
@@ -234,13 +231,13 @@ namespace RoadRunner
         return std::weak_ptr<RoadRunner::Road>();
     }
 
-    std::shared_ptr<Road> LaneSegmentGraphics::Road() const
+    std::shared_ptr<Road> LaneGraphics::Road() const
     {
-        auto parentRoad = dynamic_cast<RoadRunner::RoadGraphics*>(parentItem());
+        auto parentRoad = dynamic_cast<RoadRunner::SectionGraphics*>(parentItem());
         return parentRoad->road.lock();
     }
 
-    void LaneSegmentGraphics::EnableHighlight(bool enabled)
+    void LaneGraphics::EnableHighlight(bool enabled)
     {
         setBrush(QBrush(isMedian ? Qt::yellow : (enabled ? HighlightColor : NormalColor), Qt::SolidPattern));
     }

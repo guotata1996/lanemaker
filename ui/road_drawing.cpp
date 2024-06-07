@@ -251,7 +251,7 @@ bool RoadCreationSession::Update(QMouseEvent* event)
 
 void RoadCreationSession::Complete()
 {
-    Stats s("LaneSegmentGraphics Created");
+    Stats s("LaneGraphics Created");
     CreateRoad();
 }
 

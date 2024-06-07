@@ -122,7 +122,7 @@ void RoadDestroySession::Complete()
     {
         return;
     }
-    Stats s("LaneSegmentGraphics Created");
+    Stats s("LaneGraphics Created");
 
     double from = std::min(*s1, *s2);
     double to = std::max(*s1, *s2);
