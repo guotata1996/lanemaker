@@ -115,55 +115,6 @@ namespace RoadRunner
         }
     }
 
-    void clearLinkage(std::string junctionID, std::string regularRoad)
-    {
-        auto road = IDGenerator::ForRoad()->GetByID(regularRoad);
-        if (road == nullptr)
-        {
-            return;
-        }
-
-        odr::Road& affectedRoad = static_cast<Road*>(road)->generated;
-        if (affectedRoad.successor.type == odr::RoadLink::Type_Junction &&
-            affectedRoad.successor.id == junctionID)
-        {
-            affectedRoad.successor.type = odr::RoadLink::Type_None;
-            affectedRoad.successor.id = "";
-            auto lastSection = affectedRoad.s_to_lanesection.rbegin()->second;
-            // right side loses next
-            for (auto& lane : lastSection.get_sorted_driving_lanes(-1))
-            {
-                lane.successor = 0;
-                lastSection.id_to_lane.find(lane.id)->second = lane;
-            }
-            // left side loses prev
-            for (auto& lane : lastSection.get_sorted_driving_lanes(1))
-            {
-                lane.predecessor = 0;
-                lastSection.id_to_lane.find(lane.id)->second = lane;
-            }
-        }
-        if (affectedRoad.predecessor.type == odr::RoadLink::Type_Junction &&
-            affectedRoad.predecessor.id == junctionID)
-        {
-            affectedRoad.predecessor.type = odr::RoadLink::Type_None;
-            affectedRoad.predecessor.id = "";
-            auto firstSection = affectedRoad.s_to_lanesection.begin()->second;
-            // right side loses prev
-            for (auto& lane : firstSection.get_sorted_driving_lanes(-1))
-            {
-                lane.predecessor = 0;
-                firstSection.id_to_lane.find(lane.id)->second = lane;
-            }
-            // left side loses next
-            for (auto& lane : firstSection.get_sorted_driving_lanes(1))
-            {
-                lane.successor = 0;
-                firstSection.id_to_lane.find(lane.id)->second = lane;
-            }
-        }
-    }
-
     std::set<std::shared_ptr<Road>> AbstractJunction::StillConnectedRoads() const
     {
         std::set<std::shared_ptr<Road>> rtn;
@@ -215,9 +166,15 @@ namespace RoadRunner
         {
             auto contactStr = contact.contact == odr::RoadLink::ContactPoint_Start ? "Start" :
                 contact.contact == odr::RoadLink::ContactPoint_End ? "End" : "None";
-            ss << contact.road.lock()->ID() << " connected at " << contactStr << "\n";
+            ss << "    " << contact.road.lock()->ID() << " connected at " << contactStr << "\n";
         }
         return ss.str();
+    }
+
+    void AbstractJunction::FillConnectionInfo(ConnectionInfo& info) const
+    {
+        auto record = formedFrom.find(info);
+        info = *record;
     }
 
     Junction::Junction() : AbstractJunction() {}
@@ -342,24 +299,9 @@ namespace RoadRunner
             return JunctionError::Junction_DuplicateConn;
         }
 
-        std::shared_ptr<Road> interfaceProviderRoad;
-        odr::RoadLink::ContactPoint interfaceContact;
-        
-        bool matchFound = false;
-        for (const auto& connInfo : connectedInfo)
-        {
-            auto connDir = calcInterfaceDir(connInfo);
-            if (odr::dot(interfaceDir, connDir) > 0.9)
-            {
-                interfaceProviderRoad = connInfo.road.lock();
-                interfaceContact = connInfo.contact;
-                if (matchFound)
-                {
-                    spdlog::error("More than one road match interface direction!");
-                }
-                matchFound = true;
-            }
-        }
+        auto interfaceInfo = InterfaceProvider();
+        std::shared_ptr<Road> interfaceProviderRoad = interfaceInfo.road.lock();
+        auto interfaceContact = interfaceInfo.contact;
 
         if (interfaceProviderRoad == nullptr)
         {
@@ -382,6 +324,7 @@ namespace RoadRunner
                 clearLinkage(ID(), connectedRoad->ID());
                 IDGenerator::ForRoad()->NotifyChange(connectedRoad->ID());
             }
+            formedFrom.clear();
             // Junction will then be destroyed
             return 0;
         }
@@ -418,7 +361,7 @@ namespace RoadRunner
             odr::JunctionConnection conn(std::to_string(junctionConnID++), interfaceProviderRoad->ID(), linkedRoad->ID(),
                 linkedContact == odr::RoadLink::ContactPoint_Start ? odr::JunctionConnection::ContactPoint_Start : odr::JunctionConnection::ContactPoint_End);
 
-            const auto& sectionLinked = linkedRoad->generated.get_lanesection(linkedContact == odr::RoadLink::ContactPoint_Start == 0 ? 0 : linkedRoad->Length());
+            const auto& sectionLinked = linkedRoad->generated.get_lanesection(linkedContact == odr::RoadLink::ContactPoint_Start ? 0 : linkedRoad->Length());
             
             // Link lanes from Provider to Linked
             if (linkedRoad->generated.rr_profile.HasSide(1) ||      // bi-dir
@@ -454,6 +397,55 @@ namespace RoadRunner
         return 0;
     }
 
+    void DirectJunction::AttachNoRegenerate(ConnectionInfo conn)
+    {
+        auto road = conn.road.lock();
+        auto interfaceProvider = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(generated.id_to_connection.begin()->second.incoming_road));
+        bool isInterfaceProvider = interfaceProvider->ID() == conn.road.lock()->ID();
+        bool connIsSide = road->generated.rr_profile.HasSide(-1) && road->generated.rr_profile.HasSide(1);
+        if (!isInterfaceProvider && 
+            !connIsSide)
+        {
+            // Recover skipProviderLanes from laneLink info
+            double sectionS;
+            if (interfaceProvider->generated.successor.id == ID() && interfaceProvider->generated.successor.type == odr::RoadLink::Type_Junction)
+            {
+                sectionS = interfaceProvider->Length();
+            }
+            else if (interfaceProvider->generated.predecessor.id == ID() && interfaceProvider->generated.predecessor.type == odr::RoadLink::Type_Junction)
+            {
+                sectionS = 0;
+            }
+            else
+            {
+                throw;
+            }
+            auto touchingSection = interfaceProvider->generated.get_lanesection(sectionS);
+
+            bool recovered = false;
+            for (auto idAndConn : generated.id_to_connection)
+            {
+                if (idAndConn.second.connecting_road == conn.road.lock()->ID())
+                {
+                    int innerMostLinkedABS = 255;
+                    for (auto laneLink : idAndConn.second.lane_links)
+                    {
+                        innerMostLinkedABS = std::min(innerMostLinkedABS, std::abs(laneLink.from));
+                    }
+
+                    int interfaceProvideSide = idAndConn.second.lane_links.begin()->from < 0 ? -1 : 1;
+                    int innerMostLane = touchingSection.get_sorted_driving_lanes(interfaceProvideSide).begin()->id;
+                    conn.skipProviderLanes = std::abs(innerMostLinkedABS - std::abs(innerMostLane));
+                    recovered = true;
+                    break;
+                }
+            }
+            assert(recovered);
+        }
+
+        AbstractJunction::AttachNoRegenerate(conn);
+    }
+
     odr::Vec2D DirectJunction::calcInterfaceDir(const ConnectionInfo& aInterfaceProvider)
     {
         odr::Vec2D rtn;
@@ -469,5 +461,42 @@ namespace RoadRunner
         }
         rtn = odr::normalize(rtn);
         return rtn;
+    }
+
+    ConnectionInfo DirectJunction::InterfaceProvider() const
+    {
+        std::shared_ptr<Road> interfaceProviderRoad;
+        odr::RoadLink::ContactPoint interfaceContact;
+
+        bool matchFound = false;
+        for (const auto& connInfo : formedFrom)
+        {
+            auto connDir = calcInterfaceDir(connInfo);
+            if (odr::dot(interfaceDir, connDir) > 0.9)
+            {
+                interfaceProviderRoad = connInfo.road.lock();
+                interfaceContact = connInfo.contact;
+                if (matchFound)
+                {
+                    spdlog::error("More than one road match interface direction!");
+                }
+                matchFound = true;
+            }
+        }
+        return ConnectionInfo(interfaceProviderRoad, interfaceContact);
+    }
+
+    std::string DirectJunction::Log() const
+    {
+        std::stringstream ss;
+        ss << "Direct Junction " << ID() << "\n";
+        for (auto contact : formedFrom)
+        {
+            auto contactStr = contact.contact == odr::RoadLink::ContactPoint_Start ? "Start" :
+                contact.contact == odr::RoadLink::ContactPoint_End ? "End" : "None";
+            auto typeStr = contact == InterfaceProvider() ? "Interface " : "Linked ";
+            ss << "    " << typeStr << contact.road.lock()->ID() << " connected at " << contactStr << "\n";
+        }
+        return ss.str();
     }
 } // namespace RoadRunner

@@ -27,7 +27,7 @@ namespace RoadRunner
         void Save(std::string path);
         bool Load(std::string path);
 
-        bool VerifyUponChange = false; // Turn off while introducing new junction type
+        bool VerifyUponChange = true;
 
     private:
         ChangeTracker() = default;

@@ -498,15 +498,16 @@ void RoadCreationSession::CreateRoad()
         standaloneRoad = false;
         auto toJoin = joinAtEnd.lock();
         newPartBegin = toJoin->Length();
+        world->allRoads.erase(toJoin);
 
-        int joinResult = RoadRunner::Road::JoinRoads(toJoin, 
-            joinAtEndS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End,
-            newRoad, odr::RoadLink::ContactPoint_End);
+        int joinResult = RoadRunner::Road::JoinRoads(
+            newRoad, odr::RoadLink::ContactPoint_End, 
+            toJoin, joinAtEndS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End);
         if (joinResult != 0)
         {
             spdlog::error("Join error {}", joinResult);
         }
-        newRoad = toJoin;
+        world->allRoads.insert(newRoad); //TODO: same change for lane mode
     }
 
     if (standaloneRoad)

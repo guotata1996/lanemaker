@@ -52,8 +52,8 @@ namespace RoadRunner
         odr::RefLine& RefLine() { return generated.ref_line; }
         
         // Static functions
-        static int JoinRoads(std::shared_ptr<Road>& road1AsDst, odr::RoadLink::ContactPoint c1,
-            std::shared_ptr<Road>& road2ToDel, odr::RoadLink::ContactPoint c2);
+        static int JoinRoads(std::shared_ptr<Road>& road1AsDst, const odr::RoadLink::ContactPoint c1,
+            std::shared_ptr<Road>& road2ToDel, const odr::RoadLink::ContactPoint c2);
 
         static std::shared_ptr<Road> SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s);
 
@@ -84,6 +84,7 @@ namespace RoadRunner
             double sBegin2, sEnd2;
         };
 
+        // Excluded: Overlap w/ Junction connectingRead and DirectJunction linkedRoad
         std::unique_ptr<RoadsOverlap> FirstOverlap(double sBegin, double sEnd) const;
 
         void EnableHighlight(bool enabled);

@@ -495,4 +495,53 @@ namespace RoadRunner
             }
         }
     }
+
+    void clearLinkage(std::string junctionID, std::string regularRoad)
+    {
+        auto road = IDGenerator::ForRoad()->GetByID(regularRoad);
+        if (road == nullptr)
+        {
+            return;
+        }
+
+        odr::Road& affectedRoad = static_cast<Road*>(road)->generated;
+        if (affectedRoad.successor.type == odr::RoadLink::Type_Junction &&
+            affectedRoad.successor.id == junctionID)
+        {
+            affectedRoad.successor.type = odr::RoadLink::Type_None;
+            affectedRoad.successor.id = "";
+            auto lastSection = affectedRoad.s_to_lanesection.rbegin()->second;
+            // right side loses next
+            for (auto& lane : lastSection.get_sorted_driving_lanes(-1))
+            {
+                lane.successor = 0;
+                lastSection.id_to_lane.find(lane.id)->second = lane;
+            }
+            // left side loses prev
+            for (auto& lane : lastSection.get_sorted_driving_lanes(1))
+            {
+                lane.predecessor = 0;
+                lastSection.id_to_lane.find(lane.id)->second = lane;
+            }
+        }
+        if (affectedRoad.predecessor.type == odr::RoadLink::Type_Junction &&
+            affectedRoad.predecessor.id == junctionID)
+        {
+            affectedRoad.predecessor.type = odr::RoadLink::Type_None;
+            affectedRoad.predecessor.id = "";
+            auto firstSection = affectedRoad.s_to_lanesection.begin()->second;
+            // right side loses prev
+            for (auto& lane : firstSection.get_sorted_driving_lanes(-1))
+            {
+                lane.predecessor = 0;
+                firstSection.id_to_lane.find(lane.id)->second = lane;
+            }
+            // left side loses next
+            for (auto& lane : firstSection.get_sorted_driving_lanes(1))
+            {
+                lane.successor = 0;
+                firstSection.id_to_lane.find(lane.id)->second = lane;
+            }
+        }
+    }
 }

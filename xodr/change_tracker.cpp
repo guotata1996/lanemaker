@@ -106,6 +106,8 @@ namespace RoadRunner
     {
         World::Instance()->allRoads.clear();
         IDGenerator::Reset();
+        odrMap.id_to_road.clear();
+        odrMap.id_to_junction.clear();
     }
 
     void ChangeTracker::Save(std::string path)

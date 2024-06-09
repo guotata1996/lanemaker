@@ -6,6 +6,7 @@
 #include "junction.h"
 
 #include <sstream>
+#include <iomanip> //std::setprecision
 #include <qevent.h>
 
 std::weak_ptr<RoadRunner::Road> g_PointerRoad;
@@ -166,7 +167,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
     else
     {
         g_PointerRoad = rotatingRoads[rotatingIndex].first->Road();
-        g_PointerLane = rotatingRoads[rotatingIndex].first->LaneID;
+        g_PointerLane = rotatingRoads[rotatingIndex].first->LaneID();
         g_PointerRoadS = rotatingRoads[rotatingIndex].second;
         std::stringstream ss;
         ss << "Road " << g_PointerRoad.lock()->ID() << " @ " << g_PointerRoadS << " Lane " << g_PointerLane;
@@ -231,21 +232,29 @@ void MapView::keyPressEvent(QKeyEvent* evt)
         auto g_road = g_PointerRoad.lock();
         if (g_road != nullptr)
         {
-            spdlog::info("Road {0}: Length= {1:.3f} Junc:{2} PredJunc:{3} SuccJunc:{4}",
-                g_road->ID(), g_road->Length(),
-                g_road->generated.junction,
-                g_road->generated.predecessor.type != odr::RoadLink::Type_Junction ? "-1" : g_road->generated.predecessor.id,
-                g_road->generated.successor.type != odr::RoadLink::Type_Junction ? "-1" : g_road->generated.successor.id);
-
-            if (g_road->generated.junction == "-1")
+            std::stringstream ss;
+            ss << "Road" << g_road->ID() << ": Length= " << std::setprecision(3) << g_road->Length();
+            if (g_road->generated.junction != "-1")
             {
-                g_road->generated.rr_profile.PrintDetails();
+                ss << " is connecting in junction " << g_road->generated.junction;
+                auto junc = static_cast<RoadRunner::Junction*>(IDGenerator::ForJunction()->GetByID(g_road->generated.junction));
+                ss << junc->Log();
             }
             else
             {
-                auto junc = static_cast<RoadRunner::Junction*>(IDGenerator::ForJunction()->GetByID(g_road->generated.junction));
-                spdlog::info("{}", junc->Log());
+                ss << g_road->generated.rr_profile.Log();
             }
+
+            if (g_road->predecessorJunction != nullptr)
+            {
+                ss << "\nPred junction:" << g_road->predecessorJunction->Log();
+            }
+            if (g_road->successorJunction != nullptr)
+            {
+                ss << "\nSucc junction:" << g_road->successorJunction->Log();
+            }
+
+            spdlog::info("{}", ss.str());
         }
         else
         {

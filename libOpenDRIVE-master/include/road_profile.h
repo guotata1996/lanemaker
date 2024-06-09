@@ -74,7 +74,7 @@ namespace RoadRunner
 
         void Apply(double length, odr::Road*);
 
-        void PrintDetails() const;
+        std::string Log() const;
 
         SectionProfile ProfileAt(double s, int side) const;
 

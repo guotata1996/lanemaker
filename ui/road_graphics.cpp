@@ -45,6 +45,7 @@ namespace RoadRunner
     void SectionGraphics::Create(const odr::LaneSection& laneSection)
     {
         odr::Road& gen = road.lock()->generated;
+        bool biDirRoad = gen.rr_profile.HasSide(-1) && gen.rr_profile.HasSide(1);
         const double sMin = std::min(sBegin, sEnd);
         const double sMax = std::max(sBegin, sEnd);
         for (const auto& id2Lane : laneSection.id_to_lane)
@@ -57,9 +58,26 @@ namespace RoadRunner
                 auto aggregateBorder = outerBorder;
                 aggregateBorder.insert(aggregateBorder.end(), innerBorder.rbegin(), innerBorder.rend());
                 QPolygonF poly = LineToPoly(aggregateBorder);
-
+                const int laneID = id2Lane.first;
+                int laneIDWhenReversed = 0;
+                if (biDirRoad)
+                {
+                    if (lane.type == "median")
+                    {
+                        assert(laneID == 1);
+                        laneIDWhenReversed = 1;
+                    }
+                    else
+                    {
+                        laneIDWhenReversed = -laneID + 1;
+                    }
+                }
+                else
+                {
+                    laneIDWhenReversed = -laneID;
+                }
                 auto laneSegmentItem = new LaneGraphics(poly, outerBorder, innerBorder,
-                    id2Lane.first, lane.type, this);
+                    laneID, laneIDWhenReversed, lane.type, this);
                 allLaneGraphics.push_back(laneSegmentItem);
 
                 for (const auto& markingGroup : lane.roadmark_groups)
@@ -155,13 +173,13 @@ namespace RoadRunner
         const QPolygonF& poly,
         odr::Line3D outerBorder, 
         odr::Line3D innerBorder,
-        int laneID,
+        int laneID, int laneIDRev,
         std::string laneType,
         QGraphicsItem* parent) :
         QGraphicsPolygonItem(poly, parent),
         NormalColor(134, 132, 130),
         HighlightColor(189, 187, 185),
-        LaneID(laneID),
+        laneID(laneID), laneIDReversed(laneIDRev),
         isMedian(laneType == "median")
     {
         setAcceptHoverEvents(true);
@@ -199,9 +217,9 @@ namespace RoadRunner
 
     std::weak_ptr<Road> LaneGraphics::SnapCursor(QPointF scenePos, double& outS)
     {
-        auto parentRoad = dynamic_cast<RoadRunner::SectionGraphics*>(parentItem());
-        double sBegin = parentRoad->sBegin;
-        double sEnd = parentRoad->sEnd;
+        auto parentSection = dynamic_cast<RoadRunner::SectionGraphics*>(parentItem());
+        double sBegin = parentSection->sBegin;
+        double sEnd = parentSection->sEnd;
 
         QVector2D pEvent(scenePos);
 
@@ -224,7 +242,7 @@ namespace RoadRunner
                 double s = sBegin * (1 - portion) + sEnd * portion;
                 outS = odr::clamp(s, sBegin, sEnd);
 
-                return parentRoad->road;
+                return parentSection->road;
             }
         }
 
@@ -240,6 +258,12 @@ namespace RoadRunner
     void LaneGraphics::EnableHighlight(bool enabled)
     {
         setBrush(QBrush(isMedian ? Qt::yellow : (enabled ? HighlightColor : NormalColor), Qt::SolidPattern));
+    }
+
+    int LaneGraphics::LaneID() const
+    {
+        auto parentSection = dynamic_cast<RoadRunner::SectionGraphics*>(parentItem());
+        return parentSection->sBegin < parentSection->sEnd ? laneID : laneIDReversed;
     }
 }
 

@@ -154,9 +154,12 @@ namespace RoadRunner
         if (road2->successorJunction != nullptr)
         {
             auto successorJunction = road2->successorJunction;
+            ConnectionInfo currInfo(road2, odr::RoadLink::ContactPoint_End);
+            successorJunction->FillConnectionInfo(currInfo);
             successorJunction->NotifyPotentialChange(ChangeInConnecting
                 { road2, RoadRunner::ChangeInConnecting::Type_DetachAtEnd_Temp });
-            successorJunction->Attach(RoadRunner::ConnectionInfo{ road1, odr::RoadLink::ContactPoint_End });
+            successorJunction->Attach(RoadRunner::ConnectionInfo{ 
+                road1, odr::RoadLink::ContactPoint_End, currInfo.skipProviderLanes });
         }
 #ifndef G_TEST
         // Update transition part, up to max transition length
@@ -170,6 +173,8 @@ namespace RoadRunner
 
     std::shared_ptr<Road> Road::SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s)
     {
+        ConnectionInfo succJunctionInfo(roadAsPrev, odr::RoadLink::ContactPoint_End);
+
         type_s oldLength = from_odr_unit(roadAsPrev->Length());
         type_s splitPoint = from_odr_unit(s);
         RoadProfile& oldProfile = roadAsPrev->generated.rr_profile;
@@ -226,9 +231,11 @@ namespace RoadRunner
         if (roadAsPrev->successorJunction != nullptr)
         {
             auto successorJunction = roadAsPrev->successorJunction;
+            successorJunction->FillConnectionInfo(succJunctionInfo);
             successorJunction->NotifyPotentialChange(ChangeInConnecting
                 { roadAsPrev, RoadRunner::ChangeInConnecting::Type_DetachAtEnd_Temp });
-            successorJunction->Attach(RoadRunner::ConnectionInfo{ part2, odr::RoadLink::ContactPoint_End });
+            successorJunction->Attach(RoadRunner::ConnectionInfo{ 
+                part2, odr::RoadLink::ContactPoint_End, succJunctionInfo.skipProviderLanes });
         }
 #ifndef G_TEST       
         // Move to part2

@@ -54,9 +54,9 @@ void LanesCreationSession::CreateRoad()
     if (!extendFromStart.expired())
     {
         auto toExtend = extendFromStart.lock();
+        RoadRunner::ConnectionInfo linkedInfo(newRoad, odr::RoadLink::ContactPoint_Start, startLanesSkip);
         if (extendFromStartS == 0 || extendFromStartS == toExtend->Length())
         {
-            RoadRunner::ConnectionInfo linkedInfo(newRoad, odr::RoadLink::ContactPoint_Start, startLanesSkip);
             std::shared_ptr<RoadRunner::AbstractJunction> directJunction;
             if (extendFromStartS == 0 && toExtend->predecessorJunction != nullptr)
             {
@@ -109,25 +109,24 @@ void LanesCreationSession::CreateRoad()
             {
                 directJunction = std::make_shared< RoadRunner::DirectJunction>(
                     RoadRunner::ConnectionInfo(toExtend, odr::RoadLink::ContactPoint_End));
-                directJunction->Attach(RoadRunner::ConnectionInfo(secondHalf, odr::RoadLink::ContactPoint_Start));
+                directJunction->Attach(RoadRunner::ConnectionInfo(secondHalf, odr::RoadLink::ContactPoint_Start, startSplitOffset));
             }
             else
             {
                 directJunction = std::make_shared< RoadRunner::DirectJunction>(
                     RoadRunner::ConnectionInfo(secondHalf, odr::RoadLink::ContactPoint_Start));
-                directJunction->Attach(RoadRunner::ConnectionInfo(toExtend, odr::RoadLink::ContactPoint_End));
+                directJunction->Attach(RoadRunner::ConnectionInfo(toExtend, odr::RoadLink::ContactPoint_End, startSplitOffset));
             }
-            directJunction->Attach(RoadRunner::ConnectionInfo(newRoad, odr::RoadLink::ContactPoint_Start, startLanesSkip));
+            directJunction->Attach(linkedInfo);
         }
     }
     
     if (!joinAtEnd.expired())
     {
         auto toJoin = joinAtEnd.lock();
+        RoadRunner::ConnectionInfo linkedInfo(newRoad, odr::RoadLink::ContactPoint_End, endLanesSkip);
         if (joinAtEndS == 0 || joinAtEndS == toJoin->Length())
         {
-            RoadRunner::ConnectionInfo linkedInfo(newRoad, odr::RoadLink::ContactPoint_End, endLanesSkip);
-
             std::shared_ptr<RoadRunner::AbstractJunction> directJunction;
             if (joinAtEndS == 0 && toJoin->predecessorJunction != nullptr)
             {
@@ -145,14 +144,14 @@ void LanesCreationSession::CreateRoad()
             else if (endFullyMatch)
             {
                 standaloneRoad = false;
-                int joinResult = RoadRunner::Road::JoinRoads(toJoin,
-                    joinAtEndS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End,
-                    newRoad, odr::RoadLink::ContactPoint_End);
+                world->allRoads.erase(toJoin);
+                int joinResult = RoadRunner::Road::JoinRoads(newRoad, odr::RoadLink::ContactPoint_End,
+                    toJoin, joinAtEndS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End);
                 if (joinResult != 0)
                 {
                     spdlog::error("Join error {}", joinResult);
                 }
-                newRoad = toJoin;
+                world->allRoads.insert(newRoad);
             }
             else
             {
@@ -179,15 +178,15 @@ void LanesCreationSession::CreateRoad()
             {
                 directJunction = std::make_shared< RoadRunner::DirectJunction>(
                     RoadRunner::ConnectionInfo(secondHalf, odr::RoadLink::ContactPoint_Start));
-                directJunction->Attach(RoadRunner::ConnectionInfo(toJoin, odr::RoadLink::ContactPoint_End));
+                directJunction->Attach(RoadRunner::ConnectionInfo(toJoin, odr::RoadLink::ContactPoint_End, endSplitOffset));
             }
             else
             {
                 directJunction = std::make_shared<RoadRunner::DirectJunction>(
                     RoadRunner::ConnectionInfo(toJoin, odr::RoadLink::ContactPoint_End));
-                directJunction->Attach(RoadRunner::ConnectionInfo(secondHalf, odr::RoadLink::ContactPoint_Start));
+                directJunction->Attach(RoadRunner::ConnectionInfo(secondHalf, odr::RoadLink::ContactPoint_Start, endSplitOffset));
             }
-            directJunction->Attach(RoadRunner::ConnectionInfo(newRoad, odr::RoadLink::ContactPoint_End, endLanesSkip));
+            directJunction->Attach(linkedInfo);
         }
     }
     
@@ -231,6 +230,7 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
     g_dir.normalize();
     startFullyMatch = false;
     startLanesSkip = 0;
+    startSplitOffset = 0;
 
     if (lLanes != 0)
     {
@@ -267,15 +267,14 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
     {
         // Single-directional ramp
         auto lanesRequired = rLanes;  // New road follows drawing direction
-        uint8_t searchLaneMin = 1; // Inclusive
-        uint8_t searchLaneMax = 0; // Inclusive
+        std::vector<std::pair<uint8_t, uint8_t>> searchRanges;
         double baseOffset;
         startSide = g_PointerLane < 0 ? -1 : 1;
         if (g_roadS == g_road->Length())
         {
             if (g_PointerLane < 0 && rightProfile.laneCount >= lanesRequired)
             {
-                searchLaneMax = rightProfile.laneCount;
+                searchRanges.push_back(std::make_pair(1, rightProfile.laneCount));
                 baseOffset = static_cast<double>(rightProfile.offsetx2) / 2;
                 startFullyMatch = rightProfile.laneCount == lanesRequired && leftProfile.laneCount == 0;
             }
@@ -284,7 +283,7 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
         {
             if (g_PointerLane > 0 && leftProfile.laneCount >= lanesRequired)
             {
-                searchLaneMax = leftProfile.laneCount;
+                searchRanges.push_back(std::make_pair(1, leftProfile.laneCount));
                 baseOffset = static_cast<double>(leftProfile.offsetx2) / 2;
                 startFullyMatch = leftProfile.laneCount == lanesRequired && rightProfile.laneCount == 0;
             }
@@ -303,9 +302,25 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
                 nextProfile = g_roadProfile.ProfileAt(g_roadS - 0.01, 1);
             }
 
-            searchLaneMin = nextProfile.laneCount;
-            searchLaneMax = prevProfile.laneCount;
-            baseOffset = (static_cast<double>(prevProfile.offsetx2) + static_cast<double>(nextProfile.offsetx2)) / 4;
+            if (prevProfile.offsetx2 == nextProfile.offsetx2)
+            {
+                // No offset change: can exit from right
+                searchRanges.push_back(std::make_pair(nextProfile.laneCount, prevProfile.laneCount));
+            }
+            if (!g_roadProfile.HasSide(-startSide))
+            {
+                // Single-way: can exit from left
+                auto delta = prevProfile.offsetx2 - nextProfile.offsetx2;
+                if (delta % 2 == 0)
+                {
+                    startSplitOffset = delta / 2;
+                    searchRanges.push_back(std::make_pair(1, std::min(
+                        static_cast<RoadRunner::type_t>(startSplitOffset + 1),
+                        prevProfile.laneCount)));
+                }
+                
+            }
+            baseOffset = static_cast<double>(prevProfile.offsetx2) / 2;
         }
 
         if (startFullyMatch)
@@ -325,27 +340,32 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
             extendFromStart = g_road;
             if (g_roadS == 0) g_dir = -g_dir;
         }
-        else if (searchLaneMax != 0)
+        else
         {
             float bestError = 1.1e9;
-            int8_t bestInner;
+            uint8_t bestSkip;
             QVector2D bestSnapPos;
 
-            for (uint8_t searchInner = searchLaneMin, searchOuter = searchInner + lanesRequired - 1;
-                searchOuter <= searchLaneMax;
-                ++searchInner, ++searchOuter)
+            for (const auto& searchRange : searchRanges)
             {
-                double middleDist = static_cast<double>((int)searchInner + (int)searchOuter - 1) / 2;
-                double t = (baseOffset + startSide * middleDist) * RoadRunner::LaneWidth;
-                auto p = g_road->generated.get_xyz(g_roadS, t, 0);
-
-                QVector2D medianPos(p[0], p[1]);
-                float matchError = medianPos.distanceToPoint(QVector2D(point));
-                if (matchError < bestError)
+                uint8_t searchLaneMin = searchRange.first;
+                uint8_t searchLaneMax = searchRange.second;
+                for (uint8_t searchInner = searchLaneMin, searchOuter = searchInner + lanesRequired - 1;
+                    searchOuter <= searchLaneMax;
+                    ++searchInner, ++searchOuter)
                 {
-                    bestInner = searchInner;
-                    bestError = matchError;
-                    bestSnapPos = medianPos;
+                    double middleDist = static_cast<double>((int)searchInner + (int)searchOuter - 1) / 2;
+                    double t = (baseOffset + startSide * middleDist) * RoadRunner::LaneWidth;
+                    auto p = g_road->generated.get_xyz(g_roadS, t, 0);
+
+                    QVector2D medianPos(p[0], p[1]);
+                    float matchError = medianPos.distanceToPoint(QVector2D(point));
+                    if (matchError < bestError)
+                    {
+                        bestSkip = searchInner - 1;
+                        bestError = matchError;
+                        bestSnapPos = medianPos;
+                    }
                 }
             }
 
@@ -354,7 +374,7 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
                 point.setX(bestSnapPos.x());
                 point.setY(bestSnapPos.y());
                 extendFromStart = g_road;
-                startLanesSkip = bestInner - searchLaneMin;
+                startLanesSkip = bestSkip;
                 lOffsetX2 = 0;
                 rOffsetX2 = rLanes;
                 if (startSide > 0) g_dir = -g_dir;
@@ -399,7 +419,7 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
         }
     }
 
-        if (rLanes == 0)
+    if (rLanes == 0)
     {
         spdlog::warn("Right lanes must > 0");
         return false;
@@ -411,6 +431,7 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
     const auto leftProfile = g_roadProfile.ProfileAt(g_roadS, 1);
     endFullyMatch = false;
     endLanesSkip = 0;
+    endSplitOffset = 0;
 
     if (extendFromStart.expired() && lLanes != 0)
     {
@@ -477,15 +498,17 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
     {
         // Single-directional ramp
         auto lanesRequired = rLanes;  // New road follows drawing direction
-        uint8_t searchLaneMin = 1; // Inclusive
-        uint8_t searchLaneMax = 0; // Inclusive
+        std::vector<std::pair<uint8_t, uint8_t>> searchRanges;
+        //uint8_t searchLaneMin = 1; // Inclusive
+        //uint8_t searchLaneMax = 0; // Inclusive
         double baseOffset;
         endSide = g_PointerLane < 0 ? -1 : 1;
         if (g_roadS == 0)
         {
             if (g_PointerLane < 0 && rightProfile.laneCount >= lanesRequired)
             {
-                searchLaneMax = rightProfile.laneCount;
+                searchRanges.push_back(std::make_pair(1, rightProfile.laneCount));
+                //searchLaneMax = rightProfile.laneCount;
                 baseOffset = static_cast<double>(rightProfile.offsetx2) / 2;
                 endFullyMatch = rightProfile.laneCount == lanesRequired && leftProfile.laneCount == 0;
                 rOffsetX2 = rightProfile.offsetx2;
@@ -496,7 +519,8 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
         {
             if (g_PointerLane > 0 && leftProfile.laneCount >= lanesRequired)
             {
-                searchLaneMax = leftProfile.laneCount;
+                searchRanges.push_back(std::make_pair(1, leftProfile.laneCount));
+                //searchLaneMax = leftProfile.laneCount;
                 baseOffset = static_cast<double>(leftProfile.offsetx2) / 2;
                 endFullyMatch = leftProfile.laneCount == lanesRequired && rightProfile.laneCount == 0;
                 rOffsetX2 = -leftProfile.offsetx2;
@@ -517,9 +541,27 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
                 nextProfile = g_roadProfile.ProfileAt(g_roadS - 0.01, 1);
             }
 
-            searchLaneMin = prevProfile.laneCount;
-            searchLaneMax = nextProfile.laneCount;
-            baseOffset = (static_cast<double>(prevProfile.offsetx2) + static_cast<double>(nextProfile.offsetx2)) / 4;
+            if (prevProfile.offsetx2 == nextProfile.offsetx2)
+            {
+                // No offset change: can enter from right
+                searchRanges.push_back(std::make_pair(prevProfile.laneCount, nextProfile.laneCount));
+                //searchLaneMin = prevProfile.laneCount;
+                //searchLaneMax = nextProfile.laneCount;
+            }
+            if (!g_roadProfile.HasSide(-startSide))
+            {
+                // Single-way: can enter from left
+                auto delta = nextProfile.offsetx2 - prevProfile.offsetx2;
+                if (delta % 2 == 0)
+                {
+                    endSplitOffset = delta / 2;
+                    searchRanges.push_back(std::make_pair(1, std::min(
+                        static_cast<RoadRunner::type_t>(endSplitOffset + 1),
+                        nextProfile.laneCount)));
+                }
+            }
+
+            baseOffset = static_cast<double>(nextProfile.offsetx2) / 2;
         }
 
         if (endFullyMatch)
@@ -530,27 +572,32 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
             point.setY(snapPos[1]);
             joinAtEnd = g_road;
         }
-        else if (searchLaneMax != 0)
+        else
         {
             float bestError = 1.1e9;
-            int8_t bestInner;
+            int8_t bestSkip;
             QVector2D bestSnapPos;
 
-            for (uint8_t searchInner = searchLaneMin, searchOuter = searchInner + lanesRequired - 1;
-                searchOuter <= searchLaneMax;
-                ++searchInner, ++searchOuter)
+            for (const auto& searchRange : searchRanges)
             {
-                double middleDist = static_cast<double>((int)searchInner + (int)searchOuter - 1) / 2;
-                double t = (baseOffset + endSide * middleDist) * RoadRunner::LaneWidth;
-                auto p = g_road->generated.get_xyz(g_roadS, t, 0);
-
-                QVector2D medianPos(p[0], p[1]);
-                float matchError = medianPos.distanceToPoint(QVector2D(point));
-                if (matchError < bestError)
+                uint8_t searchLaneMin = searchRange.first;
+                uint8_t searchLaneMax = searchRange.second;
+                for (uint8_t searchInner = searchLaneMin, searchOuter = searchInner + lanesRequired - 1;
+                    searchOuter <= searchLaneMax;
+                    ++searchInner, ++searchOuter)
                 {
-                    bestInner = searchInner;
-                    bestError = matchError;
-                    bestSnapPos = medianPos;
+                    double middleDist = static_cast<double>((int)searchInner + (int)searchOuter - 1) / 2;
+                    double t = (baseOffset + endSide * middleDist) * RoadRunner::LaneWidth;
+                    auto p = g_road->generated.get_xyz(g_roadS, t, 0);
+
+                    QVector2D medianPos(p[0], p[1]);
+                    float matchError = medianPos.distanceToPoint(QVector2D(point));
+                    if (matchError < bestError)
+                    {
+                        bestSkip = searchInner - 1;
+                        bestError = matchError;
+                        bestSnapPos = medianPos;
+                    }
                 }
             }
 
@@ -561,7 +608,7 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
                 lOffsetX2 = 0;
                 rOffsetX2 = rLanes;
                 joinAtEnd = g_road;
-                endLanesSkip = bestInner - searchLaneMin;
+                endLanesSkip = bestSkip;
             }
         }
     }

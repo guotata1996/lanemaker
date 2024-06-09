@@ -347,6 +347,19 @@ namespace RoadRunner
                 {
                     SectionGraphics* mySegment = dynamic_cast<SectionGraphics*>(mine->parentItem());
 
+                    if (std::min(mySegment->sBegin, mySegment->sEnd) == 0
+                        && predecessorJunction != nullptr
+                        && dynamic_cast<DirectJunction*>(predecessorJunction.get()) != nullptr)
+                    {
+                        continue;
+                    }
+                    if (std::max(mySegment->sBegin, mySegment->sEnd) == Length()
+                        && successorJunction != nullptr
+                        && dynamic_cast<DirectJunction*>(successorJunction.get()) != nullptr)
+                    {
+                        continue;
+                    }
+
                     for (auto otherPiece : mine->collidingItems())
                     {
                         LaneGraphics* collisionSegmentItem = dynamic_cast<LaneGraphics*>(otherPiece);

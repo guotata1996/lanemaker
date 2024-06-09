@@ -924,27 +924,29 @@ namespace RoadRunner
         _MergeSides(rtn, leftSections, centerWidths, rightSections, length);
     }
 
-    void RoadProfile::PrintDetails() const
+    std::string RoadProfile::Log() const
     {
+        std::stringstream ss;
         if (!rightProfiles.empty())
         {
-            spdlog::info("======Right Profile======");
+            ss << "\n======Right Profile======\n";
             for (auto s_profile : rightProfiles)
             {
-                spdlog::info("{} : {} Lane | {} OffsetX2", s_profile.first,
-                    s_profile.second.laneCount, s_profile.second.offsetx2);
+                ss << s_profile.first << " : Lanes=" << std::to_string(s_profile.second.laneCount) 
+                    << " OffsetX2=" << std::to_string(s_profile.second.offsetx2);
             }
         }
         if (!leftProfiles.empty())
         {
-            spdlog::info("======Left Profile======");
+            ss << "\n======Left Profile======\n";
             for (auto it = leftProfiles.rbegin(); it != leftProfiles.rend(); ++it)
             {
-                spdlog::info("{} : {} Lane | {} OffsetX2", it->first,
-                    it->second.laneCount, it->second.offsetx2);
+                ss << it->first << " : Lanes=" << std::to_string(it->second.laneCount) 
+                    << " OffsetX2=" << std::to_string(it->second.offsetx2);
             }
         }
-        spdlog::info("      End of profile======");
+        ss << "\n";
+        return ss.str();
     }
 
     SectionProfile RoadProfile::ProfileAt(double s, int side) const 

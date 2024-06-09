@@ -135,8 +135,17 @@ private:
     RoadRunner::type_t rLanes; // If lLanes == 0, becomes required lanes
     RoadRunner::type_t lLanes; // If 0, single-directional
     RoadRunner::type_t rOffsetX2, lOffsetX2;
-    uint8_t startLanesSkip, endLanesSkip; // If lLanes != 0, equals 0. 
-    int startSide, endSide; // If lLanes != 0, equals 0. 
+
+    // Offset of ramp w.r.t interface provider
+    // Only != 0 when single-direction ramp
+    uint8_t startLanesSkip, endLanesSkip;
+
+    // Offset of narrower (not interface-provider) half of split result w.r.t. interface provider
+    // Only != 0 at left-exit from single-directional origin
+    uint8_t startSplitOffset, endSplitOffset;
+
+    int startSide, endSide; // Only != 0 when single-direction ramp
+
     bool startFullyMatch, endFullyMatch; // If true, extend instead of creating direct junction
 };
 

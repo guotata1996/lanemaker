@@ -164,12 +164,14 @@ namespace RoadRunner
         void NotifyPotentialChange(); /*Call this when connected roads get deleted or modified*/
         void NotifyPotentialChange(const ChangeInConnecting&);
 
-        void AttachNoRegenerate(ConnectionInfo);
+        virtual void AttachNoRegenerate(ConnectionInfo);
         void DetachNoRegenerate(std::shared_ptr<Road>);
 
         std::string ID() const { return generated.id; }
 
         std::set< std::shared_ptr<Road>> StillConnectedRoads() const;
+
+        void FillConnectionInfo(ConnectionInfo&) const;
 
         virtual std::string Log() const;
 
@@ -193,7 +195,7 @@ namespace RoadRunner
         Junction(const Junction& another) = delete; // No copy costruct
         Junction& operator=(const Junction& another) = delete; // No copy assignment
 
-        virtual int CreateFrom(const std::vector<ConnectionInfo>&);
+        virtual int CreateFrom(const std::vector<ConnectionInfo>&) override;
 
         std::vector<std::shared_ptr<Road>> connectingRoads;
     };
@@ -205,10 +207,15 @@ namespace RoadRunner
 
         DirectJunction(const odr::Junction& serialized);
 
-        virtual int CreateFrom(const std::vector<ConnectionInfo>&);
+        virtual int CreateFrom(const std::vector<ConnectionInfo>&) override;
+
+        virtual void AttachNoRegenerate(ConnectionInfo) override;
+
+        virtual std::string Log() const override;
 
     private:
-        // ConnectionInfo interfaceInfo;
+        ConnectionInfo InterfaceProvider() const;
+
         odr::Vec2D interfaceDir; // Vector pointing into the interface provider
 
         static odr::Vec2D calcInterfaceDir(const ConnectionInfo&);
