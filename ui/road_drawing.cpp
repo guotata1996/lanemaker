@@ -140,7 +140,8 @@ bool RoadCreationSession::Update(QMouseEvent* event)
         if (event->type() == QEvent::Type::MouseButtonPress)
         {
             ctrlPoints.push_back(scenePos);
-            if (ctrlPoints.size() >= 3 && !joinAtEnd.expired())
+            if (ctrlPoints.size() == 2 && !extendFromStart.expired() && !joinAtEnd.expired() 
+                || ctrlPoints.size() >= 3 && !joinAtEnd.expired())
             {
                 return false;
             }
@@ -222,7 +223,7 @@ bool RoadCreationSession::Update(QMouseEvent* event)
                 flexPath.quadTo(ctrlPoints[i], ctrlPoints[i + 1]);
             }
         }
-        else if (ctrlPoints.size() >= 3)
+        else if (ctrlPoints.size() >= 3 || ctrlPoints.size() == 2 && !extendFromStart.expired())
         {
             auto flexGeometry = CreateJoinAtEndGeo(true);
             double flexLen = flexGeometry->length;
@@ -357,7 +358,18 @@ bool RoadCreationSession::SnapCtrlPoint(float maxOffset)
             nextDir = *startDir;
         }
     }
-    else
+
+    if (!extendFromStart.expired() && ctrlPoints.size() == 2)
+    {
+        joinAtEnd.reset();
+        onExisting = SnapLastPointToExisting(nextPoint);
+        if (onExisting)
+        {
+            nextDir = QVector2D();
+        }
+    }
+
+    if (ctrlPoints.size() >= 3)
     {
         joinAtEnd.reset();
         onExisting = SnapLastPointToExisting(nextPoint);
@@ -373,7 +385,6 @@ bool RoadCreationSession::SnapCtrlPoint(float maxOffset)
         nextDir.normalize();
         hintPath.moveTo(ctrlPoints[ctrlPoints.size() - 2]);
         hintPath.lineTo(ctrlPoints[ctrlPoints.size() - 2] + QPointF(nextDir.x(), nextDir.y()) * 100);
-
         // Do projection
         QPointF lastPoint = ctrlPoints[ctrlPoints.size() - 2];
         QVector2D last2Next(nextPoint - lastPoint);
@@ -393,7 +404,8 @@ bool RoadCreationSession::SnapCtrlPoint(float maxOffset)
 odr::RefLine RoadCreationSession::RefLineFromCtrlPoints() const
 {
     odr::RefLine rtn("", 0);
-    if (!joinAtEnd.expired() && ctrlPoints.size() == 4)
+    if (!extendFromStart.expired() && !joinAtEnd.expired() && ctrlPoints.size() == 3
+        || !joinAtEnd.expired() && ctrlPoints.size() == 4)
     {
         auto roadGeometry = CreateJoinAtEndGeo(false);
         if (roadGeometry->length > RoadRunner::ValidGeoMaxLength)
@@ -517,17 +529,30 @@ std::unique_ptr<odr::RoadGeometry> RoadCreationSession::createJoinAtEndGeo(bool 
     ForceDirection joinPointDir) const
 {
     QPointF p0, p1, p2;
-    if (forPreview)
+    if (forPreview && ctrlPoints.size() == 2 ||
+        !forPreview && ctrlPoints.size() == 3)
     {
-        p0 = ctrlPoints[ctrlPoints.size() - 3];
-        p1 = ctrlPoints[ctrlPoints.size() - 2];
-        p2 = ctrlPoints[ctrlPoints.size() - 1];
+        p1 = ctrlPoints[0];
+        auto p0PlusDir = (QVector2D)p1 - (*startDir).normalized();
+        p0 = QPointF(p0PlusDir.x(), p0PlusDir.y());
+        p2 = ctrlPoints[1];
     }
     else
     {
-        p0 = ctrlPoints[ctrlPoints.size() - 4];
-        p1 = ctrlPoints[ctrlPoints.size() - 3];
-        p2 = ctrlPoints[ctrlPoints.size() - 2];
+        if (forPreview)
+        {
+            p0 = ctrlPoints[ctrlPoints.size() - 3];
+            p1 = ctrlPoints[ctrlPoints.size() - 2];
+            p2 = ctrlPoints[ctrlPoints.size() - 1];
+        }
+        else
+        {
+            // One last ctrl (duplicated) point would have been placed down as soon as L-click
+            // which needs to be skipped
+            p0 = ctrlPoints[ctrlPoints.size() - 4];
+            p1 = ctrlPoints[ctrlPoints.size() - 3];
+            p2 = ctrlPoints[ctrlPoints.size() - 2];
+        }
     }
     odr::Vec2D pos0{ p0.x(), p0.y() };
     odr::Vec2D pos1{ p1.x(), p1.y() };
