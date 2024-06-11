@@ -466,7 +466,7 @@ namespace RoadRunner
     ConnectionInfo DirectJunction::InterfaceProvider() const
     {
         std::shared_ptr<Road> interfaceProviderRoad;
-        odr::RoadLink::ContactPoint interfaceContact;
+        odr::RoadLink::ContactPoint interfaceContact = odr::RoadLink::ContactPoint_None;
 
         bool matchFound = false;
         for (const auto& connInfo : formedFrom)

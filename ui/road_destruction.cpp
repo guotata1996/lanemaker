@@ -36,8 +36,17 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
 {
     QPointF scenePos = view->mapToScene(evt->pos().x(), evt->pos().y());
     auto g_road = g_PointerRoad.lock();
-    cursorItem->EnableHighlight(g_road != nullptr);
-    cursorItem->setPos(scenePos);
+    if (g_road != nullptr)
+    {
+        auto snapped = g_road->generated.ref_line.get_xy(GetAdjustedS());
+        cursorItem->setPos(snapped[0], snapped[1]);
+        cursorItem->EnableHighlight(true);
+    }
+    else
+    {
+        cursorItem->setPos(scenePos);
+        cursorItem->EnableHighlight(false);
+    }
     cursorItem->show();
     SetHighlightTo(g_road);
 

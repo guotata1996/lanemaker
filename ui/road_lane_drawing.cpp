@@ -26,7 +26,8 @@ void LanesCreationSession::CreateRoad()
 
     if (extendFromStart.expired() && joinAtEnd.expired())
     {
-        spdlog::warn("Aborted: Please switch to road mode for standalone road");
+        // Standalone road
+        RoadCreationSession::CreateRoad();
         return;
     }
 

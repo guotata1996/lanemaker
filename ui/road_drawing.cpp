@@ -272,7 +272,8 @@ bool RoadCreationSession::SnapFirstPointToExisting(QPointF& point)
     const double snapThreshold = SnapDistFromScale();
     double snapS = g_PointerRoadS;
     bool onExisting = false;
-    if (g_PointerRoadS < snapThreshold)
+    if (g_PointerRoadS < snapThreshold &&
+        dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->predecessorJunction.get()) == nullptr)
     {
         snapS = 0;
         auto grad = g_road->generated.ref_line.get_grad_xy(snapS);
@@ -280,7 +281,8 @@ bool RoadCreationSession::SnapFirstPointToExisting(QPointF& point)
         extendFromStart = g_PointerRoad;
         extendFromStartS = 0;
     }
-    else if (g_PointerRoadS > g_road->Length() - snapThreshold)
+    else if (g_PointerRoadS > g_road->Length() - snapThreshold &&
+        dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->successorJunction.get()) == nullptr)
     {
         snapS = g_road->Length();
         auto grad = g_road->generated.ref_line.get_grad_xy(snapS);
@@ -310,12 +312,14 @@ bool RoadCreationSession::SnapLastPointToExisting(QPointF& point)
     // Join to existing
     double snapS;
     const double snapThreshold = SnapDistFromScale();
-    if (g_PointerRoadS < snapThreshold)
+    if (g_PointerRoadS < snapThreshold &&
+        dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->predecessorJunction.get()) == nullptr)
     {
         snapS = 0;
         joinAtEnd = g_PointerRoad;
     }
-    else if (g_PointerRoadS > g_road->Length() - snapThreshold)
+    else if (g_PointerRoadS > g_road->Length() - snapThreshold &&
+        dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->successorJunction.get()) == nullptr)
     {
         snapS = g_road->Length();
         joinAtEnd = g_PointerRoad;
@@ -440,21 +444,7 @@ void RoadCreationSession::CreateRoad()
         spdlog::warn("Self-loop is not supported!");
         return;
     }
-    if (!extendFromStart.expired() && extendFromStartS == 0 &&
-        dynamic_cast<RoadRunner::DirectJunction*>(extendFromStart.lock()->predecessorJunction.get()) != nullptr
-        ||
-        !extendFromStart.expired() && extendFromStartS > 0 &&
-        dynamic_cast<RoadRunner::DirectJunction*>(extendFromStart.lock()->successorJunction.get()) != nullptr
-        ||
-        !joinAtEnd.expired() && joinAtEndS == 0 &&
-        dynamic_cast<RoadRunner::DirectJunction*>(joinAtEnd.lock()->predecessorJunction.get()) != nullptr
-        ||
-        !joinAtEnd.expired() && joinAtEndS > 0 &&
-        dynamic_cast<RoadRunner::DirectJunction*>(joinAtEnd.lock()->successorJunction.get()) != nullptr)
-    {
-        spdlog::warn("Please switch to Lane mode to connect to Direct junction.");
-        return;
-    }
+    
     auto refLine = RefLineFromCtrlPoints();
     if (refLine.length == 0)
     {
@@ -535,9 +525,6 @@ std::unique_ptr<odr::RoadGeometry> RoadCreationSession::createJoinAtEndGeo(bool 
     }
     else
     {
-        //p0 = ctrlPoints[0];
-        //p1 = ctrlPoints[1];
-        //p2 = ctrlPoints[2];
         p0 = ctrlPoints[ctrlPoints.size() - 4];
         p1 = ctrlPoints[ctrlPoints.size() - 3];
         p2 = ctrlPoints[ctrlPoints.size() - 2];
@@ -555,7 +542,7 @@ std::unique_ptr<odr::RoadGeometry> RoadCreationSession::createJoinAtEndGeo(bool 
         dir2 = odr::negate(dir2);
     }
 
-    odr::normalize(dir2);
+    dir2 = odr::normalize(dir2);
 
     if (forPreview && ctrlPoints.size() % 2 == 0 || !forPreview && ctrlPoints.size() % 2 == 1)
     {
