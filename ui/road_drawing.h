@@ -33,7 +33,8 @@ public:
     /*return false if force complete*/
     virtual bool Update(QMouseEvent* event) = 0;
 
-    virtual void Complete() = 0;
+    /*return false to abort change*/
+    virtual bool Complete() = 0;
 
     virtual ~RoadDrawingSession() {}
 
@@ -71,7 +72,7 @@ public:
     /*return false if force complete*/
     virtual bool Update(QMouseEvent* event) override;
 
-    virtual void Complete() override;
+    virtual bool Complete() override;
 
     virtual ~RoadCreationSession() override;
 
@@ -90,7 +91,7 @@ protected:
 
     virtual std::unique_ptr<odr::RoadGeometry> CreateJoinAtEndGeo(bool forPreview) const;
 
-    virtual void CreateRoad();
+    virtual bool CreateRoad();
 
     std::unique_ptr<odr::RoadGeometry> createJoinAtEndGeo(bool forPreview, ForceDirection joinPointDir) const;
 
@@ -121,7 +122,7 @@ class LanesCreationSession : public RoadCreationSession
 public:
     LanesCreationSession(QGraphicsView* aView);
 
-    virtual void CreateRoad() override;
+    virtual bool CreateRoad() override;
 
     virtual ~LanesCreationSession() override;
 
@@ -158,7 +159,7 @@ public:
 
     virtual bool Update(QMouseEvent* event) override;
 
-    virtual void Complete() override;
+    virtual bool Complete() override;
 
 protected:
     QGraphicsPathItem* previewItem;
@@ -179,5 +180,5 @@ public:
 
     virtual bool Update(QMouseEvent* event) override;
 
-    virtual void Complete() override;
+    virtual bool Complete() override;
 };

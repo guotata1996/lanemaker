@@ -250,10 +250,10 @@ bool RoadCreationSession::Update(QMouseEvent* event)
     return true;
 }
 
-void RoadCreationSession::Complete()
+bool RoadCreationSession::Complete()
 {
     Stats s("LaneGraphics Created");
-    CreateRoad();
+    return CreateRoad();
 }
 
 RoadCreationSession::~RoadCreationSession()
@@ -449,19 +449,25 @@ odr::RefLine RoadCreationSession::RefLineFromCtrlPoints() const
     return rtn;
 }
 
-void RoadCreationSession::CreateRoad()
+bool RoadCreationSession::CreateRoad()
 {
+    if (g_createRoadOption->LeftResult().laneCount + g_createRoadOption->RightResult().laneCount == 0)
+    {
+        spdlog::warn("Cannot create empty road!");
+        return true;
+    }
+
     if (!extendFromStart.expired() && extendFromStart.lock() == joinAtEnd.lock())
     {
         spdlog::warn("Self-loop is not supported!");
-        return;
+        return true;
     }
     
     auto refLine = RefLineFromCtrlPoints();
     if (refLine.length == 0)
     {
         spdlog::warn("Not enough control points placed");
-        return;
+        return true;
     }
 
     RoadRunner::RoadProfile config(
@@ -518,6 +524,7 @@ void RoadCreationSession::CreateRoad()
     }
 
     tryCreateJunction(std::move(newRoad), newPartBegin);
+    return true;
 }
 
 std::unique_ptr<odr::RoadGeometry> RoadCreationSession::CreateJoinAtEndGeo(bool forPreview) const

@@ -31,9 +31,9 @@ bool RoadModificationSession::Update(QMouseEvent* evt)
     return true;
 }
 
-void RoadModificationSession::Complete()
+bool RoadModificationSession::Complete()
 {
-    if (targetRoad.expired() || s2 == nullptr) return;
+    if (targetRoad.expired() || s2 == nullptr) return true;
 
     auto target = targetRoad.lock();
     if (std::min(*s1, *s2) == 0 &&
@@ -43,9 +43,10 @@ void RoadModificationSession::Complete()
         dynamic_cast<RoadRunner::DirectJunction*>(target->successorJunction.get()) != nullptr)
     {
         spdlog::warn("Cannot modify section adjacent to Direct junction. Please delete instead.");
-        return;
+        return true;
     }
 
     target->ModifyProfile(*s1, *s2,
     g_createRoadOption->LeftResult(), g_createRoadOption->RightResult());
+    return true;
 }

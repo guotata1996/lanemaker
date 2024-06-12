@@ -125,11 +125,11 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
     return true;
 }
 
-void RoadDestroySession::Complete()
+bool RoadDestroySession::Complete()
 {
     if (s2 == nullptr)
     {
-        return;
+        return true;
     }
     Stats s("LaneGraphics Created");
 
@@ -159,4 +159,5 @@ void RoadDestroySession::Complete()
 
         world->allRoads.insert(third);
     }
+    return true;
 }

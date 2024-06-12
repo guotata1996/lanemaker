@@ -298,8 +298,8 @@ void MapView::AdjustSceneRect()
 void MapView::confirmEdit()
 {
     RoadRunner::ChangeTracker::Instance()->StartRecordEdit();
-    drawingSession->Complete();
-    RoadRunner::ChangeTracker::Instance()->FinishRecordEdit();
+    bool cleanState = drawingSession->Complete();
+    RoadRunner::ChangeTracker::Instance()->FinishRecordEdit(!cleanState);
     quitEdit();
 
     AdjustSceneRect();

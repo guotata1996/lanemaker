@@ -293,7 +293,8 @@ namespace RoadRunner
     int DirectJunction::CreateFrom(const std::vector<ConnectionInfo>& connectedInfo)
     {
         formedFrom.insert(connectedInfo.begin(), connectedInfo.end());
-        if (StillConnectedRoads().size() != connectedInfo.size())
+
+        if (formedFrom.size() != connectedInfo.size())
         {
             spdlog::error("A road cannot appear in the same direct junction twice!");
             return JunctionError::Junction_DuplicateConn;

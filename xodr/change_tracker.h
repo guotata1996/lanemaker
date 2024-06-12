@@ -19,7 +19,7 @@ namespace RoadRunner
         static ChangeTracker* Instance();
         
         void StartRecordEdit();
-        void FinishRecordEdit();
+        void FinishRecordEdit(bool abort=false);
         bool Undo();
         bool Redo();
 

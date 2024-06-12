@@ -16,19 +16,12 @@ LanesCreationSession::LanesCreationSession(QGraphicsView* aView) :
 
 }
 
-void LanesCreationSession::CreateRoad()
+bool LanesCreationSession::CreateRoad()
 {
-    if (!extendFromStart.expired() && extendFromStart.lock() == joinAtEnd.lock())
-    {
-        spdlog::warn("Self-loop is not supported!");
-        return;
-    }
-
     if (extendFromStart.expired() && joinAtEnd.expired())
     {
         // Standalone road
-        RoadCreationSession::CreateRoad();
-        return;
+        return RoadCreationSession::CreateRoad();
     }
 
     auto refLine = RefLineFromCtrlPoints();
@@ -43,7 +36,7 @@ void LanesCreationSession::CreateRoad()
     if (refLine.length == 0)
     {
         spdlog::warn("Not enough control points placed");
-        return;
+        return true;
     }
     RoadRunner::RoadProfile config;
     config = RoadRunner::RoadProfile(lLanes, lOffsetX2, rLanes, rOffsetX2);
@@ -144,6 +137,11 @@ void LanesCreationSession::CreateRoad()
             }
             else if (endFullyMatch)
             {
+                if (toJoin == newRoad)
+                {
+                    spdlog::warn("Self-loop is not supported! Revoking...");
+                    return false;
+                }
                 standaloneRoad = false;
                 world->allRoads.erase(toJoin);
                 int joinResult = RoadRunner::Road::JoinRoads(newRoad, odr::RoadLink::ContactPoint_End,
@@ -195,6 +193,7 @@ void LanesCreationSession::CreateRoad()
     {
         world->allRoads.insert(newRoad);
     }
+    return true;
 }
 
 LanesCreationSession::~LanesCreationSession()
@@ -427,6 +426,18 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
     }
 
     double g_roadS = GetAdjustedS();
+    if (ctrlPoints.size() == 2 && !extendFromStart.expired() && extendFromStartS != 0 && extendFromStartS != extendFromStart.lock()->Length()
+        && g_roadS != 0 && g_roadS != g_road->Length())
+    {
+        // Prohibit cutting the same road twice, due to s change due to cutting
+        return false;
+    }
+    if (ctrlPoints.size() == 2 && g_roadS != 0 && g_roadS != g_road->Length())
+    {
+        // Prevent 2-click connection from being misinterpreted as cutting
+        return false;
+    }
+
     const auto& g_roadProfile = g_road->generated.rr_profile;
     const auto rightProfile = g_roadProfile.ProfileAt(g_roadS, -1);
     const auto leftProfile = g_roadProfile.ProfileAt(g_roadS, 1);
@@ -500,8 +511,6 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
         // Single-directional ramp
         auto lanesRequired = rLanes;  // New road follows drawing direction
         std::vector<std::pair<uint8_t, uint8_t>> searchRanges;
-        //uint8_t searchLaneMin = 1; // Inclusive
-        //uint8_t searchLaneMax = 0; // Inclusive
         double baseOffset;
         endSide = g_PointerLane < 0 ? -1 : 1;
         if (g_roadS == 0)
@@ -509,7 +518,6 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
             if (g_PointerLane < 0 && rightProfile.laneCount >= lanesRequired)
             {
                 searchRanges.push_back(std::make_pair(1, rightProfile.laneCount));
-                //searchLaneMax = rightProfile.laneCount;
                 baseOffset = static_cast<double>(rightProfile.offsetx2) / 2;
                 endFullyMatch = rightProfile.laneCount == lanesRequired && leftProfile.laneCount == 0;
                 rOffsetX2 = rightProfile.offsetx2;
@@ -521,7 +529,6 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
             if (g_PointerLane > 0 && leftProfile.laneCount >= lanesRequired)
             {
                 searchRanges.push_back(std::make_pair(1, leftProfile.laneCount));
-                //searchLaneMax = leftProfile.laneCount;
                 baseOffset = static_cast<double>(leftProfile.offsetx2) / 2;
                 endFullyMatch = leftProfile.laneCount == lanesRequired && rightProfile.laneCount == 0;
                 rOffsetX2 = -leftProfile.offsetx2;
@@ -546,8 +553,6 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
             {
                 // No offset change: can enter from right
                 searchRanges.push_back(std::make_pair(prevProfile.laneCount, nextProfile.laneCount));
-                //searchLaneMin = prevProfile.laneCount;
-                //searchLaneMax = nextProfile.laneCount;
             }
             if (!g_roadProfile.HasSide(-startSide))
             {
@@ -606,12 +611,13 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
             {
                 point.setX(bestSnapPos.x());
                 point.setY(bestSnapPos.y());
-                lOffsetX2 = 0;
-                rOffsetX2 = rLanes;
                 joinAtEnd = g_road;
                 endLanesSkip = bestSkip;
             }
         }
+
+        lOffsetX2 = 0;
+        rOffsetX2 = rLanes;
     }
 
     if (joinAtEnd.expired())

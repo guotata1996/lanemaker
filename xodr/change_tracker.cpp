@@ -32,7 +32,7 @@ namespace RoadRunner
         IDGenerator::ForJunction()->ClearChangeList();
     }
 
-    void ChangeTracker::FinishRecordEdit()
+    void ChangeTracker::FinishRecordEdit(bool abort)
     {
         auto roadChanges = IDGenerator::ForRoad()->ConsumeChanges();
         auto junctionChanges = IDGenerator::ForJunction()->ConsumeChanges();
@@ -93,10 +93,17 @@ namespace RoadRunner
             recordEntry.junctionChanges.push_back(junctionChange);
         }
         
-        undoStack.emplace(recordEntry);
-        while (!redoStack.empty())
+        if (abort)
         {
-            redoStack.pop();
+            RestoreChange(recordEntry);
+        }
+        else
+        {
+            undoStack.emplace(recordEntry);
+            while (!redoStack.empty())
+            {
+                redoStack.pop();
+            }
         }
 
         PostChangeActions();
