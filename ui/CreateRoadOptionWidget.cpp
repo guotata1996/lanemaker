@@ -27,8 +27,22 @@ void CreateRoadOptionWidget::SetOption(const RoadRunner::SectionProfile& l, cons
 {
     activeLeftSetting = l;
     activeRightSetting = r;
+    if (activeLeftSetting.laneCount == 0)
+    {
+        activeLeftSetting.offsetx2 = activeRightSetting.offsetx2;
+    }
+    if (activeRightSetting.laneCount == 0)
+    {
+        activeRightSetting.offsetx2 = activeLeftSetting.offsetx2;
+    }
     changedExternally = true;
     update();
+}
+
+void CreateRoadOptionWidget::resizeEvent(QResizeEvent* event)
+{
+    changedExternally = true;
+    QWidget::resizeEvent(event);
 }
 
 void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)

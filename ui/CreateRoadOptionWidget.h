@@ -22,6 +22,9 @@ public:
 protected:
     const int SingleSideLaneLimit = 10;
 
+    // Force handles alignment
+    void resizeEvent(QResizeEvent* event) override;
+
     void paintEvent(QPaintEvent* event) override;
 
     void mousePressEvent(QMouseEvent* event) override;
