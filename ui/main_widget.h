@@ -31,6 +31,8 @@ signals:
 
     void FPSChanged(QString);
 
+    void InReadOnlyMode(bool);
+
 public slots:
     void zoomIn();
     void zoomOut();

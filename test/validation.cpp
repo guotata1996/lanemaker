@@ -31,6 +31,8 @@ namespace RoadRunnerTest
         {
             VerifySingleRoad(road->generated);
         }
+
+        VerifyRoutingGraph();
         spdlog::info("Passed Verification!");
     }
 
@@ -131,6 +133,51 @@ namespace RoadRunnerTest
                 connectingsFromPointer.insert(info->ID());
             }
             assert(connectingsFromSerialized == connectingsFromPointer);
+        }
+    }
+
+    void Validation::VerifyRoutingGraph()
+    {
+        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->odrMap;
+        const auto& routingGraph = serializedMap.get_routing_graph();
+        for (auto& lane_successor : routingGraph.lane_key_to_successors)
+        {
+            auto fromLane = lane_successor.first;
+            auto fromRoad = serializedMap.id_to_road.at(fromLane.road_id);
+            auto fromSection = fromRoad.get_lanesection(fromLane.lanesection_s0);
+            auto fromLaneEndS = fromLane.lane_id < 0 ? fromRoad.get_lanesection_length(fromSection) + fromLane.lanesection_s0 
+                : fromLane.lanesection_s0;
+
+            for (auto toLane : lane_successor.second)
+            {
+                auto toRoad = serializedMap.id_to_road.at(toLane.road_id);
+                auto toSection = toRoad.get_lanesection(toLane.lanesection_s0);
+                auto toLaneStartS = toLane.lane_id < 0 ? toLane.lanesection_s0
+                : toRoad.get_lanesection_length(toSection) + toLane.lanesection_s0;
+
+                EnsureEndsMeet(&fromRoad, fromLaneEndS, fromLane.lane_id,
+                    &toRoad, toLaneStartS, toLane.lane_id);
+            }
+        }
+
+        for (auto& lane_predecessor : routingGraph.lane_key_to_predecessors)
+        {
+            auto toLane = lane_predecessor.first;
+            auto toRoad = serializedMap.id_to_road.at(toLane.road_id);
+            auto toSection = toRoad.get_lanesection(toLane.lanesection_s0);
+            auto toLaneStartS = toLane.lane_id < 0 ? toLane.lanesection_s0
+                : toRoad.get_lanesection_length(toSection) + toLane.lanesection_s0;
+
+            for (auto fromLane : lane_predecessor.second)
+            {
+                auto fromRoad = serializedMap.id_to_road.at(fromLane.road_id);
+                auto fromSection = fromRoad.get_lanesection(fromLane.lanesection_s0);
+                auto fromLaneEndS = fromLane.lane_id < 0 ? fromLane.lanesection_s0 + fromRoad.get_lanesection_length(fromSection)
+                    : fromLane.lanesection_s0;
+
+                EnsureEndsMeet(&fromRoad, fromLaneEndS, fromLane.lane_id,
+                    &toRoad, toLaneStartS, toLane.lane_id);
+            }
         }
     }
 #endif

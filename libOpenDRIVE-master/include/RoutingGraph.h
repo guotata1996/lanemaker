@@ -13,7 +13,7 @@ namespace odr
 
 struct RoutingGraphEdge
 {
-    RoutingGraphEdge(LaneKey from, LaneKey to, double length);
+    RoutingGraphEdge(LaneKey from, LaneKey to, double length=0);
 
     LaneKey from;
     LaneKey to;

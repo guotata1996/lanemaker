@@ -7,12 +7,14 @@
 #include <stack>
 #include <vector>
 namespace RoadRunnerTest { class Validation; }
+class VehicleManager;
 
 namespace RoadRunner
 {
     class ChangeTracker
     {
         friend class RoadRunnerTest::Validation;
+        friend class VehicleManager;
     public:
         ChangeTracker(ChangeTracker&) = delete;
         ChangeTracker& operator=(const ChangeTracker&) = delete;

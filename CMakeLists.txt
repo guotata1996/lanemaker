@@ -21,12 +21,13 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp
     ui/road_graphics.cpp ui/road_drawing.cpp ui/road_lane_drawing.cpp
     ui/road_modification.cpp ui/road_destruction.cpp 
     ui/CreateRoadOptionWidget.cpp
+    traffic/vehicle.cpp traffic/vehicle_manager.cpp
     util/stats.cpp util/multi_segment.cpp
     test/validation.cpp test/junction_validation.cpp test/road_validation.cpp
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    xodr ui util
+    xodr ui util traffic
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/include
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/thirdparty)
 

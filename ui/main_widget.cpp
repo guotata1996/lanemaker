@@ -195,6 +195,7 @@ void MainWidget::gotoCreateRoadMode()
     graphicsView->setInteractive(true);
     graphicsView->SetEditMode(MapView::Mode_Create);
     createRoadOption->GotoRoadMode();
+    emit InReadOnlyMode(false);
 }
 
 void MainWidget::gotoCreateLaneMode()
@@ -203,6 +204,7 @@ void MainWidget::gotoCreateLaneMode()
     graphicsView->setInteractive(true);
     graphicsView->SetEditMode(MapView::Mode_CreateLanes);
     createRoadOption->GotoLaneMode();
+    emit InReadOnlyMode(false);
 }
 
 void MainWidget::gotoDestroyMode()
@@ -211,6 +213,7 @@ void MainWidget::gotoDestroyMode()
     graphicsView->setInteractive(true);
     graphicsView->SetEditMode(MapView::Mode_Destroy);
     createRoadOption->hide();
+    emit InReadOnlyMode(false);
 }
 
 void MainWidget::gotoModifyMode()
@@ -219,6 +222,7 @@ void MainWidget::gotoModifyMode()
     graphicsView->setInteractive(true);
     graphicsView->SetEditMode(MapView::Mode_Modify);
     createRoadOption->GotoRoadMode();
+    emit InReadOnlyMode(false);
 }
 
 void MainWidget::gotoDragMode()
@@ -227,6 +231,7 @@ void MainWidget::gotoDragMode()
     graphicsView->setInteractive(false);
     graphicsView->SetEditMode(MapView::Mode_None);
     createRoadOption->hide();
+    emit InReadOnlyMode(true);
 }
 
 void MainWidget::toggleAntialiasing()

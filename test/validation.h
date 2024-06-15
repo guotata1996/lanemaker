@@ -39,6 +39,9 @@ namespace RoadRunnerTest
         static void VerifyCommonJunction(const RoadRunner::Junction* junction);
 
         static void VerifyDirectJunction(const RoadRunner::DirectJunction* junction);
+
+        // Only checks edges-on-record; doesn't recognize dead ends
+        static void VerifyRoutingGraph();
     };
     
 }

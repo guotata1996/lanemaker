@@ -811,22 +811,12 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
     RoutingGraph routing_graph;
 
     /* find lane successors/predecessors */
+    // covers Common junction
     for (const bool find_successor : {true, false})
     {
         for (const auto& id_road : this->id_to_road)
         {
             const Road&     road = id_road.second;
-            const RoadLink& road_link = find_successor ? road.successor : road.predecessor;
-            if (road_link.type != RoadLink::Type_Road || road_link.contact_point == RoadLink::ContactPoint_None)
-                continue;
-
-            auto next_road_iter = this->id_to_road.find(road_link.id);
-            if (next_road_iter == this->id_to_road.end())
-                continue;
-            const Road&        next_road = next_road_iter->second;
-            const LaneSection& next_road_contact_lanesec = (road_link.contact_point == RoadLink::ContactPoint_Start)
-                                                               ? next_road.s_to_lanesection.begin()->second
-                                                               : next_road.s_to_lanesection.rbegin()->second;
 
             for (auto s_lanesec_iter = road.s_to_lanesection.begin(); s_lanesec_iter != road.s_to_lanesection.end(); s_lanesec_iter++)
             {
@@ -834,16 +824,33 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
                 const LaneSection* next_lanesec = nullptr;
                 const Road*        next_lanesecs_road = nullptr;
 
-                if (find_successor && std::next(s_lanesec_iter) == road.s_to_lanesection.end())
-                {
-                    next_lanesec = &next_road_contact_lanesec; // take next road to find successor
-                    next_lanesecs_road = &next_road;
+                bool requireNextRoad = find_successor && std::next(s_lanesec_iter) == road.s_to_lanesection.end();
+                bool requirePrevRoad = !find_successor && s_lanesec_iter == road.s_to_lanesection.begin();
+
+                if (requireNextRoad || requirePrevRoad) {
+                    const RoadLink& road_link = find_successor ? road.successor : road.predecessor;
+                    if (road_link.type != RoadLink::Type_Road || road_link.contact_point == RoadLink::ContactPoint_None)
+                        continue;
+
+                    auto next_road_iter = this->id_to_road.find(road_link.id);
+                    if (next_road_iter == this->id_to_road.end())
+                        continue;
+                    const Road&        next_road = next_road_iter->second;
+                    const LaneSection& next_road_contact_lanesec = (road_link.contact_point == RoadLink::ContactPoint_Start)
+                                                                       ? next_road.s_to_lanesection.begin()->second
+                                                                       : next_road.s_to_lanesection.rbegin()->second;
+                    if (requireNextRoad)
+                    {
+                        next_lanesec = &next_road_contact_lanesec; // take next road to find successor
+                        next_lanesecs_road = &next_road;
+                    }
+                    else if (requirePrevRoad)
+                    {
+                        next_lanesec = &next_road_contact_lanesec; // take prev. road to find predecessor
+                        next_lanesecs_road = &next_road;
+                    }
                 }
-                else if (!find_successor && s_lanesec_iter == road.s_to_lanesection.begin())
-                {
-                    next_lanesec = &next_road_contact_lanesec; // take prev. road to find predecessor
-                    next_lanesecs_road = &next_road;
-                }
+
                 else
                 {
                     next_lanesec = find_successor ? &(std::next(s_lanesec_iter)->second) : &(std::prev(s_lanesec_iter)->second);
@@ -873,25 +880,37 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
                     const LaneKey from(from_road.id, from_lanesection.s0, from_lane.id);
                     const LaneKey to(to_road.id, to_lanesection.s0, to_lane.id);
                     const double  lane_length = road.get_lanesection_length(from_lanesection);
-                    routing_graph.add_edge(RoutingGraphEdge(from, to, lane_length));
+
+                    if (id_lane.first < 0 || requireNextRoad || requirePrevRoad)
+                    {
+                        routing_graph.add_edge(RoutingGraphEdge(from, to /*, lane_length*/));
+                    }
+                    else
+                    {
+                        routing_graph.add_edge(RoutingGraphEdge(to, from /*, lane_length*/));
+                    }
                 }
             }
         }
     }
 
-    /* parse junctions */
+    /* parse direct junctions */
     for (const auto& id_junc : this->id_to_junction)
     {
+        if (id_junc.second.type != odr::JunctionType::Direct)
+        {
+            continue;
+        }
         for (const auto& id_conn : id_junc.second.id_to_connection)
         {
             const JunctionConnection& conn = id_conn.second;
 
             auto incoming_road_iter = this->id_to_road.find(conn.incoming_road);
-            auto connecting_road_iter = this->id_to_road.find(conn.connecting_road);
-            if (incoming_road_iter == this->id_to_road.end() || connecting_road_iter == this->id_to_road.end())
+            auto linked_road_iter = this->id_to_road.find(conn.connecting_road);
+            if (incoming_road_iter == this->id_to_road.end() || linked_road_iter == this->id_to_road.end())
                 continue;
             const Road& incoming_road = incoming_road_iter->second;
-            const Road& connecting_road = connecting_road_iter->second;
+            const Road& linked_road = linked_road_iter->second;
 
             const bool is_succ_junc = incoming_road.successor.type == RoadLink::Type_Junction && incoming_road.successor.id == id_junc.first;
             const bool is_pred_junc = incoming_road.predecessor.type == RoadLink::Type_Junction && incoming_road.predecessor.id == id_junc.first;
@@ -900,24 +919,31 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
 
             const LaneSection& incoming_lanesec =
                 is_succ_junc ? incoming_road.s_to_lanesection.rbegin()->second : incoming_road.s_to_lanesection.begin()->second;
-            const LaneSection& connecting_lanesec = (conn.contact_point == JunctionConnection::ContactPoint_Start)
-                                                        ? connecting_road.s_to_lanesection.begin()->second
-                                                        : connecting_road.s_to_lanesection.rbegin()->second;
+            const LaneSection& linked_lanesec = (conn.contact_point == JunctionConnection::ContactPoint_Start)
+                                                        ? linked_road.s_to_lanesection.begin()->second
+                                                        : linked_road.s_to_lanesection.rbegin()->second;
             for (const JunctionLaneLink& lane_link : conn.lane_links)
             {
                 if (lane_link.from == 0 || lane_link.to == 0)
                     continue;
                 auto from_lane_iter = incoming_lanesec.id_to_lane.find(lane_link.from);
-                auto to_lane_iter = connecting_lanesec.id_to_lane.find(lane_link.to);
-                if (from_lane_iter == incoming_lanesec.id_to_lane.end() || to_lane_iter == connecting_lanesec.id_to_lane.end())
+                auto to_lane_iter = linked_lanesec.id_to_lane.find(lane_link.to);
+                if (from_lane_iter == incoming_lanesec.id_to_lane.end() || to_lane_iter == linked_lanesec.id_to_lane.end())
                     continue;
                 const Lane& from_lane = from_lane_iter->second;
                 const Lane& to_lane = to_lane_iter->second;
 
                 const LaneKey from(incoming_road.id, incoming_lanesec.s0, from_lane.id);
-                const LaneKey to(connecting_road.id, connecting_lanesec.s0, to_lane.id);
+                const LaneKey to(linked_road.id, linked_lanesec.s0, to_lane.id);
                 const double  lane_length = incoming_road.get_lanesection_length(incoming_lanesec);
-                routing_graph.add_edge(RoutingGraphEdge(from, to, lane_length));
+                if (is_succ_junc && from_lane.id < 0 || is_pred_junc && from_lane.id > 0) 
+                {
+                    routing_graph.add_edge(RoutingGraphEdge(from, to /*, lane_length*/));
+                }
+                else
+                {
+                    routing_graph.add_edge(RoutingGraphEdge(to, from /*, lane_length*/));
+                }
             }
         }
     }

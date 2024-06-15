@@ -7,6 +7,7 @@ class QStatusBar;
 QT_END_NAMESPACE
 
 class MainWidget;
+class VehicleManager;
 
 class MainWindow : public QWidget
 {
@@ -19,13 +20,13 @@ private:
     QStatusBar* fpsStatus;
 
     MainWidget* mainWidget;
+    VehicleManager* vehicleManager;
 
-public slots:
+private slots:
     void setHint(QString);
 
     void setFPS(QString);
 
-private slots:
     void newMap();
 
     void saveToFile();
@@ -39,5 +40,11 @@ private slots:
     void verifyMap();
 
     void toggleAlwaysVerifyMap(bool);
+
+    void toggleSimulation(bool);
+
+    void enableSimulation(bool);
+
+    QAction* toggleSimAction;
 };
 

@@ -8,6 +8,7 @@
 
 #include "main_widget.h"
 #include "change_tracker.h"
+#include "vehicle_manager.h"
 #include "test/validation.h"
 
 #include "spdlog/spdlog.h"
@@ -38,10 +39,14 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     auto alwaysVerifyAction = view->addAction("Always Verify");
     alwaysVerifyAction->setCheckable(true);
     alwaysVerifyAction->setChecked(RoadRunner::ChangeTracker::Instance()->VerifyUponChange);
+    toggleSimAction = view->addAction("Toggle simulation");
+    toggleSimAction->setCheckable(true);
+    toggleSimAction->setChecked(false);
     menu->addMenu(view);
 
     scene = std::make_unique<QGraphicsScene>(this);
     g_scene = scene.get();
+    vehicleManager = new VehicleManager(this);
     
     mainWidget = new MainWidget("Main View");
     mainWidget->view()->setScene(g_scene);
@@ -66,8 +71,12 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(redoAction, &QAction::triggered, this, &MainWindow::redo);
     connect(verifyAction, &QAction::triggered, this, &MainWindow::verifyMap);
     connect(alwaysVerifyAction, &QAction::triggered, this, &MainWindow::toggleAlwaysVerifyMap);
+    connect(toggleSimAction, &QAction::triggered, this, &MainWindow::toggleSimulation);
     connect(mainWidget, &MainWidget::HoveringChanged, this, &MainWindow::setHint);
     connect(mainWidget, &MainWidget::FPSChanged, this, &MainWindow::setFPS);
+    connect(mainWidget, &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
+
+    srand(std::time(0));
 }
 
 void MainWindow::newMap()
@@ -140,6 +149,28 @@ void MainWindow::verifyMap()
 void MainWindow::toggleAlwaysVerifyMap(bool enable)
 {
     RoadRunner::ChangeTracker::Instance()->VerifyUponChange = enable;
+}
+
+void MainWindow::toggleSimulation(bool enable)
+{
+    if (enable)
+    {
+        vehicleManager->Begin();
+    }
+    else
+    {
+        vehicleManager->End();
+    }
+}
+
+void MainWindow::enableSimulation(bool available)
+{
+    toggleSimAction->setEnabled(available);
+    if (toggleSimAction->isChecked() && !available)
+    {
+        vehicleManager->End();
+        toggleSimAction->setChecked(false);
+    }
 }
 
 void MainWindow::setHint(QString msg) 
