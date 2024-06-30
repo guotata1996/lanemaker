@@ -10,13 +10,15 @@
 #include "CreateRoadOptionWidget.h"
 #include "stats.h"
 #include "constants.h"
+#include "map_view.h"
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 
 extern SectionProfileConfigWidget* g_createRoadOption;
+extern RoadRunner::SectionProfile leftProfileSetting, rightProfileSetting;
 
-extern double g_zoom;
+extern MapView* g_mapView;
 
 RoadDrawingSession::RoadDrawingSession(QGraphicsView* aView) :
     view(aView), scene(aView->scene()), world(World::Instance())
@@ -45,7 +47,7 @@ void RoadDrawingSession::SetHighlightTo(std::shared_ptr<RoadRunner::Road> target
 
 float RoadDrawingSession::SnapDistFromScale() const
 {
-    return CustomCursorItem::SnapRadiusPx / g_zoom;
+    return CustomCursorItem::SnapRadiusPx / g_mapView->Zoom();
 }
 
 double RoadDrawingSession::GetAdjustedS() const
@@ -103,7 +105,7 @@ void CustomCursorItem::EnableHighlight(bool enable)
 
 void CustomCursorItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
-    this->setScale(SnapRadiusPx / InitialRadius / g_zoom);
+    this->setScale(SnapRadiusPx / InitialRadius / g_mapView->Zoom());
     QGraphicsEllipseItem::paint(painter, option, widget);
 }
 
@@ -451,7 +453,7 @@ odr::RefLine RoadCreationSession::RefLineFromCtrlPoints() const
 
 bool RoadCreationSession::CreateRoad()
 {
-    if (g_createRoadOption->LeftResult().laneCount + g_createRoadOption->RightResult().laneCount == 0)
+    if (leftProfileSetting.laneCount + rightProfileSetting.laneCount == 0)
     {
         spdlog::warn("Cannot create empty road!");
         return true;
@@ -471,8 +473,8 @@ bool RoadCreationSession::CreateRoad()
     }
 
     RoadRunner::RoadProfile config(
-        g_createRoadOption->LeftResult().laneCount, g_createRoadOption->LeftResult().offsetx2,
-        g_createRoadOption->RightResult().laneCount, g_createRoadOption->RightResult().offsetx2);
+        leftProfileSetting.laneCount, leftProfileSetting.offsetx2,
+        rightProfileSetting.laneCount, rightProfileSetting.offsetx2);
 
     auto newRoad = std::make_shared<RoadRunner::Road>(config, refLine);
     newRoad->GenerateAllSectionGraphics();

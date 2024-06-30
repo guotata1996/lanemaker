@@ -7,7 +7,7 @@
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 
-extern SectionProfileConfigWidget* g_createRoadOption;
+extern RoadRunner::SectionProfile leftProfileSetting, rightProfileSetting;
 
 RoadModificationSession::RoadModificationSession(QGraphicsView* aView) : RoadDestroySession(aView)
 {}
@@ -46,7 +46,6 @@ bool RoadModificationSession::Complete()
         return true;
     }
 
-    target->ModifyProfile(*s1, *s2,
-    g_createRoadOption->LeftResult(), g_createRoadOption->RightResult());
+    target->ModifyProfile(*s1, *s2, leftProfileSetting, rightProfileSetting);
     return true;
 }

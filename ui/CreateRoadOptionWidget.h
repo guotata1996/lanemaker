@@ -14,12 +14,15 @@ class CreateRoadOptionWidget :
     Q_OBJECT
 public:
     CreateRoadOptionWidget();
-    RoadRunner::SectionProfile LeftResult() const;
-    RoadRunner::SectionProfile RightResult() const;
 
     void SetOption(const RoadRunner::SectionProfile&, const RoadRunner::SectionProfile&);
 
+signals:
+    void OptionChangedByUser(RoadRunner::SectionProfile left, RoadRunner::SectionProfile right);
+
 protected:
+    void showEvent(QShowEvent* event) override;
+
     const int SingleSideLaneLimit = 10;
 
     // Force handles alignment
@@ -56,11 +59,18 @@ class CreateLaneOptionWidget :
 public:
     CreateLaneOptionWidget();
 
+    void SetOption(const RoadRunner::SectionProfile&, const RoadRunner::SectionProfile&);
+
+protected:
+    void showEvent(QShowEvent* event) override;
+
+signals:
+    void OptionChangedByUser(RoadRunner::SectionProfile left, RoadRunner::SectionProfile right);
+
+private:
     RoadRunner::SectionProfile LeftResult() const;
     RoadRunner::SectionProfile RightResult() const;
 
-    void SetOption(const RoadRunner::SectionProfile&, const RoadRunner::SectionProfile&);
-private:
     QSlider* leftSlider, * rightSlider;
     QLabel* resultLabel;
 
@@ -76,15 +86,20 @@ class SectionProfileConfigWidget :
 public:
     SectionProfileConfigWidget();
 
-    RoadRunner::SectionProfile LeftResult() const;
-    RoadRunner::SectionProfile RightResult() const;
-
+    /*picking from exsiting*/
     void SetOption(const RoadRunner::SectionProfile&, const RoadRunner::SectionProfile&);
 
     void GotoRoadMode();
     void GotoLaneMode();
 
     virtual QSize sizeHint() const override;
+
+public slots:
+    void OptionChangedOnPage(RoadRunner::SectionProfile left, RoadRunner::SectionProfile right);
+
+signals:
+    /*Includes 1. dragging slider  2. picking from exsiting 3. page index changed*/
+    //void OptionChangedByUser(RoadRunner::SectionProfile left, RoadRunner::SectionProfile right);
 
 protected:
     CreateRoadOptionWidget* roadMode;

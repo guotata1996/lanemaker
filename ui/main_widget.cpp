@@ -11,14 +11,14 @@
 #include <QtWidgets>
 #include <QtMath>
 
-double g_zoom;
 extern SectionProfileConfigWidget* g_createRoadOption;
+MapView* g_mapView;
 
 MainWidget::MainWidget(const QString& name, QWidget* parent)
     : QFrame(parent), createRoadOption(new SectionProfileConfigWidget)
 {
     setFrameStyle(Sunken | StyledPanel);
-    graphicsView = new MapView(this);
+    g_mapView = graphicsView = new MapView(this);
     graphicsView->setRenderHint(QPainter::Antialiasing, false);
     graphicsView->setDragMode(QGraphicsView::RubberBandDrag);
     graphicsView->setOptimizationFlags(QGraphicsView::DontSavePainterState);
@@ -179,7 +179,6 @@ void MainWidget::setResetButtonEnabled()
 void MainWidget::setupMatrix()
 {
     qreal scale = qPow(qreal(2), (zoomSlider->value() - 250) / qreal(50));
-    g_zoom = scale;
 
     QTransform matrix;
     matrix.scale(scale, -scale);
@@ -294,4 +293,11 @@ void MainWidget::Painted()
         lastUpdateFPSMS = t;
         nRepaints = 0;
     }
+}
+
+void MainWidget::Reset()
+{
+    gotoDragMode();
+    graphicsView->ResetSceneRect();
+    // TODO: reset road creation option
 }

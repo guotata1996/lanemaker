@@ -13,14 +13,18 @@ class MainWindow : public QWidget
 {
 public:
     MainWindow(QWidget* parent = nullptr);
+
+    ~MainWindow();
 private:
     std::unique_ptr<QGraphicsScene> scene;
 
-    QStatusBar* hintStatus;
-    QStatusBar* fpsStatus;
+    std::unique_ptr<QStatusBar> hintStatus;
+    std::unique_ptr<QStatusBar> fpsStatus;
 
-    MainWidget* mainWidget;
-    VehicleManager* vehicleManager;
+    std::unique_ptr<MainWidget> mainWidget;
+    std::unique_ptr<VehicleManager> vehicleManager;
+
+    QAction* toggleSimAction;
 
 private slots:
     void setHint(QString);
@@ -41,10 +45,12 @@ private slots:
 
     void toggleAlwaysVerifyMap(bool);
 
+    void saveActionHistory();
+
+    void debugActionHistory();
+
     void toggleSimulation(bool);
 
     void enableSimulation(bool);
-
-    QAction* toggleSimAction;
 };
 

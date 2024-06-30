@@ -4,10 +4,12 @@
 #include "road_graphics.h"
 #include "change_tracker.h"
 #include "junction.h"
+#include "action_manager.h"
 
 #include <sstream>
 #include <iomanip> //std::setprecision
-#include <qevent.h>
+#include <qscrollbar.h>
+
 
 std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 double g_PointerRoadS; /*Continous between 0 and Length() if g_PointerRoad is valid*/
@@ -16,10 +18,22 @@ int g_PointerLane;
 std::vector<std::pair<RoadRunner::LaneGraphics*, double>> rotatingRoads;
 int rotatingIndex;
 
+extern RoadRunner::SectionProfile leftProfileSetting, rightProfileSetting;
+
 MapView::MapView(MainWidget* v) :
     QGraphicsView(), view(v)
 {
+    ResetSceneRect();
+}
+
+void MapView::ResetSceneRect()
+{
     setSceneRect(-ViewPadding, -ViewPadding, 2 * ViewPadding, 2 * ViewPadding);
+}
+
+double MapView::Zoom() const
+{
+    return transform().m11();
 }
 
 #if QT_CONFIG(wheelevent)
@@ -38,9 +52,24 @@ void MapView::wheelEvent(QWheelEvent* e)
 }
 #endif
 
+bool MapView::viewportEvent(QEvent* e)
+{
+    bool res = QGraphicsView::viewportEvent(e);
+    auto currTrans = viewportTransform();
+    if (lastTransform != currTrans)
+    {
+        RoadRunner::ActionManager::Instance()->Record(
+            transform(), horizontalScrollBar()->value(), verticalScrollBar()->value());
+        lastTransform = currTrans;        
+    }
+    
+    return res;
+}
+
 void MapView::SetEditMode(EditMode aMode)
 {
     editMode = aMode;
+    RoadRunner::ActionManager::Instance()->Record(aMode);
 
     if (drawingSession != nullptr)
     {
@@ -180,6 +209,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
 void MapView::mousePressEvent(QMouseEvent* evt)
 {
     QGraphicsView::mousePressEvent(evt);
+    RoadRunner::ActionManager::Instance()->Record(evt);
     if (editMode != Mode_None)
     {
         if (!drawingSession->Update(evt))
@@ -191,6 +221,8 @@ void MapView::mousePressEvent(QMouseEvent* evt)
 
 void MapView::mouseDoubleClickEvent(QMouseEvent* evt)
 {
+    QGraphicsView::mouseDoubleClickEvent(evt);
+    RoadRunner::ActionManager::Instance()->Record(evt);
     if (editMode != Mode_None)
     {
         drawingSession->Update(evt);
@@ -200,6 +232,7 @@ void MapView::mouseDoubleClickEvent(QMouseEvent* evt)
 void MapView::mouseMoveEvent(QMouseEvent* evt)
 {
     QGraphicsView::mouseMoveEvent(evt);
+    RoadRunner::ActionManager::Instance()->Record(evt);
     SnapCursor(evt->pos());
     if (editMode != Mode_None)
     {
@@ -210,6 +243,7 @@ void MapView::mouseMoveEvent(QMouseEvent* evt)
 void MapView::mouseReleaseEvent(QMouseEvent* evt)
 {
     QGraphicsView::mouseReleaseEvent(evt);
+    RoadRunner::ActionManager::Instance()->Record(evt);
     if (editMode != Mode_None)
     {
         drawingSession->Update(evt);
@@ -219,6 +253,7 @@ void MapView::mouseReleaseEvent(QMouseEvent* evt)
 void MapView::keyPressEvent(QKeyEvent* evt)
 {
     QGraphicsView::keyPressEvent(evt);
+    RoadRunner::ActionManager::Instance()->Record(evt);
     switch (evt->key())
     {
     case Qt::Key_Escape:
@@ -289,7 +324,16 @@ void MapView::paintEvent(QPaintEvent* evt)
 
 void MapView::AdjustSceneRect()
 {
-    auto original = scene()->itemsBoundingRect();
+    //auto original = scene()->itemsBoundingRect();
+    QRectF original(0, 0, 0, 0);
+    for (auto item : scene()->items())
+    {
+        if (dynamic_cast<RoadRunner::LaneGraphics*>(item) != nullptr)
+        {
+            original = original.united(item->sceneBoundingRect());
+        }
+    }
+
     QRectF paded(original.left() - ViewPadding, original.top() - ViewPadding,
         original.width() + 2 * ViewPadding, original.height() + 2 * ViewPadding);
     setSceneRect(paded);

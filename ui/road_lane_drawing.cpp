@@ -8,7 +8,8 @@
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern int g_PointerLane;
-extern SectionProfileConfigWidget* g_createRoadOption;
+
+extern RoadRunner::SectionProfile leftProfileSetting, rightProfileSetting;
 
 LanesCreationSession::LanesCreationSession(QGraphicsView* aView) :
     RoadCreationSession(aView), lLanes(0), rLanes(0)
@@ -208,12 +209,9 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
     {
         return false;
     }
-
-    const auto rightQuery = g_createRoadOption->RightResult();
-    const auto leftQuery = g_createRoadOption->LeftResult();
     
-    rLanes = rightQuery.laneCount;
-    lLanes = leftQuery.laneCount;
+    rLanes = rightProfileSetting.laneCount;
+    lLanes = leftProfileSetting.laneCount;
 
     if (rLanes == 0)
     {
@@ -402,15 +400,14 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
         return false;
     }
 
-    const auto rightQuery = g_createRoadOption->RightResult();
-    const auto leftQuery = g_createRoadOption->LeftResult();
 
-    if (rLanes != rightQuery.laneCount || lLanes != leftQuery.laneCount)
+    if (rLanes != rightProfileSetting.laneCount || 
+        lLanes != leftProfileSetting.laneCount)
     {
         if (extendFromStart.expired())
         {
-            rLanes = rightQuery.laneCount;
-            lLanes = leftQuery.laneCount;
+            rLanes = rightProfileSetting.laneCount;
+            lLanes = leftProfileSetting.laneCount;
         }
         else
         {

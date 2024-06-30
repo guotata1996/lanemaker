@@ -26,6 +26,8 @@ public:
 
     void Painted();
 
+    void Reset();
+
 signals:
     void HoveringChanged(QString);
 

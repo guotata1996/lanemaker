@@ -1,14 +1,18 @@
 #pragma once
 
 #include <QGraphicsView>
+#include <qevent.h>
+
+#include "road_profile.h"
 
 class MainWidget;
 
 class RoadDrawingSession;
 
+
 class MapView : public QGraphicsView
 {
-    // Q_OBJECT
+    Q_OBJECT
 public:
     MapView(MainWidget* v);
 
@@ -25,11 +29,6 @@ public:
 
     void AdjustSceneRect();
 
-protected:
-#if QT_CONFIG(wheelevent)
-    void wheelEvent(QWheelEvent*) override;
-#endif
-
     void mousePressEvent(QMouseEvent* event) override;
 
     void mouseDoubleClickEvent(QMouseEvent* event) override;
@@ -40,6 +39,17 @@ protected:
 
     void keyPressEvent(QKeyEvent* event) override;
 
+    bool viewportEvent(QEvent* event) override;
+
+    void ResetSceneRect();
+
+    double Zoom() const;
+
+protected:
+#if QT_CONFIG(wheelevent)
+    void wheelEvent(QWheelEvent*) override;
+#endif
+
     void paintEvent(QPaintEvent*) override;
 
 private:
@@ -49,6 +59,8 @@ private:
     RoadDrawingSession* drawingSession = nullptr;
 
     EditMode editMode = Mode_None;
+
+    QTransform lastTransform;
 
     void confirmEdit();
     void quitEdit();

@@ -1,4 +1,6 @@
 #include "CreateRoadOptionWidget.h"
+#include "action_manager.h"
+
 #include <QVBoxLayout>
 #include <qevent.h>
 #include <qpainter.h>
@@ -7,24 +9,22 @@
 #include <sstream>
 
 SectionProfileConfigWidget* g_createRoadOption;
+RoadRunner::SectionProfile leftProfileSetting, rightProfileSetting;
 
 CreateRoadOptionWidget::CreateRoadOptionWidget()
 {
     SetOption(RoadRunner::SectionProfile{ 1, 1 }, RoadRunner::SectionProfile{ -1, 1 });
 }
 
-RoadRunner::SectionProfile CreateRoadOptionWidget::LeftResult() const
+void CreateRoadOptionWidget::showEvent(QShowEvent* event)
 {
-    return activeLeftSetting;
-}
-
-RoadRunner::SectionProfile CreateRoadOptionWidget::RightResult() const
-{
-    return activeRightSetting;
+    emit OptionChangedByUser(activeLeftSetting, activeRightSetting);
+    QWidget::showEvent(event);
 }
 
 void CreateRoadOptionWidget::SetOption(const RoadRunner::SectionProfile& l, const RoadRunner::SectionProfile& r)
 {
+    const QSignalBlocker blocker(this);
     activeLeftSetting = l;
     activeRightSetting = r;
     if (activeLeftSetting.laneCount == 0)
@@ -195,6 +195,8 @@ void CreateRoadOptionWidget::mouseReleaseEvent(QMouseEvent* evt)
         dragIndex.clear();
         handleOrigin.clear();
         update();
+
+        emit OptionChangedByUser(activeLeftSetting, activeRightSetting);
     }
 }
 
@@ -228,8 +230,15 @@ RoadRunner::SectionProfile CreateLaneOptionWidget::RightResult() const
     return RoadRunner::SectionProfile{ 0, static_cast<RoadRunner::type_t>(rightSlider->value()) };
 }
 
+void CreateLaneOptionWidget::showEvent(QShowEvent* event)
+{
+    emit OptionChangedByUser(LeftResult(), RightResult());
+    QWidget::showEvent(event);
+}
+
 void CreateLaneOptionWidget::SetOption(const RoadRunner::SectionProfile& l, const RoadRunner::SectionProfile& r)
 {
+    const QSignalBlocker blocker(this);
     leftSlider->setValue(l.laneCount);
     rightSlider->setValue(r.laneCount);
 }
@@ -239,6 +248,8 @@ void CreateLaneOptionWidget::updateLabel()
     std::stringstream ss;
     ss << "L:" << leftSlider->value() << "|R:" << rightSlider->value();
     resultLabel->setText(QString::fromStdString(ss.str()));
+
+    emit OptionChangedByUser(LeftResult(), RightResult());
 }
 
 SectionProfileConfigWidget::SectionProfileConfigWidget():
@@ -248,34 +259,28 @@ SectionProfileConfigWidget::SectionProfileConfigWidget():
     addWidget(roadMode);
     addWidget(laneMode);
     setMaximumHeight(40);
+
+    connect(roadMode, &CreateRoadOptionWidget::OptionChangedByUser, 
+        this, &SectionProfileConfigWidget::OptionChangedOnPage);
+    connect(laneMode, &CreateLaneOptionWidget::OptionChangedByUser,
+        this, &SectionProfileConfigWidget::OptionChangedOnPage);
 }
 
-RoadRunner::SectionProfile SectionProfileConfigWidget::LeftResult() const
+void SectionProfileConfigWidget::OptionChangedOnPage(RoadRunner::SectionProfile left, RoadRunner::SectionProfile right)
 {
-    switch (currentIndex())
+    if (leftProfileSetting != left || rightProfileSetting != right)
     {
-    case 0:
-        return roadMode->LeftResult();
-    default:
-        return laneMode->LeftResult();
+        RoadRunner::ActionManager::Instance()->Record(left, right);
     }
-}
-
-RoadRunner::SectionProfile SectionProfileConfigWidget::RightResult() const
-{
-    switch (currentIndex())
-    {
-    case 0:
-        return roadMode->RightResult();
-    default:
-        return laneMode->RightResult();
-    }
+    leftProfileSetting = left;
+    rightProfileSetting = right;
 }
 
 void SectionProfileConfigWidget::SetOption(const RoadRunner::SectionProfile& l, const RoadRunner::SectionProfile& r)
 {
     roadMode->SetOption(l, r);
     laneMode->SetOption(l, r);
+    OptionChangedOnPage(l, r);
 }
 
 QSize SectionProfileConfigWidget::sizeHint() const

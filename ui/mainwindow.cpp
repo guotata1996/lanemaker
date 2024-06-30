@@ -8,6 +8,7 @@
 
 #include "main_widget.h"
 #include "change_tracker.h"
+#include "action_manager.h"
 #include "vehicle_manager.h"
 #include "test/validation.h"
 
@@ -34,7 +35,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     auto redoAction = edit->addAction("Redo");
     menu->addMenu(edit);
 
-    QMenu* view = new QMenu("&View");
+    QMenu* view = new QMenu("&Verify");
     auto verifyAction = view->addAction("Verify Now");
     auto alwaysVerifyAction = view->addAction("Always Verify");
     alwaysVerifyAction->setCheckable(true);
@@ -44,22 +45,28 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     toggleSimAction->setChecked(false);
     menu->addMenu(view);
 
+    QMenu* replay = new QMenu("&Replay");
+    auto saveReplayAction = replay->addAction("Save");
+    //auto animatedReplayAction = replay->addAction("Watch");
+    auto debugReplayAction = replay->addAction("Debug");
+    menu->addMenu(replay);
+
     scene = std::make_unique<QGraphicsScene>(this);
     g_scene = scene.get();
-    vehicleManager = new VehicleManager(this);
+    vehicleManager = std::make_unique<VehicleManager>(this);
     
-    mainWidget = new MainWidget("Main View");
+    mainWidget = std::make_unique<MainWidget>("Main View");
     mainWidget->view()->setScene(g_scene);
 
     auto mainLayout = new QVBoxLayout;
     mainLayout->addWidget(menu);
-    mainLayout->addWidget(mainWidget);
+    mainLayout->addWidget(mainWidget.get());
     auto bottomLayout = new QHBoxLayout;
-    hintStatus = new QStatusBar;
-    bottomLayout->addWidget(hintStatus);
-    fpsStatus = new QStatusBar;
+    hintStatus = std::make_unique<QStatusBar>();
+    bottomLayout->addWidget(hintStatus.get());
+    fpsStatus = std::make_unique<QStatusBar>();
     bottomLayout->addStretch();
-    bottomLayout->addWidget(fpsStatus);
+    bottomLayout->addWidget(fpsStatus.get());
     mainLayout->addLayout(bottomLayout);
     
     setLayout(mainLayout);
@@ -72,16 +79,24 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(verifyAction, &QAction::triggered, this, &MainWindow::verifyMap);
     connect(alwaysVerifyAction, &QAction::triggered, this, &MainWindow::toggleAlwaysVerifyMap);
     connect(toggleSimAction, &QAction::triggered, this, &MainWindow::toggleSimulation);
-    connect(mainWidget, &MainWidget::HoveringChanged, this, &MainWindow::setHint);
-    connect(mainWidget, &MainWidget::FPSChanged, this, &MainWindow::setFPS);
-    connect(mainWidget, &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
+    connect(saveReplayAction, &QAction::triggered, this, &MainWindow::saveActionHistory);
+    connect(debugReplayAction, &QAction::triggered, this, &MainWindow::debugActionHistory);
+    connect(mainWidget.get(), &MainWidget::HoveringChanged, this, &MainWindow::setHint);
+    connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
+    connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
 
     srand(std::time(0));
 }
 
+MainWindow::~MainWindow() = default;
+
 void MainWindow::newMap()
 {
+    mainWidget->Reset();
     RoadRunner::ChangeTracker::Instance()->Clear();
+    RoadRunner::ActionManager::Instance()->Reset();
+    assert(mainWidget->view()->scene()->items().isEmpty());
+    // ROADRUNNERTODO: reset profile widget
 }
 
 void MainWindow::saveToFile()
@@ -149,6 +164,35 @@ void MainWindow::verifyMap()
 void MainWindow::toggleAlwaysVerifyMap(bool enable)
 {
     RoadRunner::ChangeTracker::Instance()->VerifyUponChange = enable;
+}
+
+void MainWindow::saveActionHistory()
+{
+    QString s = QFileDialog::getSaveFileName(
+        this,
+        "Choose save location",
+        "C:\\Users\\guota\\Desktop\\RoadRunner",
+        "ActionHistory (*.dat)");
+    if (s.size() != 0)
+    {
+        auto loc = s.toStdString();
+        RoadRunner::ActionManager::Instance()->Save(loc);
+    }
+}
+
+void MainWindow::debugActionHistory()
+{
+    QString s = QFileDialog::getOpenFileName(
+        this,
+        "Choose File to Open",
+        "C:\\Users\\guota\\Desktop\\RoadRunner",
+        "ActionHistory (*.dat)");
+    if (s.size() != 0)
+    {
+        newMap();
+        auto loc = s.toStdString();
+        RoadRunner::ActionManager::Instance()->ReplayImmediate(loc);
+    }
 }
 
 void MainWindow::toggleSimulation(bool enable)

@@ -20,7 +20,7 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp
     ui/mainwindow.cpp ui/main_widget.cpp ui/map_view.cpp ${srcs_for_exe}
     ui/road_graphics.cpp ui/road_drawing.cpp ui/road_lane_drawing.cpp
     ui/road_modification.cpp ui/road_destruction.cpp 
-    ui/CreateRoadOptionWidget.cpp
+    ui/CreateRoadOptionWidget.cpp ui/action_manager.cpp
     traffic/vehicle.cpp traffic/vehicle_manager.cpp
     util/stats.cpp util/multi_segment.cpp
     test/validation.cpp test/junction_validation.cpp test/road_validation.cpp
@@ -29,7 +29,8 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     xodr ui util traffic
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/include
-    ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/thirdparty)
+    ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/thirdparty
+    cereal/include)
 
 target_link_libraries(${CMAKE_PROJECT_NAME} 
     Qt5::Core Qt5::Gui Qt5::Widgets 
