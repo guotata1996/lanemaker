@@ -96,7 +96,6 @@ void MainWindow::newMap()
     RoadRunner::ChangeTracker::Instance()->Clear();
     RoadRunner::ActionManager::Instance()->Reset();
     assert(mainWidget->view()->scene()->items().isEmpty());
-    // ROADRUNNERTODO: reset profile widget
 }
 
 void MainWindow::saveToFile()
@@ -104,7 +103,7 @@ void MainWindow::saveToFile()
     QString s = QFileDialog::getSaveFileName(
         this,
         "Choose save location",
-        "C:\\Users\\guota\\Desktop\\RoadRunner",
+        DefaultSaveFolder().c_str(),
         "OpenDrive (*.xodr)");
     if (s.size() != 0)
     {
@@ -115,10 +114,11 @@ void MainWindow::saveToFile()
 
 void MainWindow::loadFromFile()
 {
+
     QString s = QFileDialog::getOpenFileName(
         this, 
         "Choose File to Open",
-        "C:\\Users\\guota\\Desktop\\RoadRunner",
+        DefaultSaveFolder().c_str(),
         "OpenDrive (*.xodr)");
     if (s.size() != 0)
     {
@@ -171,7 +171,7 @@ void MainWindow::saveActionHistory()
     QString s = QFileDialog::getSaveFileName(
         this,
         "Choose save location",
-        "C:\\Users\\guota\\Desktop\\RoadRunner",
+        DefaultSaveFolder().c_str(),
         "ActionHistory (*.dat)");
     if (s.size() != 0)
     {
@@ -185,7 +185,7 @@ void MainWindow::debugActionHistory()
     QString s = QFileDialog::getOpenFileName(
         this,
         "Choose File to Open",
-        "C:\\Users\\guota\\Desktop\\RoadRunner",
+        DefaultSaveFolder().c_str(),
         "ActionHistory (*.dat)");
     if (s.size() != 0)
     {
@@ -225,4 +225,11 @@ void MainWindow::setHint(QString msg)
 void MainWindow::setFPS(QString msg)
 {
     fpsStatus->showMessage(msg);
+}
+
+std::string MainWindow::DefaultSaveFolder() const
+{
+    auto homeDrive = std::string(std::getenv("HOMEDRIVE"));
+    auto homePath = std::string(std::getenv("HOMEPATH"));
+    return homeDrive + homePath + "\\Desktop\\saved_map";
 }

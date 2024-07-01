@@ -1,4 +1,5 @@
 #include <vector>
+#include <optional>
 
 #include "qevent.h"
 
@@ -187,12 +188,27 @@ namespace RoadRunner
     private:
         ActionManager() = default;
 
+        /* Save last viewport change (if exist) before key frame
+         * Called before mouse events
+         */
+        void FlushBufferedViewportChange();
+
+        /* Save last mouse move (if exist) before key frame
+         * Called before mouse click, release and keyboard events
+         */
+        void FlushBufferedMouseMove();
+
         std::vector<UserAction> history;
 
         static ActionManager* instance;
 
         bool replayMode = false;
 
-        RoadRunner::ChangeViewportAction lastViewportRecord;
+        /*Buffered action during record*/
+        std::optional<RoadRunner::MouseAction> latestMouseMove;
+        std::optional<RoadRunner::ChangeViewportAction> latestViewportChange;
+
+        /*Buffered action during replay*/
+        RoadRunner::ChangeViewportAction lastViewportReplay;
     };
 }

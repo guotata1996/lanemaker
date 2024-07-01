@@ -46,10 +46,7 @@ namespace RoadRunner
             newTrans.m33(),
             hScroll, vScroll
         };
-        history.emplace_back(serialized.part1);
-        history.emplace_back(serialized.part2);
-        history.emplace_back(serialized.part3);
-        history.emplace_back(serialized.part4);
+        latestViewportChange.emplace(serialized);
     }
 
     void ActionManager::Replay(const ChangeViewportAction& action)
@@ -67,12 +64,22 @@ namespace RoadRunner
     void ActionManager::Record(QMouseEvent* evt)
     {
         if (replayMode) return;
+
+        FlushBufferedViewportChange();
         MouseAction serialized;
         serialized.x = evt->pos().x();
         serialized.y = evt->pos().y();
         serialized.type = evt->type();
         serialized.button = evt->button();
-        history.emplace_back(serialized);
+        if (evt->type() == QEvent::Type::MouseMove)
+        {
+            latestMouseMove.emplace(serialized);
+        }
+        else
+        {
+            FlushBufferedMouseMove();
+            history.emplace_back(serialized);
+        }
 
         if (evt->type() == QEvent::Type::MouseButtonPress)
         {
@@ -118,6 +125,7 @@ namespace RoadRunner
     void ActionManager::Record(QKeyEvent* evt)
     {
         if (replayMode) return;
+        FlushBufferedMouseMove();
         KeyPressAction serialized{ evt->key() };
         history.emplace_back(serialized);
     }
@@ -159,7 +167,7 @@ namespace RoadRunner
             switch (action.type)
             {
             case Action_Mouse:
-                Replay(lastViewportRecord); // Weird: mapView->transform() changes silently
+                Replay(lastViewportReplay); // Weird: mapView->transform() changes silently
                 Replay(action.detail.mouse);
                 break;
             case Action_KeyPress:
@@ -169,16 +177,16 @@ namespace RoadRunner
                 Replay(action.detail.changeMode);
                 break;
             case Action_Viewport_Part1:
-                lastViewportRecord.part1 = action.detail.viewport_part1;
+                lastViewportReplay.part1 = action.detail.viewport_part1;
                 break;
             case Action_Viewport_Part2:
-                lastViewportRecord.part2 = action.detail.viewport_part2;
+                lastViewportReplay.part2 = action.detail.viewport_part2;
                 break;
             case Action_Viewport_Part3:
-                lastViewportRecord.part3 = action.detail.viewport_part3;
+                lastViewportReplay.part3 = action.detail.viewport_part3;
                 break;
             case Action_Viewport_Part4:
-                lastViewportRecord.part4 = action.detail.viewport_part4;
+                lastViewportReplay.part4 = action.detail.viewport_part4;
                 break;
             case Action_ChangeProfile:
                 Replay(action.detail.changeProfile);
@@ -194,5 +202,24 @@ namespace RoadRunner
     void ActionManager::Reset()
     {
         history.clear();
+    }
+
+    void ActionManager::FlushBufferedViewportChange()
+    {
+        if (!latestViewportChange.has_value()) return;
+
+        history.emplace_back(latestViewportChange.value().part1);
+        history.emplace_back(latestViewportChange.value().part2);
+        history.emplace_back(latestViewportChange.value().part3);
+        history.emplace_back(latestViewportChange.value().part4);
+        latestViewportChange.reset();
+    }
+
+    void ActionManager::FlushBufferedMouseMove()
+    {
+        if (!latestMouseMove.has_value()) return;
+
+        history.emplace_back(latestMouseMove.value());
+        latestMouseMove.reset();
     }
 }
