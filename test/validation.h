@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace odr { class Road; }
 namespace RoadRunner {
     class AbstractJunction;
@@ -18,6 +20,8 @@ namespace RoadRunnerTest
         static void VerifySingleRoad(const odr::Road& road);
 
         static void VerifyJunction(RoadRunner::AbstractJunction* junction);
+
+        static bool CompareFiles(const std::string& p1, const std::string& p2);
 
     private:
 #ifndef G_TEST

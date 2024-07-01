@@ -54,5 +54,7 @@ private slots:
     void toggleSimulation(bool);
 
     void enableSimulation(bool);
+
+    void onAppQuit();
 };
 

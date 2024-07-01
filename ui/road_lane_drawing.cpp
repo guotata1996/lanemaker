@@ -210,8 +210,8 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
         return false;
     }
     
-    rLanes = g_createRoadOption->LeftResult().laneCount;
-    lLanes = g_createRoadOption->RightResult().laneCount;
+    rLanes = g_createRoadOption->RightResult().laneCount;
+    lLanes = g_createRoadOption->LeftResult().laneCount;
 
     if (rLanes == 0)
     {

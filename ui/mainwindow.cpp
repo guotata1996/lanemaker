@@ -5,6 +5,7 @@
 #include <QMenuBar>
 #include <QFileDialog>
 #include <QStatusBar>
+#include <QApplication>
 
 #include "main_widget.h"
 #include "change_tracker.h"
@@ -84,6 +85,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(mainWidget.get(), &MainWidget::HoveringChanged, this, &MainWindow::setHint);
     connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
     connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
+    connect(QApplication::instance(), &QApplication::aboutToQuit, this, &MainWindow::onAppQuit);
 
     srand(std::time(0));
 }
@@ -232,4 +234,31 @@ std::string MainWindow::DefaultSaveFolder() const
     auto homeDrive = std::string(std::getenv("HOMEDRIVE"));
     auto homePath = std::string(std::getenv("HOMEPATH"));
     return homeDrive + homePath + "\\Desktop\\saved_map";
+}
+
+void MainWindow::onAppQuit()
+{
+    if (RoadRunner::ChangeTracker::Instance()->VerifyUponChange)
+    {
+        auto saveFolder = DefaultSaveFolder();
+        auto originalPath = saveFolder + "\\auto_verify_a.xodr";
+        RoadRunner::ChangeTracker::Instance()->Save(originalPath);
+        auto actionPath = saveFolder + "\\auto_verify_action.dat";
+        RoadRunner::ActionManager::Instance()->Save(actionPath);
+
+        newMap();
+        RoadRunner::ActionManager::Instance()->ReplayImmediate(actionPath);
+        auto replayPath = saveFolder + "\\auto_verify_b.xodr";
+        RoadRunner::ChangeTracker::Instance()->Save(replayPath);
+
+        if (!RoadRunnerTest::Validation::CompareFiles(originalPath, replayPath))
+        {
+            spdlog::error("Replay fails to restore original map!");
+        }
+
+        // Clean up temporary saves
+        std::remove(originalPath.c_str());
+        std::remove(actionPath.c_str());
+        std::remove(replayPath.c_str());
+    } 
 }
