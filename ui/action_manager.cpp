@@ -43,22 +43,25 @@ namespace RoadRunner
         {
             newTrans.m11(), newTrans.m12(), newTrans.m13(),
             newTrans.m21(), newTrans.m22(), newTrans.m23(),
-            newTrans.m31(), newTrans.m32(), newTrans.m33(),
+            newTrans.m33(),
             hScroll, vScroll
         };
-        history.emplace_back(serialized);
+        history.emplace_back(serialized.part1);
+        history.emplace_back(serialized.part2);
+        history.emplace_back(serialized.part3);
+        history.emplace_back(serialized.part4);
     }
 
     void ActionManager::Replay(const ChangeViewportAction& action)
     {
         QTransform tr;
-        tr.setMatrix(action.m11, action.m12, action.m13,
-            action.m21, action.m22, action.m23,
-            action.m31, action.m32, action.m33);
+        tr.setMatrix(action.part1.m11, action.part1.m12, action.part2.m13,
+            action.part2.m21, action.part3.m22, action.part3.m23,
+            0, 0, action.part4.m33);
 
         g_mapView->setTransform(tr); // ROADRUNNERTODO: change sliders accordingly
-        g_mapView->horizontalScrollBar()->setValue(action.hScroll);
-        g_mapView->verticalScrollBar()->setValue(action.vScroll);
+        g_mapView->horizontalScrollBar()->setValue(action.part4.hScroll);
+        g_mapView->verticalScrollBar()->setValue(action.part4.vScroll);
     }
 
     void ActionManager::Record(QMouseEvent* evt)
@@ -165,8 +168,17 @@ namespace RoadRunner
             case Action_ChangeMode:
                 Replay(action.detail.changeMode);
                 break;
-            case Action_Viewport:
-                lastViewportRecord = action.detail.viewport;
+            case Action_Viewport_Part1:
+                lastViewportRecord.part1 = action.detail.viewport_part1;
+                break;
+            case Action_Viewport_Part2:
+                lastViewportRecord.part2 = action.detail.viewport_part2;
+                break;
+            case Action_Viewport_Part3:
+                lastViewportRecord.part3 = action.detail.viewport_part3;
+                break;
+            case Action_Viewport_Part4:
+                lastViewportRecord.part4 = action.detail.viewport_part4;
                 break;
             case Action_ChangeProfile:
                 Replay(action.detail.changeProfile);

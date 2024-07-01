@@ -20,8 +20,8 @@ QGraphicsScene* g_scene;
 MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 {
     setWindowTitle(tr("Road Runner"));
-    setMinimumWidth(1600);
-    setMinimumHeight(1200);
+    setFixedWidth(1600);
+    setFixedHeight(1000);
 
     QMenuBar* menu = new QMenuBar;
     QMenu* file = new QMenu("&File");
