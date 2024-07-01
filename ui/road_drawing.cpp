@@ -16,7 +16,6 @@ extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 
 extern SectionProfileConfigWidget* g_createRoadOption;
-extern RoadRunner::SectionProfile leftProfileSetting, rightProfileSetting;
 
 extern MapView* g_mapView;
 
@@ -453,7 +452,7 @@ odr::RefLine RoadCreationSession::RefLineFromCtrlPoints() const
 
 bool RoadCreationSession::CreateRoad()
 {
-    if (leftProfileSetting.laneCount + rightProfileSetting.laneCount == 0)
+    if (g_createRoadOption->LeftResult().laneCount + g_createRoadOption->RightResult().laneCount == 0)
     {
         spdlog::warn("Cannot create empty road!");
         return true;
@@ -473,8 +472,8 @@ bool RoadCreationSession::CreateRoad()
     }
 
     RoadRunner::RoadProfile config(
-        leftProfileSetting.laneCount, leftProfileSetting.offsetx2,
-        rightProfileSetting.laneCount, rightProfileSetting.offsetx2);
+        g_createRoadOption->LeftResult().laneCount, g_createRoadOption->LeftResult().offsetx2,
+        g_createRoadOption->RightResult().laneCount, g_createRoadOption->RightResult().offsetx2);
 
     auto newRoad = std::make_shared<RoadRunner::Road>(config, refLine);
     newRoad->GenerateAllSectionGraphics();

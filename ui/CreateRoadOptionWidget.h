@@ -86,22 +86,23 @@ class SectionProfileConfigWidget :
 public:
     SectionProfileConfigWidget();
 
-    /*picking from exsiting*/
+    /*picking from existing*/
     void SetOption(const RoadRunner::SectionProfile&, const RoadRunner::SectionProfile&);
 
     void GotoRoadMode();
     void GotoLaneMode();
+
+    RoadRunner::SectionProfile LeftResult() const { return leftProfileSetting; }
+    RoadRunner::SectionProfile RightResult() const { return rightProfileSetting; }
 
     virtual QSize sizeHint() const override;
 
 public slots:
     void OptionChangedOnPage(RoadRunner::SectionProfile left, RoadRunner::SectionProfile right);
 
-signals:
-    /*Includes 1. dragging slider  2. picking from exsiting 3. page index changed*/
-    //void OptionChangedByUser(RoadRunner::SectionProfile left, RoadRunner::SectionProfile right);
-
-protected:
+private:
     CreateRoadOptionWidget* roadMode;
     CreateLaneOptionWidget* laneMode;
+
+    RoadRunner::SectionProfile leftProfileSetting, rightProfileSetting;
 };

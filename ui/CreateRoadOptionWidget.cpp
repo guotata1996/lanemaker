@@ -9,7 +9,6 @@
 #include <sstream>
 
 SectionProfileConfigWidget* g_createRoadOption;
-RoadRunner::SectionProfile leftProfileSetting, rightProfileSetting;
 
 CreateRoadOptionWidget::CreateRoadOptionWidget()
 {
