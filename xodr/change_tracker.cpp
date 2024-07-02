@@ -4,6 +4,7 @@
 #include "junction.h"
 #include "world.h"
 #include "test/validation.h"
+#include "action_manager.h"
 
 #include <spdlog/spdlog.h>
 
@@ -131,6 +132,7 @@ namespace RoadRunner
             return false;
         }
 
+        ActionManager::Instance()->Record(RoadRunner::ActionType::Action_LoadMap);
         // Temporarily hold shared_ptr to Connecting road until they get owned by junction
         std::vector<std::shared_ptr<RoadRunner::Road>> connectingRoadHolder;
         for (const auto& id2Road : odrMap.id_to_road)
@@ -198,6 +200,7 @@ namespace RoadRunner
         {
             return false;
         }
+        ActionManager::Instance()->Record(ActionType::Action_Undo);
         auto lastRedo = undoStack.top();
         undoStack.pop();
         MapChange thisTimeChange;
@@ -222,6 +225,7 @@ namespace RoadRunner
         {
             return false;
         }
+        ActionManager::Instance()->Record(ActionType::Action_Redo);
         auto lastUndo = redoStack.top();
         redoStack.pop();
         MapChange thisTimeChange;

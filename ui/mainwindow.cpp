@@ -170,6 +170,12 @@ void MainWindow::toggleAlwaysVerifyMap(bool enable)
 
 void MainWindow::saveActionHistory()
 {
+    if (!RoadRunner::ActionManager::Instance()->Replayable())
+    {
+        spdlog::warn("Abort: can't save unreplayable history!");
+        return;
+    }
+
     QString s = QFileDialog::getSaveFileName(
         this,
         "Choose save location",
@@ -238,8 +244,10 @@ std::string MainWindow::DefaultSaveFolder() const
 
 void MainWindow::onAppQuit()
 {
-    if (RoadRunner::ChangeTracker::Instance()->VerifyUponChange)
+    if (RoadRunner::ChangeTracker::Instance()->VerifyUponChange
+        && RoadRunner::ActionManager::Instance()->Replayable())
     {
+        spdlog::info("Testing action replay...");
         auto saveFolder = DefaultSaveFolder();
         auto originalPath = saveFolder + "\\auto_verify_a.xodr";
         RoadRunner::ChangeTracker::Instance()->Save(originalPath);
@@ -253,12 +261,14 @@ void MainWindow::onAppQuit()
 
         if (!RoadRunnerTest::Validation::CompareFiles(originalPath, replayPath))
         {
-            spdlog::error("Replay fails to restore original map!");
+            spdlog::error("Replay result is different from original map! Check {} for details.", saveFolder);
         }
-
-        // Clean up temporary saves
-        std::remove(originalPath.c_str());
-        std::remove(actionPath.c_str());
-        std::remove(replayPath.c_str());
+        else
+        {
+            // On success, clean up temporary saves
+            std::remove(originalPath.c_str());
+            std::remove(actionPath.c_str());
+            std::remove(replayPath.c_str());
+        }
     } 
 }

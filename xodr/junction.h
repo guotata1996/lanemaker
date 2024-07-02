@@ -44,15 +44,13 @@ namespace RoadRunner
             return !(*this == other);
         }
 
-        struct Hasher
+        bool operator<(const ConnectionInfo& rhs) const
         {
-            size_t operator()(const ConnectionInfo& obj) const {
-                return std::hash<double>()(obj.refLinePos[0]) ^ std::hash<double>()(obj.refLinePos[1]) ^ std::hash<double>()(obj.refLineHdg) ^
-                    std::hash<type_t>()(obj.leftProfile.laneCount) ^ std::hash<type_t>()(obj.leftProfile.offsetx2) ^
-                    std::hash<type_t>()(obj.rightProfile.laneCount) ^ std::hash<type_t>()(obj.rightProfile.offsetx2) ^
-                    std::hash<odr::RoadLink::ContactPoint>()(obj.contact);
-            };
-        };
+            if (road.expired()) return true;
+            if (rhs.road.expired()) return false;
+            return road.lock()->ID() < rhs.road.lock()->ID() || 
+                road.lock()->ID() == rhs.road.lock()->ID() && contact < rhs.contact;
+        }
 
         std::weak_ptr<Road> road;
         odr::RoadLink::ContactPoint contact;
@@ -95,12 +93,12 @@ namespace RoadRunner
 
         bool operator==(const RoadEndpoint& other) const
         {
-            return other.road == road && other.contact == contact;
+            return other.road->id == road->id && other.contact == contact;
         }
 
         bool operator <(const RoadEndpoint& rhs) const
         {
-            return road < rhs.road || road == rhs.road && contact < rhs.contact;
+            return road->id < rhs.road->id || road->id == rhs.road->id && contact < rhs.contact;
         }
     };
 
@@ -181,7 +179,7 @@ namespace RoadRunner
 #ifndef G_TEST
     protected:
 #endif
-        std::unordered_set<ConnectionInfo, ConnectionInfo::Hasher> formedFrom;
+        std::set<ConnectionInfo> formedFrom;
     };
 
     // TODO: inherit same class as Road to manage ID

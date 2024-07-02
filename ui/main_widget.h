@@ -6,6 +6,7 @@ QT_BEGIN_NAMESPACE
 class QLabel;
 class QSlider;
 class QToolButton;
+class QButtonGroup;
 QT_END_NAMESPACE
 
 class MapView;
@@ -56,6 +57,7 @@ private slots:
     void rotateRight();
 
 private:
+    QButtonGroup* pointerModeGroup;
     MapView* graphicsView;
     QToolButton* antialiasButton;
     QToolButton* resetButton;

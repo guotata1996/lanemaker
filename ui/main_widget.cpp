@@ -103,7 +103,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     antialiasButton->setCheckable(true);
     antialiasButton->setChecked(false);
 
-    QButtonGroup* pointerModeGroup = new QButtonGroup(this);
+    pointerModeGroup = new QButtonGroup(this);
     pointerModeGroup->setExclusive(true);
     pointerModeGroup->addButton(createModeButton);
     pointerModeGroup->addButton(createLaneModeButton);
@@ -297,7 +297,12 @@ void MainWidget::Painted()
 
 void MainWidget::Reset()
 {
+    pointerModeGroup->setExclusive(false);
+    for (auto btn : pointerModeGroup->buttons())
+    {
+        btn->setChecked(false);
+    }
+    pointerModeGroup->setExclusive(true);
     gotoDragMode();
     graphicsView->ResetSceneRect();
-    // TODO: reset road creation option
 }

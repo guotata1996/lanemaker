@@ -22,7 +22,8 @@ namespace RoadRunner
         Action_Undo,
         Action_Redo,
         Action_ChangeMode,
-        Action_ChangeProfile
+        Action_ChangeProfile,
+        Action_LoadMap
     };
 
     struct MouseAction
@@ -96,6 +97,8 @@ namespace RoadRunner
         ActionDetail detail;
 
         UserAction() = default;
+
+        UserAction(ActionType aType) : type(aType) {}
 
         UserAction(MouseAction ma)
         {
@@ -177,6 +180,8 @@ namespace RoadRunner
         void Record(const SectionProfile&, const SectionProfile&);
         void Replay(const ChangeProfileAction&);
 
+        void Record(ActionType);
+
         void Save(std::string);
 
         void ReplayImmediate(std::string);
@@ -184,6 +189,8 @@ namespace RoadRunner
         void ReplayAnimated(std::string);
 
         void Reset();
+
+        bool Replayable() const { return replayable; }
 
     private:
         ActionManager() = default;
@@ -203,6 +210,8 @@ namespace RoadRunner
         static ActionManager* instance;
 
         bool replayMode = false;
+
+        bool replayable = true;
 
         /*Buffered action during record*/
         std::optional<RoadRunner::MouseAction> latestMouseMove;

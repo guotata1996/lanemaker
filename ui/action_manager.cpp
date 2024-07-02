@@ -1,6 +1,7 @@
 #include "action_manager.h"
 #include "road_drawing.h"
 #include "CreateRoadOptionWidget.h"
+#include "change_tracker.h"
 
 #include <fstream>
 #include <cereal/archives/binary.hpp>
@@ -26,7 +27,7 @@ namespace RoadRunner
 
     void ActionManager::Record(MapView::EditMode modeChange)
     {
-        if (replayMode) return;
+        if (replayMode || !replayable) return;
         ChangeModeAction serialized{ modeChange };
         history.emplace_back(serialized);
     }
@@ -38,7 +39,7 @@ namespace RoadRunner
 
     void ActionManager::Record(const QTransform& newTrans, int hScroll, int vScroll)
     {
-        if (replayMode) return;
+        if (replayMode || !replayable) return;
         ChangeViewportAction serialized
         {
             newTrans.m11(), newTrans.m12(), newTrans.m13(),
@@ -63,7 +64,7 @@ namespace RoadRunner
 
     void ActionManager::Record(QMouseEvent* evt)
     {
-        if (replayMode) return;
+        if (replayMode || !replayable) return;
 
         FlushBufferedViewportChange();
         MouseAction serialized;
@@ -124,7 +125,7 @@ namespace RoadRunner
 
     void ActionManager::Record(QKeyEvent* evt)
     {
-        if (replayMode) return;
+        if (replayMode || !replayable) return;
         FlushBufferedMouseMove();
         KeyPressAction serialized{ evt->key() };
         history.emplace_back(serialized);
@@ -139,7 +140,7 @@ namespace RoadRunner
 
     void ActionManager::Record(const SectionProfile& left, const SectionProfile& right)
     {
-        if (replayMode) return;
+        if (replayMode || !replayable) return;
         ChangeProfileAction serialized{ left, right };
         history.emplace_back(serialized);
     }
@@ -147,6 +148,22 @@ namespace RoadRunner
     void ActionManager::Replay(const ChangeProfileAction& action)
     {
         g_createRoadOption->SetOption(action.leftProfile, action.rightProfile);
+    }
+
+    void ActionManager::Record(ActionType actionNoParm)
+    {
+        switch (actionNoParm)
+        {
+        case RoadRunner::Action_Undo: case RoadRunner::Action_Redo:
+            history.emplace_back(actionNoParm);
+            break;
+        case RoadRunner::Action_LoadMap:
+            // To be supported
+            replayable = false;
+            break;
+        default:
+            throw;
+        }
     }
 
     void ActionManager::Save(std::string fpath)
@@ -190,6 +207,18 @@ namespace RoadRunner
                 break;
             case Action_ChangeProfile:
                 Replay(action.detail.changeProfile);
+                break;
+            case Action_Undo:
+                if (!ChangeTracker::Instance()->Undo())
+                {
+                    spdlog::error("Error replaying undo action");
+                }
+                break;
+            case Action_Redo:
+                if (!ChangeTracker::Instance()->Redo())
+                {
+                    spdlog::error("Error replaying redo action");
+                }
                 break;
             default:
                 spdlog::error("Action type {} replay is not supported", static_cast<int>(action.type));
