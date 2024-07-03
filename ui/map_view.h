@@ -29,6 +29,20 @@ public:
 
     void AdjustSceneRect();
 
+    void ResetSceneRect();
+
+    void OnMousePress(QMouseEvent* event);
+    void OnMouseDoubleClick(QMouseEvent* event);
+    void OnMouseMove(QMouseEvent* event);
+    void OnMouseRelease(QMouseEvent* event);
+    void OnKeyPress(QKeyEvent* event);
+
+    double Zoom() const;
+
+protected:
+#if QT_CONFIG(wheelevent)
+    void wheelEvent(QWheelEvent*) override;
+#endif
     void mousePressEvent(QMouseEvent* event) override;
 
     void mouseDoubleClickEvent(QMouseEvent* event) override;
@@ -40,15 +54,6 @@ public:
     void keyPressEvent(QKeyEvent* event) override;
 
     bool viewportEvent(QEvent* event) override;
-
-    void ResetSceneRect();
-
-    double Zoom() const;
-
-protected:
-#if QT_CONFIG(wheelevent)
-    void wheelEvent(QWheelEvent*) override;
-#endif
 
     void paintEvent(QPaintEvent*) override;
 

@@ -16,8 +16,6 @@ public:
 
     ~MainWindow();
 private:
-    std::string DefaultSaveFolder() const;
-
     std::unique_ptr<QGraphicsScene> scene;
 
     std::unique_ptr<QStatusBar> hintStatus;

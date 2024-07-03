@@ -2,6 +2,7 @@
 #include "road_drawing.h"
 #include "CreateRoadOptionWidget.h"
 #include "change_tracker.h"
+#include "util.h"
 
 #include <fstream>
 #include <cereal/archives/binary.hpp>
@@ -106,17 +107,17 @@ namespace RoadRunner
                 action.x, action.y, 
                 g_mapView->viewportTransform().dx(), g_mapView->viewportTransform().dy(),
                 scenePos.x(), scenePos.y());
-            g_mapView->mousePressEvent(qMouseEvent.get());
+            g_mapView->OnMousePress(qMouseEvent.get());
             break;
         }
         case QEvent::Type::MouseButtonDblClick:
-            g_mapView->mouseDoubleClickEvent(qMouseEvent.get());
+            g_mapView->OnMouseDoubleClick(qMouseEvent.get());
             break;
         case QEvent::Type::MouseMove:
-            g_mapView->mouseMoveEvent(qMouseEvent.get());
+            g_mapView->OnMouseMove(qMouseEvent.get());
             break;
         case QEvent::Type::MouseButtonRelease:
-            g_mapView->mouseReleaseEvent(qMouseEvent.get());
+            g_mapView->OnMouseRelease(qMouseEvent.get());
             break;
         default:
             throw;
@@ -135,7 +136,7 @@ namespace RoadRunner
     {
         auto qKeyEvent = std::make_unique<QKeyEvent>(QEvent::Type::KeyPress,
             action.key, QFlags<Qt::KeyboardModifier>());
-        g_mapView->keyPressEvent(qKeyEvent.get());
+        g_mapView->OnKeyPress(qKeyEvent.get());
     }
 
     void ActionManager::Record(const SectionProfile& left, const SectionProfile& right)
@@ -166,11 +167,17 @@ namespace RoadRunner
         }
     }
 
-    void ActionManager::Save(std::string fpath)
+    void ActionManager::Save(std::string fpath) const
     {
         std::ofstream outFile(fpath, std::ios::binary);
         cereal::BinaryOutputArchive oarchive(outFile);
         oarchive(history);
+    }
+
+    void ActionManager::SaveOnExeption()
+    {
+        Save(DefaultSaveFolder() + "\\exception.bat"); // TODO: datetime in file name
+        replayable = false;
     }
 
     void ActionManager::ReplayImmediate(std::string fpath)

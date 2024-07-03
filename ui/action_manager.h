@@ -182,13 +182,14 @@ namespace RoadRunner
 
         void Record(ActionType);
 
-        void Save(std::string);
+        void Save(std::string) const;
+        void SaveOnExeption();
 
         void ReplayImmediate(std::string);
 
-        void ReplayAnimated(std::string);
-
         void Reset();
+
+        bool Replaying() const { return replayMode; }
 
         bool Replayable() const { return replayable; }
 

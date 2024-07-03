@@ -20,7 +20,7 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp
     ui/mainwindow.cpp ui/main_widget.cpp ui/map_view.cpp ${srcs_for_exe}
     ui/road_graphics.cpp ui/road_drawing.cpp ui/road_lane_drawing.cpp
     ui/road_modification.cpp ui/road_destruction.cpp 
-    ui/CreateRoadOptionWidget.cpp ui/action_manager.cpp
+    ui/CreateRoadOptionWidget.cpp ui/action_manager.cpp ui/util.cpp
     traffic/vehicle.cpp traffic/vehicle_manager.cpp
     util/stats.cpp util/multi_segment.cpp
     test/validation.cpp test/junction_validation.cpp test/road_validation.cpp
@@ -38,6 +38,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     OpenDrive
     spdlog::spdlog
 )
+
+target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_17)
 
 # ====================================
 # Google Test

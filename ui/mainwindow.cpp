@@ -12,6 +12,7 @@
 #include "action_manager.h"
 #include "vehicle_manager.h"
 #include "test/validation.h"
+#include "util.h"
 
 #include "spdlog/spdlog.h"
 
@@ -105,7 +106,7 @@ void MainWindow::saveToFile()
     QString s = QFileDialog::getSaveFileName(
         this,
         "Choose save location",
-        DefaultSaveFolder().c_str(),
+        RoadRunner::DefaultSaveFolder().c_str(),
         "OpenDrive (*.xodr)");
     if (s.size() != 0)
     {
@@ -120,7 +121,7 @@ void MainWindow::loadFromFile()
     QString s = QFileDialog::getOpenFileName(
         this, 
         "Choose File to Open",
-        DefaultSaveFolder().c_str(),
+        RoadRunner::DefaultSaveFolder().c_str(),
         "OpenDrive (*.xodr)");
     if (s.size() != 0)
     {
@@ -179,7 +180,7 @@ void MainWindow::saveActionHistory()
     QString s = QFileDialog::getSaveFileName(
         this,
         "Choose save location",
-        DefaultSaveFolder().c_str(),
+        RoadRunner::DefaultSaveFolder().c_str(),
         "ActionHistory (*.dat)");
     if (s.size() != 0)
     {
@@ -193,7 +194,7 @@ void MainWindow::debugActionHistory()
     QString s = QFileDialog::getOpenFileName(
         this,
         "Choose File to Open",
-        DefaultSaveFolder().c_str(),
+        RoadRunner::DefaultSaveFolder().c_str(),
         "ActionHistory (*.dat)");
     if (s.size() != 0)
     {
@@ -235,20 +236,13 @@ void MainWindow::setFPS(QString msg)
     fpsStatus->showMessage(msg);
 }
 
-std::string MainWindow::DefaultSaveFolder() const
-{
-    auto homeDrive = std::string(std::getenv("HOMEDRIVE"));
-    auto homePath = std::string(std::getenv("HOMEPATH"));
-    return homeDrive + homePath + "\\Desktop\\saved_map";
-}
-
 void MainWindow::onAppQuit()
 {
     if (RoadRunner::ChangeTracker::Instance()->VerifyUponChange
         && RoadRunner::ActionManager::Instance()->Replayable())
     {
         spdlog::info("Testing action replay...");
-        auto saveFolder = DefaultSaveFolder();
+        auto saveFolder = RoadRunner::DefaultSaveFolder();
         auto originalPath = saveFolder + "\\auto_verify_a.xodr";
         RoadRunner::ChangeTracker::Instance()->Save(originalPath);
         auto actionPath = saveFolder + "\\auto_verify_action.dat";

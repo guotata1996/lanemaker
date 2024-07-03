@@ -95,6 +95,234 @@ void MapView::SetEditMode(EditMode aMode)
     }
 }
 
+void MapView::OnMousePress(QMouseEvent* evt)
+{
+    if (editMode != Mode_None)
+    {
+        if (!drawingSession->Update(evt))
+        {
+            confirmEdit();
+        }
+    }
+}
+
+void MapView::mousePressEvent(QMouseEvent* evt)
+{
+    QGraphicsView::mousePressEvent(evt);
+    if (!RoadRunner::ActionManager::Instance()->Replaying())
+    {
+        RoadRunner::ActionManager::Instance()->Record(evt);
+        try
+        {
+            OnMousePress(evt);
+        }
+        catch (std::exception e)
+        {
+            RoadRunner::ActionManager::Instance()->SaveOnExeption();
+            throw(e);
+        }
+    }
+}
+
+void MapView::OnMouseDoubleClick(QMouseEvent* evt)
+{
+    if (editMode != Mode_None)
+    {
+        drawingSession->Update(evt);
+    }
+}
+
+void MapView::mouseDoubleClickEvent(QMouseEvent* evt)
+{
+    QGraphicsView::mouseDoubleClickEvent(evt);
+    if (!RoadRunner::ActionManager::Instance()->Replaying())
+    {
+        RoadRunner::ActionManager::Instance()->Record(evt);
+        try
+        {
+            OnMouseDoubleClick(evt);
+        }
+        catch (std::exception e)
+        {
+            RoadRunner::ActionManager::Instance()->SaveOnExeption();
+            throw(e);
+        }
+    }
+}
+
+void MapView::OnMouseMove(QMouseEvent* evt)
+{
+    SnapCursor(evt->pos());
+    if (editMode != Mode_None)
+    {
+        drawingSession->Update(evt);
+    }
+}
+
+void MapView::mouseMoveEvent(QMouseEvent* evt)
+{
+    QGraphicsView::mouseMoveEvent(evt);
+    if (!RoadRunner::ActionManager::Instance()->Replaying())
+    {
+        RoadRunner::ActionManager::Instance()->Record(evt);
+        try
+        {
+            OnMouseMove(evt);
+        }
+        catch (std::exception e)
+        {
+            RoadRunner::ActionManager::Instance()->SaveOnExeption();
+            throw(e);
+        }
+    }
+}
+
+void MapView::OnMouseRelease(QMouseEvent* evt)
+{
+    if (editMode != Mode_None)
+    {
+        drawingSession->Update(evt);
+    }
+}
+
+void MapView::mouseReleaseEvent(QMouseEvent* evt)
+{
+    QGraphicsView::mouseReleaseEvent(evt);
+    if (!RoadRunner::ActionManager::Instance()->Replaying())
+    {
+        RoadRunner::ActionManager::Instance()->Record(evt);
+        try
+        {
+            OnMouseRelease(evt);
+        }
+        catch (std::exception e)
+        {
+            RoadRunner::ActionManager::Instance()->SaveOnExeption();
+            throw(e);
+        }
+    }
+}
+
+void MapView::OnKeyPress(QKeyEvent* evt)
+{
+    switch (evt->key())
+    {
+    case Qt::Key_Escape:
+        quitEdit();
+        break;
+    case Qt::Key_Return:
+        confirmEdit();
+        break;
+    case Qt::Key_I:
+    {
+        auto g_road = g_PointerRoad.lock();
+        if (g_road != nullptr)
+        {
+            std::stringstream ss;
+            ss << "Road" << g_road->ID() << ": Length= " << std::setprecision(3) << g_road->Length();
+            if (g_road->generated.junction != "-1")
+            {
+                ss << " is connecting in junction " << g_road->generated.junction;
+                auto junc = static_cast<RoadRunner::Junction*>(IDGenerator::ForJunction()->GetByID(g_road->generated.junction));
+                ss << junc->Log();
+            }
+            else
+            {
+                ss << g_road->generated.rr_profile.Log();
+            }
+
+            if (g_road->predecessorJunction != nullptr)
+            {
+                ss << "\nPred junction:" << g_road->predecessorJunction->Log();
+            }
+            if (g_road->successorJunction != nullptr)
+            {
+                ss << "\nSucc junction:" << g_road->successorJunction->Log();
+            }
+
+            spdlog::info("{}", ss.str());
+        }
+        else
+        {
+            spdlog::info("NonConnRoad={}, NRoadID={}, JuctionID={}, N visible graphics items={}",
+                World::Instance()->allRoads.size(),
+                IDGenerator::ForRoad()->size(),
+                IDGenerator::ForJunction()->size(),
+                scene()->items(mapToScene(viewport()->geometry())).size());
+        }
+        break;
+    }
+    case Qt::Key_A:
+        if (!rotatingRoads.empty())
+        {
+            rotatingIndex = (rotatingIndex + 1) % rotatingRoads.size();
+            g_PointerRoad = rotatingRoads[rotatingIndex].first->Road();
+            g_PointerRoadS = rotatingRoads[rotatingIndex].second;
+            if (drawingSession != nullptr)
+            {
+                drawingSession->SetHighlightTo(g_PointerRoad.lock());
+            }
+        }
+        break;
+    }
+}
+
+void MapView::keyPressEvent(QKeyEvent* evt)
+{
+    QGraphicsView::keyPressEvent(evt);
+    if (!RoadRunner::ActionManager::Instance()->Replaying())
+    {
+        RoadRunner::ActionManager::Instance()->Record(evt);
+        try
+        {
+            OnKeyPress(evt);
+        }
+        catch (std::exception e)
+        {
+            RoadRunner::ActionManager::Instance()->SaveOnExeption();
+            throw(e);
+        }
+    }
+}
+
+void MapView::paintEvent(QPaintEvent* evt)
+{
+    QGraphicsView::paintEvent(evt);
+    view->Painted();
+}
+
+void MapView::AdjustSceneRect()
+{
+    //auto original = scene()->itemsBoundingRect();
+    QRectF original(0, 0, 0, 0);
+    for (auto item : scene()->items())
+    {
+        if (dynamic_cast<RoadRunner::LaneGraphics*>(item) != nullptr)
+        {
+            original = original.united(item->sceneBoundingRect());
+        }
+    }
+
+    QRectF paded(original.left() - ViewPadding, original.top() - ViewPadding,
+        original.width() + 2 * ViewPadding, original.height() + 2 * ViewPadding);
+    setSceneRect(paded);
+}
+
+void MapView::confirmEdit()
+{
+    RoadRunner::ChangeTracker::Instance()->StartRecordEdit();
+    bool cleanState = drawingSession->Complete();
+    RoadRunner::ChangeTracker::Instance()->FinishRecordEdit(!cleanState);
+    quitEdit();
+
+    AdjustSceneRect();
+}
+
+void MapView::quitEdit()
+{
+    SetEditMode(editMode);
+}
+
 void MapView::SnapCursor(const QPoint& viewPos)
 {
     QVector2D viewPosVec(viewPos);
@@ -136,7 +364,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
                 {
                     directOver.push_back(std::make_pair(laneGraphicsItem, s));
                 }
-                
+
                 break;
             }
             item = item->parentItem();
@@ -204,152 +432,4 @@ void MapView::SnapCursor(const QPoint& viewPos)
     }
 
     view->SetHovering(txt);
-}
-
-void MapView::mousePressEvent(QMouseEvent* evt)
-{
-    QGraphicsView::mousePressEvent(evt);
-    RoadRunner::ActionManager::Instance()->Record(evt);
-    if (editMode != Mode_None)
-    {
-        if (!drawingSession->Update(evt))
-        {
-            confirmEdit();
-        }
-    }
-}
-
-void MapView::mouseDoubleClickEvent(QMouseEvent* evt)
-{
-    QGraphicsView::mouseDoubleClickEvent(evt);
-    RoadRunner::ActionManager::Instance()->Record(evt);
-    if (editMode != Mode_None)
-    {
-        drawingSession->Update(evt);
-    }
-}
-
-void MapView::mouseMoveEvent(QMouseEvent* evt)
-{
-    QGraphicsView::mouseMoveEvent(evt);
-    RoadRunner::ActionManager::Instance()->Record(evt);
-    SnapCursor(evt->pos());
-    if (editMode != Mode_None)
-    {
-        drawingSession->Update(evt);
-    }
-}
-
-void MapView::mouseReleaseEvent(QMouseEvent* evt)
-{
-    QGraphicsView::mouseReleaseEvent(evt);
-    RoadRunner::ActionManager::Instance()->Record(evt);
-    if (editMode != Mode_None)
-    {
-        drawingSession->Update(evt);
-    }
-}
-
-void MapView::keyPressEvent(QKeyEvent* evt)
-{
-    QGraphicsView::keyPressEvent(evt);
-    RoadRunner::ActionManager::Instance()->Record(evt);
-    switch (evt->key())
-    {
-    case Qt::Key_Escape:
-        quitEdit();
-        break;
-    case Qt::Key_Return:
-        confirmEdit();
-        break;
-    case Qt::Key_I:
-    {
-        auto g_road = g_PointerRoad.lock();
-        if (g_road != nullptr)
-        {
-            std::stringstream ss;
-            ss << "Road" << g_road->ID() << ": Length= " << std::setprecision(3) << g_road->Length();
-            if (g_road->generated.junction != "-1")
-            {
-                ss << " is connecting in junction " << g_road->generated.junction;
-                auto junc = static_cast<RoadRunner::Junction*>(IDGenerator::ForJunction()->GetByID(g_road->generated.junction));
-                ss << junc->Log();
-            }
-            else
-            {
-                ss << g_road->generated.rr_profile.Log();
-            }
-
-            if (g_road->predecessorJunction != nullptr)
-            {
-                ss << "\nPred junction:" << g_road->predecessorJunction->Log();
-            }
-            if (g_road->successorJunction != nullptr)
-            {
-                ss << "\nSucc junction:" << g_road->successorJunction->Log();
-            }
-
-            spdlog::info("{}", ss.str());
-        }
-        else
-        {
-            spdlog::info("NonConnRoad={}, NRoadID={}, JuctionID={}, N visible graphics items={}",
-                World::Instance()->allRoads.size(),
-                IDGenerator::ForRoad()->size(),
-                IDGenerator::ForJunction()->size(),
-                scene()->items(mapToScene(viewport()->geometry())).size());
-        }
-        break;
-    }
-    case Qt::Key_A:
-        if (!rotatingRoads.empty())
-        {
-            rotatingIndex = (rotatingIndex + 1) % rotatingRoads.size();
-            g_PointerRoad = rotatingRoads[rotatingIndex].first->Road();
-            g_PointerRoadS = rotatingRoads[rotatingIndex].second;
-            if (drawingSession != nullptr)
-            {
-                drawingSession->SetHighlightTo(g_PointerRoad.lock());
-            }
-        }
-        break;
-    }
-}
-
-void MapView::paintEvent(QPaintEvent* evt)
-{
-    QGraphicsView::paintEvent(evt);
-    view->Painted();
-}
-
-void MapView::AdjustSceneRect()
-{
-    //auto original = scene()->itemsBoundingRect();
-    QRectF original(0, 0, 0, 0);
-    for (auto item : scene()->items())
-    {
-        if (dynamic_cast<RoadRunner::LaneGraphics*>(item) != nullptr)
-        {
-            original = original.united(item->sceneBoundingRect());
-        }
-    }
-
-    QRectF paded(original.left() - ViewPadding, original.top() - ViewPadding,
-        original.width() + 2 * ViewPadding, original.height() + 2 * ViewPadding);
-    setSceneRect(paded);
-}
-
-void MapView::confirmEdit()
-{
-    RoadRunner::ChangeTracker::Instance()->StartRecordEdit();
-    bool cleanState = drawingSession->Complete();
-    RoadRunner::ChangeTracker::Instance()->FinishRecordEdit(!cleanState);
-    quitEdit();
-
-    AdjustSceneRect();
-}
-
-void MapView::quitEdit()
-{
-    SetEditMode(editMode);
 }
