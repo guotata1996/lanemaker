@@ -245,7 +245,7 @@ void MainWindow::onAppQuit()
         auto saveFolder = RoadRunner::DefaultSaveFolder();
         auto originalPath = saveFolder + "\\auto_verify_a.xodr";
         RoadRunner::ChangeTracker::Instance()->Save(originalPath);
-        auto actionPath = saveFolder + "\\auto_verify_action.dat";
+        auto actionPath = saveFolder + "\\auto_verify_action__" + RoadRunner::CurrentDateTime() + ".dat";
         RoadRunner::ActionManager::Instance()->Save(actionPath);
 
         newMap();
@@ -255,7 +255,7 @@ void MainWindow::onAppQuit()
 
         if (!RoadRunnerTest::Validation::CompareFiles(originalPath, replayPath))
         {
-            spdlog::error("Replay result is different from original map! Check {} for details.", saveFolder);
+            spdlog::error("Replay result is different from original map! Check {} for details.", actionPath);
         }
         else
         {

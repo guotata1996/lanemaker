@@ -174,10 +174,12 @@ namespace RoadRunner
         oarchive(history);
     }
 
-    void ActionManager::SaveOnExeption()
+    std::string ActionManager::SaveOnExeption()
     {
-        Save(DefaultSaveFolder() + "\\exception.bat"); // TODO: datetime in file name
+        auto savePath = DefaultSaveFolder() + "\\exception__" + CurrentDateTime() + ".dat";
+        Save(savePath);
         replayable = false;
+        return savePath;
     }
 
     void ActionManager::ReplayImmediate(std::string fpath)

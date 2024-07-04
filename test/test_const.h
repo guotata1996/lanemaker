@@ -6,10 +6,10 @@
     #define ExpectLTOrAssert(a, b) EXPECT_LT(a, b)
     #define ExpectGTOrAssert(a, b) EXPECT_GT(a, b)
 #else
-    #define ExpectOrAssert(expr) assert(expr)
-    #define ExpectNearOrAssert(a, b, epsilon) assert(std::abs(a - b) < epsilon)
-    #define ExpectLTOrAssert(a, b) assert(a < b)
-    #define ExpectGTOrAssert(a, b) assert(a > b)
+    #define ExpectOrAssert(expr) if (!(expr)) throw std::logic_error("Validation error: Expect T But F")
+    #define ExpectNearOrAssert(a, b, epsilon) if (std::abs(a - b) >= epsilon) throw std::logic_error("Validation error: Expect EQ But NE")
+    #define ExpectLTOrAssert(a, b) if (a >= b) throw std::logic_error("Validation error: Expect > But <=")
+    #define ExpectGTOrAssert(a, b) if (a <= b) throw std::logic_error("Validation error: Expect < But >=")
 #endif
 
 namespace RoadRunnerTest

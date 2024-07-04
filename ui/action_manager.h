@@ -183,7 +183,7 @@ namespace RoadRunner
         void Record(ActionType);
 
         void Save(std::string) const;
-        void SaveOnExeption();
+        std::string SaveOnExeption();
 
         void ReplayImmediate(std::string);
 

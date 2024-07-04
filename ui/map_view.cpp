@@ -9,6 +9,8 @@
 #include <sstream>
 #include <iomanip> //std::setprecision
 #include <qscrollbar.h>
+#include <qmessagebox.h>
+#include <qapplication.h>
 
 
 std::weak_ptr<RoadRunner::Road> g_PointerRoad;
@@ -118,8 +120,7 @@ void MapView::mousePressEvent(QMouseEvent* evt)
         }
         catch (std::exception e)
         {
-            RoadRunner::ActionManager::Instance()->SaveOnExeption();
-            throw(e);
+            handleException(e);
         }
     }
 }
@@ -144,8 +145,7 @@ void MapView::mouseDoubleClickEvent(QMouseEvent* evt)
         }
         catch (std::exception e)
         {
-            RoadRunner::ActionManager::Instance()->SaveOnExeption();
-            throw(e);
+            handleException(e);
         }
     }
 }
@@ -171,8 +171,7 @@ void MapView::mouseMoveEvent(QMouseEvent* evt)
         }
         catch (std::exception e)
         {
-            RoadRunner::ActionManager::Instance()->SaveOnExeption();
-            throw(e);
+            handleException(e);
         }
     }
 }
@@ -197,8 +196,7 @@ void MapView::mouseReleaseEvent(QMouseEvent* evt)
         }
         catch (std::exception e)
         {
-            RoadRunner::ActionManager::Instance()->SaveOnExeption();
-            throw(e);
+            handleException(e);
         }
     }
 }
@@ -279,8 +277,7 @@ void MapView::keyPressEvent(QKeyEvent* evt)
         }
         catch (std::exception e)
         {
-            RoadRunner::ActionManager::Instance()->SaveOnExeption();
-            throw(e);
+            handleException(e);
         }
     }
 }
@@ -321,6 +318,14 @@ void MapView::confirmEdit()
 void MapView::quitEdit()
 {
     SetEditMode(editMode);
+}
+
+void MapView::handleException(std::exception e)
+{
+    auto saveLocation = RoadRunner::ActionManager::Instance()->SaveOnExeption();
+    auto msg = std::string(e.what()) + "\nReplayable at " + saveLocation;
+    QMessageBox::information(this, "Exception Caught", QString::fromStdString(msg), QMessageBox::Ok);
+    QCoreApplication::quit();
 }
 
 void MapView::SnapCursor(const QPoint& viewPos)

@@ -67,6 +67,8 @@ private:
 
     QTransform lastTransform;
 
+    void handleException(std::exception);
+
     void confirmEdit();
     void quitEdit();
 
