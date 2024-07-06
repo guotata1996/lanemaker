@@ -49,19 +49,21 @@ float RoadDrawingSession::SnapDistFromScale() const
     return CustomCursorItem::SnapRadiusPx / g_mapView->Zoom();
 }
 
-double RoadDrawingSession::GetAdjustedS() const
+double RoadDrawingSession::GetAdjustedS(bool* onSegmentBoundary) const
 {
     auto g_road = g_PointerRoad.lock();
     const double snapThreshold = SnapDistFromScale();
     if (g_PointerRoadS < snapThreshold)
     {
+        if (onSegmentBoundary != nullptr) *onSegmentBoundary = true;
         return 0;
     }
     else if (g_PointerRoadS > g_road->Length() - snapThreshold)
     {
+        if (onSegmentBoundary != nullptr) *onSegmentBoundary = true;
         return g_road->Length();
     }
-    return g_road->SnapToSegmentBoundary(g_PointerRoadS, snapThreshold);
+    return g_road->SnapToSegmentBoundary(g_PointerRoadS, snapThreshold, onSegmentBoundary);
 }
 
 void RoadDrawingSession::BeginPickingProfile()
@@ -97,9 +99,9 @@ void RoadDrawingSession::EndPickingProfile()
 double CustomCursorItem::SnapRadiusPx = 20;
 double CustomCursorItem::InitialRadius = 2;
 
-void CustomCursorItem::EnableHighlight(bool enable)
+void CustomCursorItem::EnableHighlight(int level)
 {
-    setBrush(enable ? QBrush(Qt::red, Qt::SolidPattern) : Qt::NoBrush);
+    setBrush(level > 0 ? QBrush(level == 1 ? Qt::darkRed : Qt::red, Qt::SolidPattern) : Qt::NoBrush);
 }
 
 void CustomCursorItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
@@ -190,9 +192,9 @@ bool RoadCreationSession::Update(QMouseEvent* event)
 
     hintPath.clear();
     float maxSnapDist = ctrlPoints.size() % 2 == 1 ? SnapDistFromScale() : 1e9;
-    bool onExisting = SnapCtrlPoint(maxSnapDist);
+    auto onExistingLevel = SnapCtrlPoint(maxSnapDist);
     cursorItem->setPos(ctrlPoints.back());
-    cursorItem->EnableHighlight(onExisting);
+    cursorItem->EnableHighlight(onExistingLevel);
     cursorItem->show();
 
     setPath.clear();
@@ -266,10 +268,10 @@ RoadCreationSession::~RoadCreationSession()
     SetHighlightTo(nullptr);
 }
 
-bool RoadCreationSession::SnapFirstPointToExisting(QPointF& point)
+RoadDrawingSession::SnapResult RoadCreationSession::SnapFirstPointToExisting(QPointF& point)
 {
     auto g_road = g_PointerRoad.lock();
-    if (g_road == nullptr) return false;
+    if (g_road == nullptr) return RoadDrawingSession::Snap_Nothing;
 
     const double snapThreshold = SnapDistFromScale();
     double snapS = g_PointerRoadS;
@@ -301,13 +303,13 @@ bool RoadCreationSession::SnapFirstPointToExisting(QPointF& point)
         point.setY(snapped[1]);
         onExisting = true;
     }
-    return onExisting;
+    return onExisting ? RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Nothing;
 }
 
-bool RoadCreationSession::SnapLastPointToExisting(QPointF& point)
+RoadDrawingSession::SnapResult RoadCreationSession::SnapLastPointToExisting(QPointF& point)
 {
     auto g_road = g_PointerRoad.lock();
-    if (g_road == nullptr) return false;
+    if (g_road == nullptr) return RoadDrawingSession::Snap_Nothing;
 
     bool onExisting = false;
 
@@ -334,15 +336,16 @@ bool RoadCreationSession::SnapLastPointToExisting(QPointF& point)
         onExisting = true;
         joinAtEndS = snapS;
     }
-    return onExisting;
+    cursorItem->EnableHighlight(onExisting);
+    return onExisting ? RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Nothing;
 }
 
-bool RoadCreationSession::SnapCtrlPoint(float maxOffset)
+RoadDrawingSession::SnapResult RoadCreationSession::SnapCtrlPoint(float maxOffset)
 {
     QPointF& nextPoint = ctrlPoints.back();
 
     QVector2D nextDir;
-    bool onExisting = false;
+    RoadDrawingSession::SnapResult result = RoadDrawingSession::Snap_Nothing;
 
     if (ctrlPoints.size() == 1)
     {
@@ -363,8 +366,8 @@ bool RoadCreationSession::SnapCtrlPoint(float maxOffset)
     if (!extendFromStart.expired() && ctrlPoints.size() == 2)
     {
         joinAtEnd.reset();
-        onExisting = SnapLastPointToExisting(nextPoint);
-        if (onExisting)
+        result = SnapLastPointToExisting(nextPoint);
+        if (result)
         {
             nextDir = QVector2D();
         }
@@ -373,9 +376,9 @@ bool RoadCreationSession::SnapCtrlPoint(float maxOffset)
     if (ctrlPoints.size() >= 3)
     {
         joinAtEnd.reset();
-        onExisting = SnapLastPointToExisting(nextPoint);
+        result = SnapLastPointToExisting(nextPoint);
 
-        if (!onExisting)
+        if (result == RoadDrawingSession::Snap_Nothing)
         {
             nextDir = QVector2D(ctrlPoints[ctrlPoints.size() - 2] - ctrlPoints[ctrlPoints.size() - 3]);
         }
@@ -399,7 +402,7 @@ bool RoadCreationSession::SnapCtrlPoint(float maxOffset)
         }
     }
 
-    return onExisting;
+    return result;
 }
 
 odr::RefLine RoadCreationSession::RefLineFromCtrlPoints() const

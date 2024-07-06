@@ -38,14 +38,16 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
     auto g_road = g_PointerRoad.lock();
     if (g_road != nullptr)
     {
-        auto snapped = g_road->generated.ref_line.get_xy(GetAdjustedS());
+        bool onSegBoundary;
+        auto snapped = g_road->generated.ref_line.get_xy(GetAdjustedS(&onSegBoundary));
         cursorItem->setPos(snapped[0], snapped[1]);
-        cursorItem->EnableHighlight(true);
+        cursorItem->EnableHighlight(onSegBoundary ? 
+            RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Line);
     }
     else
     {
         cursorItem->setPos(scenePos);
-        cursorItem->EnableHighlight(false);
+        cursorItem->EnableHighlight(RoadDrawingSession::Snap_Nothing);
     }
     cursorItem->show();
     SetHighlightTo(g_road);

@@ -17,7 +17,7 @@ public:
 
     virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
 
-    void EnableHighlight(bool enable);
+    void EnableHighlight(int level);
 
     static double SnapRadiusPx;
 
@@ -41,9 +41,16 @@ public:
     void SetHighlightTo(std::shared_ptr<RoadRunner::Road>);
 
 protected:
+    enum SnapResult
+    {
+        Snap_Nothing,
+        Snap_Line,
+        Snap_Point
+    };
+
     float SnapDistFromScale() const;
 
-    double GetAdjustedS() const;
+    double GetAdjustedS(bool* onSegmentBoundary = nullptr) const;
 
     void BeginPickingProfile();
     void ContinuePickingProfile();
@@ -77,10 +84,10 @@ public:
     virtual ~RoadCreationSession() override;
 
 protected:
-    virtual bool SnapFirstPointToExisting(QPointF&);
-    virtual bool SnapLastPointToExisting(QPointF&);
+    virtual SnapResult SnapFirstPointToExisting(QPointF&);
+    virtual SnapResult SnapLastPointToExisting(QPointF&);
 
-    bool SnapCtrlPoint(float maxOffset);
+    SnapResult SnapCtrlPoint(float maxOffset);
 
     odr::RefLine RefLineFromCtrlPoints() const;
 
@@ -127,8 +134,8 @@ public:
     virtual ~LanesCreationSession() override;
 
 protected:
-    virtual bool SnapFirstPointToExisting(QPointF&) override;
-    virtual bool SnapLastPointToExisting(QPointF&) override;
+    virtual SnapResult SnapFirstPointToExisting(QPointF&) override;
+    virtual SnapResult SnapLastPointToExisting(QPointF&) override;
 
     virtual std::unique_ptr<odr::RoadGeometry> CreateJoinAtEndGeo(bool forPreview) const override;
 

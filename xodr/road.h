@@ -68,7 +68,7 @@ namespace RoadRunner
         // Sections containing s1/s2 will be updated
         void GenerateOrUpdateSectionGraphicsBetween(double s1, double s2);
 
-        double SnapToSegmentBoundary(double key, double limit);
+        double SnapToSegmentBoundary(double key, double limit, bool* outSuccess=nullptr);
 
         struct RoadsOverlap
         {
@@ -102,7 +102,7 @@ namespace RoadRunner
         void GenerateSectionGraphicsBetween(double s1, double s2);
 
         // Prevent formation of too-short segment
-        void SnapToSegmentBoundary(type_s& key, type_s limit = 10);
+        bool SnapToSegmentBoundary(type_s& key, type_s limit = 10);
 
         // Determines resolution for collision detection
         const double GraphicsDivision = 5;

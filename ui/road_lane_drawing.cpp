@@ -210,12 +210,12 @@ LanesCreationSession::~LanesCreationSession()
     SetHighlightTo(nullptr);
 }
 
-bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
+RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
 {
     auto g_road = g_PointerRoad.lock();
     if (g_road == nullptr)
     {
-        return false;
+        return RoadDrawingSession::Snap_Nothing;
     }
     
     rLanes = g_createRoadOption->RightResult().laneCount;
@@ -224,10 +224,11 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
     if (rLanes == 0)
     {
         spdlog::warn("Right lanes must > 0");
-        return false;
+        return RoadDrawingSession::Snap_Nothing;
     }
-
-    double g_roadS = GetAdjustedS();
+        
+    bool snappedToSegBoundary = false;
+    double g_roadS = GetAdjustedS(&snappedToSegBoundary);
     const auto& g_roadProfile = g_road->generated.rr_profile;
     const auto rightProfile = g_roadProfile.ProfileAt(g_roadS, -1);
     const auto leftProfile = g_roadProfile.ProfileAt(g_roadS, 1);
@@ -389,23 +390,23 @@ bool LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
     }
     if (extendFromStart.expired())
     {
-        return false;
+        return RoadDrawingSession::Snap_Nothing;
     }
     else
     {
         extendFromStartS = g_roadS;
        
         startDir = std::make_unique<QVector2D>(g_dir);
-        return true;
+        return snappedToSegBoundary ? RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Line;
     }
 }
 
-bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
+RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QPointF& point)
 {
     auto g_road = g_PointerRoad.lock();
     if (g_road == nullptr)
     {
-        return false;
+        return RoadCreationSession::Snap_Nothing;
     }
 
 
@@ -427,20 +428,21 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
     if (rLanes == 0)
     {
         spdlog::warn("Right lanes must > 0");
-        return false;
+        return RoadCreationSession::Snap_Nothing;
     }
 
-    double g_roadS = GetAdjustedS();
+    bool snappedToSegBoundary = false;
+    double g_roadS = GetAdjustedS(&snappedToSegBoundary);
     if (ctrlPoints.size() == 2 && !extendFromStart.expired() && extendFromStartS != 0 && extendFromStartS != extendFromStart.lock()->Length()
         && g_roadS != 0 && g_roadS != g_road->Length())
     {
         // Prohibit cutting the same road twice, due to s change due to cutting
-        return false;
+        return RoadCreationSession::Snap_Nothing;
     }
     if (ctrlPoints.size() == 2 && g_roadS != 0 && g_roadS != g_road->Length())
     {
         // Prevent 2-click connection from being misinterpreted as cutting
-        return false;
+        return RoadCreationSession::Snap_Nothing;
     }
 
     const auto& g_roadProfile = g_road->generated.rr_profile;
@@ -627,12 +629,12 @@ bool LanesCreationSession::SnapLastPointToExisting(QPointF& point)
 
     if (joinAtEnd.expired())
     {
-        return false;
+        return RoadCreationSession::Snap_Nothing;
     }
     else
     {
         joinAtEndS = g_roadS;
-        return true;
+        return snappedToSegBoundary ? RoadCreationSession::Snap_Point : RoadCreationSession::Snap_Line;
     }
 }
 

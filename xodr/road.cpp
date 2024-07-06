@@ -210,7 +210,7 @@ namespace RoadRunner
         GenerateSectionGraphicsBetween(createBegin, createEnd);
     }
 
-    void Road::SnapToSegmentBoundary(type_s& key, type_s limit)
+    bool Road::SnapToSegmentBoundary(type_s& key, type_s limit)
     {
         type_s profileLength = RoadRunner::from_odr_unit(Length());
         auto existingKeys = generated.rr_profile.GetAllKeys(profileLength);
@@ -218,19 +218,19 @@ namespace RoadRunner
         if (key < limit)
         {
             key = 0;
-            return;
+            return true;
         }
         if (key > profileLength - limit)
         {
             key = profileLength;
-            return;
+            return true;
         }
 
         auto above = existingKeys.lower_bound(key);
         if (*above - key < limit)
         {
             key = *above;
-            return;
+            return true;
         }
 
         if (above != existingKeys.begin())
@@ -240,20 +240,24 @@ namespace RoadRunner
             if (key - *below < limit)
             {
                 key = *below;
-                return;
+                return true;
             }
         }
 
-        return;
+        return false;
     }
 
-    double Road::SnapToSegmentBoundary(double key, double limit)
+    double Road::SnapToSegmentBoundary(double key, double limit, bool* outSuccess)
     {
         type_s key_s = from_odr_unit(key);
         type_s limit_s = from_odr_unit(limit);
         type_s modifiedKey_s = key_s;
         
-        SnapToSegmentBoundary(modifiedKey_s, limit_s);
+        bool snapped = SnapToSegmentBoundary(modifiedKey_s, limit_s);
+        if (outSuccess != nullptr)
+        {
+            *outSuccess = snapped;
+        }
         if (key_s == modifiedKey_s)
         {
             return key;
