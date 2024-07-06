@@ -56,10 +56,16 @@ void RefLine::reverse()
 
 RefLine RefLine::split(double s) 
 {
-    assert(2 * MinGeoLength < s);
-    assert(s < length - 2 * MinGeoLength);
+    if (s <= 2 * MinGeoLength) 
+    {
+        throw std::logic_error("Cannot split ref line at nearly-zero s!");
+    }
+    if (s >= length - 2 * MinGeoLength) 
+    {
+        throw std::logic_error("Cannot split ref line at nearly-length s!");
+    }
     
-    auto    maps_keys = odr::get_map_keys_sorted(s0_to_geometry);
+    auto maps_keys = odr::get_map_keys_sorted(s0_to_geometry);
 
     // Don't RoadGeometry cut into tiny pieces
     for (const auto& key : maps_keys) 
@@ -127,7 +133,11 @@ void RefLine::enforceMinGeoLength()
         {
             break;
         }
-        assert(*next - *it >= MinGeoLength);
+        if (*next - *it < MinGeoLength) 
+        {
+            auto errMsg = "ref line keys too close: " + std::to_string(*it) + " & " + std::to_string(*next);
+            throw std::logic_error(errMsg);
+        }
     }
 }
 

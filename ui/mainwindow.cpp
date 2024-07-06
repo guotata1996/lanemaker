@@ -238,10 +238,12 @@ void MainWindow::setFPS(QString msg)
 
 void MainWindow::onAppQuit()
 {
+    vehicleManager->End();
+
     if (RoadRunner::ChangeTracker::Instance()->VerifyUponChange
         && RoadRunner::ActionManager::Instance()->Replayable())
     {
-        spdlog::info("Testing action replay...");
+        spdlog::info("---- Testing action replay...");
         auto saveFolder = RoadRunner::DefaultSaveFolder();
         auto originalPath = saveFolder + "\\auto_verify_a.xodr";
         RoadRunner::ChangeTracker::Instance()->Save(originalPath);

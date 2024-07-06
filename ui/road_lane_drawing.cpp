@@ -39,6 +39,14 @@ bool LanesCreationSession::CreateRoad()
         spdlog::warn("Not enough control points placed");
         return true;
     }
+
+    if (!extendFromStart.expired() && !joinAtEnd.expired() && extendFromStart.lock() == joinAtEnd.lock() &&
+        !(extendFromStartS == 0 && joinAtEndS == 0 ||
+            extendFromStartS == extendFromStart.lock()->Length() && joinAtEndS == joinAtEnd.lock()->Length()))
+    {
+        spdlog::warn("Cannot operate on the same road twice at a time.");
+        return true;
+    }
     RoadRunner::RoadProfile config;
     config = RoadRunner::RoadProfile(lLanes, lOffsetX2, rLanes, rOffsetX2);
 
