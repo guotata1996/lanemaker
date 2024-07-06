@@ -177,6 +177,7 @@ namespace RoadRunner
 
         type_s oldLength = from_odr_unit(roadAsPrev->Length());
         type_s splitPoint = from_odr_unit(s);
+        roadAsPrev->SnapToSegmentBoundary(splitPoint);
         RoadProfile& oldProfile = roadAsPrev->generated.rr_profile;
         RoadProfile profile1(oldProfile.LeftExit().laneCount, oldProfile.LeftExit().offsetx2,
             oldProfile.RightEntrance().laneCount, oldProfile.RightEntrance().offsetx2);
@@ -278,8 +279,14 @@ namespace RoadRunner
         type_s s1RR = from_odr_unit(s1);
         type_s s2RR = from_odr_unit(s2);
         auto& profile = generated.rr_profile;
-        profile.OverwriteSection(1, s2RR, s1RR, newLeftProfile.laneCount, newLeftProfile.offsetx2);
-        profile.OverwriteSection(-1, s1RR, s2RR, newRightProfile.laneCount, newRightProfile.offsetx2);
+        if (profile.HasSide(1))
+        {
+            profile.OverwriteSection(1, s2RR, s1RR, newLeftProfile.laneCount, newLeftProfile.offsetx2);
+        }
+        if (profile.HasSide(-1))
+        {
+            profile.OverwriteSection(-1, s1RR, s2RR, newRightProfile.laneCount, newRightProfile.offsetx2);
+        }
         Generate(false);
 
         if (s1 == 0 && predecessorJunction != nullptr)

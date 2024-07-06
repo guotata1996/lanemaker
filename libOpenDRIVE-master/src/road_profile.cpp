@@ -2,7 +2,6 @@
 #include "Road.h"
 
 #include <sstream>
-#include <cassert>
 
 #include "spdlog/spdlog.h"
 
@@ -25,8 +24,9 @@ namespace RoadRunner
 
     void RoadProfile::SetDefault(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right) 
     {
-        assert(rightProfiles.empty());
-        assert(leftProfiles.empty());
+        if (!rightProfiles.empty() || !leftProfiles.empty()) {
+            throw std::logic_error("RoadProfile::SetDefault");
+        }
 
         if (nLanes_Right != 0)
         {
@@ -90,15 +90,20 @@ namespace RoadRunner
     {
         if (side < 0)
         {
-            assert(start < end);
+            if (start >= end)
+                throw std::logic_error("OverwriteSection: param error");
         }
         else
         {
-            assert(start > end);
+            if (start <= end)
+                throw std::logic_error("OverwriteSection: param error");
         }
 
         auto& profileToModify = side > 0 ? leftProfiles : rightProfiles;
-        assert(!profileToModify.empty());
+        if (profileToModify.empty()) 
+        {
+            throw std::logic_error("Override target side has empty profile!");
+        }
         auto existingKeys = odr::get_map_keys_sorted(profileToModify);
 
         type_s largestElementEqualOrBefore;
@@ -139,8 +144,8 @@ namespace RoadRunner
 
     void RoadProfile::OverwriteSection(int side, double _start, double _end, uint8_t nLanes, int8_t offsetX2)
     {
-        assert(_start >= 0);
-        assert(_end >= 0);
+        if (_start < 0 || _end < 0)
+            throw std::logic_error("OverwriteSection param error!");
 
         type_s start = from_odr_unit(_start);
         type_s end = from_odr_unit(_end);
@@ -254,7 +259,8 @@ namespace RoadRunner
         type_s start_s, type_s end_s,
         type_t start_t2, type_t end_t2, bool rightSide, type_s length) const
     {
-        assert(start_s < end_s);
+        if (start_s >= end_s)
+            throw std::logic_error("MakeTransition param error!");
 
         double odr_start_s = to_odr_unit(start_s);
         if (!rightSide)
@@ -292,7 +298,8 @@ namespace RoadRunner
     std::map<double, odr::Poly3> RoadProfile::_MakeStraight(type_s start_s, type_s end_s, type_t const_t,
         bool rightSide, type_s length) const
     {
-        assert(start_s <= end_s);
+        if (start_s > end_s)
+            throw std::logic_error("MakeStraight param error!");
         double odr_start_s = rightSide ? to_odr_unit(start_s) : to_odr_unit(length - end_s);
 
         return { std::make_pair(
@@ -537,7 +544,8 @@ namespace RoadRunner
 
                 if (vanishedStraight.get() != nullptr)
                 {
-                    assert(vanishedStraight->id_to_lane.size() <= transitionSection.id_to_lane.size());
+                    if (vanishedStraight->id_to_lane.size() > transitionSection.id_to_lane.size())
+                        throw std::logic_error("RoadProfile::Convertside");
                     for (int laneID = 1; laneID < vanishedStraight->id_to_lane.size(); ++laneID)
                     {
                         int vanishedLaneNext = laneIDMultiplier * (laneID + std::max(0, transition.newLanesOnLeft));
@@ -559,7 +567,8 @@ namespace RoadRunner
                 }
                 else
                 {
-                    assert(prevSection.id_to_lane.size() <= transitionSection.id_to_lane.size());
+                    if (prevSection.id_to_lane.size() > transitionSection.id_to_lane.size())
+                        throw std::logic_error("RoadProfile::Convertside");
                     for (int laneID = 1; laneID < prevSection.id_to_lane.size(); ++laneID)
                     {
                         odr::Lane preLane = prevSection.id_to_lane.at(laneIDMultiplier * laneID);
@@ -583,7 +592,8 @@ namespace RoadRunner
                 double straight_s_odr = constWidth.begin()->first;
 
                 uint32_t laneIndex = 0;
-                assert(vanishedStraight.get() == nullptr);
+                if (vanishedStraight.get() != nullptr)
+                    throw std::logic_error("RoadProfile::Convertside");
                 vanishedStraight = std::make_shared<odr::LaneSection>(roadID, straight_s_odr);
                 odr::Lane center(roadID, straight_s_odr, laneIDMultiplier * laneIndex++, false, "");
                 vanishedStraight->id_to_lane.emplace(center.id, center);
@@ -602,7 +612,8 @@ namespace RoadRunner
                 {
                     double prevS = rightSide ? laneSectionResult.rbegin()->first : laneSectionResult.begin()->first;
                     auto prevSection = laneSectionResult.at(prevS);
-                    assert(prevSection.id_to_lane.size() >= vanishedStraight->id_to_lane.size());
+                    if (prevSection.id_to_lane.size() < vanishedStraight->id_to_lane.size())
+                        throw std::logic_error("RoadProfile::Convertside");
 
                     for (int laneID = 1; laneID < vanishedStraight->id_to_lane.size(); ++laneID)
                     {
@@ -837,8 +848,12 @@ namespace RoadRunner
     void RoadProfile::Apply(double _length, odr::Road* rtn)
     {
         // Fail if either side is undefined
-        assert(_length > 0);
-        assert(!leftProfiles.empty() || !rightProfiles.empty());
+        if (_length <= 0)
+            throw std::logic_error("RoadProfile::Apply");
+        if (leftProfiles.empty() && rightProfiles.empty()) 
+        {
+            throw std::logic_error("RoadProfile::Apply empty");
+        }
         rtn->length = _length;
 
         rtn->s_to_lanesection.clear();
@@ -933,7 +948,7 @@ namespace RoadRunner
             for (auto s_profile : rightProfiles)
             {
                 ss << s_profile.first << " : Lanes=" << std::to_string(s_profile.second.laneCount) 
-                    << " OffsetX2=" << std::to_string(s_profile.second.offsetx2);
+                    << " OffsetX2=" << std::to_string(s_profile.second.offsetx2) << std::endl;
             }
         }
         if (!leftProfiles.empty())
@@ -942,7 +957,7 @@ namespace RoadRunner
             for (auto it = leftProfiles.rbegin(); it != leftProfiles.rend(); ++it)
             {
                 ss << it->first << " : Lanes=" << std::to_string(it->second.laneCount) 
-                    << " OffsetX2=" << std::to_string(it->second.offsetx2);
+                    << " OffsetX2=" << std::to_string(it->second.offsetx2) << std::endl;
             }
         }
         ss << "\n";

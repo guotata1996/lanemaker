@@ -46,6 +46,13 @@ bool RoadModificationSession::Complete()
         return true;
     }
 
+    if (target->generated.rr_profile.HasSide(1) != (g_createRoadOption->LeftResult().laneCount > 0) ||
+        (target->generated.rr_profile.HasSide(-1) != (g_createRoadOption->RightResult().laneCount > 0)))
+    {
+        spdlog::warn("Modified road must have some travel direction(s) as before!");
+        return true;
+    }
+
     target->ModifyProfile(*s1, *s2, g_createRoadOption->LeftResult(), g_createRoadOption->RightResult());
     return true;
 }
