@@ -5,6 +5,7 @@
 #include <ctime>
 #include <sstream>
 #include <filesystem>
+#include <optional>
 
 namespace RoadRunner
 {
@@ -25,5 +26,19 @@ namespace RoadRunner
         std::ostringstream oss;
         oss << std::put_time(&tm, "%m-%d_%H-%M-%S");
         return oss.str();
+    }
+
+    namespace
+    {
+        std::optional<std::string> runTimestamp;
+    }
+
+    std::string RunTimestamp()
+    {
+        if (!runTimestamp.has_value())
+        {
+            runTimestamp.emplace(CurrentDateTime());
+        }
+        return runTimestamp.value();
     }
 }

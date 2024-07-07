@@ -6,6 +6,7 @@
 #include <QFileDialog>
 #include <QStatusBar>
 #include <QApplication>
+#include <filesystem>
 
 #include "main_widget.h"
 #include "change_tracker.h"
@@ -241,30 +242,35 @@ void MainWindow::onAppQuit()
     vehicleManager->End();
 
     if (RoadRunner::ChangeTracker::Instance()->VerifyUponChange
-        && RoadRunner::ActionManager::Instance()->Replayable())
+        && RoadRunner::ActionManager::Instance()->Replayable()
+        && std::filesystem::exists(RoadRunner::ActionManager::Instance()->AutosavePath()))
     {
         spdlog::info("---- Testing action replay...");
         auto saveFolder = RoadRunner::DefaultSaveFolder();
         auto originalPath = saveFolder + "\\auto_verify_a.xodr";
         RoadRunner::ChangeTracker::Instance()->Save(originalPath);
-        auto actionPath = saveFolder + "\\auto_verify_action__" + RoadRunner::CurrentDateTime() + ".dat";
-        RoadRunner::ActionManager::Instance()->Save(actionPath);
 
         newMap();
-        RoadRunner::ActionManager::Instance()->ReplayImmediate(actionPath);
+        RoadRunner::ActionManager::Instance()->ReplayImmediate();
         auto replayPath = saveFolder + "\\auto_verify_b.xodr";
         RoadRunner::ChangeTracker::Instance()->Save(replayPath);
 
         if (!RoadRunnerTest::Validation::CompareFiles(originalPath, replayPath))
         {
-            spdlog::error("Replay result is different from original map! Check {} for details.", actionPath);
+            spdlog::error("Replay result is different from original map! Check {} for details.", 
+                RoadRunner::ActionManager::Instance()->AutosavePath());
         }
         else
         {
             // On success, clean up temporary saves
             std::remove(originalPath.c_str());
-            std::remove(actionPath.c_str());
             std::remove(replayPath.c_str());
+            std::remove(RoadRunner::ActionManager::Instance()->AutosavePath().c_str());
         }
-    } 
+    }
+    
+    if (RoadRunner::ActionManager::Instance()->CleanAutoSave())
+    {
+        std::remove(RoadRunner::ActionManager::Instance()->AutosavePath().c_str());
+    }
 }

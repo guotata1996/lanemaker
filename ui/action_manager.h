@@ -182,16 +182,22 @@ namespace RoadRunner
 
         void Record(ActionType);
 
+        void Save() const;
         void Save(std::string) const;
-        std::string SaveOnExeption();
 
+        std::string AutosavePath() const;
+
+        void ReplayImmediate();
         void ReplayImmediate(std::string);
 
+        void MarkException() { replayable = cleanAutoSave = false; }
         void Reset();
 
         bool Replaying() const { return replayMode; }
 
         bool Replayable() const { return replayable; }
+
+        bool CleanAutoSave() const { return cleanAutoSave; }
 
     private:
         ActionManager() = default;
@@ -213,6 +219,8 @@ namespace RoadRunner
         bool replayMode = false;
 
         bool replayable = true;
+
+        bool cleanAutoSave = true;
 
         /*Buffered action during record*/
         std::optional<RoadRunner::MouseAction> latestMouseMove;

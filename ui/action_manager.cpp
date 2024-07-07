@@ -31,6 +31,7 @@ namespace RoadRunner
         if (replayMode || !replayable) return;
         ChangeModeAction serialized{ modeChange };
         history.emplace_back(serialized);
+        Save();
     }
 
     void ActionManager::Replay(const ChangeModeAction& action)
@@ -81,6 +82,7 @@ namespace RoadRunner
         {
             FlushBufferedMouseMove();
             history.emplace_back(serialized);
+            Save();
         }
 
         if (evt->type() == QEvent::Type::MouseButtonPress)
@@ -130,6 +132,7 @@ namespace RoadRunner
         FlushBufferedMouseMove();
         KeyPressAction serialized{ evt->key() };
         history.emplace_back(serialized);
+        Save();
     }
 
     void ActionManager::Replay(const KeyPressAction& action)
@@ -144,6 +147,7 @@ namespace RoadRunner
         if (replayMode || !replayable) return;
         ChangeProfileAction serialized{ left, right };
         history.emplace_back(serialized);
+        Save();
     }
 
     void ActionManager::Replay(const ChangeProfileAction& action)
@@ -157,6 +161,7 @@ namespace RoadRunner
         {
         case RoadRunner::Action_Undo: case RoadRunner::Action_Redo:
             history.emplace_back(actionNoParm);
+            Save();
             break;
         case RoadRunner::Action_LoadMap:
             // To be supported
@@ -167,6 +172,11 @@ namespace RoadRunner
         }
     }
 
+    void ActionManager::Save() const
+    {
+        Save(AutosavePath());
+    }
+
     void ActionManager::Save(std::string fpath) const
     {
         std::ofstream outFile(fpath, std::ios::binary);
@@ -174,12 +184,22 @@ namespace RoadRunner
         oarchive(history);
     }
 
-    std::string ActionManager::SaveOnExeption()
+    //std::string ActionManager::SaveOnExeption()
+    //{
+    //    auto savePath = DefaultSaveFolder() + "\\exception__" + CurrentDateTime() + ".dat";
+    //    Save(savePath);
+    //    replayable = false;
+    //    return savePath;
+    //}
+
+    std::string ActionManager::AutosavePath() const
     {
-        auto savePath = DefaultSaveFolder() + "\\exception__" + CurrentDateTime() + ".dat";
-        Save(savePath);
-        replayable = false;
-        return savePath;
+        return RoadRunner::DefaultSaveFolder() + "\\action_rec__" + RoadRunner::RunTimestamp() + ".dat";
+    }
+
+    void ActionManager::ReplayImmediate()
+    {
+        ReplayImmediate(AutosavePath());
     }
 
     void ActionManager::ReplayImmediate(std::string fpath)

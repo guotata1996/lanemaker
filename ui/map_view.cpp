@@ -322,8 +322,8 @@ void MapView::quitEdit()
 
 void MapView::handleException(std::exception e)
 {
-    auto saveLocation = RoadRunner::ActionManager::Instance()->SaveOnExeption();
-    auto msg = std::string(e.what()) + "\nReplayable at " + saveLocation;
+    RoadRunner::ActionManager::Instance()->MarkException();
+    auto msg = std::string(e.what()) + "\nReplayable at " + RoadRunner::ActionManager::Instance()->AutosavePath();
     QMessageBox::information(this, "Exception Caught", QString::fromStdString(msg), QMessageBox::Ok);
     QCoreApplication::quit();
 }
