@@ -50,6 +50,8 @@ protected:
     int dragOrigin;
 
     bool changedExternally = false;
+
+    const QImage rightLogo, leftLogo;
 };
 
 class CreateLaneOptionWidget :

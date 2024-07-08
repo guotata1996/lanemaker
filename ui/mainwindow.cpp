@@ -246,6 +246,7 @@ void MainWindow::onAppQuit()
         && std::filesystem::exists(RoadRunner::ActionManager::Instance()->AutosavePath()))
     {
         spdlog::info("---- Testing action replay...");
+        RoadRunner::ChangeTracker::Instance()->VerifyUponChange = false; // No verification during replay
         auto saveFolder = RoadRunner::DefaultSaveFolder();
         auto originalPath = saveFolder + "\\auto_verify_a.xodr";
         RoadRunner::ChangeTracker::Instance()->Save(originalPath);

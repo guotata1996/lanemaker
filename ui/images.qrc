@@ -1,8 +1,15 @@
-<!DOCTYPE RCC><RCC version="1.0">
-<qresource>
-    <file>icons/zoomin.png</file>
-    <file>icons/zoomout.png</file>
-    <file>icons/rotateleft.png</file>
-    <file>icons/rotateright.png</file>
-</qresource>
+<RCC>
+    <qresource prefix="/">
+        <file>icons/zoomin.png</file>
+        <file>icons/zoomout.png</file>
+        <file>icons/rotateleft.png</file>
+        <file>icons/rotateright.png</file>
+        <file>icons/car_coming.png</file>
+        <file>icons/car_leaving.png</file>
+        <file>icons/destroy_mode.png</file>
+        <file>icons/lane_mode.png</file>
+        <file>icons/road_mode.png</file>
+        <file>icons/modify_mode.PNG</file>
+        <file>icons/view_mode.png</file>
+    </qresource>
 </RCC>

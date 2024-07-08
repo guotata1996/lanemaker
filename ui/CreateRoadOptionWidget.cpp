@@ -10,7 +10,9 @@
 
 SectionProfileConfigWidget* g_createRoadOption;
 
-CreateRoadOptionWidget::CreateRoadOptionWidget()
+CreateRoadOptionWidget::CreateRoadOptionWidget():
+    rightLogo(":/icons/car_leaving.png"),
+    leftLogo(":/icons/car_coming.png")
 {
     SetOption(RoadRunner::SectionProfile{ 1, 1 }, RoadRunner::SectionProfile{ -1, 1 });
 }
@@ -91,13 +93,25 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
 
     // Draw result
     colorPen.setWidth(5);
-    colorPen.setColor(Qt::red);
+    colorPen.setColor(Qt::yellow);
     painter.setPen(colorPen);
     painter.drawLine(lOuterResult, YCenter, lInnerResult, YCenter);
+    for (int i = 0; i != activeLeftSetting.laneCount; ++i)
+    {
+        int logoCenter = lInnerResult - (i * 2 + 1) * TickInterval;
+        QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight, TickHeight, TickHeight);
+        painter.drawImage(rect, leftLogo);
+    }
     
-    colorPen.setColor(Qt::green);
+    colorPen.setColor(Qt::red);
     painter.setPen(colorPen);
     painter.drawLine(rOuterResult, YCenter, rInnerResult, YCenter);
+    for (int i = 0; i != activeRightSetting.laneCount; ++i)
+    {
+        int logoCenter = rInnerResult + (i * 2 + 1) * TickInterval;
+        QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight, TickHeight, TickHeight);
+        painter.drawImage(rect, rightLogo);
+    }
 
     colorPen.setColor(Qt::black);
     painter.setPen(colorPen);
@@ -109,9 +123,9 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
     for (int i = 0; i != handleX.size(); ++i)
     {
         auto handle = handleX[i];
-        colorPen.setColor(dragIndex.empty() || 
+        colorPen.setColor(dragIndex.empty() ||
             std::find(dragIndex.begin(), dragIndex.end(), i) == dragIndex.end() ?
-            Qt::darkYellow : Qt::blue);
+            Qt::blue : Qt::green);
         painter.setPen(colorPen);
         painter.drawLine(handle, YCenter - TickHeight / 2, handle, YCenter + TickHeight / 2);
     }
@@ -178,10 +192,10 @@ void CreateRoadOptionWidget::mouseMoveEvent(QMouseEvent* evt)
     std::sort(handleXCopy.begin(), handleXCopy.end());
 
     activeLeftSetting.offsetx2 = std::round(static_cast<float>(XCenter - handleXCopy[1]) / TickInterval);
-    activeLeftSetting.laneCount = std::floor(static_cast<float>(handleXCopy[1] - handleXCopy[0]) / TickInterval / 2);
+    activeLeftSetting.laneCount = std::floor(static_cast<int>(std::round(static_cast<float>(handleXCopy[1] - handleXCopy[0]) / TickInterval)) / 2);
 
     activeRightSetting.offsetx2 = std::round(static_cast<float>(XCenter - handleXCopy[2]) / TickInterval);
-    activeRightSetting.laneCount = std::floor(static_cast<float>(handleXCopy[3] - handleXCopy[2]) / TickInterval / 2);
+    activeRightSetting.laneCount = std::floor(static_cast<int>(std::round(static_cast<float>(handleXCopy[3] - handleXCopy[2]) / TickInterval)) / 2);
 
     update();
 }
@@ -208,10 +222,16 @@ CreateLaneOptionWidget::CreateLaneOptionWidget()
     rightSlider = new QSlider(Qt::Horizontal);
     rightSlider->setRange(1, 5);
     rightSlider->setTickPosition(QSlider::TicksBelow);
-    resultLabel = new QLabel("L:0|R:1");
+    resultLabel = new QLabel("0|1");
     resultLabel->setFont(QFont("Helvetica", 14));
+    auto leftLogo = new QLabel;
+    leftLogo->setPixmap(QPixmap(":/icons/car_coming.png").scaledToWidth(20));
+    auto rightLogo = new QLabel;
+    rightLogo->setPixmap(QPixmap(":/icons/car_leaving.png").scaledToWidth(20));
     mainLayout->addWidget(leftSlider);
+    mainLayout->addWidget(leftLogo);
     mainLayout->addWidget(resultLabel);
+    mainLayout->addWidget(rightLogo);
     mainLayout->addWidget(rightSlider);
     setLayout(mainLayout);
 
@@ -245,7 +265,7 @@ void CreateLaneOptionWidget::SetOption(const RoadRunner::SectionProfile& l, cons
 void CreateLaneOptionWidget::updateLabel()
 {
     std::stringstream ss;
-    ss << "L:" << leftSlider->value() << "|R:" << rightSlider->value();
+    ss << "" << leftSlider->value() << "|" << rightSlider->value();
     resultLabel->setText(QString::fromStdString(ss.str()));
 
     emit OptionChangedByUser(LeftResult(), RightResult());

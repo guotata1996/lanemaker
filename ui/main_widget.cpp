@@ -79,23 +79,33 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     // Label layout
     QHBoxLayout* labelLayout = new QHBoxLayout;
     auto createModeButton = new QToolButton;
-    createModeButton->setText(tr("Road"));
+    createModeButton->setToolTip(tr("Road Mode"));
+    createModeButton->setIcon(QPixmap(":/icons/road_mode.png"));
+    createModeButton->setIconSize(iconSize);
     createModeButton->setCheckable(true);
     createModeButton->setChecked(false);
     auto createLaneModeButton = new QToolButton;
-    createLaneModeButton->setText(tr("Lane"));
+    createLaneModeButton->setToolTip(tr("Lane Mode"));
+    createLaneModeButton->setIcon(QPixmap(":/icons/lane_mode.png"));
+    createLaneModeButton->setIconSize(iconSize);
     createLaneModeButton->setCheckable(true);
     createLaneModeButton->setChecked(false);
     auto destroyModeButton = new QToolButton;
-    destroyModeButton->setText(tr("Destroy"));
+    destroyModeButton->setToolTip(tr("Destroy Mode"));
+    destroyModeButton->setIcon(QPixmap(":/icons/destroy_mode.png"));
+    destroyModeButton->setIconSize(iconSize);
     destroyModeButton->setCheckable(true);
     destroyModeButton->setChecked(false);
     auto modifyModeButton = new QToolButton;
-    modifyModeButton->setText(tr("Modify"));
+    modifyModeButton->setToolTip(tr("Modify Mode"));
+    modifyModeButton->setIcon(QPixmap(":/icons/modify_mode.PNG"));
+    modifyModeButton->setIconSize(iconSize);
     modifyModeButton->setCheckable(true);
     modifyModeButton->setChecked(false);
     auto dragModeButton = new QToolButton;
-    dragModeButton->setText(tr("Drag"));
+    dragModeButton->setToolTip(tr("Drag Mode"));
+    dragModeButton->setIcon(QPixmap(":/icons/view_mode.png"));
+    dragModeButton->setIconSize(iconSize);
     dragModeButton->setCheckable(true);
     dragModeButton->setChecked(false);
     antialiasButton = new QToolButton;
@@ -107,8 +117,8 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     pointerModeGroup->setExclusive(true);
     pointerModeGroup->addButton(createModeButton);
     pointerModeGroup->addButton(createLaneModeButton);
-    pointerModeGroup->addButton(destroyModeButton);
     pointerModeGroup->addButton(modifyModeButton);
+    pointerModeGroup->addButton(destroyModeButton);
     pointerModeGroup->addButton(dragModeButton);
 
     labelLayout->addWidget(createRoadOption);
@@ -121,8 +131,8 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     labelLayout->addWidget(new QLabel(tr("Edit Mode")));
     labelLayout->addWidget(createModeButton);
     labelLayout->addWidget(createLaneModeButton);
-    labelLayout->addWidget(destroyModeButton);
     labelLayout->addWidget(modifyModeButton);
+    labelLayout->addWidget(destroyModeButton);
     labelLayout->addWidget(dragModeButton);
     labelLayout->addStretch();
     labelLayout->addWidget(antialiasButton);
