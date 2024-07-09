@@ -11,5 +11,6 @@
         <file>icons/road_mode.png</file>
         <file>icons/modify_mode.PNG</file>
         <file>icons/view_mode.png</file>
+        <file>icons/eyedropper.svg</file>
     </qresource>
 </RCC>

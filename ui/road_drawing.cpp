@@ -70,6 +70,8 @@ void RoadDrawingSession::BeginPickingProfile()
 {
     beginPickingS = g_PointerRoadS;
     beginPickingRoad = g_PointerRoad;
+    QPixmap p = QPixmap(":/icons/eyedropper.svg");
+    view->setCursor(QCursor(p));
 }
 
 void RoadDrawingSession::ContinuePickingProfile()
@@ -94,6 +96,7 @@ void RoadDrawingSession::ContinuePickingProfile()
 void RoadDrawingSession::EndPickingProfile()
 {
     beginPickingRoad.reset();
+    view->setCursor(Qt::ArrowCursor);
 }
 
 double CustomCursorItem::SnapRadiusPx = 20;
