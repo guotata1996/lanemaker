@@ -20,12 +20,14 @@ int g_PointerLane;
 std::vector<std::pair<RoadRunner::LaneGraphics*, double>> rotatingRoads;
 int rotatingIndex;
 
+MapView* g_mapView;
 extern RoadRunner::SectionProfile leftProfileSetting, rightProfileSetting;
 
 MapView::MapView(MainWidget* v) :
-    QGraphicsView(), view(v)
+    QGraphicsView(), parentContainer(v)
 {
     ResetSceneRect();
+    g_mapView = this;
 }
 
 void MapView::ResetSceneRect()
@@ -38,14 +40,22 @@ double MapView::Zoom() const
     return transform().m11();
 }
 
+void MapView::SetViewFromReplay(double zoomSliderVal, double rotateSliderVal,
+    int hScrollbar, int vScrollbar)
+{
+    parentContainer->SetViewFromReplay(zoomSliderVal, rotateSliderVal);
+    horizontalScrollBar()->setValue(hScrollbar);
+    verticalScrollBar()->setValue(vScrollbar);
+}
+
 #if QT_CONFIG(wheelevent)
 void MapView::wheelEvent(QWheelEvent* e)
 {
     if (e->modifiers() & Qt::ControlModifier) {
         if (e->angleDelta().y() > 0)
-            view->zoomInBy(6);
+            parentContainer->zoomInBy(6);
         else
-            view->zoomOutBy(6);
+            parentContainer->zoomOutBy(6);
         e->accept();
     }
     else {
@@ -60,8 +70,7 @@ bool MapView::viewportEvent(QEvent* e)
     auto currTrans = viewportTransform();
     if (lastTransform != currTrans)
     {
-        RoadRunner::ActionManager::Instance()->Record(
-            transform(), horizontalScrollBar()->value(), verticalScrollBar()->value());
+        parentContainer->RecordViewTransform();
         lastTransform = currTrans;        
     }
     
@@ -285,7 +294,7 @@ void MapView::keyPressEvent(QKeyEvent* evt)
 void MapView::paintEvent(QPaintEvent* evt)
 {
     QGraphicsView::paintEvent(evt);
-    view->Painted();
+    parentContainer->Painted();
 }
 
 void MapView::AdjustSceneRect()
@@ -436,5 +445,5 @@ void MapView::SnapCursor(const QPoint& viewPos)
         txt = QString::fromStdString(ss.str());
     }
 
-    view->SetHovering(txt);
+    parentContainer->SetHovering(txt);
 }

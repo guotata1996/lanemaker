@@ -39,14 +39,12 @@ namespace RoadRunner
         g_mapView->SetEditMode(action.mode);
     }
 
-    void ActionManager::Record(const QTransform& newTrans, int hScroll, int vScroll)
+    void ActionManager::Record(double zoomVal, double rotateVal, int hScroll, int vScroll)
     {
         if (replayMode || !replayable) return;
         ChangeViewportAction serialized
         {
-            newTrans.m11(), newTrans.m12(), newTrans.m13(),
-            newTrans.m21(), newTrans.m22(), newTrans.m23(),
-            newTrans.m33(),
+            zoomVal, rotateVal,
             hScroll, vScroll
         };
         latestViewportChange.emplace(serialized);
@@ -54,14 +52,7 @@ namespace RoadRunner
 
     void ActionManager::Replay(const ChangeViewportAction& action)
     {
-        QTransform tr;
-        tr.setMatrix(action.part1.m11, action.part1.m12, action.part2.m13,
-            action.part2.m21, action.part3.m22, action.part3.m23,
-            0, 0, action.part4.m33);
-
-        g_mapView->setTransform(tr); // ROADRUNNERTODO: change sliders accordingly
-        g_mapView->horizontalScrollBar()->setValue(action.part4.hScroll);
-        g_mapView->verticalScrollBar()->setValue(action.part4.vScroll);
+        g_mapView->SetViewFromReplay(action.zoom, action.rotate, action.hScroll, action.vScroll);
     }
 
     void ActionManager::Record(QMouseEvent* evt)
@@ -184,14 +175,6 @@ namespace RoadRunner
         oarchive(history);
     }
 
-    //std::string ActionManager::SaveOnExeption()
-    //{
-    //    auto savePath = DefaultSaveFolder() + "\\exception__" + CurrentDateTime() + ".dat";
-    //    Save(savePath);
-    //    replayable = false;
-    //    return savePath;
-    //}
-
     std::string ActionManager::AutosavePath() const
     {
         return RoadRunner::DefaultSaveFolder() + "\\action_rec__" + RoadRunner::RunTimestamp() + ".dat";
@@ -222,17 +205,8 @@ namespace RoadRunner
             case Action_ChangeMode:
                 Replay(action.detail.changeMode);
                 break;
-            case Action_Viewport_Part1:
-                lastViewportReplay.part1 = action.detail.viewport_part1;
-                break;
-            case Action_Viewport_Part2:
-                lastViewportReplay.part2 = action.detail.viewport_part2;
-                break;
-            case Action_Viewport_Part3:
-                lastViewportReplay.part3 = action.detail.viewport_part3;
-                break;
-            case Action_Viewport_Part4:
-                lastViewportReplay.part4 = action.detail.viewport_part4;
+            case Action_Viewport:
+                lastViewportReplay = action.detail.viewport;
                 break;
             case Action_ChangeProfile:
                 Replay(action.detail.changeProfile);
@@ -266,10 +240,7 @@ namespace RoadRunner
     {
         if (!latestViewportChange.has_value()) return;
 
-        history.emplace_back(latestViewportChange.value().part1);
-        history.emplace_back(latestViewportChange.value().part2);
-        history.emplace_back(latestViewportChange.value().part3);
-        history.emplace_back(latestViewportChange.value().part4);
+        history.emplace_back(latestViewportChange.value());
         latestViewportChange.reset();
     }
 

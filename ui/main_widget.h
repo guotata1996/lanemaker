@@ -29,6 +29,9 @@ public:
 
     void Reset();
 
+    void RecordViewTransform();
+    void SetViewFromReplay(double zoomSliderVal, double rotateSliderVal);
+
 signals:
     void HoveringChanged(QString);
 
@@ -58,11 +61,11 @@ private slots:
 
 private:
     QButtonGroup* pointerModeGroup;
-    MapView* graphicsView;
+    MapView* mapView;
     QToolButton* antialiasButton;
     QToolButton* resetButton;
-    QSlider* zoomSlider;
-    QSlider* rotateSlider;
+    QSlider* zoomSlider = nullptr;
+    QSlider* rotateSlider = nullptr;
 
     SectionProfileConfigWidget* createRoadOption;
 

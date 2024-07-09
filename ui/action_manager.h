@@ -15,10 +15,7 @@ namespace RoadRunner
     {
         Action_Mouse,
         Action_KeyPress,
-        Action_Viewport_Part1,
-        Action_Viewport_Part2,
-        Action_Viewport_Part3,
-        Action_Viewport_Part4,
+        Action_Viewport,
         Action_Undo,
         Action_Redo,
         Action_ChangeMode,
@@ -37,34 +34,11 @@ namespace RoadRunner
     {
         int key;
     };
-
-    struct ChangeViewportAction_Part1
-    {
-        double m11, m12;
-    };
-
-    struct ChangeViewportAction_Part2
-    {
-        double m13, m21;
-    };
-
-    struct ChangeViewportAction_Part3
-    {
-        double m22, m23;
-    };
-
-    struct ChangeViewportAction_Part4
-    {
-        double m33;
-        int hScroll, vScroll;
-    };
     
     struct ChangeViewportAction
     {
-        ChangeViewportAction_Part1 part1;
-        ChangeViewportAction_Part2 part2;
-        ChangeViewportAction_Part3 part3;
-        ChangeViewportAction_Part4 part4;
+        double zoom, rotate;
+        int hScroll, vScroll;
     };
 
     struct ChangeModeAction
@@ -81,15 +55,12 @@ namespace RoadRunner
     {
         MouseAction mouse;
         KeyPressAction keyPress;
-        ChangeViewportAction_Part1 viewport_part1;
-        ChangeViewportAction_Part2 viewport_part2;
-        ChangeViewportAction_Part3 viewport_part3;
-        ChangeViewportAction_Part4 viewport_part4;
+        ChangeViewportAction viewport;
         ChangeModeAction changeMode;
         ChangeProfileAction changeProfile;
     };
 
-    static_assert(sizeof(ActionDetail) == sizeof(ChangeViewportAction_Part1), "Need to update serialize function!");
+    static_assert(sizeof(ActionDetail) == sizeof(ChangeViewportAction), "Need to update serialize function!");
 
     struct UserAction
     {
@@ -112,28 +83,10 @@ namespace RoadRunner
             detail.keyPress = k;
         }
 
-        UserAction(ChangeViewportAction_Part1 c)
+        UserAction(ChangeViewportAction a)
         {
-            type = Action_Viewport_Part1;
-            detail.viewport_part1 = c;
-        }
-
-        UserAction(ChangeViewportAction_Part2 c)
-        {
-            type = Action_Viewport_Part2;
-            detail.viewport_part2 = c;
-        }
-
-        UserAction(ChangeViewportAction_Part3 c)
-        {
-            type = Action_Viewport_Part3;
-            detail.viewport_part3 = c;
-        }
-
-        UserAction(ChangeViewportAction_Part4 c)
-        {
-            type = Action_Viewport_Part4;
-            detail.viewport_part4 = c;
+            type = Action_Viewport;
+            detail.viewport = a;
         }
 
         UserAction(ChangeModeAction c)
@@ -152,7 +105,8 @@ namespace RoadRunner
         void serialize(Archive& archive)
         {
             archive(type, 
-                detail.viewport_part1.m11, detail.viewport_part1.m12);
+                detail.viewport.zoom, detail.viewport.rotate,
+                detail.viewport.hScroll, detail.viewport.vScroll);
         }
     };
 
@@ -168,7 +122,7 @@ namespace RoadRunner
         void Record(MapView::EditMode);
         void Replay(const ChangeModeAction&);
 
-        void Record(const QTransform&, int hScroll, int vScroll);
+        void Record(double zoomVal, double rotateVal, int hScroll, int vScroll);
         void Replay(const ChangeViewportAction&);
 
         void Record(QMouseEvent*);

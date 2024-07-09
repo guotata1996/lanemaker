@@ -4,6 +4,7 @@
 #include "main_widget.h"
 #include "map_view.h"
 #include "mainwindow.h"
+#include "action_manager.h"
 
 #include "CreateRoadOptionWidget.h"
 #include "spdlog/spdlog.h"
@@ -12,19 +13,18 @@
 #include <QtMath>
 
 extern SectionProfileConfigWidget* g_createRoadOption;
-MapView* g_mapView;
 
 MainWidget::MainWidget(const QString& name, QWidget* parent)
     : QFrame(parent), createRoadOption(new SectionProfileConfigWidget)
 {
     setFrameStyle(Sunken | StyledPanel);
-    g_mapView = graphicsView = new MapView(this);
-    graphicsView->setRenderHint(QPainter::Antialiasing, false);
-    graphicsView->setDragMode(QGraphicsView::RubberBandDrag);
-    graphicsView->setOptimizationFlags(QGraphicsView::DontSavePainterState);
-    graphicsView->setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
-    graphicsView->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-    graphicsView->setMouseTracking(true);
+    mapView = new MapView(this);
+    mapView->setRenderHint(QPainter::Antialiasing, false);
+    mapView->setDragMode(QGraphicsView::RubberBandDrag);
+    mapView->setOptimizationFlags(QGraphicsView::DontSavePainterState);
+    mapView->setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
+    mapView->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+    mapView->setMouseTracking(true);
 
     int size = style()->pixelMetric(QStyle::PM_ToolBarIconSize);
     QSize iconSize(size, size);
@@ -139,7 +139,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
 
     QGridLayout* topLayout = new QGridLayout;
     topLayout->addLayout(labelLayout, 0, 0);
-    topLayout->addWidget(graphicsView, 1, 0);
+    topLayout->addWidget(mapView, 1, 0);
     topLayout->addLayout(zoomSliderLayout, 1, 1);
     topLayout->addLayout(rotateSliderLayout, 2, 0);
     topLayout->addWidget(resetButton, 2, 1);
@@ -148,9 +148,9 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     connect(resetButton, &QAbstractButton::clicked, this, &MainWidget::resetView);
     connect(zoomSlider, &QAbstractSlider::valueChanged, this, &MainWidget::setupMatrix);
     connect(rotateSlider, &QAbstractSlider::valueChanged, this, &MainWidget::setupMatrix);
-    connect(graphicsView->verticalScrollBar(), &QAbstractSlider::valueChanged,
+    connect(mapView->verticalScrollBar(), &QAbstractSlider::valueChanged,
         this, &MainWidget::setResetButtonEnabled);
-    connect(graphicsView->horizontalScrollBar(), &QAbstractSlider::valueChanged,
+    connect(mapView->horizontalScrollBar(), &QAbstractSlider::valueChanged,
         this, &MainWidget::setResetButtonEnabled);
     connect(createModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateRoadMode);
     connect(createLaneModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateLaneMode);
@@ -168,7 +168,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
 
 QGraphicsView* MainWidget::view() const
 {
-    return static_cast<QGraphicsView*>(graphicsView);
+    return static_cast<QGraphicsView*>(mapView);
 }
 
 void MainWidget::resetView()
@@ -176,7 +176,7 @@ void MainWidget::resetView()
     zoomSlider->setValue(250);
     rotateSlider->setValue(0);
     setupMatrix();
-    graphicsView->ensureVisible(QRectF(0, 0, 0, 0));
+    mapView->ensureVisible(QRectF(0, 0, 0, 0));
 
     resetButton->setEnabled(false);
 }
@@ -194,58 +194,58 @@ void MainWidget::setupMatrix()
     matrix.scale(scale, -scale);
     matrix.rotate(rotateSlider->value());
 
-    graphicsView->setTransform(matrix);
+    mapView->setTransform(matrix);
     setResetButtonEnabled();
 }
 
 void MainWidget::gotoCreateRoadMode()
 {
-    graphicsView->setDragMode(QGraphicsView::NoDrag);
-    graphicsView->setInteractive(true);
-    graphicsView->SetEditMode(MapView::Mode_Create);
+    mapView->setDragMode(QGraphicsView::NoDrag);
+    mapView->setInteractive(true);
+    mapView->SetEditMode(MapView::Mode_Create);
     createRoadOption->GotoRoadMode();
     emit InReadOnlyMode(false);
 }
 
 void MainWidget::gotoCreateLaneMode()
 {
-    graphicsView->setDragMode(QGraphicsView::NoDrag);
-    graphicsView->setInteractive(true);
-    graphicsView->SetEditMode(MapView::Mode_CreateLanes);
+    mapView->setDragMode(QGraphicsView::NoDrag);
+    mapView->setInteractive(true);
+    mapView->SetEditMode(MapView::Mode_CreateLanes);
     createRoadOption->GotoLaneMode();
     emit InReadOnlyMode(false);
 }
 
 void MainWidget::gotoDestroyMode()
 {
-    graphicsView->setDragMode(QGraphicsView::NoDrag);
-    graphicsView->setInteractive(true);
-    graphicsView->SetEditMode(MapView::Mode_Destroy);
+    mapView->setDragMode(QGraphicsView::NoDrag);
+    mapView->setInteractive(true);
+    mapView->SetEditMode(MapView::Mode_Destroy);
     createRoadOption->hide();
     emit InReadOnlyMode(false);
 }
 
 void MainWidget::gotoModifyMode()
 {
-    graphicsView->setDragMode(QGraphicsView::NoDrag);
-    graphicsView->setInteractive(true);
-    graphicsView->SetEditMode(MapView::Mode_Modify);
+    mapView->setDragMode(QGraphicsView::NoDrag);
+    mapView->setInteractive(true);
+    mapView->SetEditMode(MapView::Mode_Modify);
     createRoadOption->GotoRoadMode();
     emit InReadOnlyMode(false);
 }
 
 void MainWidget::gotoDragMode()
 {
-    graphicsView->setDragMode(QGraphicsView::ScrollHandDrag);
-    graphicsView->setInteractive(false);
-    graphicsView->SetEditMode(MapView::Mode_None);
+    mapView->setDragMode(QGraphicsView::ScrollHandDrag);
+    mapView->setInteractive(false);
+    mapView->SetEditMode(MapView::Mode_None);
     createRoadOption->hide();
     emit InReadOnlyMode(true);
 }
 
 void MainWidget::toggleAntialiasing()
 {
-    graphicsView->setRenderHint(QPainter::Antialiasing, antialiasButton->isChecked());
+    mapView->setRenderHint(QPainter::Antialiasing, antialiasButton->isChecked());
 }
 
 void MainWidget::zoomIn()
@@ -280,7 +280,7 @@ void MainWidget::rotateRight()
 
 void MainWidget::AdjustSceneRect()
 {
-    graphicsView->AdjustSceneRect();
+    mapView->AdjustSceneRect();
 }
 
 void MainWidget::SetHovering(QString a)
@@ -314,5 +314,21 @@ void MainWidget::Reset()
     }
     pointerModeGroup->setExclusive(true);
     gotoDragMode();
-    graphicsView->ResetSceneRect();
+    mapView->ResetSceneRect();
+}
+
+void MainWidget::RecordViewTransform()
+{
+    if (zoomSlider != nullptr && rotateSlider != nullptr)
+    {
+        RoadRunner::ActionManager::Instance()->Record(
+            zoomSlider->value(), rotateSlider->value(),
+            mapView->horizontalScrollBar()->value(), mapView->verticalScrollBar()->value());
+    }
+}
+
+void MainWidget::SetViewFromReplay(double zoomSliderVal, double rotateSliderVal)
+{
+    zoomSlider->setValue(zoomSliderVal);
+    rotateSlider->setValue(rotateSliderVal);
 }

@@ -36,8 +36,9 @@ public:
     void OnMouseMove(QMouseEvent* event);
     void OnMouseRelease(QMouseEvent* event);
     void OnKeyPress(QKeyEvent* event);
-
     double Zoom() const;
+    void SetViewFromReplay(double zoomSliderVal, double rotateSliderVal,
+        int hScrollbar, int vScrollbar);
 
 protected:
 #if QT_CONFIG(wheelevent)
@@ -60,7 +61,7 @@ protected:
 private:
     const double ViewPadding = 100; // meters
 
-    MainWidget* view;
+    MainWidget* parentContainer;
     RoadDrawingSession* drawingSession = nullptr;
 
     EditMode editMode = Mode_None;
