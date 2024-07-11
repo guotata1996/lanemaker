@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include <optional>
 
@@ -119,21 +121,13 @@ namespace RoadRunner
 
         static ActionManager* Instance();
 
+        void Replay(const UserAction&);
+
         void Record(MapView::EditMode);
-        void Replay(const ChangeModeAction&);
-
         void Record(double zoomVal, double rotateVal, int hScroll, int vScroll);
-        void Replay(const ChangeViewportAction&);
-
         void Record(QMouseEvent*);
-        void Replay(const MouseAction&);
-
         void Record(QKeyEvent*);
-        void Replay(const KeyPressAction&);
-
         void Record(const SectionProfile&, const SectionProfile&);
-        void Replay(const ChangeProfileAction&);
-
         void Record(ActionType);
 
         void Save() const;
@@ -153,8 +147,16 @@ namespace RoadRunner
 
         bool CleanAutoSave() const { return cleanAutoSave; }
 
+        static std::vector<UserAction> Load(std::string);
+
     private:
         ActionManager() = default;
+
+        static void Replay(const ChangeModeAction&);
+        static void Replay(const ChangeViewportAction&);
+        static void Replay(const MouseAction&);
+        static void Replay(const KeyPressAction&);
+        static void Replay(const ChangeProfileAction&);
 
         /* Save last viewport change (if exist) before key frame
          * Called before mouse events

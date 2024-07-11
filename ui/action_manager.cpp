@@ -163,6 +163,45 @@ namespace RoadRunner
         }
     }
 
+    void ActionManager::Replay(const UserAction& action)
+    {
+        history.emplace_back(action);
+        switch (action.type)
+        {
+        case Action_Mouse:
+            Replay(lastViewportReplay); // Weird: mapView->transform() changes silently
+            Replay(action.detail.mouse);
+            break;
+        case Action_KeyPress:
+            Replay(action.detail.keyPress);
+            break;
+        case Action_ChangeMode:
+            Replay(action.detail.changeMode);
+            break;
+        case Action_Viewport:
+            lastViewportReplay = action.detail.viewport;
+            break;
+        case Action_ChangeProfile:
+            Replay(action.detail.changeProfile);
+            break;
+        case Action_Undo:
+            if (!ChangeTracker::Instance()->Undo())
+            {
+                spdlog::error("Error replaying undo action");
+            }
+            break;
+        case Action_Redo:
+            if (!ChangeTracker::Instance()->Redo())
+            {
+                spdlog::error("Error replaying redo action");
+            }
+            break;
+        default:
+            spdlog::error("Action type {} replay is not supported", static_cast<int>(action.type));
+            break;
+        }
+    }
+
     void ActionManager::Save() const
     {
         Save(AutosavePath());
@@ -187,46 +226,16 @@ namespace RoadRunner
 
     void ActionManager::ReplayImmediate(std::string fpath)
     {
+        history.clear();
+
         std::ifstream inFile(fpath, std::ios::binary);
         cereal::BinaryInputArchive iarchive(inFile);
-        iarchive(history);
+        std::vector<UserAction> historyCopy;
+        iarchive(historyCopy);
         replayMode = true;
-        for (const auto& action : history)
+        for (const auto& action : historyCopy)
         {
-            switch (action.type)
-            {
-            case Action_Mouse:
-                Replay(lastViewportReplay); // Weird: mapView->transform() changes silently
-                Replay(action.detail.mouse);
-                break;
-            case Action_KeyPress:
-                Replay(action.detail.keyPress);
-                break;
-            case Action_ChangeMode:
-                Replay(action.detail.changeMode);
-                break;
-            case Action_Viewport:
-                lastViewportReplay = action.detail.viewport;
-                break;
-            case Action_ChangeProfile:
-                Replay(action.detail.changeProfile);
-                break;
-            case Action_Undo:
-                if (!ChangeTracker::Instance()->Undo())
-                {
-                    spdlog::error("Error replaying undo action");
-                }
-                break;
-            case Action_Redo:
-                if (!ChangeTracker::Instance()->Redo())
-                {
-                    spdlog::error("Error replaying redo action");
-                }
-                break;
-            default:
-                spdlog::error("Action type {} replay is not supported", static_cast<int>(action.type));
-                break;
-            }
+            Replay(action);
         }
         replayMode = false;
     }
@@ -250,5 +259,14 @@ namespace RoadRunner
 
         history.emplace_back(latestMouseMove.value());
         latestMouseMove.reset();
+    }
+
+    std::vector<UserAction> ActionManager::Load(std::string fpath)
+    {
+        std::ifstream inFile(fpath, std::ios::binary);
+        cereal::BinaryInputArchive iarchive(inFile);
+        std::vector<UserAction> historyTemp;
+        iarchive(historyTemp);
+        return historyTemp;
     }
 }

@@ -14,6 +14,7 @@
 #include "vehicle_manager.h"
 #include "test/validation.h"
 #include "util.h"
+#include "replay_window.h"
 
 #include "spdlog/spdlog.h"
 
@@ -50,9 +51,11 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 
     QMenu* replay = new QMenu("&Replay");
     auto saveReplayAction = replay->addAction("Save");
-    //auto animatedReplayAction = replay->addAction("Watch");
     auto debugReplayAction = replay->addAction("Debug");
+    auto controlledReplayAction = replay->addAction("Watch");
     menu->addMenu(replay);
+    replayWindow = std::make_unique<ReplayWindow>(this);
+    replayWindow->resize(300, 700);
 
     scene = std::make_unique<QGraphicsScene>(this);
     g_scene = scene.get();
@@ -84,6 +87,8 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(toggleSimAction, &QAction::triggered, this, &MainWindow::toggleSimulation);
     connect(saveReplayAction, &QAction::triggered, this, &MainWindow::saveActionHistory);
     connect(debugReplayAction, &QAction::triggered, this, &MainWindow::debugActionHistory);
+    connect(controlledReplayAction, &QAction::triggered, this, &MainWindow::openReplayWindow);
+    connect(replayWindow.get(), &ReplayWindow::Restart, this, &MainWindow::newMap);
     connect(mainWidget.get(), &MainWidget::HoveringChanged, this, &MainWindow::setHint);
     connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
     connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
@@ -202,6 +207,21 @@ void MainWindow::debugActionHistory()
         newMap();
         auto loc = s.toStdString();
         RoadRunner::ActionManager::Instance()->ReplayImmediate(loc);
+    }
+}
+
+void MainWindow::openReplayWindow()
+{
+    QString s = QFileDialog::getOpenFileName(
+        this,
+        "Choose File to Open",
+        RoadRunner::DefaultSaveFolder().c_str(),
+        "ActionHistory (*.dat)");
+    if (!s.isEmpty())
+    {
+        newMap();
+        replayWindow->LoadHistory(s.toStdString());
+        replayWindow->open();
     }
 }
 

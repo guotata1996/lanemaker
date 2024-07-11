@@ -37,7 +37,7 @@ void MapView::ResetSceneRect()
 
 double MapView::Zoom() const
 {
-    return transform().m11();
+    return std::sqrt(transform().m11() * transform().m11() + transform().m12() * transform().m12());
 }
 
 void MapView::SetViewFromReplay(double zoomSliderVal, double rotateSliderVal,
