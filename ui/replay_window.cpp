@@ -6,6 +6,7 @@
 #include <QHBoxLayout>
 #include <QListWidget>
 #include <qtimer.h>
+#include <QCheckBox>
 
 #include "action_manager.h"
 
@@ -23,7 +24,9 @@ ReplayWindow::ReplayWindow(QWidget* parent): QDialog(parent)
 	layout->addWidget(listWidget);
 
 	QHBoxLayout* buttonLayout = new QHBoxLayout();
-	auto playPauseButton = new QPushButton(">");
+	withDelay = new QCheckBox("Tutorial");
+	buttonLayout->addWidget(withDelay);
+	playPauseButton = new QPushButton(">");
 	playPauseButton->setCheckable(true);
 	buttonLayout->addWidget(playPauseButton);
 	auto singleStepButton = new QPushButton("1");
@@ -33,7 +36,6 @@ ReplayWindow::ReplayWindow(QWidget* parent): QDialog(parent)
 	layout->addLayout(buttonLayout);
 
 	replayTimer = new QTimer;
-	replayTimer->setInterval(1000);
 
 	connect(listWidget, &QListWidget::itemClicked, this, &ReplayWindow::PlaceBreakpointOn);
 	connect(replayTimer, &QTimer::timeout, this, &ReplayWindow::SingleStep);
@@ -159,12 +161,16 @@ void ReplayWindow::FillHistoryTable()
 	nextToReplay = 0;
 	if (!fullHistory.empty())
 	{
-		listWidget->item(nextToReplay)->setBackground(Qt::cyan);
+		listWidget->item(nextToReplay)->setForeground(NextReplayFG);
 	}
 }
 
 void ReplayWindow::PlaceBreakpointOn(QListWidgetItem* item)
 {
+	if ((item->flags() & Qt::ItemIsEnabled) == 0)
+	{
+		return;
+	}
 	int row = listWidget->row(item);
 	if (item->data(BreakPointFlag).toBool())
 	{
@@ -186,12 +192,22 @@ void ReplayWindow::SingleStep()
 	}
 
 	auto replayingItem = listWidget->item(nextToReplay);
-	replayingItem->setBackground(Qt::NoBrush);
+	replayingItem->setForeground(Qt::NoBrush);
 	replayingItem->setFlags(replayingItem->flags() & ~Qt::ItemIsEnabled);
 	RoadRunner::ActionManager::Instance()->Replay(fullHistory[nextToReplay++]);
 	if (nextToReplay < fullHistory.size())
 	{
-		listWidget->item(nextToReplay)->setBackground(Qt::cyan);
+		listWidget->item(nextToReplay)->setForeground(NextReplayFG);
+		listWidget->scrollTo(listWidget->model()->index(nextToReplay, 0));
+	}
+
+	if (replayingItem->data(BreakPointFlag).toBool())
+	{
+		// break point triggered: pause
+		if (playPauseButton->isChecked())
+		{
+			playPauseButton->setChecked(false);
+		}
 	}
 }
 
@@ -199,13 +215,16 @@ void ReplayWindow::ToggleAnimatedPlay(bool play)
 {
 	if (play)
 	{
+		replayTimer->setInterval(withDelay->isChecked() ? 1000 : 0);
 		replayTimer->start();
 		resetButton->setEnabled(false);
+		withDelay->setEnabled(false);
 	}
 	else
 	{
 		replayTimer->stop();
 		resetButton->setEnabled(true);
+		withDelay->setEnabled(true);
 	}
 }
 
@@ -222,7 +241,7 @@ void ReplayWindow::ReplayFromStart()
 
 	if (!fullHistory.empty())
 	{
-		listWidget->item(nextToReplay)->setBackground(Qt::cyan);
+		listWidget->item(nextToReplay)->setForeground(NextReplayFG);
 	}
 
 	emit Restart();

@@ -8,6 +8,7 @@ class QListWidget;
 class QListWidgetItem;
 class QTimer;
 class QPushButton;
+class QCheckBox;
 QT_END_NAMESPACE
 
 namespace RoadRunner
@@ -28,7 +29,6 @@ signals:
 	void Restart();
 
 private slots:
-	/*RoadRunnerTODO: merge play immediate into window and support break point*/
 	void PlaceBreakpointOn(QListWidgetItem*);
 
 	void ToggleAnimatedPlay(bool play);
@@ -43,9 +43,13 @@ private:
 	QListWidget* listWidget;
 	QTimer* replayTimer;
 	QPushButton* resetButton;
+	QPushButton* playPauseButton;
+	QCheckBox* withDelay;
 	std::vector<RoadRunner::UserAction> fullHistory;
 	size_t nextToReplay;
 	bool supported;
+
+	const Qt::GlobalColor NextReplayFG = Qt::darkMagenta;
 
 	const int BreakPointFlag = Qt::UserRole + 100;
 };
