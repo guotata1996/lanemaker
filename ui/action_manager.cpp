@@ -1,5 +1,6 @@
 #include "action_manager.h"
 #include "road_drawing.h"
+#include "main_widget.h"
 #include "CreateRoadOptionWidget.h"
 #include "change_tracker.h"
 #include "util.h"
@@ -26,17 +27,20 @@ namespace RoadRunner
         return instance;
     }
 
+    ActionManager::ActionManager() : 
+        startTime(QTime::currentTime()) {}
+
     void ActionManager::Record(MapView::EditMode modeChange)
     {
         if (replayMode || !replayable) return;
         ChangeModeAction serialized{ modeChange };
-        history.emplace_back(serialized);
+        history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
         Save();
     }
 
     void ActionManager::Replay(const ChangeModeAction& action)
     {
-        g_mapView->SetEditMode(action.mode);
+        g_mapView->parentContainer->SetModeFromReplay(action.mode);
     }
 
     void ActionManager::Record(double zoomVal, double rotateVal, int hScroll, int vScroll)
@@ -72,7 +76,7 @@ namespace RoadRunner
         else
         {
             FlushBufferedMouseMove();
-            history.emplace_back(serialized);
+            history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
             Save();
         }
 
@@ -122,7 +126,7 @@ namespace RoadRunner
         if (replayMode || !replayable) return;
         FlushBufferedMouseMove();
         KeyPressAction serialized{ evt->key() };
-        history.emplace_back(serialized);
+        history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
         Save();
     }
 
@@ -137,7 +141,7 @@ namespace RoadRunner
     {
         if (replayMode || !replayable) return;
         ChangeProfileAction serialized{ left, right };
-        history.emplace_back(serialized);
+        history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
         Save();
     }
 
@@ -151,7 +155,7 @@ namespace RoadRunner
         switch (actionNoParm)
         {
         case RoadRunner::Action_Undo: case RoadRunner::Action_Redo:
-            history.emplace_back(actionNoParm);
+            history.emplace_back(actionNoParm, startTime.msecsTo(QTime::currentTime()));
             Save();
             break;
         case RoadRunner::Action_LoadMap:
@@ -249,7 +253,7 @@ namespace RoadRunner
     {
         if (!latestViewportChange.has_value()) return;
 
-        history.emplace_back(latestViewportChange.value());
+        history.emplace_back(latestViewportChange.value(), startTime.msecsTo(QTime::currentTime()));
         latestViewportChange.reset();
     }
 
@@ -257,7 +261,7 @@ namespace RoadRunner
     {
         if (!latestMouseMove.has_value()) return;
 
-        history.emplace_back(latestMouseMove.value());
+        history.emplace_back(latestMouseMove.value(), startTime.msecsTo(QTime::currentTime()));
         latestMouseMove.reset();
     }
 

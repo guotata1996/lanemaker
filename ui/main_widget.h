@@ -31,6 +31,7 @@ public:
 
     void RecordViewTransform();
     void SetViewFromReplay(double zoomSliderVal, double rotateSliderVal);
+    void SetModeFromReplay(int mode);
 
 signals:
     void HoveringChanged(QString);
@@ -61,6 +62,8 @@ private slots:
 
 private:
     QButtonGroup* pointerModeGroup;
+    QToolButton* createModeButton, * createLaneModeButton, * destroyModeButton, * modifyModeButton, * dragModeButton;
+
     MapView* mapView;
     QToolButton* antialiasButton;
     QToolButton* resetButton;

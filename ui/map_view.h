@@ -40,6 +40,8 @@ public:
     void SetViewFromReplay(double zoomSliderVal, double rotateSliderVal,
         int hScrollbar, int vScrollbar);
 
+    MainWidget* parentContainer;
+
 protected:
 #if QT_CONFIG(wheelevent)
     void wheelEvent(QWheelEvent*) override;
@@ -61,7 +63,6 @@ protected:
 private:
     const double ViewPadding = 100; // meters
 
-    MainWidget* parentContainer;
     RoadDrawingSession* drawingSession = nullptr;
 
     EditMode editMode = Mode_None;

@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "qevent.h"
+#include <QTime>
 
 #include "road_profile.h"
 #include "map_view.h"
@@ -67,37 +68,44 @@ namespace RoadRunner
     struct UserAction
     {
         ActionType type;
+        int timeMS;
         ActionDetail detail;
 
         UserAction() = default;
 
-        UserAction(ActionType aType) : type(aType) {}
+        UserAction(ActionType aType, int aTime) : 
+            type(aType), timeMS(aTime) {}
 
-        UserAction(MouseAction ma)
+        UserAction(MouseAction ma, int aTime):
+            timeMS(aTime)
         {
             type = Action_Mouse;
             detail.mouse = ma;
         }
 
-        UserAction(KeyPressAction k)
+        UserAction(KeyPressAction k, int aTime):
+            timeMS(aTime)
         {
             type = Action_KeyPress;
             detail.keyPress = k;
         }
 
-        UserAction(ChangeViewportAction a)
+        UserAction(ChangeViewportAction a, int aTime):
+            timeMS(aTime)
         {
             type = Action_Viewport;
             detail.viewport = a;
         }
 
-        UserAction(ChangeModeAction c)
+        UserAction(ChangeModeAction c, int aTime):
+            timeMS(aTime)
         {
             type = Action_ChangeMode;
             detail.changeMode = c;
         }
 
-        UserAction(ChangeProfileAction c)
+        UserAction(ChangeProfileAction c, int aTime):
+            timeMS(aTime)
         {
             type = Action_ChangeProfile;
             detail.changeProfile = c;
@@ -106,7 +114,7 @@ namespace RoadRunner
         template<class Archive>
         void serialize(Archive& archive)
         {
-            archive(type, 
+            archive(type, timeMS,
                 detail.viewport.zoom, detail.viewport.rotate,
                 detail.viewport.hScroll, detail.viewport.vScroll);
         }
@@ -150,7 +158,7 @@ namespace RoadRunner
         static std::vector<UserAction> Load(std::string);
 
     private:
-        ActionManager() = default;
+        ActionManager();
 
         static void Replay(const ChangeModeAction&);
         static void Replay(const ChangeViewportAction&);
@@ -184,5 +192,7 @@ namespace RoadRunner
 
         /*Buffered action during replay*/
         RoadRunner::ChangeViewportAction lastViewportReplay;
+
+        QTime startTime;
     };
 }

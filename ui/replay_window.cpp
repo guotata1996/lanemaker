@@ -38,7 +38,7 @@ ReplayWindow::ReplayWindow(QWidget* parent): QDialog(parent)
 	replayTimer = new QTimer;
 
 	connect(listWidget, &QListWidget::itemClicked, this, &ReplayWindow::PlaceBreakpointOn);
-	connect(replayTimer, &QTimer::timeout, this, &ReplayWindow::SingleStep);
+	connect(replayTimer, &QTimer::timeout, this, &ReplayWindow::StepRealDelay);
 	connect(singleStepButton, &QPushButton::clicked, this, &ReplayWindow::SingleStep);
 	connect(playPauseButton, &QPushButton::toggled, this, &ReplayWindow::ToggleAnimatedPlay);
 	connect(resetButton, &QPushButton::clicked, this, &ReplayWindow::ReplayFromStart);
@@ -211,11 +211,33 @@ void ReplayWindow::SingleStep()
 	}
 }
 
+void ReplayWindow::StepRealDelay()
+{
+	if (!withDelay->isChecked() || nextToReplay == 0)
+	{
+		SingleStep();
+		return;
+	}
+	
+	if (nextToReplay >= fullHistory.size())
+	{
+		return;
+	}
+
+	int requiredDelay = fullHistory[nextToReplay].timeMS - fullHistory[nextToReplay - 1].timeMS;
+	pausedMS += TimerInterval;
+	if (pausedMS >= requiredDelay)
+	{
+		SingleStep();
+	}
+}
+
 void ReplayWindow::ToggleAnimatedPlay(bool play)
 {
 	if (play)
 	{
-		replayTimer->setInterval(withDelay->isChecked() ? 1000 : 0);
+		pausedMS = 0;
+		replayTimer->setInterval(withDelay->isChecked() ? TimerInterval : 0);
 		replayTimer->start();
 		resetButton->setEnabled(false);
 		withDelay->setEnabled(false);
@@ -238,7 +260,6 @@ void ReplayWindow::ReplayFromStart()
 		item->setBackground(Qt::NoBrush);
 	}
 	nextToReplay = 0;
-
 	if (!fullHistory.empty())
 	{
 		listWidget->item(nextToReplay)->setForeground(NextReplayFG);

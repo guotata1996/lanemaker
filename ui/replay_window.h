@@ -35,6 +35,8 @@ private slots:
 
 	void SingleStep();
 
+	void StepRealDelay();
+
 	void ReplayFromStart();
 
 private:
@@ -52,4 +54,7 @@ private:
 	const Qt::GlobalColor NextReplayFG = Qt::darkMagenta;
 
 	const int BreakPointFlag = Qt::UserRole + 100;
+
+	const int TimerInterval = 50;
+	int pausedMS;
 };

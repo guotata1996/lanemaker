@@ -78,31 +78,31 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
 
     // Label layout
     QHBoxLayout* labelLayout = new QHBoxLayout;
-    auto createModeButton = new QToolButton;
+    createModeButton = new QToolButton;
     createModeButton->setToolTip(tr("Road Mode"));
     createModeButton->setIcon(QPixmap(":/icons/road_mode.png"));
     createModeButton->setIconSize(iconSize);
     createModeButton->setCheckable(true);
     createModeButton->setChecked(false);
-    auto createLaneModeButton = new QToolButton;
+    createLaneModeButton = new QToolButton;
     createLaneModeButton->setToolTip(tr("Lane Mode"));
     createLaneModeButton->setIcon(QPixmap(":/icons/lane_mode.png"));
     createLaneModeButton->setIconSize(iconSize);
     createLaneModeButton->setCheckable(true);
     createLaneModeButton->setChecked(false);
-    auto destroyModeButton = new QToolButton;
+    destroyModeButton = new QToolButton;
     destroyModeButton->setToolTip(tr("Destroy Mode"));
     destroyModeButton->setIcon(QPixmap(":/icons/destroy_mode.png"));
     destroyModeButton->setIconSize(iconSize);
     destroyModeButton->setCheckable(true);
     destroyModeButton->setChecked(false);
-    auto modifyModeButton = new QToolButton;
+    modifyModeButton = new QToolButton;
     modifyModeButton->setToolTip(tr("Modify Mode"));
     modifyModeButton->setIcon(QPixmap(":/icons/modify_mode.PNG"));
     modifyModeButton->setIconSize(iconSize);
     modifyModeButton->setCheckable(true);
     modifyModeButton->setChecked(false);
-    auto dragModeButton = new QToolButton;
+    dragModeButton = new QToolButton;
     dragModeButton->setToolTip(tr("Drag Mode"));
     dragModeButton->setIcon(QPixmap(":/icons/view_mode.png"));
     dragModeButton->setIconSize(iconSize);
@@ -331,4 +331,26 @@ void MainWidget::SetViewFromReplay(double zoomSliderVal, double rotateSliderVal)
 {
     zoomSlider->setValue(zoomSliderVal);
     rotateSlider->setValue(rotateSliderVal);
+}
+
+void MainWidget::SetModeFromReplay(int mode)
+{
+    switch (mode)
+    {
+    case MapView::EditMode::Mode_Create:
+        createModeButton->setChecked(true);
+        break;
+    case MapView::EditMode::Mode_CreateLanes:
+        createLaneModeButton->setChecked(true);
+        break;
+    case MapView::EditMode::Mode_Modify:
+        modifyModeButton->setChecked(true);
+        break;
+    case MapView::EditMode::Mode_Destroy:
+        destroyModeButton->setChecked(true);
+        break;
+    default:
+        dragModeButton->setChecked(true);
+        break;
+    }
 }
