@@ -39,6 +39,9 @@ private slots:
 
 	void ReplayFromStart();
 
+protected:
+	void closeEvent(QCloseEvent* e) override;
+
 private:
 	void FillHistoryTable();
 

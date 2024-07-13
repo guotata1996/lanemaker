@@ -80,7 +80,6 @@ bool MapView::viewportEvent(QEvent* e)
 void MapView::SetEditMode(EditMode aMode)
 {
     editMode = aMode;
-    RoadRunner::ActionManager::Instance()->Record(aMode);
 
     if (drawingSession != nullptr)
     {
@@ -218,7 +217,8 @@ void MapView::OnKeyPress(QKeyEvent* evt)
         quitEdit();
         break;
     case Qt::Key_Return:
-        confirmEdit();
+        if (drawingSession != nullptr)
+            confirmEdit();
         break;
     case Qt::Key_I:
     {

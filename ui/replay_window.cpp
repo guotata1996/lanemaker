@@ -50,6 +50,12 @@ void ReplayWindow::LoadHistory(std::string fpath)
 	FillHistoryTable();
 }
 
+void ReplayWindow::closeEvent(QCloseEvent* e)
+{
+	playPauseButton->setChecked(false);
+	QDialog::closeEvent(e);
+}
+
 void ReplayWindow::FillHistoryTable()
 {
 	listWidget->clear();
@@ -82,15 +88,41 @@ void ReplayWindow::FillHistoryTable()
 			{
 			case QEvent::MouseButtonPress:
 				desc += " press";
+				switch (action.detail.mouse.button)
+				{
+				case Qt::MouseButton::LeftButton:
+					icon = QIcon(QPixmap(":/icons/LMB.png"));
+					break;
+				case Qt::MouseButton::RightButton:
+					icon = QIcon(QPixmap(":/icons/RMB.png"));
+					break;
+				case Qt::MouseButton::MidButton:
+					icon = QIcon(QPixmap(":/icons/CMB.png"));
+					break;
+				}
 				break;
 			case QEvent::MouseButtonDblClick:
 				desc += " double click";
+				icon = QIcon(QPixmap(":/icons/MouseDblClick.png"));
 				break;
 			case QEvent::MouseMove:
 				desc += " move";
+				icon = QIcon(QPixmap(":/icons/MouseMove.png"));
 				break;
 			case QEvent::MouseButtonRelease:
 				desc += " release";
+				switch (action.detail.mouse.button)
+				{
+				case Qt::MouseButton::LeftButton:
+					icon = QIcon(QPixmap(":/icons/LMB_Release.png"));
+					break;
+				case Qt::MouseButton::RightButton:
+					icon = QIcon(QPixmap(":/icons/RMB_Release.png"));
+					break;
+				case Qt::MouseButton::MidButton:
+					icon = QIcon(QPixmap(":/icons/CMB_Release.png"));
+					break;
+				}
 				break;
 			default:
 				supported = false;
@@ -102,17 +134,20 @@ void ReplayWindow::FillHistoryTable()
 		case RoadRunner::ActionType::Action_KeyPress:
 			desc = "KeyPress";
 			desc += " " + QKeySequence(action.detail.keyPress.key).toString().toStdString();
+			icon = QIcon(QPixmap(":/icons/keyboard.png"));
 			break;
 		case RoadRunner::ActionType::Action_Viewport:
 			desc = "ViewChange";
 			desc += " zoom:" + std::to_string(action.detail.viewport.zoom);
 			desc += " rot:" + std::to_string(action.detail.viewport.rotate);
-			icon = QIcon(QPixmap(":/icons/zoomin.png"));
+			icon = QIcon(QPixmap(":/icons/viewport.png"));
 			break;
 		case RoadRunner::ActionType::Action_Undo:
+			icon = QIcon(QPixmap(":/icons/undo.png"));
 			desc = "Undo";
 			break;
 		case RoadRunner::ActionType::Action_Redo:
+			icon = QIcon(QPixmap(":/icons/redo.png"));
 			desc = "Redo";
 			break;
 		case RoadRunner::ActionType::Action_ChangeMode:
@@ -147,6 +182,7 @@ void ReplayWindow::FillHistoryTable()
 			desc += " offset:" + std::to_string(action.detail.changeProfile.leftProfile.offsetx2);
 			desc += " R:lane" + std::to_string(action.detail.changeProfile.rightProfile.offsetx2);
 			desc += " offset:" + std::to_string(action.detail.changeProfile.rightProfile.offsetx2);
+			icon = QIcon(QPixmap(":/icons/car_coming.png"));
 			break;
 		default:
 			supported = false;
@@ -229,6 +265,7 @@ void ReplayWindow::StepRealDelay()
 	if (pausedMS >= requiredDelay)
 	{
 		SingleStep();
+		pausedMS = 0;
 	}
 }
 
