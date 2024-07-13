@@ -32,7 +32,7 @@ namespace RoadRunner
 
     void ActionManager::Record(MapView::EditMode modeChange)
     {
-        if (replayMode || !replayable) return;
+        if (!replayable) return;
         ChangeModeAction serialized{ modeChange };
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
         Save();
@@ -45,7 +45,7 @@ namespace RoadRunner
 
     void ActionManager::Record(double zoomVal, double rotateVal, int hScroll, int vScroll)
     {
-        if (replayMode || !replayable) return;
+        if (!replayable) return;
         ChangeViewportAction serialized
         {
             zoomVal, rotateVal,
@@ -61,7 +61,7 @@ namespace RoadRunner
 
     void ActionManager::Record(QMouseEvent* evt)
     {
-        if (replayMode || !replayable) return;
+        if (!replayable) return;
 
         FlushBufferedViewportChange();
         MouseAction serialized;
@@ -123,7 +123,7 @@ namespace RoadRunner
 
     void ActionManager::Record(QKeyEvent* evt)
     {
-        if (replayMode || !replayable) return;
+        if (!replayable) return;
         FlushBufferedMouseMove();
         KeyPressAction serialized{ evt->key() };
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
@@ -139,7 +139,7 @@ namespace RoadRunner
 
     void ActionManager::Record(const SectionProfile& left, const SectionProfile& right)
     {
-        if (replayMode || !replayable) return;
+        if (!replayable) return;
         ChangeProfileAction serialized{ left, right };
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
         Save();
@@ -221,27 +221,6 @@ namespace RoadRunner
     std::string ActionManager::AutosavePath() const
     {
         return RoadRunner::DefaultSaveFolder() + "\\action_rec__" + RoadRunner::RunTimestamp() + ".dat";
-    }
-
-    void ActionManager::ReplayImmediate()
-    {
-        ReplayImmediate(AutosavePath());
-    }
-
-    void ActionManager::ReplayImmediate(std::string fpath)
-    {
-        history.clear();
-
-        std::ifstream inFile(fpath, std::ios::binary);
-        cereal::BinaryInputArchive iarchive(inFile);
-        std::vector<UserAction> historyCopy;
-        iarchive(historyCopy);
-        replayMode = true;
-        for (const auto& action : historyCopy)
-        {
-            Replay(action);
-        }
-        replayMode = false;
     }
 
     void ActionManager::Reset()

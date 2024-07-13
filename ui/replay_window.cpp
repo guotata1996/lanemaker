@@ -44,10 +44,15 @@ ReplayWindow::ReplayWindow(QWidget* parent): QDialog(parent)
 	connect(resetButton, &QPushButton::clicked, this, &ReplayWindow::ReplayFromStart);
 }
 
-void ReplayWindow::LoadHistory(std::string fpath)
+void ReplayWindow::LoadHistory(std::string fpath, bool startImmediate)
 {
 	fullHistory = RoadRunner::ActionManager::Load(fpath);
 	FillHistoryTable();
+	if (startImmediate)
+	{
+		withDelay->setChecked(false);
+		playPauseButton->setChecked(true);
+	}
 }
 
 void ReplayWindow::closeEvent(QCloseEvent* e)
@@ -235,6 +240,10 @@ void ReplayWindow::SingleStep()
 	{
 		listWidget->item(nextToReplay)->setForeground(NextReplayFG);
 		listWidget->scrollTo(listWidget->model()->index(nextToReplay, 0));
+	}
+	else
+	{
+		emit DoneReplay(true);
 	}
 
 	if (replayingItem->data(BreakPointFlag).toBool())

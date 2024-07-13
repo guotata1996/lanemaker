@@ -256,31 +256,37 @@ void MainWidget::toggleAntialiasing()
 void MainWidget::zoomIn()
 {
     zoomSlider->setValue(zoomSlider->value() + 1);
+    RecordViewTransform();
 }
 
 void MainWidget::zoomOut()
 {
     zoomSlider->setValue(zoomSlider->value() - 1);
+    RecordViewTransform();
 }
 
 void MainWidget::zoomInBy(int level)
 {
     zoomSlider->setValue(zoomSlider->value() + level);
+    RecordViewTransform();
 }
 
 void MainWidget::zoomOutBy(int level)
 {
     zoomSlider->setValue(zoomSlider->value() - level);
+    RecordViewTransform();
 }
 
 void MainWidget::rotateLeft()
 {
     rotateSlider->setValue(rotateSlider->value() - 10);
+    RecordViewTransform();
 }
 
 void MainWidget::rotateRight()
 {
     rotateSlider->setValue(rotateSlider->value() + 10);
+    RecordViewTransform();
 }
 
 void MainWidget::AdjustSceneRect()

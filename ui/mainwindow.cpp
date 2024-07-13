@@ -87,7 +87,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(toggleSimAction, &QAction::triggered, this, &MainWindow::toggleSimulation);
     connect(saveReplayAction, &QAction::triggered, this, &MainWindow::saveActionHistory);
     connect(debugReplayAction, &QAction::triggered, this, &MainWindow::debugActionHistory);
-    connect(controlledReplayAction, &QAction::triggered, this, &MainWindow::openReplayWindow);
+    connect(controlledReplayAction, &QAction::triggered, this, &MainWindow::playActionHistory);
     connect(replayWindow.get(), &ReplayWindow::Restart, this, &MainWindow::newMap);
     connect(mainWidget.get(), &MainWidget::HoveringChanged, this, &MainWindow::setHint);
     connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
@@ -197,20 +197,15 @@ void MainWindow::saveActionHistory()
 
 void MainWindow::debugActionHistory()
 {
-    QString s = QFileDialog::getOpenFileName(
-        this,
-        "Choose File to Open",
-        RoadRunner::DefaultSaveFolder().c_str(),
-        "ActionHistory (*.dat)");
-    if (s.size() != 0)
-    {
-        newMap();
-        auto loc = s.toStdString();
-        RoadRunner::ActionManager::Instance()->ReplayImmediate(loc);
-    }
+    openReplayWindow(true);
 }
 
-void MainWindow::openReplayWindow()
+void MainWindow::playActionHistory()
+{
+    openReplayWindow(false);
+}
+
+void MainWindow::openReplayWindow(bool playImmediate)
 {
     QString s = QFileDialog::getOpenFileName(
         this,
@@ -220,7 +215,7 @@ void MainWindow::openReplayWindow()
     if (!s.isEmpty())
     {
         newMap();
-        replayWindow->LoadHistory(s.toStdString());
+        replayWindow->LoadHistory(s.toStdString(), playImmediate);
         replayWindow->open();
     }
 }
@@ -272,21 +267,33 @@ void MainWindow::onAppQuit()
         RoadRunner::ChangeTracker::Instance()->Save(originalPath);
 
         newMap();
-        RoadRunner::ActionManager::Instance()->ReplayImmediate();
-        auto replayPath = saveFolder + "\\auto_verify_b.xodr";
-        RoadRunner::ChangeTracker::Instance()->Save(replayPath);
 
-        if (!RoadRunnerTest::Validation::CompareFiles(originalPath, replayPath))
+        quitReplayComplete = false;
+        connect(replayWindow.get(), &ReplayWindow::DoneReplay, this, &MainWindow::onReplayDone);
+        replayWindow->LoadHistory(RoadRunner::ActionManager::Instance()->AutosavePath(), true);
+        replayWindow->exec();
+
+        if (quitReplayComplete)
         {
-            spdlog::error("Replay result is different from original map! Check {} for details.", 
-                RoadRunner::ActionManager::Instance()->AutosavePath());
+            auto replayPath = saveFolder + "\\auto_verify_b.xodr";
+            RoadRunner::ChangeTracker::Instance()->Save(replayPath);
+
+            if (!RoadRunnerTest::Validation::CompareFiles(originalPath, replayPath))
+            {
+                spdlog::error("Replay result is different from original map! Check {} for details.",
+                    RoadRunner::ActionManager::Instance()->AutosavePath());
+            }
+            else
+            {
+                // On success, clean up temporary saves
+                std::remove(originalPath.c_str());
+                std::remove(replayPath.c_str());
+            }
         }
         else
         {
-            // On success, clean up temporary saves
+            // cancelled by user
             std::remove(originalPath.c_str());
-            std::remove(replayPath.c_str());
-            std::remove(RoadRunner::ActionManager::Instance()->AutosavePath().c_str());
         }
     }
     
@@ -294,4 +301,10 @@ void MainWindow::onAppQuit()
     {
         std::remove(RoadRunner::ActionManager::Instance()->AutosavePath().c_str());
     }
+}
+
+void MainWindow::onReplayDone(bool completed)
+{
+    quitReplayComplete = completed;
+    replayWindow->close();
 }

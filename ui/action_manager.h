@@ -143,13 +143,8 @@ namespace RoadRunner
 
         std::string AutosavePath() const;
 
-        void ReplayImmediate();
-        void ReplayImmediate(std::string);
-
         void MarkException() { replayable = cleanAutoSave = false; }
         void Reset();
-
-        bool Replaying() const { return replayMode; }
 
         bool Replayable() const { return replayable; }
 
@@ -179,8 +174,6 @@ namespace RoadRunner
         std::vector<UserAction> history;
 
         static ActionManager* instance;
-
-        bool replayMode = false;
 
         bool replayable = true;
 

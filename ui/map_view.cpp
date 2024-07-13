@@ -64,17 +64,10 @@ void MapView::wheelEvent(QWheelEvent* e)
 }
 #endif
 
-bool MapView::viewportEvent(QEvent* e)
+void MapView::scrollContentsBy(int dx, int dy)
 {
-    bool res = QGraphicsView::viewportEvent(e);
-    auto currTrans = viewportTransform();
-    if (lastTransform != currTrans)
-    {
-        parentContainer->RecordViewTransform();
-        lastTransform = currTrans;        
-    }
-    
-    return res;
+    QGraphicsView::scrollContentsBy(dx, dy);
+    parentContainer->RecordViewTransform();
 }
 
 void MapView::SetEditMode(EditMode aMode)
@@ -119,17 +112,15 @@ void MapView::OnMousePress(QMouseEvent* evt)
 void MapView::mousePressEvent(QMouseEvent* evt)
 {
     QGraphicsView::mousePressEvent(evt);
-    if (!RoadRunner::ActionManager::Instance()->Replaying())
+    
+    RoadRunner::ActionManager::Instance()->Record(evt);
+    try
     {
-        RoadRunner::ActionManager::Instance()->Record(evt);
-        try
-        {
-            OnMousePress(evt);
-        }
-        catch (std::exception e)
-        {
-            handleException(e);
-        }
+        OnMousePress(evt);
+    }
+    catch (std::exception e)
+    {
+        handleException(e);
     }
 }
 
@@ -144,17 +135,15 @@ void MapView::OnMouseDoubleClick(QMouseEvent* evt)
 void MapView::mouseDoubleClickEvent(QMouseEvent* evt)
 {
     QGraphicsView::mouseDoubleClickEvent(evt);
-    if (!RoadRunner::ActionManager::Instance()->Replaying())
+    
+    RoadRunner::ActionManager::Instance()->Record(evt);
+    try
     {
-        RoadRunner::ActionManager::Instance()->Record(evt);
-        try
-        {
-            OnMouseDoubleClick(evt);
-        }
-        catch (std::exception e)
-        {
-            handleException(e);
-        }
+        OnMouseDoubleClick(evt);
+    }
+    catch (std::exception e)
+    {
+        handleException(e);
     }
 }
 
@@ -170,17 +159,15 @@ void MapView::OnMouseMove(QMouseEvent* evt)
 void MapView::mouseMoveEvent(QMouseEvent* evt)
 {
     QGraphicsView::mouseMoveEvent(evt);
-    if (!RoadRunner::ActionManager::Instance()->Replaying())
+    
+    RoadRunner::ActionManager::Instance()->Record(evt);
+    try
     {
-        RoadRunner::ActionManager::Instance()->Record(evt);
-        try
-        {
-            OnMouseMove(evt);
-        }
-        catch (std::exception e)
-        {
-            handleException(e);
-        }
+        OnMouseMove(evt);
+    }
+    catch (std::exception e)
+    {
+        handleException(e);
     }
 }
 
@@ -195,17 +182,15 @@ void MapView::OnMouseRelease(QMouseEvent* evt)
 void MapView::mouseReleaseEvent(QMouseEvent* evt)
 {
     QGraphicsView::mouseReleaseEvent(evt);
-    if (!RoadRunner::ActionManager::Instance()->Replaying())
+    
+    RoadRunner::ActionManager::Instance()->Record(evt);
+    try
     {
-        RoadRunner::ActionManager::Instance()->Record(evt);
-        try
-        {
-            OnMouseRelease(evt);
-        }
-        catch (std::exception e)
-        {
-            handleException(e);
-        }
+        OnMouseRelease(evt);
+    }
+    catch (std::exception e)
+    {
+        handleException(e);
     }
 }
 
@@ -277,18 +262,17 @@ void MapView::OnKeyPress(QKeyEvent* evt)
 void MapView::keyPressEvent(QKeyEvent* evt)
 {
     QGraphicsView::keyPressEvent(evt);
-    if (!RoadRunner::ActionManager::Instance()->Replaying())
+    
+    RoadRunner::ActionManager::Instance()->Record(evt);
+    try
     {
-        RoadRunner::ActionManager::Instance()->Record(evt);
-        try
-        {
-            OnKeyPress(evt);
-        }
-        catch (std::exception e)
-        {
-            handleException(e);
-        }
+        OnKeyPress(evt);
     }
+    catch (std::exception e)
+    {
+        handleException(e);
+    }
+    
 }
 
 void MapView::paintEvent(QPaintEvent* evt)

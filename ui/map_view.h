@@ -46,6 +46,8 @@ protected:
 #if QT_CONFIG(wheelevent)
     void wheelEvent(QWheelEvent*) override;
 #endif
+    void scrollContentsBy(int dx, int dy) override;
+
     void mousePressEvent(QMouseEvent* event) override;
 
     void mouseDoubleClickEvent(QMouseEvent* event) override;
@@ -55,8 +57,6 @@ protected:
     void mouseReleaseEvent(QMouseEvent* event) override;
 
     void keyPressEvent(QKeyEvent* event) override;
-
-    bool viewportEvent(QEvent* event) override;
 
     void paintEvent(QPaintEvent*) override;
 

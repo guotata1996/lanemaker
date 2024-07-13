@@ -23,10 +23,12 @@ Q_OBJECT
 public:
 	ReplayWindow(QWidget* parent = nullptr);
 
-	void LoadHistory(std::string fpath);
+	void LoadHistory(std::string fpath, bool startImmediate=false);	
 
 signals:
 	void Restart();
+
+	void DoneReplay(bool completed);
 
 private slots:
 	void PlaceBreakpointOn(QListWidgetItem*);

@@ -29,6 +29,8 @@ private:
 
     QAction* toggleSimAction;
 
+    bool quitReplayComplete;
+
 public slots:
     void ReplaySingleStep();
 
@@ -55,12 +57,17 @@ private slots:
 
     void debugActionHistory();
 
-    void openReplayWindow();
+    void playActionHistory();
 
     void toggleSimulation(bool);
 
     void enableSimulation(bool);
 
     void onAppQuit();
+
+    void onReplayDone(bool);
+
+private:
+    void openReplayWindow(bool playImmediate);
 };
 
