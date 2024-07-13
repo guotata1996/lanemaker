@@ -71,11 +71,37 @@ namespace RoadRunner
         serialized.button = evt->button();
         if (evt->type() == QEvent::Type::MouseMove)
         {
-            latestMouseMove.emplace(serialized);
+            bool recordNow = false;
+            if (!lastRecordedMouseMove.has_value())
+            {
+                recordNow = true;
+            }
+            else
+            {
+                int lastX = lastRecordedMouseMove.value().x;
+                int lastY = lastRecordedMouseMove.value().y;
+                int distanceSqr = (lastX - serialized.x) * (lastX - serialized.x) +
+                    (lastY - serialized.y) * (lastY - serialized.y);
+                if (distanceSqr > MouseMoveRecordThreshold * MouseMoveRecordThreshold)
+                {
+                    recordNow = true;
+                }
+            }
+
+            if (recordNow)
+            {
+                history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
+                lastRecordedMouseMove.emplace(serialized);
+                lastUnrecordedMouseMove.reset();
+            }
+            else
+            {
+                lastUnrecordedMouseMove.emplace(serialized);
+            }
         }
         else
         {
-            FlushBufferedMouseMove();
+            FlushUnrecordedMouseMove();
             history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
             Save();
         }
@@ -124,7 +150,7 @@ namespace RoadRunner
     void ActionManager::Record(QKeyEvent* evt)
     {
         if (!replayable) return;
-        FlushBufferedMouseMove();
+        FlushUnrecordedMouseMove();
         KeyPressAction serialized{ evt->key() };
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
         Save();
@@ -236,12 +262,14 @@ namespace RoadRunner
         latestViewportChange.reset();
     }
 
-    void ActionManager::FlushBufferedMouseMove()
+    void ActionManager::FlushUnrecordedMouseMove()
     {
-        if (!latestMouseMove.has_value()) return;
-
-        history.emplace_back(latestMouseMove.value(), startTime.msecsTo(QTime::currentTime()));
-        latestMouseMove.reset();
+        if (lastUnrecordedMouseMove.has_value())
+        {
+            history.emplace_back(lastUnrecordedMouseMove.value(), startTime.msecsTo(QTime::currentTime()));
+            lastRecordedMouseMove.emplace(lastUnrecordedMouseMove.value());
+            lastUnrecordedMouseMove.reset();
+        }
     }
 
     std::vector<UserAction> ActionManager::Load(std::string fpath)

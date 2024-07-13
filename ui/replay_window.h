@@ -33,7 +33,7 @@ signals:
 private slots:
 	void PlaceBreakpointOn(QListWidgetItem*);
 
-	void ToggleAnimatedPlay(bool play);
+	void PlayPause(bool play);
 
 	void SingleStep();
 

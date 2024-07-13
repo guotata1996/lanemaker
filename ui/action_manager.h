@@ -169,7 +169,7 @@ namespace RoadRunner
         /* Save last mouse move (if exist) before key frame
          * Called before mouse click, release and keyboard events
          */
-        void FlushBufferedMouseMove();
+        void FlushUnrecordedMouseMove();
 
         std::vector<UserAction> history;
 
@@ -180,12 +180,15 @@ namespace RoadRunner
         bool cleanAutoSave = true;
 
         /*Buffered action during record*/
-        std::optional<RoadRunner::MouseAction> latestMouseMove;
+        std::optional<RoadRunner::MouseAction> lastRecordedMouseMove;
+        std::optional<RoadRunner::MouseAction> lastUnrecordedMouseMove;
         std::optional<RoadRunner::ChangeViewportAction> latestViewportChange;
 
         /*Buffered action during replay*/
         RoadRunner::ChangeViewportAction lastViewportReplay;
 
         QTime startTime;
+
+        const int MouseMoveRecordThreshold = 50;
     };
 }

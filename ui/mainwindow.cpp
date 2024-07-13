@@ -260,7 +260,6 @@ void MainWindow::onAppQuit()
         && RoadRunner::ActionManager::Instance()->Replayable()
         && std::filesystem::exists(RoadRunner::ActionManager::Instance()->AutosavePath()))
     {
-        spdlog::info("---- Testing action replay...");
         RoadRunner::ChangeTracker::Instance()->VerifyUponChange = false; // No verification during replay
         auto saveFolder = RoadRunner::DefaultSaveFolder();
         auto originalPath = saveFolder + "\\auto_verify_a.xodr";
@@ -288,12 +287,14 @@ void MainWindow::onAppQuit()
                 // On success, clean up temporary saves
                 std::remove(originalPath.c_str());
                 std::remove(replayPath.c_str());
+                spdlog::info("Action replay test: OK");
             }
         }
         else
         {
             // cancelled by user
             std::remove(originalPath.c_str());
+            spdlog::info("Action replay test: Cancelled");
         }
     }
     

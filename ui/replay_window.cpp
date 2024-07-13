@@ -40,7 +40,7 @@ ReplayWindow::ReplayWindow(QWidget* parent): QDialog(parent)
 	connect(listWidget, &QListWidget::itemClicked, this, &ReplayWindow::PlaceBreakpointOn);
 	connect(replayTimer, &QTimer::timeout, this, &ReplayWindow::StepRealDelay);
 	connect(singleStepButton, &QPushButton::clicked, this, &ReplayWindow::SingleStep);
-	connect(playPauseButton, &QPushButton::toggled, this, &ReplayWindow::ToggleAnimatedPlay);
+	connect(playPauseButton, &QPushButton::toggled, this, &ReplayWindow::PlayPause);
 	connect(resetButton, &QPushButton::clicked, this, &ReplayWindow::ReplayFromStart);
 }
 
@@ -232,9 +232,40 @@ void ReplayWindow::SingleStep()
 		return;
 	}
 
+	if (!withDelay->isChecked())
+	{
+		// Skip intermediate mouse moves in debug mode to save time
+		while (nextToReplay < fullHistory.size() - 1)
+		{
+			if (fullHistory[nextToReplay].type == RoadRunner::Action_Mouse
+				&& fullHistory[nextToReplay].detail.mouse.type == QEvent::MouseMove
+				&& fullHistory[nextToReplay + 1].type == RoadRunner::Action_Mouse
+				&& fullHistory[nextToReplay + 1].detail.mouse.type == QEvent::MouseMove)
+			{
+				auto skipItem = listWidget->item(nextToReplay);
+				skipItem->setForeground(Qt::NoBrush);
+				skipItem->setFlags(skipItem->flags() & ~Qt::ItemIsEnabled);
+				nextToReplay++;
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+
 	auto replayingItem = listWidget->item(nextToReplay);
 	replayingItem->setForeground(Qt::NoBrush);
 	replayingItem->setFlags(replayingItem->flags() & ~Qt::ItemIsEnabled);
+	if (replayingItem->data(BreakPointFlag).toBool())
+	{
+		// break point triggered: pause
+		if (playPauseButton->isChecked())
+		{
+			playPauseButton->setChecked(false);
+		}
+	}
+
 	RoadRunner::ActionManager::Instance()->Replay(fullHistory[nextToReplay++]);
 	if (nextToReplay < fullHistory.size())
 	{
@@ -243,16 +274,8 @@ void ReplayWindow::SingleStep()
 	}
 	else
 	{
+		playPauseButton->setChecked(false);
 		emit DoneReplay(true);
-	}
-
-	if (replayingItem->data(BreakPointFlag).toBool())
-	{
-		// break point triggered: pause
-		if (playPauseButton->isChecked())
-		{
-			playPauseButton->setChecked(false);
-		}
 	}
 }
 
@@ -278,7 +301,7 @@ void ReplayWindow::StepRealDelay()
 	}
 }
 
-void ReplayWindow::ToggleAnimatedPlay(bool play)
+void ReplayWindow::PlayPause(bool play)
 {
 	if (play)
 	{
