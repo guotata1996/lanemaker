@@ -210,13 +210,36 @@ LanesCreationSession::~LanesCreationSession()
     SetHighlightTo(nullptr);
 }
 
-RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
+// lane editing cannot happen to connecting roads, or at normal junction interface
+bool LanesCreationSession::ValidateSnap() const
 {
     auto g_road = g_PointerRoad.lock();
     if (g_road == nullptr)
     {
+        return false;
+    }
+    double g_roadS = GetAdjustedS();
+    if (g_road->generated.junction != "-1")
+    {
+        return false;
+    }
+    if (g_roadS == 0 && g_road->predecessorJunction != nullptr &&
+        dynamic_cast<RoadRunner::Junction*>(g_road->predecessorJunction.get()) != nullptr
+        || g_roadS == g_road->Length() && g_road->successorJunction != nullptr &&
+        dynamic_cast<RoadRunner::Junction*>(g_road->successorJunction.get()) != nullptr)
+    {
+        return false;
+    }
+    return true;
+}
+
+RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
+{
+    if (!ValidateSnap())
+    {
         return RoadDrawingSession::Snap_Nothing;
     }
+    auto g_road = g_PointerRoad.lock();
     
     rLanes = g_createRoadOption->RightResult().laneCount;
     lLanes = g_createRoadOption->LeftResult().laneCount;
@@ -229,6 +252,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QP
         
     bool snappedToSegBoundary = false;
     double g_roadS = GetAdjustedS(&snappedToSegBoundary);
+
     const auto& g_roadProfile = g_road->generated.rr_profile;
     const auto rightProfile = g_roadProfile.ProfileAt(g_roadS, -1);
     const auto leftProfile = g_roadProfile.ProfileAt(g_roadS, 1);
@@ -403,12 +427,12 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QP
 
 RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QPointF& point)
 {
-    auto g_road = g_PointerRoad.lock();
-    if (g_road == nullptr)
+    if (!ValidateSnap())
     {
-        return RoadCreationSession::Snap_Nothing;
+        return RoadDrawingSession::Snap_Nothing;
     }
 
+    auto g_road = g_PointerRoad.lock();
 
     if (rLanes != g_createRoadOption->RightResult().laneCount ||
         lLanes != g_createRoadOption->LeftResult().laneCount)
@@ -433,6 +457,7 @@ RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QP
 
     bool snappedToSegBoundary = false;
     double g_roadS = GetAdjustedS(&snappedToSegBoundary);
+
     if (ctrlPoints.size() == 2 && !extendFromStart.expired() && extendFromStartS != 0 && extendFromStartS != extendFromStart.lock()->Length()
         && g_roadS != 0 && g_roadS != g_road->Length())
     {

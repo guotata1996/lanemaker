@@ -6,6 +6,7 @@
 #include <QFileDialog>
 #include <QStatusBar>
 #include <QApplication>
+#include <QScreen>
 #include <filesystem>
 
 #include "main_widget.h"
@@ -55,7 +56,6 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     auto controlledReplayAction = replay->addAction("Watch");
     menu->addMenu(replay);
     replayWindow = std::make_unique<ReplayWindow>(this);
-    replayWindow->resize(300, 700);
 
     scene = std::make_unique<QGraphicsScene>(this);
     g_scene = scene.get();
@@ -215,7 +215,13 @@ void MainWindow::openReplayWindow(bool playImmediate)
     if (!s.isEmpty())
     {
         newMap();
+        QScreen* screen = QGuiApplication::primaryScreen();
+        QRect  screenGeometry = screen->geometry();
         replayWindow->LoadHistory(s.toStdString(), playImmediate);
+        const int replayWindowWidth = 300;
+        replayWindow->setGeometry(
+            std::min(screenGeometry.width() - replayWindowWidth, geometry().right()), geometry().top(), 
+            replayWindowWidth, geometry().height());
         replayWindow->open();
     }
 }

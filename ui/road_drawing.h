@@ -140,6 +140,8 @@ protected:
     virtual std::unique_ptr<odr::RoadGeometry> CreateJoinAtEndGeo(bool forPreview) const override;
 
 private:
+    bool ValidateSnap() const;
+
     RoadRunner::type_t rLanes; // If lLanes == 0, becomes required lanes
     RoadRunner::type_t lLanes; // If 0, single-directional
     RoadRunner::type_t rOffsetX2, lOffsetX2;

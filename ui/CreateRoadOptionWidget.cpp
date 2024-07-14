@@ -218,6 +218,7 @@ CreateLaneOptionWidget::CreateLaneOptionWidget()
     auto mainLayout = new QHBoxLayout;
     leftSlider = new QSlider(Qt::Horizontal);
     leftSlider->setRange(0, 5);
+    leftSlider->setInvertedAppearance(true);
     leftSlider->setTickPosition(QSlider::TicksBelow);
     rightSlider = new QSlider(Qt::Horizontal);
     rightSlider->setRange(1, 5);

@@ -49,7 +49,7 @@ ReplayWindow::ReplayWindow(QWidget* parent): QDialog(parent)
 
 	replayTimer = new QTimer;
 
-	connect(listWidget, &QListWidget::itemClicked, this, &ReplayWindow::PlaceBreakpointOn);
+	connect(listWidget, &QListWidget::itemDoubleClicked, this, &ReplayWindow::PlaceBreakpointOn);
 	connect(replayTimer, &QTimer::timeout, this, &ReplayWindow::StepRealDelay);
 	connect(singleStepButton, &QPushButton::clicked, this, &ReplayWindow::SingleStep);
 	connect(playPauseButton, &QPushButton::toggled, this, &ReplayWindow::PlayPause);
@@ -198,7 +198,7 @@ void ReplayWindow::FillHistoryTable()
 		} 
 
 		auto item = new QListWidgetItem(icon, QString(desc.c_str()), listWidget);
-		item->setToolTip("Click to toggle breakpoint");
+		item->setToolTip("Dbl-click to toggle breakpoint");
 		listWidget->addItem(item);
 	}
 
@@ -223,7 +223,7 @@ void ReplayWindow::PlaceBreakpointOn(QListWidgetItem* item)
 	}
 	else
 	{
-		item->setBackground(QBrush(Qt::yellow));
+		item->setBackground(QBrush(Qt::magenta));
 		item->setData(BreakPointFlag, true);
 	}
 }
@@ -243,7 +243,8 @@ void ReplayWindow::SingleStep()
 			if (fullHistory[nextToReplay].type == RoadRunner::Action_Mouse
 				&& fullHistory[nextToReplay].detail.mouse.type == QEvent::MouseMove
 				&& fullHistory[nextToReplay + 1].type == RoadRunner::Action_Mouse
-				&& fullHistory[nextToReplay + 1].detail.mouse.type == QEvent::MouseMove)
+				&& fullHistory[nextToReplay + 1].detail.mouse.type == QEvent::MouseMove
+				&& !listWidget->item(nextToReplay)->data(BreakPointFlag).toBool())
 			{
 				auto skipItem = listWidget->item(nextToReplay);
 				skipItem->setForeground(Qt::NoBrush);
@@ -351,7 +352,6 @@ void ReplayWindow::ReplayFromStart()
 	{
 		auto item = listWidget->item(i);
 		item->setFlags(item->flags() | Qt::ItemIsEnabled);
-		item->setBackground(Qt::NoBrush);
 	}
 	nextToReplay = 0;
 	if (!fullHistory.empty())

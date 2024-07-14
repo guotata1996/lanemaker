@@ -52,7 +52,7 @@ namespace RoadRunner
         for (const auto record : formedFrom)
         {
             auto recordedRoad = record.road.lock();
-            auto updatedInfo = record;
+            auto updatedInfo = ConnectionInfo(recordedRoad, record.contact);
 
             if (recordedRoad == nullptr)
             {
