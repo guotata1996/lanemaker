@@ -15,14 +15,12 @@
         <file>icons/keyboard.png</file>
         <file>icons/viewport.png</file>
         <file>icons/CMB.png</file>
-        <file>icons/CMB_Release.png</file>
         <file>icons/LMB.png</file>
-        <file>icons/LMB_Release.png</file>
         <file>icons/MouseDblClick.png</file>
         <file>icons/MouseMove.png</file>
         <file>icons/RMB.png</file>
-        <file>icons/RMB_Release.png</file>
         <file>icons/redo.png</file>
         <file>icons/undo.png</file>
+        <file>icons/Mouse.png</file>
     </qresource>
 </RCC>

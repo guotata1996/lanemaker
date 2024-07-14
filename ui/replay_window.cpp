@@ -7,6 +7,7 @@
 #include <QListWidget>
 #include <qtimer.h>
 #include <QCheckBox>
+#include <qlabel.h>
 
 #include "action_manager.h"
 
@@ -22,6 +23,17 @@ ReplayWindow::ReplayWindow(QWidget* parent): QDialog(parent)
 	setLayout(layout);
 	listWidget = new QListWidget;
 	layout->addWidget(listWidget);
+
+	QHBoxLayout* statusLayout = new QHBoxLayout();
+	mouseStatus = new QLabel;
+	mouseStatus->setPixmap(QPixmap(":/icons/MouseMove.png"));
+	statusLayout->addWidget(mouseStatus);
+	keyStatus = new QLabel;	
+	keyStatus->hide();
+	mouseStatus->hide();
+
+	statusLayout->addWidget(keyStatus);
+	layout->addLayout(statusLayout);
 
 	QHBoxLayout* buttonLayout = new QHBoxLayout();
 	withDelay = new QCheckBox("Tutorial");
@@ -42,6 +54,8 @@ ReplayWindow::ReplayWindow(QWidget* parent): QDialog(parent)
 	connect(singleStepButton, &QPushButton::clicked, this, &ReplayWindow::SingleStep);
 	connect(playPauseButton, &QPushButton::toggled, this, &ReplayWindow::PlayPause);
 	connect(resetButton, &QPushButton::clicked, this, &ReplayWindow::ReplayFromStart);
+	connect(withDelay, &QCheckBox::toggled, keyStatus, &QLabel::setVisible);
+	connect(withDelay, &QCheckBox::toggled, mouseStatus, &QLabel::setVisible);
 }
 
 void ReplayWindow::LoadHistory(std::string fpath, bool startImmediate)
@@ -116,18 +130,7 @@ void ReplayWindow::FillHistoryTable()
 				break;
 			case QEvent::MouseButtonRelease:
 				desc += " release";
-				switch (action.detail.mouse.button)
-				{
-				case Qt::MouseButton::LeftButton:
-					icon = QIcon(QPixmap(":/icons/LMB_Release.png"));
-					break;
-				case Qt::MouseButton::RightButton:
-					icon = QIcon(QPixmap(":/icons/RMB_Release.png"));
-					break;
-				case Qt::MouseButton::MidButton:
-					icon = QIcon(QPixmap(":/icons/CMB_Release.png"));
-					break;
-				}
+				icon = QIcon(QPixmap(":/icons/Mouse.png"));
 				break;
 			default:
 				supported = false;
@@ -264,6 +267,28 @@ void ReplayWindow::SingleStep()
 		{
 			playPauseButton->setChecked(false);
 		}
+	}
+
+	if (withDelay->isChecked())
+	{
+		const auto& action = fullHistory[nextToReplay];
+		if (action.type == RoadRunner::Action_Mouse)
+		{
+			mouseStatus->setPixmap(replayingItem->icon().pixmap(replayingItem->icon().availableSizes().first()));
+		}
+
+		QImage kbImage(":/icons/keyboard.png");
+		if (action.type == RoadRunner::Action_KeyPress)
+		{
+			QPainter* p = new QPainter(&kbImage);
+			p->setPen(Qt::black);
+			p->setFont(QFont("Arial", 10));
+			auto keyStr = QKeySequence(action.detail.keyPress.key).toString();
+			if (keyStr.size() > 3)
+				keyStr.chop(3);
+			p->drawText(kbImage.rect(), Qt::AlignHCenter, keyStr);
+		}
+		keyStatus->setPixmap(QPixmap::fromImage(kbImage));
 	}
 
 	RoadRunner::ActionManager::Instance()->Replay(fullHistory[nextToReplay++]);

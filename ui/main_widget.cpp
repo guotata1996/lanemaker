@@ -164,6 +164,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     connect(zoomOutIcon, &QAbstractButton::clicked, this, &MainWidget::zoomOut);
 
     setupMatrix();
+    RecordViewTransform();
 }
 
 QGraphicsView* MainWidget::view() const

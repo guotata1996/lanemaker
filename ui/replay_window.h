@@ -9,6 +9,7 @@ class QListWidgetItem;
 class QTimer;
 class QPushButton;
 class QCheckBox;
+class QLabel;
 QT_END_NAMESPACE
 
 namespace RoadRunner
@@ -48,6 +49,8 @@ private:
 	void FillHistoryTable();
 
 	QListWidget* listWidget;
+	QLabel* mouseStatus;
+	QLabel* keyStatus;
 	QTimer* replayTimer;
 	QPushButton* resetButton;
 	QPushButton* playPauseButton;
