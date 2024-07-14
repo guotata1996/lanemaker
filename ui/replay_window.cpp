@@ -240,10 +240,15 @@ void ReplayWindow::SingleStep()
 		// Skip intermediate mouse moves in debug mode to save time
 		while (nextToReplay < fullHistory.size() - 1)
 		{
-			if (fullHistory[nextToReplay].type == RoadRunner::Action_Mouse
+			bool consecutiveMouseMove = 
+				fullHistory[nextToReplay].type == RoadRunner::Action_Mouse
 				&& fullHistory[nextToReplay].detail.mouse.type == QEvent::MouseMove
 				&& fullHistory[nextToReplay + 1].type == RoadRunner::Action_Mouse
-				&& fullHistory[nextToReplay + 1].detail.mouse.type == QEvent::MouseMove
+				&& fullHistory[nextToReplay + 1].detail.mouse.type == QEvent::MouseMove;
+			bool consecutiveViewchange =
+				fullHistory[nextToReplay].type == RoadRunner::Action_Viewport
+				&& fullHistory[nextToReplay + 1].type == RoadRunner::Action_Viewport;
+			if ((consecutiveMouseMove || consecutiveViewchange)
 				&& !listWidget->item(nextToReplay)->data(BreakPointFlag).toBool())
 			{
 				auto skipItem = listWidget->item(nextToReplay);

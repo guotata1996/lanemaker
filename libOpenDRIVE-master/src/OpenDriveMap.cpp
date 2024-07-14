@@ -860,7 +860,7 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
                 for (const auto& id_lane : lanesec.id_to_lane)
                 {
                     const Lane& lane = id_lane.second;
-                    const int   next_lane_id = find_successor ? lane.successor : lane.predecessor;
+                    const int   next_lane_id = (find_successor == lane.id < 0) ? lane.successor : lane.predecessor;
                     if (next_lane_id == 0)
                         continue;
 
@@ -881,7 +881,7 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
                     const LaneKey to(to_road.id, to_lanesection.s0, to_lane.id);
                     const double  lane_length = road.get_lanesection_length(from_lanesection);
 
-                    if (id_lane.first < 0 || requireNextRoad || requirePrevRoad)
+                    if (id_lane.first < 0)
                     {
                         routing_graph.add_edge(RoutingGraphEdge(from, to /*, lane_length*/));
                     }

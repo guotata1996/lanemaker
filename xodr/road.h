@@ -60,6 +60,8 @@ namespace RoadRunner
         void ModifyProfile(double s1, double s2, 
             const SectionProfile& newLeftProfile, const SectionProfile& newRightProfile);
 
+        double SnapToSegmentBoundary(double key, double limit, bool* outSuccess = nullptr);
+
 #ifndef G_TEST
         // Expensive, but safe
         void GenerateAllSectionGraphics();
@@ -67,8 +69,6 @@ namespace RoadRunner
         // Preferred
         // Sections containing s1/s2 will be updated
         void GenerateOrUpdateSectionGraphicsBetween(double s1, double s2);
-
-        double SnapToSegmentBoundary(double key, double limit, bool* outSuccess=nullptr);
 
         struct RoadsOverlap
         {
@@ -98,11 +98,11 @@ namespace RoadRunner
     private:
         void PlaceOdrRoadMarkings();
 
-#ifndef G_TEST
-        void GenerateSectionGraphicsBetween(double s1, double s2);
-
         // Prevent formation of too-short segment
         bool SnapToSegmentBoundary(type_s& key, type_s limit = 10);
+
+#ifndef G_TEST
+        void GenerateSectionGraphicsBetween(double s1, double s2);
 
         // Determines resolution for collision detection
         const double GraphicsDivision = 5;

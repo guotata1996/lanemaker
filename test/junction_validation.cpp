@@ -163,7 +163,7 @@ namespace RoadRunnerTest
             << road1->id << " " << lane1 << " outer border doesn't meet " << road2->id << " " << lane2
             << "(" << p1_out[0] << " , " << p1_out[1] << ") vs (" << p2_out[0] << " , " << p2_out[1] << ")";
 #else
-        assert(odr::euclDistance(p1_out, p2_out) < epsilon);
+        ExpectOrAssert(odr::euclDistance(p1_out, p2_out) < epsilon);
 #endif
 
         double t1_in = l1.inner_border.get(s1);
@@ -174,7 +174,7 @@ namespace RoadRunnerTest
         EXPECT_LT(odr::euclDistance(p1_in, p2_in), epsilon)
             << road1->id << " " << lane1 << " inner border doesn't meet " << road2->id << " " << lane2;
 #else
-        assert(odr::euclDistance(p1_in, p2_in) < epsilon);
+        ExpectOrAssert(odr::euclDistance(p1_in, p2_in) < epsilon);
 #endif
     }
 

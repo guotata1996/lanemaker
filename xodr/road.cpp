@@ -146,6 +146,62 @@ namespace RoadRunner
 #endif
         }
     }
+
+    bool Road::SnapToSegmentBoundary(type_s& key, type_s limit)
+    {
+        type_s profileLength = RoadRunner::from_odr_unit(Length());
+        auto existingKeys = generated.rr_profile.GetAllKeys(profileLength);
+
+        if (key < limit)
+        {
+            key = 0;
+            return true;
+        }
+        if (key > profileLength - limit)
+        {
+            key = profileLength;
+            return true;
+        }
+
+        auto above = existingKeys.lower_bound(key);
+        if (*above - key < limit)
+        {
+            key = *above;
+            return true;
+        }
+
+        if (above != existingKeys.begin())
+        {
+            auto below = above;
+            below--;
+            if (key - *below < limit)
+            {
+                key = *below;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    double Road::SnapToSegmentBoundary(double key, double limit, bool* outSuccess)
+    {
+        type_s key_s = from_odr_unit(key);
+        type_s limit_s = from_odr_unit(limit);
+        type_s modifiedKey_s = key_s;
+
+        bool snapped = SnapToSegmentBoundary(modifiedKey_s, limit_s);
+        if (outSuccess != nullptr)
+        {
+            *outSuccess = snapped;
+        }
+        if (key_s == modifiedKey_s)
+        {
+            return key;
+        }
+        return to_odr_unit(modifiedKey_s);
+    }
+
 #ifndef G_TEST
     void Road::GenerateAllSectionGraphics()
     {
@@ -208,61 +264,6 @@ namespace RoadRunner
         }
 
         GenerateSectionGraphicsBetween(createBegin, createEnd);
-    }
-
-    bool Road::SnapToSegmentBoundary(type_s& key, type_s limit)
-    {
-        type_s profileLength = RoadRunner::from_odr_unit(Length());
-        auto existingKeys = generated.rr_profile.GetAllKeys(profileLength);
-
-        if (key < limit)
-        {
-            key = 0;
-            return true;
-        }
-        if (key > profileLength - limit)
-        {
-            key = profileLength;
-            return true;
-        }
-
-        auto above = existingKeys.lower_bound(key);
-        if (*above - key < limit)
-        {
-            key = *above;
-            return true;
-        }
-
-        if (above != existingKeys.begin())
-        {
-            auto below = above;
-            below--;
-            if (key - *below < limit)
-            {
-                key = *below;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    double Road::SnapToSegmentBoundary(double key, double limit, bool* outSuccess)
-    {
-        type_s key_s = from_odr_unit(key);
-        type_s limit_s = from_odr_unit(limit);
-        type_s modifiedKey_s = key_s;
-        
-        bool snapped = SnapToSegmentBoundary(modifiedKey_s, limit_s);
-        if (outSuccess != nullptr)
-        {
-            *outSuccess = snapped;
-        }
-        if (key_s == modifiedKey_s)
-        {
-            return key;
-        }
-        return to_odr_unit(modifiedKey_s);
     }
 
     std::unique_ptr<Road::RoadsOverlap> Road::FirstOverlap(double sBegin, double sEnd) const
