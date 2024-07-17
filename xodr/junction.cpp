@@ -52,7 +52,6 @@ namespace RoadRunner
         for (const auto record : formedFrom)
         {
             auto recordedRoad = record.road.lock();
-            auto updatedInfo = ConnectionInfo(recordedRoad, record.contact);
 
             if (recordedRoad == nullptr)
             {
@@ -64,7 +63,7 @@ namespace RoadRunner
 
                 auto newContact = record.contact == odr::RoadLink::ContactPoint_Start ?
                     odr::RoadLink::ContactPoint_End : odr::RoadLink::ContactPoint_Start;
-                updatedInfo = ConnectionInfo(recordedRoad, newContact, record.skipProviderLanes);
+                auto updatedInfo = ConnectionInfo(recordedRoad, newContact, record.skipProviderLanes);
                 updatedInfoList.push_back(updatedInfo);
             }
             else if (detail._type == detail.Type_DetachAtEnd_Temp && record.contact == odr::RoadLink::ContactPoint_End &&
@@ -75,6 +74,8 @@ namespace RoadRunner
             }
             else
             {
+                // Must recalculate profile,pos,hdg to see if update is needed
+                auto updatedInfo = ConnectionInfo(recordedRoad, record.contact, record.skipProviderLanes);
                 updatedInfoList.push_back(updatedInfo);
                 if (updatedInfo != record)
                     needReGen = true;
@@ -364,7 +365,7 @@ namespace RoadRunner
 
             const auto& sectionLinked = linkedRoad->generated.get_lanesection(linkedContact == odr::RoadLink::ContactPoint_Start ? 0 : linkedRoad->Length());
             
-            // Link lanes from Provider to Linked
+            // Link lanes from Provider to Linked (split)
             if (linkedRoad->generated.rr_profile.HasSide(1) ||      // bi-dir
                 linkedContact == odr::RoadLink::ContactPoint_Start) // or single-dir lane split
             {
@@ -377,7 +378,7 @@ namespace RoadRunner
                 }
             }
             
-            // Link lanes from Linked to Provider
+            // Link lanes from Linked to Provider (merge)
             if (linkedRoad->generated.rr_profile.HasSide(-1) ||      // bi-dir
                 linkedContact == odr::RoadLink::ContactPoint_End)   // or single-dir lane merge
             {
@@ -394,7 +395,6 @@ namespace RoadRunner
 
         IDGenerator::ForJunction()->NotifyChange(ID());
 
-        // Debug
         return 0;
     }
 

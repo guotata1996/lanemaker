@@ -111,7 +111,7 @@ protected:
     double extendFromStartS, joinAtEndS;
 
 private:
-    void tryCreateJunction(std::shared_ptr<RoadRunner::Road>, double);
+    void tryCreateJunction(std::shared_ptr<RoadRunner::Road>, double, double);
     
     QPainterPath setPath;
     QGraphicsPathItem* setPreviewItem;

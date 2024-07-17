@@ -317,8 +317,12 @@ void MapView::handleException(std::exception e)
 {
     RoadRunner::ActionManager::Instance()->MarkException();
     auto msg = std::string(e.what()) + "\nReplayable at " + RoadRunner::ActionManager::Instance()->AutosavePath();
-    QMessageBox::information(this, "Exception Caught", QString::fromStdString(msg), QMessageBox::Ok);
-    QCoreApplication::quit();
+    auto quit = QMessageBox::question(this, "Quit now?", 
+        QString::fromStdString(msg), QMessageBox::Yes | QMessageBox::No);
+    if (quit == QMessageBox::Yes)
+    {
+        QCoreApplication::quit();
+    }
 }
 
 void MapView::SnapCursor(const QPoint& viewPos)

@@ -503,12 +503,13 @@ bool RoadCreationSession::CreateRoad()
 
     bool standaloneRoad = true;
     // Which part of newRoad will be newly-created?
-    double newPartBegin = 0;
+    double newPartBegin = 0, newPartEnd = newRoad->Length();
     if (!extendFromStart.expired())
     {
         standaloneRoad = false;
         auto toExtend = extendFromStart.lock();
-        newPartBegin = toExtend->Length();
+        newPartBegin += toExtend->Length();
+        newPartEnd += toExtend->Length();
         int joinResult = RoadRunner::Road::JoinRoads(toExtend, 
             extendFromStartS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End,
             newRoad, odr::RoadLink::ContactPoint_Start);
@@ -529,7 +530,6 @@ bool RoadCreationSession::CreateRoad()
 
         standaloneRoad = false;
         auto toJoin = joinAtEnd.lock();
-        newPartBegin = toJoin->Length();
         world->allRoads.erase(toJoin);
 
         int joinResult = RoadRunner::Road::JoinRoads(
@@ -547,7 +547,7 @@ bool RoadCreationSession::CreateRoad()
         world->allRoads.insert(newRoad);
     }
 
-    tryCreateJunction(std::move(newRoad), newPartBegin);
+    tryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd);
     return true;
 }
 
@@ -611,13 +611,13 @@ std::unique_ptr<odr::RoadGeometry> RoadCreationSession::createJoinAtEndGeo(bool 
     }
 }
 
-void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> newRoad, double newPartBegin)
+void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> newRoad, double newPartBegin, double newPartEnd)
 {
     const double JunctionExtaTrim = 10; // Space for connecting road curvature
     const double RoadMinLength = 5; // Discard if any leftover road is too short
     while (true)
     {
-        auto overlap = newRoad->FirstOverlap(newPartBegin, newRoad->Length());
+        auto overlap = newRoad->FirstOverlap(newPartBegin, newPartEnd);
         if (overlap == nullptr)
         {
             break;
@@ -795,5 +795,6 @@ void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
 
         newRoad = newRoadPastJunction;
         newPartBegin = 0;
+        newPartEnd -= sEnd1;
     }
 }
