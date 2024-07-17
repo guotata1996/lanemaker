@@ -5,6 +5,7 @@
 
 #include "CreateRoadOptionWidget.h"
 #include "junction.h"
+#include "constants.h"
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern int g_PointerLane;
@@ -36,7 +37,12 @@ bool LanesCreationSession::CreateRoad()
     }
     if (refLine.length == 0)
     {
-        spdlog::warn("Not enough control points placed");
+        spdlog::warn("Too few control points / curve too sharp");
+        return true;
+    }
+    if (refLine.length > RoadRunner::SingleDrawMaxLength)
+    {
+        spdlog::warn("Invalid shape or Road to create is too long");
         return true;
     }
 

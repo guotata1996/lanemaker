@@ -145,11 +145,19 @@ bool RoadCreationSession::Update(QMouseEvent* event)
     {
         if (event->type() == QEvent::Type::MouseButtonPress)
         {
-            ctrlPoints.push_back(scenePos);
-            if (ctrlPoints.size() == 2 && !extendFromStart.expired() && !joinAtEnd.expired() 
-                || ctrlPoints.size() >= 3 && !joinAtEnd.expired())
+            if (ctrlPoints.size() == 1 || 
+                QVector2D(ctrlPoints[ctrlPoints.size() - 2]).distanceToPoint(QVector2D(ctrlPoints.back())) > RoadRunner::DupCtrlPointsDist)
             {
-                return false;
+                ctrlPoints.push_back(scenePos);
+                if (ctrlPoints.size() == 2 && !extendFromStart.expired() && !joinAtEnd.expired()
+                    || ctrlPoints.size() >= 3 && !joinAtEnd.expired())
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                spdlog::warn("Cannot place ctrl point too close to the previous one!");
             }
         }
         else if (event->type() == QEvent::Type::MouseButtonDblClick
@@ -408,6 +416,7 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCtrlPoint(float maxOffse
     return result;
 }
 
+/*Returns zero-length RefLine given invalid input or sharp curvature*/
 odr::RefLine RoadCreationSession::RefLineFromCtrlPoints() const
 {
     odr::RefLine rtn("", 0);
@@ -415,11 +424,6 @@ odr::RefLine RoadCreationSession::RefLineFromCtrlPoints() const
         || !joinAtEnd.expired() && ctrlPoints.size() == 4)
     {
         auto roadGeometry = CreateJoinAtEndGeo(false);
-        if (roadGeometry->length > RoadRunner::ValidGeoMaxLength)
-        {
-            spdlog::warn("Abort create road: Potential invalid shape!");
-            return rtn;
-        }
         rtn.length = roadGeometry->length;
         rtn.s0_to_geometry.emplace(0, std::move(roadGeometry));
     }
@@ -439,12 +443,19 @@ odr::RefLine RoadCreationSession::RefLineFromCtrlPoints() const
             odr::Vec2D point2{ middle.x(), middle.y() };
             odr::Vec2D point3{ end.x(), end.y() };
 
-            if (middle.distanceToLine(start, end - start) < 0.1f)
+            if (start.distanceToPoint(middle) < RoadRunner::DupCtrlPointsDist || middle.distanceToPoint(end) < RoadRunner::DupCtrlPointsDist
+                || std::abs(odr::angle(odr::sub(point2, point1), odr::sub(point3, point2))) < 3.14 / 1800)
             {
                 localGeometry = std::make_unique<odr::Line>(cumLength, point1, point3);
             }
             else
             {
+                auto maxCurve = odr::max_curvature(point1, point2, point3);
+                
+                if (maxCurve > RoadRunner::RoadMaxCurvature)
+                {
+                    return odr::RefLine("", 0);
+                }
                 localGeometry = std::make_unique<odr::ParamPoly3>(cumLength, point1, point2, point2, point3);
             }
             double cumLengthPrev = cumLength;
@@ -473,7 +484,13 @@ bool RoadCreationSession::CreateRoad()
     auto refLine = RefLineFromCtrlPoints();
     if (refLine.length == 0)
     {
-        spdlog::warn("Not enough control points placed");
+        spdlog::warn("Too few control points / curve too sharp");
+        return true;
+    }
+
+    if (refLine.length > RoadRunner::SingleDrawMaxLength)
+    {
+        spdlog::warn("Invalid shape or Road to create is too long");
         return true;
     }
 

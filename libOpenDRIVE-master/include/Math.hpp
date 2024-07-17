@@ -232,4 +232,33 @@ constexpr T clamp(T x, T a, T b)
     return std::max(low, std::min(hi, x));
 }
 
+template<typename T, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
+constexpr T max_curvature(Vec<T, 2> p0, Vec<T, 2> p1, Vec<T, 2> p2)
+{
+    double A = std::abs(crossProduct(sub(p1, p0), sub(p2, p0))) / 2;
+    if (A == 0)
+    {
+        return 0;
+    }
+
+    auto m = mut(0.5, add(p0, p2));
+    auto r = euclDistance(p0, m) / 2;
+
+    auto c1 = mut(0.5, add(p0, m));
+    auto d1 = euclDistance(p1, c1);
+    bool inside_c1 = d1 < r;
+
+    auto c2 = mut(0.5, add(m, p2));
+    auto d2 = euclDistance(p1, c2);
+    bool inside_c2 = d2 < r;
+
+    if (inside_c1 || inside_c2) 
+    {
+        auto k0 = A / pow(euclDistance(p0, p1), 3);
+        auto k1 = A / pow(euclDistance(p1, p2), 3);
+        return std::max(k0, k1);
+    }
+    return pow(euclDistance(p1, m), 3) / pow(A, 2);
+}
+
 } // namespace odr

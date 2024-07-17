@@ -228,7 +228,7 @@ namespace RoadRunner
 #ifndef G_TEST
         for (auto& connecting : connectingRoads)
         {
-            if (connecting->Length() < RoadRunner::ValidGeoMaxLength)
+            if (connecting->Length() < RoadRunner::SingleDrawMaxLength)
             {
                 connecting->GenerateAllSectionGraphics();
             }
