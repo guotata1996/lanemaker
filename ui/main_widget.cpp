@@ -163,8 +163,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     connect(zoomInIcon, &QAbstractButton::clicked, this, &MainWidget::zoomIn);
     connect(zoomOutIcon, &QAbstractButton::clicked, this, &MainWidget::zoomOut);
 
-    setupMatrix();
-    RecordViewTransform();
+    Reset();
 }
 
 QGraphicsView* MainWidget::view() const
@@ -326,6 +325,7 @@ void MainWidget::Reset()
     }
     pointerModeGroup->setExclusive(true);
     gotoDragMode();
+    resetView(); // Make sure to RecordViewTransform()
     mapView->ResetSceneRect();
 }
 

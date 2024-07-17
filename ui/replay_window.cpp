@@ -10,9 +10,11 @@
 #include <qlabel.h>
 
 #include "action_manager.h"
-
 #include "util.h"
 
+#include <fstream>
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/vector.hpp>
 #include "spdlog/spdlog.h"
 
 ReplayWindow::ReplayWindow(QWidget* parent): QDialog(parent)
@@ -58,13 +60,14 @@ ReplayWindow::ReplayWindow(QWidget* parent): QDialog(parent)
 	connect(withDelay, &QCheckBox::toggled, mouseStatus, &QLabel::setVisible);
 }
 
-void ReplayWindow::LoadHistory(std::string fpath, bool startImmediate)
+void ReplayWindow::LoadHistory(std::string fpath, bool debugMode)
 {
-	fullHistory = RoadRunner::ActionManager::Load(fpath);
+	fullHistory = Load(fpath);
 	FillHistoryTable();
-	if (startImmediate)
+	withDelay->setChecked(!debugMode);
+	if (debugMode)
 	{
-		withDelay->setChecked(false);
+		// Start immediately
 		playPauseButton->setChecked(true);
 	}
 }
@@ -75,10 +78,19 @@ void ReplayWindow::closeEvent(QCloseEvent* e)
 	QDialog::closeEvent(e);
 }
 
+std::vector<RoadRunner::UserAction> ReplayWindow::Load(std::string fpath)
+{
+	std::ifstream inFile(fpath, std::ios::binary);
+	cereal::BinaryInputArchive iarchive(inFile);
+	std::vector<RoadRunner::UserAction> rtn;
+	iarchive(rtn);
+	return rtn;
+}
+
 void ReplayWindow::FillHistoryTable()
 {
 	listWidget->clear();
-	supported = true;
+	bool supported = true;
 	for (const auto& action : fullHistory)
 	{
 		std::string desc;
@@ -100,7 +112,6 @@ void ReplayWindow::FillHistoryTable()
 				desc += " mid";
 				break;
 			default:
-				supported = false;
 				break;
 			}
 			switch (action.detail.mouse.type)
@@ -206,6 +217,10 @@ void ReplayWindow::FillHistoryTable()
 	if (!fullHistory.empty())
 	{
 		listWidget->item(nextToReplay)->setForeground(NextReplayFG);
+	}
+	if (!supported)
+	{
+		spdlog::error("Found unsupported action type. History might be corrupted file or from future version!");
 	}
 }
 

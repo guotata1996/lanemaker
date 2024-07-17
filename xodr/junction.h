@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <functional>
+#include <optional>
 
 namespace RoadRunnerTest { class Validation; }
 
@@ -67,10 +68,12 @@ namespace RoadRunner
 
     enum JunctionError
     {
+        Junction_NoError = 0,
         Junction_TooManyIncomingLanes = 1,
         Junction_ConnectionInvalidShape = 2,
         Junction_AlgoFail = 4,
-        Junction_DuplicateConn = 8
+        Junction_DuplicateConn = 8,
+        Junction_DirectNoProvider = 16
     };
 
     int GenerateConnections(
@@ -212,7 +215,7 @@ namespace RoadRunner
         virtual std::string Log() const override;
 
     private:
-        ConnectionInfo InterfaceProvider() const;
+        std::optional<ConnectionInfo> InterfaceProvider() const;
 
         odr::Vec2D interfaceDir; // Vector pointing into the interface provider
 

@@ -78,7 +78,10 @@ bool LanesCreationSession::CreateRoad()
 
             if (directJunction != nullptr)
             {
-                directJunction->Attach(linkedInfo);
+                if (directJunction->Attach(linkedInfo) != RoadRunner::JunctionError::Junction_NoError)
+                {
+                    return false;
+                }
             }
             else if (startFullyMatch)
             {
@@ -88,7 +91,8 @@ bool LanesCreationSession::CreateRoad()
                     newRoad, odr::RoadLink::ContactPoint_Start);
                 if (joinResult != 0)
                 {
-                    spdlog::error("Extend error {}", joinResult);
+                    spdlog::error("LanesCreationSession:: Extend error {}", joinResult);
+                    return false;
                 }
 
                 newRoad = toExtend;
@@ -148,7 +152,10 @@ bool LanesCreationSession::CreateRoad()
 
             if (directJunction != nullptr)
             {
-                directJunction->Attach(linkedInfo);
+                if (directJunction->Attach(linkedInfo) != RoadRunner::JunctionError::Junction_NoError)
+                {
+                    return false;
+                }
             }
             else if (endFullyMatch)
             {

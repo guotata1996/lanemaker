@@ -3,6 +3,8 @@
 #include <QDialog>
 #include <vector>
 
+#include "action_manager.h"
+
 QT_BEGIN_NAMESPACE
 class QListWidget;
 class QListWidgetItem;
@@ -24,7 +26,7 @@ Q_OBJECT
 public:
 	ReplayWindow(QWidget* parent = nullptr);
 
-	void LoadHistory(std::string fpath, bool startImmediate=false);	
+	void LoadHistory(std::string fpath, bool debugMode=false);	
 
 signals:
 	void Restart();
@@ -46,6 +48,9 @@ protected:
 	void closeEvent(QCloseEvent* e) override;
 
 private:
+	/*Need to include version number here to avoid mismatch*/
+	std::vector<RoadRunner::UserAction> Load(std::string fpath);
+
 	void FillHistoryTable();
 
 	QListWidget* listWidget;
@@ -57,7 +62,6 @@ private:
 	QCheckBox* withDelay;
 	std::vector<RoadRunner::UserAction> fullHistory;
 	size_t nextToReplay;
-	bool supported;
 
 	const Qt::GlobalColor NextReplayFG = Qt::darkMagenta;
 

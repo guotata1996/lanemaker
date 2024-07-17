@@ -27,6 +27,8 @@ namespace RoadRunner
         std::vector<ConnectionInfo> newConnections = { conn };
         for (auto existing : formedFrom)
         {
+            if (existing.road.expired())
+                continue;
             ConnectionInfo existingInfo{ existing.road.lock(), existing.contact, existing.skipProviderLanes };
             newConnections.push_back(existingInfo);
         }
@@ -301,7 +303,12 @@ namespace RoadRunner
             return JunctionError::Junction_DuplicateConn;
         }
 
-        auto interfaceInfo = InterfaceProvider();
+        auto interfaceInfoOrInvalid = InterfaceProvider();
+        if (!interfaceInfoOrInvalid.has_value())
+        {
+            return JunctionError::Junction_DirectNoProvider;
+        }
+        auto interfaceInfo = interfaceInfoOrInvalid.value();
         std::shared_ptr<Road> interfaceProviderRoad = interfaceInfo.road.lock();
         auto interfaceContact = interfaceInfo.contact;
 
@@ -321,14 +328,14 @@ namespace RoadRunner
                 }
                 else
                 {
-                    assert(false);
+                    throw std::logic_error("DirectJunction::CreateFrom Invalid contact point");
                 }
                 clearLinkage(ID(), connectedRoad->ID());
                 IDGenerator::ForRoad()->NotifyChange(connectedRoad->ID());
             }
             formedFrom.clear();
             // Junction will then be destroyed
-            return 0;
+            return JunctionError::Junction_NoError;
         }
 
         for (const ConnectionInfo& info: connectedInfo)
@@ -395,7 +402,7 @@ namespace RoadRunner
 
         IDGenerator::ForJunction()->NotifyChange(ID());
 
-        return 0;
+        return JunctionError::Junction_NoError;
     }
 
     void DirectJunction::AttachNoRegenerate(ConnectionInfo conn)
@@ -464,7 +471,7 @@ namespace RoadRunner
         return rtn;
     }
 
-    ConnectionInfo DirectJunction::InterfaceProvider() const
+    std::optional<ConnectionInfo> DirectJunction::InterfaceProvider() const
     {
         std::shared_ptr<Road> interfaceProviderRoad;
         odr::RoadLink::ContactPoint interfaceContact = odr::RoadLink::ContactPoint_None;
@@ -480,6 +487,7 @@ namespace RoadRunner
                 if (matchFound)
                 {
                     spdlog::error("More than one road match interface direction!");
+                    return std::optional<ConnectionInfo>();
                 }
                 matchFound = true;
             }
@@ -491,12 +499,20 @@ namespace RoadRunner
     {
         std::stringstream ss;
         ss << "Direct Junction " << ID() << "\n";
-        for (auto contact : formedFrom)
+        auto providerOrBad = InterfaceProvider();
+        if (!providerOrBad.has_value())
         {
-            auto contactStr = contact.contact == odr::RoadLink::ContactPoint_Start ? "Start" :
-                contact.contact == odr::RoadLink::ContactPoint_End ? "End" : "None";
-            auto typeStr = contact == InterfaceProvider() ? "Interface " : "Linked ";
-            ss << "    " << typeStr << contact.road.lock()->ID() << " connected at " << contactStr << "\n";
+            ss << "     Error: Invalid Interface provider!\n";
+        }
+        else
+        {
+            for (auto contact : formedFrom)
+            {
+                auto contactStr = contact.contact == odr::RoadLink::ContactPoint_Start ? "Start" :
+                    contact.contact == odr::RoadLink::ContactPoint_End ? "End" : "None";
+                auto typeStr = contact == providerOrBad.value() ? "Interface " : "Linked ";
+                ss << "    " << typeStr << contact.road.lock()->ID() << " connected at " << contactStr << "\n";
+            }
         }
         return ss.str();
     }

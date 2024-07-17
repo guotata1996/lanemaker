@@ -285,6 +285,7 @@ void MainWindow::onAppQuit()
 
             if (!RoadRunnerTest::Validation::CompareFiles(originalPath, replayPath))
             {
+                RoadRunner::ActionManager::Instance()->MarkException();
                 spdlog::error("Replay result is different from original map! Check {} for details.",
                     RoadRunner::ActionManager::Instance()->AutosavePath());
             }

@@ -150,8 +150,6 @@ namespace RoadRunner
 
         bool CleanAutoSave() const { return cleanAutoSave; }
 
-        static std::vector<UserAction> Load(std::string);
-
     private:
         ActionManager();
 
@@ -185,7 +183,7 @@ namespace RoadRunner
         std::optional<RoadRunner::ChangeViewportAction> latestViewportChange;
 
         /*Buffered action during replay*/
-        RoadRunner::ChangeViewportAction lastViewportReplay;
+        std::optional<RoadRunner::ChangeViewportAction> lastViewportReplay;
 
         QTime startTime;
 

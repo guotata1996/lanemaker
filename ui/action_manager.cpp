@@ -143,7 +143,8 @@ namespace RoadRunner
             g_mapView->OnMouseRelease(qMouseEvent.get());
             break;
         default:
-            throw;
+            spdlog::error("Unsupported MouseAction to replay: {}", static_cast<int>(action.type));
+            break;
         }
     }
 
@@ -189,7 +190,7 @@ namespace RoadRunner
             replayable = false;
             break;
         default:
-            throw;
+            spdlog::error("Invalid ActionType to Record: {}", static_cast<int>(actionNoParm));
         }
     }
 
@@ -199,7 +200,8 @@ namespace RoadRunner
         switch (action.type)
         {
         case Action_Mouse:
-            Replay(lastViewportReplay); // Weird: mapView->transform() changes silently
+            if (lastViewportReplay.has_value())
+                Replay(lastViewportReplay.value()); // Weird: mapView->transform() changes silently
             Replay(action.detail.mouse);
             break;
         case Action_KeyPress:
@@ -209,7 +211,7 @@ namespace RoadRunner
             Replay(action.detail.changeMode);
             break;
         case Action_Viewport:
-            lastViewportReplay = action.detail.viewport;
+            lastViewportReplay.emplace(action.detail.viewport);
             break;
         case Action_ChangeProfile:
             Replay(action.detail.changeProfile);
@@ -252,6 +254,11 @@ namespace RoadRunner
     void ActionManager::Reset()
     {
         history.clear();
+        lastViewportReplay.reset();
+        lastRecordedMouseMove.reset();
+        lastUnrecordedMouseMove.reset();
+        latestViewportChange.reset();
+        replayable = true;
     }
 
     void ActionManager::FlushBufferedViewportChange()
@@ -270,14 +277,5 @@ namespace RoadRunner
             lastRecordedMouseMove.emplace(lastUnrecordedMouseMove.value());
             lastUnrecordedMouseMove.reset();
         }
-    }
-
-    std::vector<UserAction> ActionManager::Load(std::string fpath)
-    {
-        std::ifstream inFile(fpath, std::ios::binary);
-        cereal::BinaryInputArchive iarchive(inFile);
-        std::vector<UserAction> historyTemp;
-        iarchive(historyTemp);
-        return historyTemp;
     }
 }
