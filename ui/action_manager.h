@@ -36,6 +36,29 @@ namespace RoadRunner
     struct KeyPressAction
     {
         int key;
+
+        QString ToString() const
+        {
+            QString keyStr;
+            switch (key)
+            {
+            case Qt::Key_Control:
+                keyStr = "Ctrl";
+                break;
+            case Qt::Key_Alt:
+                keyStr = "Alt";
+                break;
+            case Qt::Key_Shift:
+                keyStr = "Sft";
+                break;
+            default:
+                keyStr = QKeySequence(key).toString();
+                if (keyStr.size() > 3)
+                    keyStr.chop(3);
+                break;
+            }
+            return keyStr;
+        }
     };
     
     struct ChangeViewportAction

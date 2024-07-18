@@ -93,7 +93,7 @@ void ReplayWindow::FillHistoryTable()
 	bool supported = true;
 	for (const auto& action : fullHistory)
 	{
-		std::string desc;
+		QString desc;
 		QIcon icon;
 
 		switch (action.type)
@@ -147,18 +147,18 @@ void ReplayWindow::FillHistoryTable()
 				supported = false;
 				break;
 			}
-			desc += " (" + std::to_string(action.detail.mouse.x) +
-				"," + std::to_string(action.detail.mouse.y) + ")";
+			desc += QString(" (%1, %2)")
+				.arg(action.detail.mouse.x)
+				.arg(action.detail.mouse.y);
 			break;
 		case RoadRunner::ActionType::Action_KeyPress:
-			desc = "KeyPress";
-			desc += " " + QKeySequence(action.detail.keyPress.key).toString().toStdString();
+			desc = QString("KeyPress %1").arg(action.detail.keyPress.ToString());
 			icon = QIcon(QPixmap(":/icons/keyboard.png"));
 			break;
 		case RoadRunner::ActionType::Action_Viewport:
-			desc = "ViewChange";
-			desc += " zoom:" + std::to_string(action.detail.viewport.zoom);
-			desc += " rot:" + std::to_string(action.detail.viewport.rotate);
+			desc = QString("ViewChange zoom:%1 rot: %2")
+				.arg(action.detail.viewport.zoom)
+				.arg(action.detail.viewport.rotate);
 			icon = QIcon(QPixmap(":/icons/viewport.png"));
 			break;
 		case RoadRunner::ActionType::Action_Undo:
@@ -196,11 +196,11 @@ void ReplayWindow::FillHistoryTable()
 			}
 			break;
 		case RoadRunner::ActionType::Action_ChangeProfile:
-			desc = "ChangeProfile";
-			desc += " L:lane:" + std::to_string(action.detail.changeProfile.leftProfile.laneCount);
-			desc += " offset:" + std::to_string(action.detail.changeProfile.leftProfile.offsetx2);
-			desc += " R:lane" + std::to_string(action.detail.changeProfile.rightProfile.offsetx2);
-			desc += " offset:" + std::to_string(action.detail.changeProfile.rightProfile.offsetx2);
+			desc = QString("ChangeProfile Lane:%1 Offset:%2 | Lane:%3 Offset:%4")
+				.arg(action.detail.changeProfile.leftProfile.laneCount)
+				.arg(action.detail.changeProfile.leftProfile.offsetx2)
+				.arg(action.detail.changeProfile.rightProfile.offsetx2)
+				.arg(action.detail.changeProfile.rightProfile.offsetx2);
 			icon = QIcon(QPixmap(":/icons/car_coming.png"));
 			break;
 		default:
@@ -208,7 +208,7 @@ void ReplayWindow::FillHistoryTable()
 			break;
 		} 
 
-		auto item = new QListWidgetItem(icon, QString(desc.c_str()), listWidget);
+		auto item = new QListWidgetItem(icon, desc, listWidget);
 		item->setToolTip("Dbl-click to toggle breakpoint");
 		listWidget->addItem(item);
 	}
@@ -304,10 +304,8 @@ void ReplayWindow::SingleStep()
 			QPainter* p = new QPainter(&kbImage);
 			p->setPen(Qt::black);
 			p->setFont(QFont("Arial", 10));
-			auto keyStr = QKeySequence(action.detail.keyPress.key).toString();
-			if (keyStr.size() > 3)
-				keyStr.chop(3);
-			p->drawText(kbImage.rect(), Qt::AlignHCenter, keyStr);
+
+			p->drawText(kbImage.rect(), Qt::AlignHCenter, action.detail.keyPress.ToString());
 		}
 		keyStatus->setPixmap(QPixmap::fromImage(kbImage));
 	}
