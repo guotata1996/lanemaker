@@ -143,6 +143,7 @@ void MainWindow::loadFromFile()
 
 void MainWindow::undo()
 {
+    RoadRunner::ActionManager::Instance()->Record(RoadRunner::ActionType::Action_Undo);
     if (!RoadRunner::ChangeTracker::Instance()->Undo())
     {
         spdlog::warn("Cannot undo");
@@ -155,6 +156,7 @@ void MainWindow::undo()
 
 void MainWindow::redo()
 {
+    RoadRunner::ActionManager::Instance()->Record(RoadRunner::ActionType::Action_Redo);
     if (!RoadRunner::ChangeTracker::Instance()->Redo())
     {
         spdlog::warn("Cannot redo");

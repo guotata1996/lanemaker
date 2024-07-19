@@ -272,7 +272,6 @@ void MapView::keyPressEvent(QKeyEvent* evt)
     {
         handleException(e);
     }
-    
 }
 
 void MapView::paintEvent(QPaintEvent* evt)

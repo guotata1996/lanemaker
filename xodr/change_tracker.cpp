@@ -200,7 +200,6 @@ namespace RoadRunner
         {
             return false;
         }
-        ActionManager::Instance()->Record(ActionType::Action_Undo);
         auto lastRedo = undoStack.top();
         undoStack.pop();
         MapChange thisTimeChange;
@@ -225,7 +224,6 @@ namespace RoadRunner
         {
             return false;
         }
-        ActionManager::Instance()->Record(ActionType::Action_Redo);
         auto lastUndo = redoStack.top();
         redoStack.pop();
         MapChange thisTimeChange;
