@@ -42,6 +42,10 @@ public:
 
     MainWidget* parentContainer;
 
+public slots:
+    void showScale();
+    void hideScale();
+
 protected:
 #if QT_CONFIG(wheelevent)
     void wheelEvent(QWheelEvent*) override;
@@ -60,12 +64,16 @@ protected:
 
     void paintEvent(QPaintEvent*) override;
 
+    void drawForeground(QPainter* painter, const QRectF& rect);
+
 private:
     const double ViewPadding = 100; // meters
 
     RoadDrawingSession* drawingSession = nullptr;
 
     EditMode editMode = Mode_None;
+
+    bool showingScale = false;
 
     QTransform lastTransform;
 

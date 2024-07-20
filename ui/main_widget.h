@@ -74,4 +74,7 @@ private:
 
     unsigned int nRepaints = 0;
     qint64 lastUpdateFPSMS = 0;
+
+    /*Hidden foreground scale after some time from scroll*/
+    QTimer* displayScaleTimer;
 };

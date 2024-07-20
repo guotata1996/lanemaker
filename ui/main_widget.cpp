@@ -15,7 +15,8 @@
 extern SectionProfileConfigWidget* g_createRoadOption;
 
 MainWidget::MainWidget(const QString& name, QWidget* parent)
-    : QFrame(parent), createRoadOption(new SectionProfileConfigWidget)
+    : QFrame(parent), createRoadOption(new SectionProfileConfigWidget),
+    displayScaleTimer(new QTimer(this))
 {
     setFrameStyle(Sunken | StyledPanel);
     mapView = new MapView(this);
@@ -145,6 +146,8 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     topLayout->addWidget(resetButton, 2, 1);
     setLayout(topLayout);
 
+    displayScaleTimer->setSingleShot(true);
+
     connect(resetButton, &QAbstractButton::clicked, this, &MainWidget::resetView);
     connect(zoomSlider, &QAbstractSlider::valueChanged, this, &MainWidget::setupMatrix);
     connect(rotateSlider, &QAbstractSlider::valueChanged, this, &MainWidget::setupMatrix);
@@ -162,6 +165,7 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     connect(rotateRightIcon, &QAbstractButton::clicked, this, &MainWidget::rotateRight);
     connect(zoomInIcon, &QAbstractButton::clicked, this, &MainWidget::zoomIn);
     connect(zoomOutIcon, &QAbstractButton::clicked, this, &MainWidget::zoomOut);
+    connect(displayScaleTimer, &QTimer::timeout, mapView, &MapView::hideScale);
 
     Reset();
 }
@@ -196,6 +200,9 @@ void MainWidget::setupMatrix()
 
     mapView->setTransform(matrix);
     setResetButtonEnabled();
+
+    mapView->showScale();
+    displayScaleTimer->start(1000);
 }
 
 void MainWidget::gotoCreateRoadMode()
@@ -327,6 +334,8 @@ void MainWidget::Reset()
     gotoDragMode();
     resetView(); // Make sure to RecordViewTransform()
     mapView->ResetSceneRect();
+    displayScaleTimer->stop();
+    mapView->showScale(); // Show scale upon start / newMap
 }
 
 void MainWidget::RecordViewTransform()

@@ -48,6 +48,16 @@ void MapView::SetViewFromReplay(double zoomSliderVal, double rotateSliderVal,
     verticalScrollBar()->setValue(vScrollbar);
 }
 
+void MapView::showScale()
+{
+    showingScale = true;
+}
+
+void MapView::hideScale()
+{
+    showingScale = false;
+}
+
 #if QT_CONFIG(wheelevent)
 void MapView::wheelEvent(QWheelEvent* e)
 {
@@ -278,6 +288,58 @@ void MapView::paintEvent(QPaintEvent* evt)
 {
     QGraphicsView::paintEvent(evt);
     parentContainer->Painted();
+    if (showingScale)
+    {
+        // Force update foreground
+        viewport()->update();
+    }
+}
+
+void MapView::drawForeground(QPainter* painter, const QRectF& rect)
+{
+    Q_UNUSED(rect);
+
+    QGraphicsView::drawForeground(painter, rect);
+    if (showingScale)
+    {
+        painter->save();
+
+        QRectF rt = viewport()->rect();
+        painter->setWorldMatrixEnabled(false);
+
+        painter->setBrush(Qt::NoBrush);
+        painter->setPen(QPen(Qt::black, 3));
+
+        auto probeA = mapToScene(QPoint(0, 0));
+        auto probeB = mapToScene(QPoint(100, 0));
+        auto probeLength = QVector2D(probeA).distanceToPoint(QVector2D(probeB));
+        float targetLength = 50;
+        int pixelLength = 100 / probeLength * targetLength;
+        if (pixelLength * 2 > rt.width() - 30)
+        {
+            // Use smaller target length for large zoom 
+            targetLength /= 5;
+            pixelLength /= 5;
+        }
+
+        QPoint origin(30, rt.bottom() - 30);
+        QPoint cursor1(origin.x() + pixelLength, origin.y());
+        QPoint cursor1Bar(cursor1.x(), cursor1.y() - 10);
+
+        QPoint cursor2(cursor1.x() + pixelLength, origin.y());
+        QPoint cursor2Bar(cursor2.x(), cursor2.y() - 10);
+
+        painter->drawLine(origin, cursor2);
+        painter->drawLine(cursor1, cursor1Bar);
+        painter->drawLine(cursor2, cursor2Bar);
+
+        QRectF cursor1Box(cursor1.x() - 5, cursor1.y(), 30, 20);
+        painter->drawText(cursor1Box, QString("%1").arg(targetLength));
+        QRectF cursor2Box(cursor2.x() - 15, cursor2.y(), 35, 20);
+        painter->drawText(cursor2Box, QString("%1m").arg(targetLength * 2));
+
+        painter->restore();
+    }
 }
 
 void MapView::AdjustSceneRect()

@@ -170,6 +170,7 @@ void MainWindow::redo()
 void MainWindow::verifyMap()
 {
     RoadRunnerTest::Validation::ValidateMap();
+    spdlog::info("Done map verification.");
 }
 
 void MainWindow::toggleAlwaysVerifyMap(bool enable)
