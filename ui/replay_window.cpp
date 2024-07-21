@@ -159,7 +159,7 @@ void ReplayWindow::FillHistoryTable()
 			desc = QString("ViewChange zoom:%1 rot: %2")
 				.arg(action.detail.viewport.zoom)
 				.arg(action.detail.viewport.rotate);
-			icon = QIcon(QPixmap(":/icons/viewport.png"));
+			icon = QIcon(QPixmap(":/icons/zoomin.png"));
 			break;
 		case RoadRunner::ActionType::Action_Undo:
 			icon = QIcon(QPixmap(":/icons/undo.png"));
@@ -202,6 +202,14 @@ void ReplayWindow::FillHistoryTable()
 				.arg(action.detail.changeProfile.rightProfile.offsetx2)
 				.arg(action.detail.changeProfile.rightProfile.offsetx2);
 			icon = QIcon(QPixmap(":/icons/car_coming.png"));
+			break;
+		case RoadRunner::ActionType::Action_ResizeWindow:
+			desc = QString("Resize windows from (%1,%2) to (%3,%4)")
+				.arg(action.detail.resizeWindow.oldWidth)
+				.arg(action.detail.resizeWindow.oldHeight)
+				.arg(action.detail.resizeWindow.width)
+				.arg(action.detail.resizeWindow.height);
+			icon = QIcon(QPixmap(":/icons/resize.png"));
 			break;
 		default:
 			supported = false;

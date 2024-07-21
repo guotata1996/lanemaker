@@ -13,7 +13,6 @@
         <file>icons/view_mode.png</file>
         <file>icons/eyedropper.svg</file>
         <file>icons/keyboard.png</file>
-        <file>icons/viewport.png</file>
         <file>icons/CMB.png</file>
         <file>icons/LMB.png</file>
         <file>icons/MouseDblClick.png</file>
@@ -22,5 +21,6 @@
         <file>icons/redo.png</file>
         <file>icons/undo.png</file>
         <file>icons/Mouse.png</file>
+        <file>icons/resize.png</file>
     </qresource>
 </RCC>

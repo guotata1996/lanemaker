@@ -64,7 +64,7 @@ protected:
 
     void paintEvent(QPaintEvent*) override;
 
-    void drawForeground(QPainter* painter, const QRectF& rect);
+    void drawForeground(QPainter* painter, const QRectF& rect) override;
 
 private:
     const double ViewPadding = 100; // meters

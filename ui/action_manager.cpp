@@ -1,6 +1,7 @@
 #include "action_manager.h"
 #include "road_drawing.h"
 #include "main_widget.h"
+#include "mainwindow.h"
 #include "CreateRoadOptionWidget.h"
 #include "change_tracker.h"
 #include "util.h"
@@ -13,6 +14,7 @@
 
 
 extern MapView* g_mapView;
+extern MainWindow* g_mainWindow;
 extern SectionProfileConfigWidget* g_createRoadOption;
 
 namespace RoadRunner
@@ -195,6 +197,22 @@ namespace RoadRunner
         }
     }
 
+    void ActionManager::Record(const QSize& oldSize, const QSize& newSize)
+    {
+        if (!replayable) return;
+        ResizeWindowAction serialized{
+            oldSize.width(), oldSize.height(),
+            newSize.width(), newSize.height()};
+
+        history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
+        Save();
+    }
+
+    void ActionManager::Replay(const ResizeWindowAction& act)
+    {
+        g_mainWindow->resizeDontRecord(act.width, act.height);
+    }
+
     void ActionManager::Replay(const UserAction& action)
     {
         history.emplace_back(action);
@@ -229,6 +247,9 @@ namespace RoadRunner
                 spdlog::error("Error replaying redo action");
             }
             break;
+        case Action_ResizeWindow:
+            Replay(action.detail.resizeWindow);
+            break;
         default:
             spdlog::error("Action type {} replay is not supported", static_cast<int>(action.type));
             break;
@@ -249,7 +270,7 @@ namespace RoadRunner
 
     std::string ActionManager::AutosavePath() const
     {
-        std::filesystem::path rtn = RoadRunner::DefaultSaveFolder();
+        auto rtn = RoadRunner::DefaultSaveFolder();
         rtn /= std::string("action_rec__") + RoadRunner::RunTimestamp() + std::string(".dat");
         return rtn.string();
     }

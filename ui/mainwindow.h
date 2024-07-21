@@ -16,7 +16,18 @@ public:
     MainWindow(QWidget* parent = nullptr);
 
     ~MainWindow();
+
+    void resizeDontRecord(int w, int h);
+
+protected:
+    void resizeEvent(QResizeEvent*) override;
+
+    void closeEvent(QCloseEvent* event) override;
+
 private:
+    const int StartWidth = 1600;
+    const int StartHeight = 1000;
+
     std::unique_ptr<QGraphicsScene> scene;
 
     std::unique_ptr<QStatusBar> hintStatus;
@@ -30,6 +41,8 @@ private:
     QAction* toggleSimAction;
 
     bool quitReplayComplete;
+
+    bool recordResize = true;
 
 public slots:
     void ReplaySingleStep();
@@ -63,11 +76,11 @@ private slots:
 
     void enableSimulation(bool);
 
-    void onAppQuit();
-
     void onReplayDone(bool);
 
 private:
     void openReplayWindow(bool playImmediate);
+
+    void testReplay();
 };
 

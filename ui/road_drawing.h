@@ -110,6 +110,8 @@ protected:
 
     double extendFromStartS, joinAtEndS;
 
+    bool lastClickOnExtLine; /*Prohibit random dbl-click*/
+
 private:
     void tryCreateJunction(std::shared_ptr<RoadRunner::Road>, double, double);
     

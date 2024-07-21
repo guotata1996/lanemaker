@@ -162,7 +162,8 @@ bool RoadCreationSession::Update(QMouseEvent* event)
         }
         else if (event->type() == QEvent::Type::MouseButtonDblClick
             && ctrlPoints.size() > 2
-            && ctrlPoints.size() % 2 == 1)
+            && ctrlPoints.size() % 2 == 1
+            && lastClickOnExtLine)
         {
             auto last3Point = ctrlPoints[ctrlPoints.size() - 3];
             auto& last2Point = ctrlPoints[ctrlPoints.size() - 2];
@@ -410,7 +411,16 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCtrlPoint(float maxOffse
         {
             nextPoint.setX(projected.x());
             nextPoint.setY(projected.y());
+            lastClickOnExtLine = true;
         }
+        else
+        {
+            lastClickOnExtLine = false;
+        }
+    }
+    else
+    {
+        lastClickOnExtLine = true;
     }
 
     return result;

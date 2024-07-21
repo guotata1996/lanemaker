@@ -4,12 +4,11 @@
 #include <iomanip>
 #include <ctime>
 #include <sstream>
-#include <filesystem>
 #include <optional>
 
 namespace RoadRunner
 {
-    std::string DefaultSaveFolder()
+    std::filesystem::path DefaultSaveFolder()
     {
         std::filesystem::path fullPath;
     
@@ -23,7 +22,7 @@ namespace RoadRunner
 #else
 #endif
         std::filesystem::create_directories(fullPath);
-        return fullPath.string();
+        return fullPath;
     }
 
     std::string CurrentDateTime()

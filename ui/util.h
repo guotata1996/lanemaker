@@ -1,9 +1,10 @@
 #pragma once
 #include <string>
+#include <filesystem>
 
 namespace RoadRunner
 {
-    std::string DefaultSaveFolder();
+    std::filesystem::path DefaultSaveFolder();
     
     std::string CurrentDateTime();
 

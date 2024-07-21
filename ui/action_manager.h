@@ -23,7 +23,8 @@ namespace RoadRunner
         Action_Redo,
         Action_ChangeMode,
         Action_ChangeProfile,
-        Action_LoadMap
+        Action_LoadMap,
+        Action_ResizeWindow
     };
 
     struct MouseAction
@@ -77,6 +78,12 @@ namespace RoadRunner
         SectionProfile leftProfile, rightProfile;
     };
 
+    struct ResizeWindowAction
+    {
+        int oldWidth, oldHeight;
+        int width, height;
+    };
+
     union ActionDetail
     {
         MouseAction mouse;
@@ -84,6 +91,7 @@ namespace RoadRunner
         ChangeViewportAction viewport;
         ChangeModeAction changeMode;
         ChangeProfileAction changeProfile;
+        ResizeWindowAction resizeWindow;
     };
 
     static_assert(sizeof(ActionDetail) == sizeof(ChangeViewportAction), "Need to update serialize function!");
@@ -134,6 +142,12 @@ namespace RoadRunner
             detail.changeProfile = c;
         }
 
+        UserAction(ResizeWindowAction c, int aTime)
+        {
+            type = Action_ResizeWindow;
+            detail.resizeWindow = c;
+        }
+
         template<class Archive>
         void serialize(Archive& archive)
         {
@@ -160,6 +174,7 @@ namespace RoadRunner
         void Record(QKeyEvent*);
         void Record(const SectionProfile&, const SectionProfile&);
         void Record(ActionType);
+        void Record(const QSize& oldSize, const QSize& newSize);
 
         void Save() const;
         void Save(std::string) const;
@@ -181,6 +196,7 @@ namespace RoadRunner
         static void Replay(const MouseAction&);
         static void Replay(const KeyPressAction&);
         static void Replay(const ChangeProfileAction&);
+        static void Replay(const ResizeWindowAction&);
 
         /* Save last viewport change (if exist) before key frame
          * Called before mouse events

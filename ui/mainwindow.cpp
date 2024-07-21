@@ -22,11 +22,15 @@
 
 QGraphicsScene* g_scene;
 
+MainWindow* g_mainWindow;
+
 MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 {
     setWindowTitle(tr("Road Runner"));
-    setFixedWidth(1600);
-    setFixedHeight(1000);
+    setMinimumWidth(StartWidth);
+    setMinimumHeight(StartHeight);
+
+    g_mainWindow = this;
 
     QMenuBar* menu = new QMenuBar;
     QMenu* file = new QMenu("&File");
@@ -97,12 +101,18 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(mainWidget.get(), &MainWidget::HoveringChanged, this, &MainWindow::setHint);
     connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
     connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
-    connect(QApplication::instance(), &QApplication::aboutToQuit, this, &MainWindow::onAppQuit);
 
     srand(std::time(0));
 }
 
 MainWindow::~MainWindow() = default;
+
+void MainWindow::resizeEvent(QResizeEvent* e)
+{
+    QWidget::resizeEvent(e);
+    if (recordResize)
+        RoadRunner::ActionManager::Instance()->Record(e->oldSize(), e->size());
+}
 
 void MainWindow::newMap()
 {
@@ -110,6 +120,14 @@ void MainWindow::newMap()
     RoadRunner::ChangeTracker::Instance()->Clear();
     RoadRunner::ActionManager::Instance()->Reset();
     assert(mainWidget->view()->scene()->items().isEmpty());
+    resizeDontRecord(StartWidth, StartHeight);
+}
+
+void MainWindow::resizeDontRecord(int w, int h)
+{
+    recordResize = false;
+    resize(w, h);
+    recordResize = true;
 }
 
 void MainWindow::saveToFile()
@@ -117,7 +135,7 @@ void MainWindow::saveToFile()
     QString s = QFileDialog::getSaveFileName(
         this,
         "Choose save location",
-        RoadRunner::DefaultSaveFolder().c_str(),
+        RoadRunner::DefaultSaveFolder().string().c_str(),
         "OpenDrive (*.xodr)", nullptr
 #ifdef __linux__
         ,QFileDialog::DontUseNativeDialog
@@ -132,11 +150,10 @@ void MainWindow::saveToFile()
 
 void MainWindow::loadFromFile()
 {
-
     QString s = QFileDialog::getOpenFileName(
         this, 
         "Choose File to Open",
-        RoadRunner::DefaultSaveFolder().c_str(),
+        RoadRunner::DefaultSaveFolder().string().c_str(),
         "OpenDrive (*.xodr)", nullptr
 #ifdef __linux__
         ,QFileDialog::DontUseNativeDialog
@@ -203,7 +220,7 @@ void MainWindow::saveActionHistory()
     QString s = QFileDialog::getSaveFileName(
         this,
         "Choose save location",
-        RoadRunner::DefaultSaveFolder().c_str(),
+        RoadRunner::DefaultSaveFolder().string().c_str(),
         "ActionHistory (*.dat)", nullptr
 #ifdef __linux__
         ,QFileDialog::DontUseNativeDialog
@@ -231,7 +248,7 @@ void MainWindow::openReplayWindow(bool playImmediate)
     QString s = QFileDialog::getOpenFileName(
         this,
         "Choose File to Open",
-        RoadRunner::DefaultSaveFolder().c_str(),
+        RoadRunner::DefaultSaveFolder().string().c_str(),
         "ActionHistory (*.dat)", nullptr
 #ifdef __linux__
         ,QFileDialog::DontUseNativeDialog
@@ -283,18 +300,24 @@ void MainWindow::setFPS(QString msg)
     fpsStatus->showMessage(msg);
 }
 
-void MainWindow::onAppQuit()
+void MainWindow::closeEvent(QCloseEvent* e)
 {
     vehicleManager->End();
+    testReplay();
+    QWidget::closeEvent(e);
+}
 
+void MainWindow::testReplay()
+{
     if (RoadRunner::ChangeTracker::Instance()->VerifyUponChange
         && RoadRunner::ActionManager::Instance()->Replayable()
         && std::filesystem::exists(RoadRunner::ActionManager::Instance()->AutosavePath()))
     {
         RoadRunner::ChangeTracker::Instance()->VerifyUponChange = false; // No verification during replay
         auto saveFolder = RoadRunner::DefaultSaveFolder();
-        auto originalPath = saveFolder + "\\auto_verify_a.xodr";
-        RoadRunner::ChangeTracker::Instance()->Save(originalPath);
+        auto originalPath = saveFolder / (std::string("compare_a_") + RoadRunner::RunTimestamp() + std::string(".xodr"));
+        auto originalPathStr = originalPath.string();
+        RoadRunner::ChangeTracker::Instance()->Save(originalPathStr);
 
         newMap();
 
@@ -305,10 +328,11 @@ void MainWindow::onAppQuit()
 
         if (quitReplayComplete)
         {
-            auto replayPath = saveFolder + "\\auto_verify_b.xodr";
-            RoadRunner::ChangeTracker::Instance()->Save(replayPath);
+            auto replayPath = saveFolder / (std::string("compare_b_") + RoadRunner::RunTimestamp() + std::string(".xodr"));
+            auto replayPathStr = replayPath.string();
+            RoadRunner::ChangeTracker::Instance()->Save(replayPathStr);
 
-            if (!RoadRunnerTest::Validation::CompareFiles(originalPath, replayPath))
+            if (!RoadRunnerTest::Validation::CompareFiles(originalPathStr, replayPathStr))
             {
                 RoadRunner::ActionManager::Instance()->MarkException();
                 spdlog::error("Replay result is different from original map! Check {} for details.",
@@ -317,15 +341,15 @@ void MainWindow::onAppQuit()
             else
             {
                 // On success, clean up temporary saves
-                std::remove(originalPath.c_str());
-                std::remove(replayPath.c_str());
+                std::remove(originalPathStr.c_str());
+                std::remove(replayPathStr.c_str());
                 spdlog::info("Action replay test: OK");
             }
         }
         else
         {
             // cancelled by user
-            std::remove(originalPath.c_str());
+            std::remove(originalPathStr.c_str());
             spdlog::info("Action replay test: Cancelled");
         }
     }
