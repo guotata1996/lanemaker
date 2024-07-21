@@ -144,6 +144,7 @@ void MainWindow::loadFromFile()
     );
     if (s.size() != 0)
     {
+        newMap();
         auto loc = s.toStdString();
         bool supported = RoadRunner::ChangeTracker::Instance()->Load(loc);
         if (!supported)

@@ -125,8 +125,6 @@ namespace RoadRunner
 
     bool ChangeTracker::Load(std::string path)
     {
-        Clear();
-
         if (!odrMap.Load(path))
         {
             return false;

@@ -14,7 +14,6 @@ namespace RoadRunner
         std::filesystem::path fullPath;
     
 #ifdef _WIN32
-        
         fullPath = std::getenv("HOMEDRIVE");
         fullPath /= std::getenv("HOMEPATH");
         fullPath /= "Desktop/saved_map";
@@ -24,7 +23,7 @@ namespace RoadRunner
 #else
 #endif
         std::filesystem::create_directories(fullPath);
-        return fullPath;
+        return fullPath.string();
     }
 
     std::string CurrentDateTime()

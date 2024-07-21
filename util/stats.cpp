@@ -10,7 +10,7 @@ Stats::~Stats()
 {
     if (name != "_dumpster")
     {
-        spdlog::info("{} : {} times", name, count);
+        spdlog::trace("{} : {} times", name, count);
         allInstances.erase(name);
     }
 }
