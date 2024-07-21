@@ -258,7 +258,7 @@ void MapView::OnKeyPress(QKeyEvent* evt)
         if (!rotatingRoads.empty())
         {
             rotatingIndex = (rotatingIndex + 1) % rotatingRoads.size();
-            g_PointerRoad = rotatingRoads[rotatingIndex].first->Road();
+            g_PointerRoad = rotatingRoads[rotatingIndex].first->GetRoad();
             g_PointerRoadS = rotatingRoads[rotatingIndex].second;
             if (drawingSession != nullptr)
             {
@@ -409,17 +409,17 @@ void MapView::SnapCursor(const QPoint& viewPos)
                 if (snapResult.expired())
                 {
                     double x, y;
-                    laneGraphicsItem->Road()->GetEndPoint(true, x, y);
+                    laneGraphicsItem->GetRoad()->GetEndPoint(true, x, y);
                     QVector2D startViewPos(mapFromScene(QPoint(x, y)));
                     double distToStart = startViewPos.distanceToPoint(viewPosVec);
 
-                    laneGraphicsItem->Road()->GetEndPoint(false, x, y);
+                    laneGraphicsItem->GetRoad()->GetEndPoint(false, x, y);
                     QVector2D endViewPos(mapFromScene(QPoint(x, y)));
                     double distToEnd = endViewPos.distanceToPoint(viewPosVec);
 
                     if (std::min(distToStart, distToEnd) < CustomCursorItem::SnapRadiusPx)
                     {
-                        double closestS = distToStart < distToEnd ? 0 : laneGraphicsItem->Road()->Length();
+                        double closestS = distToStart < distToEnd ? 0 : laneGraphicsItem->GetRoad()->Length();
                         indirectOver.push_back(std::make_pair(laneGraphicsItem, closestS));
                     }
                 }
@@ -440,7 +440,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
         // Try retain previous selected
         for (int i = 0; i != directOver.size(); ++i)
         {
-            if (directOver[i].first->Road() == g_PointerRoad.lock())
+            if (directOver[i].first->GetRoad() == g_PointerRoad.lock())
             {
                 rotatingIndex = i;
                 break;
@@ -454,7 +454,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
         // Try retain previous selected
         for (int i = 0; i != indirectOver.size(); ++i)
         {
-            if (indirectOver[i].first->Road() == g_PointerRoad.lock())
+            if (indirectOver[i].first->GetRoad() == g_PointerRoad.lock())
             {
                 rotatingIndex = i;
                 break;
@@ -464,9 +464,9 @@ void MapView::SnapCursor(const QPoint& viewPos)
         {
             std::sort(indirectOver.begin(), indirectOver.end(),
                 [this, viewPosVec](const auto& a, const auto& b) {
-                    odr::Vec2D p1 = a.first->Road()->RefLine().get_xy(a.second);
+                    odr::Vec2D p1 = a.first->GetRoad()->RefLine().get_xy(a.second);
                     QVector2D q1(mapFromScene(p1[0], p1[1]));
-                    odr::Vec2D p2 = b.first->Road()->RefLine().get_xy(b.second);
+                    odr::Vec2D p2 = b.first->GetRoad()->RefLine().get_xy(b.second);
                     QVector2D q2(mapFromScene(p1[0], p2[1]));
                     return q1.distanceToPoint(viewPosVec) < q2.distanceToPoint(viewPosVec);
                 });
@@ -486,7 +486,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
     }
     else
     {
-        g_PointerRoad = rotatingRoads[rotatingIndex].first->Road();
+        g_PointerRoad = rotatingRoads[rotatingIndex].first->GetRoad();
         g_PointerLane = rotatingRoads[rotatingIndex].first->LaneID();
         g_PointerRoadS = rotatingRoads[rotatingIndex].second;
         std::stringstream ss;

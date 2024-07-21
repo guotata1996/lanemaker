@@ -26,6 +26,7 @@
 #include <stdexcept>
 #include <stdio.h>
 #include <string>
+#include <cstring>
 #include <type_traits>
 #include <utility>
 #include <vector>

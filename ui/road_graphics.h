@@ -62,7 +62,7 @@ namespace RoadRunner
 
         std::weak_ptr<Road> SnapCursor(QPointF p, double& outS);
 
-        std::shared_ptr<Road> Road() const;
+        std::shared_ptr<Road> GetRoad() const;
 
         int LaneID() const;
 

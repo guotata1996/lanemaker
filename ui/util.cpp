@@ -11,9 +11,18 @@ namespace RoadRunner
 {
     std::string DefaultSaveFolder()
     {
-        auto homeDrive = std::string(std::getenv("HOMEDRIVE"));
-        auto homePath = std::string(std::getenv("HOMEPATH"));
-        auto fullPath = homeDrive + homePath + "\\Desktop\\saved_map";
+        std::filesystem::path fullPath;
+    
+#ifdef _WIN32
+        
+        fullPath = std::getenv("HOMEDRIVE");
+        fullPath /= std::getenv("HOMEPATH");
+        fullPath /= "Desktop/saved_map";
+#elif __linux__
+        fullPath = std::getenv("HOME");
+        fullPath /= "Desktop/saved_map";
+#else
+#endif
         std::filesystem::create_directories(fullPath);
         return fullPath;
     }

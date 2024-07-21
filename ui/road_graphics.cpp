@@ -249,7 +249,7 @@ namespace RoadRunner
         return std::weak_ptr<RoadRunner::Road>();
     }
 
-    std::shared_ptr<Road> LaneGraphics::Road() const
+    std::shared_ptr<Road> LaneGraphics::GetRoad() const
     {
         auto parentRoad = dynamic_cast<RoadRunner::SectionGraphics*>(parentItem());
         return parentRoad->road.lock();

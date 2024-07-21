@@ -267,7 +267,7 @@ Line3D Road::get_side_border_line(const int8_t side, const double s_start, const
     double firstSectionS0 = get_lanesection_s0(s_start);
     double lastSectionS0 = get_lanesection_s0(s_end);
     std::list<odr::Vec3D> rtn;
-    for (auto& s_and_section = s_to_lanesection.begin(); s_and_section != s_to_lanesection.end(); ++s_and_section)
+    for (auto s_and_section = s_to_lanesection.begin(); s_and_section != s_to_lanesection.end(); ++s_and_section)
     {
         double s0 = s_and_section->first;
 

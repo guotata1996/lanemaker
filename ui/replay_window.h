@@ -69,4 +69,5 @@ private:
 
 	const int TimerInterval = 50;
 	int pausedMS;
+	const int MaximumPauseMS = 2000;
 };

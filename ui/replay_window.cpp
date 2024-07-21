@@ -108,7 +108,7 @@ void ReplayWindow::FillHistoryTable()
 			case Qt::MouseButton::RightButton:
 				desc += " right";
 				break;
-			case Qt::MouseButton::MidButton:
+			case Qt::MouseButton::MiddleButton:
 				desc += " mid";
 				break;
 			default:
@@ -126,7 +126,7 @@ void ReplayWindow::FillHistoryTable()
 				case Qt::MouseButton::RightButton:
 					icon = QIcon(QPixmap(":/icons/RMB.png"));
 					break;
-				case Qt::MouseButton::MidButton:
+				case Qt::MouseButton::MiddleButton:
 					icon = QIcon(QPixmap(":/icons/CMB.png"));
 					break;
 				}
@@ -338,7 +338,7 @@ void ReplayWindow::StepRealDelay()
 
 	int requiredDelay = fullHistory[nextToReplay].timeMS - fullHistory[nextToReplay - 1].timeMS;
 	pausedMS += TimerInterval;
-	if (pausedMS >= requiredDelay)
+	if (pausedMS >= requiredDelay || pausedMS >= MaximumPauseMS)
 	{
 		SingleStep();
 		pausedMS = 0;

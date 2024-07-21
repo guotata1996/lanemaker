@@ -224,7 +224,11 @@ CreateLaneOptionWidget::CreateLaneOptionWidget()
     rightSlider->setRange(1, 5);
     rightSlider->setTickPosition(QSlider::TicksBelow);
     resultLabel = new QLabel("0|1");
+#ifdef __linux__
+    setMinimumSize(350, 70);
+#else __linux__
     resultLabel->setFont(QFont("Helvetica", 14));
+#endif
     auto leftLogo = new QLabel;
     leftLogo->setPixmap(QPixmap(":/icons/car_coming.png").scaledToWidth(20));
     auto rightLogo = new QLabel;

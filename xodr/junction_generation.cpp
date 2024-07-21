@@ -277,13 +277,13 @@ namespace RoadRunner
             connRoad.successor = odr::RoadLink(outgoingRoad->id, odr::RoadLink::Type_Road, turningGroup.toContact);
             odr::LaneSection& onlySection = connRoad.s_to_lanesection.begin()->second;
 
-            auto& connectingLanes = onlySection.get_sorted_driving_lanes(-1);
+            auto connectingLanes = onlySection.get_sorted_driving_lanes(-1);
             auto& incomingSection = turningGroup.fromContact == odr::RoadLink::ContactPoint_Start ?
                 incomingRoad->s_to_lanesection.begin()->second : incomingRoad->s_to_lanesection.rbegin()->second;
-            auto& incomingLanes = incomingSection.get_sorted_driving_lanes(turningGroup.fromSide);
+            auto incomingLanes = incomingSection.get_sorted_driving_lanes(turningGroup.fromSide);
             auto& outgoingSection = turningGroup.toContact == odr::RoadLink::ContactPoint_Start ?
                 outgoingRoad->s_to_lanesection.begin()->second : outgoingRoad->s_to_lanesection.rbegin()->second;
-            auto& outgoingLanes = outgoingSection.get_sorted_driving_lanes(turningGroup.toSide);
+            auto outgoingLanes = outgoingSection.get_sorted_driving_lanes(turningGroup.toSide);
 
             for (int i = 0; i != connectingLanes.size(); ++i)
             {

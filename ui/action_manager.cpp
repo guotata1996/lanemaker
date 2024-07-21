@@ -6,6 +6,7 @@
 #include "util.h"
 
 #include <fstream>
+#include <filesystem>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/vector.hpp>
 #include <qscrollbar.h>
@@ -248,7 +249,9 @@ namespace RoadRunner
 
     std::string ActionManager::AutosavePath() const
     {
-        return RoadRunner::DefaultSaveFolder() + "\\action_rec__" + RoadRunner::RunTimestamp() + ".dat";
+        std::filesystem::path rtn = RoadRunner::DefaultSaveFolder();
+        rtn /= std::string("action_rec__") + RoadRunner::RunTimestamp() + std::string(".dat");
+        return rtn.string();
     }
 
     void ActionManager::Reset()

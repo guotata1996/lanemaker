@@ -84,6 +84,8 @@ target_link_libraries(
   spdlog::spdlog
 )
 
+target_compile_features(RoadRunnerTest PRIVATE cxx_std_17)
+
 include(GoogleTest)
 gtest_discover_tests(RoadRunnerTest)
 

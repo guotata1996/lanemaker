@@ -55,7 +55,12 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     auto debugReplayAction = replay->addAction("Debug");
     auto controlledReplayAction = replay->addAction("Watch");
     menu->addMenu(replay);
+#ifdef __linux__
+    // In linux, this dialog completely blocks main mainwindow if spawned as child
+    replayWindow = std::make_unique<ReplayWindow>();
+#else
     replayWindow = std::make_unique<ReplayWindow>(this);
+#endif
 
     scene = std::make_unique<QGraphicsScene>(this);
     g_scene = scene.get();
@@ -113,7 +118,11 @@ void MainWindow::saveToFile()
         this,
         "Choose save location",
         RoadRunner::DefaultSaveFolder().c_str(),
-        "OpenDrive (*.xodr)");
+        "OpenDrive (*.xodr)", nullptr
+#ifdef __linux__
+        ,QFileDialog::DontUseNativeDialog
+#endif
+        );
     if (s.size() != 0)
     {
         auto loc = s.toStdString();
@@ -128,7 +137,11 @@ void MainWindow::loadFromFile()
         this, 
         "Choose File to Open",
         RoadRunner::DefaultSaveFolder().c_str(),
-        "OpenDrive (*.xodr)");
+        "OpenDrive (*.xodr)", nullptr
+#ifdef __linux__
+        ,QFileDialog::DontUseNativeDialog
+#endif
+    );
     if (s.size() != 0)
     {
         auto loc = s.toStdString();
@@ -190,7 +203,11 @@ void MainWindow::saveActionHistory()
         this,
         "Choose save location",
         RoadRunner::DefaultSaveFolder().c_str(),
-        "ActionHistory (*.dat)");
+        "ActionHistory (*.dat)", nullptr
+#ifdef __linux__
+        ,QFileDialog::DontUseNativeDialog
+#endif
+        );
     if (s.size() != 0)
     {
         auto loc = s.toStdString();
@@ -214,7 +231,11 @@ void MainWindow::openReplayWindow(bool playImmediate)
         this,
         "Choose File to Open",
         RoadRunner::DefaultSaveFolder().c_str(),
-        "ActionHistory (*.dat)");
+        "ActionHistory (*.dat)", nullptr
+#ifdef __linux__
+        ,QFileDialog::DontUseNativeDialog
+#endif
+        );
     if (!s.isEmpty())
     {
         newMap();

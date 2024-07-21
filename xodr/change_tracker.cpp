@@ -360,7 +360,6 @@ namespace RoadRunner
         for (auto rrRoad: roadAffected)
         {
             auto odrRoad = rrRoad->generated;
-            auto rrRoad = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(odrRoad.id))->shared_from_this();
                 
             if (odrRoad.successor.type == odr::RoadLink::Type_Junction &&
                 odrRoad.successor.id != "-1")
