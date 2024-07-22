@@ -45,6 +45,7 @@ public slots:
     void zoomOut();
     void zoomInBy(int level);
     void zoomOutBy(int level);
+    void toggleAntialiasing(bool);
 
 private slots:
     void resetView();
@@ -56,7 +57,6 @@ private slots:
     void gotoDestroyMode();
     void gotoModifyMode();
     void gotoDragMode();
-    void toggleAntialiasing();
     void rotateLeft();
     void rotateRight();
 
@@ -65,7 +65,6 @@ private:
     QToolButton* createModeButton, * createLaneModeButton, * destroyModeButton, * modifyModeButton, * dragModeButton;
 
     MapView* mapView;
-    QToolButton* antialiasButton;
     QToolButton* resetButton;
     QSlider* zoomSlider = nullptr;
     QSlider* rotateSlider = nullptr;

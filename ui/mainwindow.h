@@ -5,6 +5,7 @@ QT_BEGIN_NAMESPACE
 class QGraphicsScene;
 class QStatusBar;
 class ReplayWindow;
+class PreferenceWindow;
 QT_END_NAMESPACE
 
 class MainWidget;
@@ -37,6 +38,7 @@ private:
     std::unique_ptr<VehicleManager> vehicleManager;
 
     std::unique_ptr<ReplayWindow> replayWindow;
+    std::unique_ptr<PreferenceWindow> preferenceWindow;
 
     QAction* toggleSimAction;
 
@@ -63,8 +65,6 @@ private slots:
     void redo();
 
     void verifyMap();
-
-    void toggleAlwaysVerifyMap(bool);
 
     void saveActionHistory();
 

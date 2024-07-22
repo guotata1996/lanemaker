@@ -5,8 +5,11 @@
 #include "world.h"
 #include "test/validation.h"
 #include "action_manager.h"
+#include "preference.h"
 
 #include <spdlog/spdlog.h>
+
+extern UserPreference g_preference;
 
 namespace RoadRunner
 {
@@ -23,7 +26,7 @@ namespace RoadRunner
 
     void ChangeTracker::PostChangeActions()
     {
-        if (VerifyUponChange)
+        if (g_preference.alwaysVerify)
             RoadRunnerTest::Validation::ValidateMap();
     }
 

@@ -109,10 +109,6 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     dragModeButton->setIconSize(iconSize);
     dragModeButton->setCheckable(true);
     dragModeButton->setChecked(false);
-    antialiasButton = new QToolButton;
-    antialiasButton->setText(tr("Antialiasing"));
-    antialiasButton->setCheckable(true);
-    antialiasButton->setChecked(false);
 
     pointerModeGroup = new QButtonGroup(this);
     pointerModeGroup->setExclusive(true);
@@ -136,7 +132,6 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     labelLayout->addWidget(destroyModeButton);
     labelLayout->addWidget(dragModeButton);
     labelLayout->addStretch();
-    labelLayout->addWidget(antialiasButton);
 
     QGridLayout* topLayout = new QGridLayout;
     topLayout->addLayout(labelLayout, 0, 0);
@@ -160,7 +155,6 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     connect(destroyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDestroyMode);
     connect(modifyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoModifyMode);
     connect(dragModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDragMode);
-    connect(antialiasButton, &QAbstractButton::toggled, this, &MainWidget::toggleAntialiasing);
     connect(rotateLeftIcon, &QAbstractButton::clicked, this, &MainWidget::rotateLeft);
     connect(rotateRightIcon, &QAbstractButton::clicked, this, &MainWidget::rotateRight);
     connect(zoomInIcon, &QAbstractButton::clicked, this, &MainWidget::zoomIn);
@@ -255,9 +249,9 @@ void MainWidget::gotoDragMode()
     emit InReadOnlyMode(true);
 }
 
-void MainWidget::toggleAntialiasing()
+void MainWidget::toggleAntialiasing(bool enabled)
 {
-    mapView->setRenderHint(QPainter::Antialiasing, antialiasButton->isChecked());
+    mapView->setRenderHint(QPainter::Antialiasing, enabled);
 }
 
 void MainWidget::zoomIn()

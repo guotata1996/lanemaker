@@ -29,8 +29,6 @@ namespace RoadRunner
         void Save(std::string path);
         bool Load(std::string path);
 
-        bool VerifyUponChange = true;
-
     private:
         ChangeTracker() = default;
 

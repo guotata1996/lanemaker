@@ -16,6 +16,7 @@
 #include "test/validation.h"
 #include "util.h"
 #include "replay_window.h"
+#include "preference.h"
 
 #include "spdlog/spdlog.h"
 
@@ -23,6 +24,8 @@
 QGraphicsScene* g_scene;
 
 MainWindow* g_mainWindow;
+
+extern UserPreference g_preference;
 
 MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 {
@@ -37,6 +40,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     auto newAction = file->addAction("New");
     auto loadAction = file->addAction("Open");
     auto saveAction = file->addAction("Save");
+    auto preferenceAction = file->addAction("Preference");
     menu->addMenu(file);
 
     QMenu* edit = new QMenu("&Edit");
@@ -46,9 +50,6 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 
     QMenu* view = new QMenu("&Verify");
     auto verifyAction = view->addAction("Verify Now");
-    auto alwaysVerifyAction = view->addAction("Always Verify");
-    alwaysVerifyAction->setCheckable(true);
-    alwaysVerifyAction->setChecked(RoadRunner::ChangeTracker::Instance()->VerifyUponChange);
     toggleSimAction = view->addAction("Toggle simulation");
     toggleSimAction->setCheckable(true);
     toggleSimAction->setChecked(false);
@@ -65,6 +66,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 #else
     replayWindow = std::make_unique<ReplayWindow>(this);
 #endif
+    preferenceWindow = std::make_unique<PreferenceWindow>(this);
 
     scene = std::make_unique<QGraphicsScene>(this);
     g_scene = scene.get();
@@ -72,6 +74,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     
     mainWidget = std::make_unique<MainWidget>("Main View");
     mainWidget->view()->setScene(g_scene);
+    mainWidget->toggleAntialiasing(g_preference.antiAlias);
 
     auto mainLayout = new QVBoxLayout;
     mainLayout->addWidget(menu);
@@ -89,10 +92,10 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(newAction, &QAction::triggered, this, &MainWindow::newMap);
     connect(saveAction, &QAction::triggered, this, &MainWindow::saveToFile);
     connect(loadAction, &QAction::triggered, this, &MainWindow::loadFromFile);
+    connect(preferenceAction, &QAction::triggered, preferenceWindow.get(), &PreferenceWindow::open);
     connect(undoAction, &QAction::triggered, this, &MainWindow::undo);
     connect(redoAction, &QAction::triggered, this, &MainWindow::redo);
     connect(verifyAction, &QAction::triggered, this, &MainWindow::verifyMap);
-    connect(alwaysVerifyAction, &QAction::triggered, this, &MainWindow::toggleAlwaysVerifyMap);
     connect(toggleSimAction, &QAction::triggered, this, &MainWindow::toggleSimulation);
     connect(saveReplayAction, &QAction::triggered, this, &MainWindow::saveActionHistory);
     connect(debugReplayAction, &QAction::triggered, this, &MainWindow::debugActionHistory);
@@ -101,6 +104,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(mainWidget.get(), &MainWidget::HoveringChanged, this, &MainWindow::setHint);
     connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
     connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
+    connect(preferenceWindow.get(), &PreferenceWindow::ToggleAA, mainWidget.get(), &MainWidget::toggleAntialiasing);
 
     srand(std::time(0));
 }
@@ -204,11 +208,6 @@ void MainWindow::verifyMap()
     spdlog::info("Done map verification.");
 }
 
-void MainWindow::toggleAlwaysVerifyMap(bool enable)
-{
-    RoadRunner::ChangeTracker::Instance()->VerifyUponChange = enable;
-}
-
 void MainWindow::saveActionHistory()
 {
     if (!RoadRunner::ActionManager::Instance()->Replayable())
@@ -309,11 +308,11 @@ void MainWindow::closeEvent(QCloseEvent* e)
 
 void MainWindow::testReplay()
 {
-    if (RoadRunner::ChangeTracker::Instance()->VerifyUponChange
+    if (g_preference.alwaysVerify
         && RoadRunner::ActionManager::Instance()->Replayable()
         && std::filesystem::exists(RoadRunner::ActionManager::Instance()->AutosavePath()))
     {
-        RoadRunner::ChangeTracker::Instance()->VerifyUponChange = false; // No verification during replay
+        g_preference.alwaysVerify = false; // No verification during replay
         auto saveFolder = RoadRunner::DefaultSaveFolder();
         auto originalPath = saveFolder / (std::string("compare_a_") + RoadRunner::RunTimestamp() + std::string(".xodr"));
         auto originalPathStr = originalPath.string();

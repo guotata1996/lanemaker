@@ -23,7 +23,7 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp ${APP_ICON_RESOURCE_WINDOWS}
     ui/road_modification.cpp ui/road_destruction.cpp 
     ui/CreateRoadOptionWidget.cpp ui/action_manager.cpp ui/util.cpp ui/replay_window.cpp
     traffic/vehicle.cpp traffic/vehicle_manager.cpp
-    util/stats.cpp util/multi_segment.cpp
+    util/stats.cpp util/multi_segment.cpp util/preference.cpp
     test/validation.cpp test/junction_validation.cpp test/road_validation.cpp
 )
 
