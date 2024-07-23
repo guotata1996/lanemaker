@@ -22,7 +22,8 @@ namespace RoadRunner
     {
         if (formedFrom.find(conn) != formedFrom.end())
         {
-            return Junction_DuplicateConn;
+            generationError = Junction_DuplicateConn;
+            return generationError;
         }
         std::vector<ConnectionInfo> newConnections = { conn };
         for (auto existing : formedFrom)
@@ -237,7 +238,8 @@ namespace RoadRunner
             }
             else
             {
-                spdlog::warn("Connecting road longer than usual. Discarded!");
+                spdlog::warn("Connecting road length is abnormal!");
+                generationError |= Junction_ConnectionInvalidShape;
             }
         }
 #endif

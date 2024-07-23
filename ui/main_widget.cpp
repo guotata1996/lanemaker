@@ -319,6 +319,7 @@ void MainWidget::Painted()
 
 void MainWidget::Reset()
 {
+    createRoadOption->Reset();
     pointerModeGroup->setExclusive(false);
     for (auto btn : pointerModeGroup->buttons())
     {

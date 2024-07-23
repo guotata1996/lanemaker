@@ -53,6 +53,5 @@ bool RoadModificationSession::Complete()
         return true;
     }
 
-    target->ModifyProfile(*s1, *s2, g_createRoadOption->LeftResult(), g_createRoadOption->RightResult());
-    return true;
+    return target->ModifyProfile(*s1, *s2, g_createRoadOption->LeftResult(), g_createRoadOption->RightResult());
 }

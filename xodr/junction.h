@@ -92,8 +92,6 @@ namespace RoadRunner
         odr::Vec2D forward; // cross-section = origin ~ origin + rot_right(hdg) * nLanes * LaneWidth
         uint8_t nLanes;
 
-        std::vector<double> dirSplit; // Left empty for auto assignment.
-
         bool operator==(const RoadEndpoint& other) const
         {
             return other.road->id == road->id && other.contact == contact;

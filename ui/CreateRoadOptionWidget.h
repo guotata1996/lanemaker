@@ -15,6 +15,8 @@ class CreateRoadOptionWidget :
 public:
     CreateRoadOptionWidget();
 
+    void Reset();
+
     void SetOption(const RoadRunner::SectionProfile&, const RoadRunner::SectionProfile&);
 
 signals:
@@ -61,6 +63,8 @@ class CreateLaneOptionWidget :
 public:
     CreateLaneOptionWidget();
 
+    void Reset();
+
     void SetOption(const RoadRunner::SectionProfile&, const RoadRunner::SectionProfile&);
 
 protected:
@@ -87,6 +91,8 @@ class SectionProfileConfigWidget :
     Q_OBJECT
 public:
     SectionProfileConfigWidget();
+
+    void Reset();
 
     /*picking from existing*/
     void SetOption(const RoadRunner::SectionProfile&, const RoadRunner::SectionProfile&);

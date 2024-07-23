@@ -15,10 +15,13 @@ namespace RoadRunnerTest
 #ifdef G_TEST
         EXPECT_EQ(junction->generationError, 0);
 #else
-        if (junction->generationError != 0)
-            spdlog::warn("Junction {} has non-zero error code {}",
-                junction->ID(), junction->generationError);
+        if (junction->generationError != RoadRunner::Junction_NoError)
+        {
+            throw std::logic_error("Junction must be free of generation error!");
+            return;
+    }
 #endif
+
         auto commonJunction = dynamic_cast<RoadRunner::Junction*>(junction);
         if (commonJunction != nullptr)
         {

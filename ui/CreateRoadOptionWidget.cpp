@@ -14,6 +14,11 @@ CreateRoadOptionWidget::CreateRoadOptionWidget():
     rightLogo(":/icons/car_leaving.png"),
     leftLogo(":/icons/car_coming.png")
 {
+    Reset();
+}
+
+void CreateRoadOptionWidget::Reset()
+{
     SetOption(RoadRunner::SectionProfile{ 1, 1 }, RoadRunner::SectionProfile{ -1, 1 });
 }
 
@@ -239,9 +244,15 @@ CreateLaneOptionWidget::CreateLaneOptionWidget()
     mainLayout->addWidget(rightLogo);
     mainLayout->addWidget(rightSlider);
     setLayout(mainLayout);
+    Reset();
 
     connect(leftSlider, &QSlider::valueChanged, this, &CreateLaneOptionWidget::updateLabel);
     connect(rightSlider, &QSlider::valueChanged, this, &CreateLaneOptionWidget::updateLabel);
+}
+
+void CreateLaneOptionWidget::Reset()
+{
+    SetOption(RoadRunner::SectionProfile{ 0, 0 }, RoadRunner::SectionProfile{ 0, 1 });
 }
 
 RoadRunner::SectionProfile CreateLaneOptionWidget::LeftResult() const
@@ -288,6 +299,12 @@ SectionProfileConfigWidget::SectionProfileConfigWidget():
         this, &SectionProfileConfigWidget::OptionChangedOnPage);
     connect(laneMode, &CreateLaneOptionWidget::OptionChangedByUser,
         this, &SectionProfileConfigWidget::OptionChangedOnPage);
+}
+
+void SectionProfileConfigWidget::Reset()
+{
+    roadMode->Reset();
+    laneMode->Reset();
 }
 
 void SectionProfileConfigWidget::OptionChangedOnPage(RoadRunner::SectionProfile left, RoadRunner::SectionProfile right)

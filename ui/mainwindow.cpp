@@ -120,11 +120,17 @@ void MainWindow::resizeEvent(QResizeEvent* e)
 
 void MainWindow::newMap()
 {
+    auto prevLevel = spdlog::get_level();
+    /*Road destruction order be random, which could cause temporary invalid state.*/
+    spdlog::set_level(spdlog::level::critical);
+
     mainWidget->Reset();
     RoadRunner::ChangeTracker::Instance()->Clear();
     RoadRunner::ActionManager::Instance()->Reset();
     assert(mainWidget->view()->scene()->items().isEmpty());
     resizeDontRecord(StartWidth, StartHeight);
+
+    spdlog::set_level(prevLevel);
 }
 
 void MainWindow::resizeDontRecord(int w, int h)

@@ -557,8 +557,7 @@ bool RoadCreationSession::CreateRoad()
         world->allRoads.insert(newRoad);
     }
 
-    tryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd);
-    return true;
+    return tryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd);
 }
 
 std::unique_ptr<odr::RoadGeometry> RoadCreationSession::CreateJoinAtEndGeo(bool forPreview) const
@@ -621,7 +620,7 @@ std::unique_ptr<odr::RoadGeometry> RoadCreationSession::createJoinAtEndGeo(bool 
     }
 }
 
-void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> newRoad, double newPartBegin, double newPartEnd)
+bool RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> newRoad, double newPartBegin, double newPartEnd)
 {
     const double JunctionExtaTrim = 10; // Space for connecting road curvature
     const double RoadMinLength = 5; // Discard if any leftover road is too short
@@ -736,11 +735,19 @@ void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
             road2.reset(); // since road2 is a connecting road inside junction, must reset to free its ID
             if (newRoadBeforeJunction != nullptr)
             {
-                junction->Attach(RoadRunner::ConnectionInfo{ newRoadBeforeJunction, odr::RoadLink::ContactPoint_End });
+                auto errorCode = junction->Attach(RoadRunner::ConnectionInfo{ newRoadBeforeJunction, odr::RoadLink::ContactPoint_End });
+                if (errorCode != RoadRunner::Junction_NoError)
+                {
+                    return false;
+                }
             }
             else if (newRoadPastJunction != nullptr)
             {
-                junction->Attach(RoadRunner::ConnectionInfo{ newRoadPastJunction, odr::RoadLink::ContactPoint_Start });
+                auto errorCode = junction->Attach(RoadRunner::ConnectionInfo{ newRoadPastJunction, odr::RoadLink::ContactPoint_Start });
+                if (errorCode != RoadRunner::Junction_NoError)
+                {
+                    return false;
+                }
             }
             else
             {
@@ -795,7 +802,11 @@ void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
                 canCreateJunction = false;
             }
             auto junction = std::make_shared<RoadRunner::Junction>();
-            junction->CreateFrom(junctionInfo);
+            auto errorCode = junction->CreateFrom(junctionInfo);
+            if (errorCode != RoadRunner::Junction_NoError)
+            {
+                return false;
+            }
         }
 
         if (newRoadPastJunction == nullptr)
@@ -807,4 +818,5 @@ void RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
         newPartBegin = 0;
         newPartEnd -= sEnd1;
     }
+    return true;
 }

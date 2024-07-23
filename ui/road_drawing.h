@@ -113,7 +113,8 @@ protected:
     bool lastClickOnExtLine; /*Prohibit random dbl-click*/
 
 private:
-    void tryCreateJunction(std::shared_ptr<RoadRunner::Road>, double, double);
+    /*Return false upon error*/
+    bool tryCreateJunction(std::shared_ptr<RoadRunner::Road>, double, double);
     
     QPainterPath setPath;
     QGraphicsPathItem* setPreviewItem;

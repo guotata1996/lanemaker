@@ -16,6 +16,9 @@ UserPreference g_preference;
 PreferenceWindow::PreferenceWindow(QWidget* parent)
     : QDialog(parent), contentPopulated(false)
 {
+    setWindowTitle("RoadRunner Preference");
+    setMinimumWidth(250);
+
     auto defaultSave = RoadRunner::DefaultSaveFolder() / "preference.json";
     if (std::filesystem::exists(defaultSave))
     {

@@ -55,8 +55,7 @@ namespace RoadRunner
                             1,
                             origin,
                             forward,
-                            static_cast<uint8_t>(leftExit.laneCount),
-                            roadAndS.dirSplit
+                            static_cast<uint8_t>(leftExit.laneCount)
                         });
                 }
             }
@@ -77,8 +76,7 @@ namespace RoadRunner
                             -1,
                             origin,
                             forward,
-                            static_cast<uint8_t>(rightExit.laneCount),
-                            roadAndS.dirSplit
+                            static_cast<uint8_t>(rightExit.laneCount)
                         });
                 }
                 SectionProfile leftEntrance = config.LeftEntrance();
@@ -156,17 +154,12 @@ namespace RoadRunner
                         turningSemantics, outgoingRoad.nLanes });
             }
 
-            // Fetch or compute dir split
-            std::vector<double> dirSplit = incomingRoad.dirSplit;
+            auto dirSplit = assignIncomingLanes(incomingRoad.nLanes, allPossibleOutgoings, errorCode);
+
             if (dirSplit.size() != outgoingEndpoints.size() - 1)
             {
-                dirSplit = assignIncomingLanes(incomingRoad.nLanes, allPossibleOutgoings, errorCode);
-
-                if (dirSplit.size() != outgoingEndpoints.size() - 1)
-                {
-                    // Generate dir split failed. Skip this incoming road.
-                    continue;
-                }
+                // Generate dir split failed. Skip this incoming road.
+                continue;
             }
 
             // Filter out vanishing out directions
@@ -342,7 +335,7 @@ namespace RoadRunner
             {totalOutgoingLanes += group.toTotalLanes; });
         if (totalOutgoingLanes < nLanes)
         {
-            spdlog::error("Not enough outgoing lanes for incomings to distribute!");
+            spdlog::warn("Not enough outgoing lanes for incomings to distribute!");
             errorCode |= Junction_TooManyIncomingLanes;
             return {};
         }

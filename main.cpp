@@ -6,8 +6,6 @@
 
 int main(int argc, char** argv)
 {
-    spdlog::set_level(spdlog::level::info);
-
     QApplication app(argc, argv);
     app.setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
 

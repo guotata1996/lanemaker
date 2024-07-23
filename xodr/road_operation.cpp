@@ -272,7 +272,7 @@ namespace RoadRunner
         return part2;
     }
 
-    void Road::ModifyProfile(double s1, double s2,
+    bool Road::ModifyProfile(double s1, double s2,
         const SectionProfile& newLeftProfile, const SectionProfile& newRightProfile)
     {
         if (s1 > s2) std::swap(s1, s2);
@@ -292,10 +292,18 @@ namespace RoadRunner
         if (s1 == 0 && predecessorJunction != nullptr)
         {
             predecessorJunction->NotifyPotentialChange();
+            if (predecessorJunction->generationError != Junction_NoError)
+            {
+                return false;
+            }
         }
         if (s2 == Length() && successorJunction != nullptr)
         {
             successorJunction->NotifyPotentialChange();
+            if (successorJunction->generationError != Junction_NoError)
+            {
+                return false;
+            }
         }
 
 #ifndef G_TEST   
@@ -303,5 +311,6 @@ namespace RoadRunner
             std::max(s1 - 3 * MaxTransition, 0.0),
             std::min(s2 + 3 * MaxTransition, Length()));
 #endif
+        return true;
     }
 }

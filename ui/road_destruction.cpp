@@ -1,9 +1,10 @@
 #include "road_drawing.h"
+#include "stats.h"
+#include "junction.h"
 
 #include <QGraphicsPathItem>
 #include <qevent.h>
 
-#include "stats.h"
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
@@ -138,16 +139,19 @@ bool RoadDestroySession::Complete()
     double from = std::min(*s1, *s2);
     double to = std::max(*s1, *s2);
     auto target = targetRoad.lock();
+    auto predJunction = target->predecessorJunction;
+    auto succJunction = target->successorJunction;
+
     if (from == 0 && to == target->Length())
     {
         auto nRemoved = world->allRoads.erase(target);
-        assert(nRemoved == 1);
+        if (nRemoved != 1) throw std::logic_error("Road to destroy is not found in world!");
     }
     else if (from == 0)
     {
         auto secondHalf = RoadRunner::Road::SplitRoad(target, to);
         auto nRemoved = world->allRoads.erase(target);
-        assert(nRemoved == 1);
+        if (nRemoved != 1) throw std::logic_error("Road to destroy is not found in world!");
         world->allRoads.insert(secondHalf);
     }
     else if (to == target->Length())
@@ -161,5 +165,18 @@ bool RoadDestroySession::Complete()
 
         world->allRoads.insert(third);
     }
+
+    // Check if removal negatively affects any related junction
+    target.reset();
+    if (predJunction != nullptr &&
+        predJunction->generationError != RoadRunner::Junction_NoError
+        ||
+        succJunction != nullptr &&
+        succJunction->generationError != RoadRunner::Junction_NoError)
+    {
+        spdlog::warn("Abort: Removal of this road causes a junction to be invalid!");
+        return false;
+    }
+
     return true;
 }
