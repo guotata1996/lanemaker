@@ -98,7 +98,7 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
 
     // Draw result
     colorPen.setWidth(5);
-    colorPen.setColor(Qt::yellow);
+    colorPen.setColor(Qt::red);
     painter.setPen(colorPen);
     painter.drawLine(lOuterResult, YCenter, lInnerResult, YCenter);
     for (int i = 0; i != activeLeftSetting.laneCount; ++i)
@@ -108,7 +108,7 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
         painter.drawImage(rect, leftLogo);
     }
     
-    colorPen.setColor(Qt::red);
+    colorPen.setColor(Qt::green);
     painter.setPen(colorPen);
     painter.drawLine(rOuterResult, YCenter, rInnerResult, YCenter);
     for (int i = 0; i != activeRightSetting.laneCount; ++i)

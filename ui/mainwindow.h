@@ -25,6 +25,8 @@ protected:
 
     void closeEvent(QCloseEvent* event) override;
 
+    void keyPressEvent(QKeyEvent*) override;
+
 private:
     const int StartWidth = 1600;
     const int StartHeight = 1000;

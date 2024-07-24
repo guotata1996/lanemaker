@@ -46,20 +46,18 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     QMenu* edit = new QMenu("&Edit");
     auto undoAction = edit->addAction("Undo");
     auto redoAction = edit->addAction("Redo");
-    menu->addMenu(edit);
-
-    QMenu* view = new QMenu("&Verify");
-    auto verifyAction = view->addAction("Verify Now");
-    toggleSimAction = view->addAction("Toggle simulation");
+    auto verifyAction = edit->addAction("Verify Now");
+    toggleSimAction = edit->addAction("Toggle simulation");
     toggleSimAction->setCheckable(true);
     toggleSimAction->setChecked(false);
-    menu->addMenu(view);
+    menu->addMenu(edit);
 
     QMenu* replay = new QMenu("&Replay");
     auto saveReplayAction = replay->addAction("Save");
     auto debugReplayAction = replay->addAction("Debug");
     auto controlledReplayAction = replay->addAction("Watch");
     menu->addMenu(replay);
+
 #ifdef __linux__
     // In linux, this dialog completely blocks main mainwindow if spawned as child
     replayWindow = std::make_unique<ReplayWindow>();
@@ -106,7 +104,9 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
     connect(preferenceWindow.get(), &PreferenceWindow::ToggleAA, mainWidget.get(), &MainWidget::toggleAntialiasing);
 
-    srand(std::time(0));
+    if (g_preference.showWelcome)
+        preferenceWindow->open();
+    srand(std::time(0)); // traffic simulation
 }
 
 MainWindow::~MainWindow() = default;
@@ -310,6 +310,15 @@ void MainWindow::closeEvent(QCloseEvent* e)
     vehicleManager->End();
     testReplay();
     QWidget::closeEvent(e);
+}
+
+void MainWindow::keyPressEvent(QKeyEvent* e)
+{
+    if (e->key() == Qt::Key_F1)
+    {
+        preferenceWindow->open();
+    }
+    QWidget::keyPressEvent(e);
 }
 
 void MainWindow::testReplay()

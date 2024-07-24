@@ -22,5 +22,6 @@
         <file>icons/undo.png</file>
         <file>icons/Mouse.png</file>
         <file>icons/resize.png</file>
+        <file>icons/roadrunner.png</file>
     </qresource>
 </RCC>
