@@ -28,8 +28,10 @@ protected:
     void keyPressEvent(QKeyEvent*) override;
 
 private:
-    const int StartWidth = 1600;
-    const int StartHeight = 1000;
+    const int MinWidth = 640;
+    const int MinHeight = 480;
+
+    QSize PreferredSize() const;
 
     std::unique_ptr<QGraphicsScene> scene;
 

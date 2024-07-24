@@ -7,6 +7,7 @@
 #include <QStatusBar>
 #include <QApplication>
 #include <QScreen>
+#include <QDesktopWidget>
 #include <filesystem>
 
 #include "main_widget.h"
@@ -30,8 +31,9 @@ extern UserPreference g_preference;
 MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 {
     setWindowTitle(tr("Road Runner"));
-    setMinimumWidth(StartWidth);
-    setMinimumHeight(StartHeight);
+    setMinimumWidth(MinWidth);
+    setMinimumHeight(MinHeight);
+    resize(PreferredSize());
 
     g_mainWindow = this;
 
@@ -111,6 +113,14 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 
 MainWindow::~MainWindow() = default;
 
+QSize MainWindow::PreferredSize() const
+{
+    auto available = QApplication::desktop()->screenGeometry();
+    int preferredHeight = available.height() * 0.6;
+    int preferredWidth = available.width() * 0.5;
+    return QSize(std::max(preferredWidth, MinWidth), std::max(preferredHeight, MinHeight));
+}
+
 void MainWindow::resizeEvent(QResizeEvent* e)
 {
     QWidget::resizeEvent(e);
@@ -128,7 +138,7 @@ void MainWindow::newMap()
     RoadRunner::ChangeTracker::Instance()->Clear();
     RoadRunner::ActionManager::Instance()->Reset();
     assert(mainWidget->view()->scene()->items().isEmpty());
-    resizeDontRecord(StartWidth, StartHeight);
+    resizeDontRecord(PreferredSize().width(), PreferredSize().height());
 
     spdlog::set_level(prevLevel);
 }

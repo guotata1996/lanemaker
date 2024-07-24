@@ -156,7 +156,7 @@ namespace RoadRunner
 
             auto dirSplit = assignIncomingLanes(incomingRoad.nLanes, allPossibleOutgoings, errorCode);
 
-            if (dirSplit.size() != outgoingEndpoints.size() - 1)
+            if (errorCode != JunctionError::Junction_NoError)
             {
                 // Generate dir split failed. Skip this incoming road.
                 continue;

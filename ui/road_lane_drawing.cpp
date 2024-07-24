@@ -27,6 +27,12 @@ bool LanesCreationSession::CreateRoad()
     }
 
     auto refLine = RefLineFromCtrlPoints();
+    if (refLine.length == 0)
+    {
+        spdlog::warn("Too few control points / curve too sharp");
+        return true;
+    }
+    
     if (!joinAtEnd.expired() && ctrlPoints.size() > 4)
     {
         auto lastPiece = CreateJoinAtEndGeo(false);
@@ -35,11 +41,7 @@ bool LanesCreationSession::CreateRoad()
         refLine.s0_to_geometry.emplace(refLine.length, std::move(lastPiece));
         refLine.length += lastPieceLength;
     }
-    if (refLine.length == 0)
-    {
-        spdlog::warn("Too few control points / curve too sharp");
-        return true;
-    }
+
     if (refLine.length > RoadRunner::SingleDrawMaxLength)
     {
         spdlog::warn("Invalid shape or Road to create is too long");

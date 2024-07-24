@@ -130,7 +130,7 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
         auto handle = handleX[i];
         colorPen.setColor(dragIndex.empty() ||
             std::find(dragIndex.begin(), dragIndex.end(), i) == dragIndex.end() ?
-            Qt::blue : Qt::green);
+            Qt::gray : Qt::blue);
         painter.setPen(colorPen);
         painter.drawLine(handle, YCenter - TickHeight / 2, handle, YCenter + TickHeight / 2);
     }
