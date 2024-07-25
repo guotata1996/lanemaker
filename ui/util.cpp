@@ -15,13 +15,29 @@ namespace RoadRunner
 #ifdef _WIN32
         fullPath = std::getenv("HOMEDRIVE");
         fullPath /= std::getenv("HOMEPATH");
-        fullPath /= "Desktop/saved_map";
+        fullPath /= "RoadRunnerData";
 #elif __linux__
         fullPath = std::getenv("HOME");
-        fullPath /= "Desktop/saved_map";
+        fullPath /= "RoadRunnerData";
 #else
 #endif
-        std::filesystem::create_directories(fullPath);
+        bool success = true;
+        try
+        {
+            std::filesystem::create_directories(fullPath);
+        }
+        catch (std::filesystem::filesystem_error)
+        {
+            success = false;
+        }
+
+        if (!success)
+        {
+            // Fallback to executable folder
+            fullPath = "";
+            std::filesystem::create_directories(fullPath);
+        }
+        
         return fullPath;
     }
 

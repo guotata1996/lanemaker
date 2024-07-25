@@ -428,7 +428,9 @@ namespace RoadRunner
             type_s preLength = currSectionS - preSectionS;
             type_s nextLength = (next == profiles.cend() ? length : next->first) - currSectionS;
             spdlog::trace("PreS {} CurrS {} NextS {}", preSectionS, currSectionS, (next == profiles.cend() ? length : next->first));
-            type_s preTransitionLength = std::min({ preLength / 2, nextLength / 2, MaxTransitionS });
+            type_s preTransitionLength = std::min({preLength / 2, nextLength / 2, MaxTransitionS});
+            if (preTransitionLength == 0)
+                throw std::logic_error("Transition cannot have zero length!");
 
             // write
             transitions[transitionIndex] = TransitionInfo

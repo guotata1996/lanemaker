@@ -397,6 +397,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
     // Nearby candidates
     double r = CustomCursorItem::SnapRadiusPx;
     auto candidates = items(viewPos.x() - r, viewPos.y() - r, 2 * r, 2 * r);
+    auto scenePos = mapToScene(viewPos);
     for (auto item : candidates)
     {
         while (item != nullptr)
@@ -405,7 +406,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
             if (laneGraphicsItem != nullptr)
             {
                 double s;
-                auto snapResult = laneGraphicsItem->SnapCursor(mapToScene(viewPos), s);
+                auto snapResult = laneGraphicsItem->SnapCursor(scenePos, s);
                 if (snapResult.expired())
                 {
                     double x, y;
@@ -479,7 +480,10 @@ void MapView::SnapCursor(const QPoint& viewPos)
         rotatingRoads.clear();
     }
 
-    QString txt;
+    auto cursorInfo = QString("(%1, %2)")
+        .arg(scenePos.x(), 4, 'f', 1)
+        .arg(scenePos.y(), 4, 'f', 1);
+    QString roadInfo;
     if (rotatingRoads.empty())
     {
         g_PointerRoad.reset();
@@ -489,10 +493,12 @@ void MapView::SnapCursor(const QPoint& viewPos)
         g_PointerRoad = rotatingRoads[rotatingIndex].first->GetRoad();
         g_PointerLane = rotatingRoads[rotatingIndex].first->LaneID();
         g_PointerRoadS = rotatingRoads[rotatingIndex].second;
-        std::stringstream ss;
-        ss << "Road " << g_PointerRoad.lock()->ID() << " @ " << g_PointerRoadS << " Lane " << g_PointerLane;
-        txt = QString::fromStdString(ss.str());
+        
+        roadInfo = QString(" | Road %1 @%2 Lane %3")
+            .arg(g_PointerRoad.lock()->ID().c_str())
+            .arg(g_PointerRoadS, 6, 'f', 3)
+            .arg(g_PointerLane);
     }
 
-    parentContainer->SetHovering(txt);
+    parentContainer->SetHovering(cursorInfo + roadInfo);
 }

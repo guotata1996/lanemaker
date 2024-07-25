@@ -278,6 +278,9 @@ namespace RoadRunner
         if (s1 > s2) std::swap(s1, s2);
         type_s s1RR = from_odr_unit(s1);
         type_s s2RR = from_odr_unit(s2);
+        SnapToSegmentBoundary(s1RR);
+        SnapToSegmentBoundary(s2RR);
+
         auto& profile = generated.rr_profile;
         if (profile.HasSide(1))
         {
