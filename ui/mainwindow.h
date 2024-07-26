@@ -86,5 +86,7 @@ private:
     void openReplayWindow(bool playImmediate);
 
     void testReplay();
+
+    void reset();
 };
 

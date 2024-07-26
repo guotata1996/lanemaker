@@ -100,7 +100,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(saveReplayAction, &QAction::triggered, this, &MainWindow::saveActionHistory);
     connect(debugReplayAction, &QAction::triggered, this, &MainWindow::debugActionHistory);
     connect(controlledReplayAction, &QAction::triggered, this, &MainWindow::playActionHistory);
-    connect(replayWindow.get(), &ReplayWindow::Restart, this, &MainWindow::newMap);
+    connect(replayWindow.get(), &ReplayWindow::Restart, this, &MainWindow::reset);
     connect(mainWidget.get(), &MainWidget::HoveringChanged, this, &MainWindow::setHint);
     connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
     connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
@@ -129,6 +129,13 @@ void MainWindow::resizeEvent(QResizeEvent* e)
 }
 
 void MainWindow::newMap()
+{
+    auto oldsize = size();
+    reset();
+    RoadRunner::ActionManager::Instance()->Record(oldsize, size());
+}
+
+void MainWindow::reset()
 {
     auto prevLevel = spdlog::get_level();
     /*Road destruction order be random, which could cause temporary invalid state.*/
@@ -181,7 +188,7 @@ void MainWindow::loadFromFile()
     );
     if (s.size() != 0)
     {
-        newMap();
+        reset();
         auto loc = s.toStdString();
         bool supported = RoadRunner::ChangeTracker::Instance()->Load(loc);
         if (!supported)
@@ -271,7 +278,7 @@ void MainWindow::openReplayWindow(bool playImmediate)
         );
     if (!s.isEmpty())
     {
-        newMap();
+        reset();
         QScreen* screen = QGuiApplication::primaryScreen();
         QRect  screenGeometry = screen->geometry();
         replayWindow->LoadHistory(s.toStdString(), playImmediate);
@@ -343,7 +350,7 @@ void MainWindow::testReplay()
         auto originalPathStr = originalPath.string();
         RoadRunner::ChangeTracker::Instance()->Save(originalPathStr);
 
-        newMap();
+        reset();
 
         quitReplayComplete = false;
         connect(replayWindow.get(), &ReplayWindow::DoneReplay, this, &MainWindow::onReplayDone);
