@@ -146,6 +146,8 @@ MainWidget::MainWidget(const QString& name, QWidget* parent)
     connect(resetButton, &QAbstractButton::clicked, this, &MainWidget::resetView);
     connect(zoomSlider, &QAbstractSlider::valueChanged, this, &MainWidget::setupMatrix);
     connect(rotateSlider, &QAbstractSlider::valueChanged, this, &MainWidget::setupMatrix);
+    connect(zoomSlider, &QAbstractSlider::valueChanged, this, &MainWidget::RecordViewTransform);
+    connect(rotateSlider, &QAbstractSlider::valueChanged, this, &MainWidget::RecordViewTransform);
     connect(mapView->verticalScrollBar(), &QAbstractSlider::valueChanged,
         this, &MainWidget::setResetButtonEnabled);
     connect(mapView->horizontalScrollBar(), &QAbstractSlider::valueChanged,

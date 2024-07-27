@@ -224,7 +224,7 @@ void MapView::OnKeyPress(QKeyEvent* evt)
             ss << "Road" << g_road->ID() << ": Length= " << std::setprecision(3) << g_road->Length();
             if (g_road->generated.junction != "-1")
             {
-                ss << " is connecting in junction " << g_road->generated.junction;
+                ss << " is a connecting road of:\n";
                 auto junc = static_cast<RoadRunner::Junction*>(IDGenerator::ForJunction()->GetByID(g_road->generated.junction));
                 ss << junc->Log();
             }
