@@ -1,12 +1,11 @@
 # Dev setup
 
 ## Prerequisites
-Tested on Windows 10 | Ubuntu 24.04 LTS
+Supported OS: Windows 10/11 | Ubuntu 24.04 LTS
 - CMake (Latest)
-- qt5 (`vcpkg install qt5` | `sudo apt install -y qtcreator qtbase5-dev qt5-qmake cmake
-`)
+- qt5 (`vcpkg install qt5` | `sudo apt install qtbase5-dev`)
 - spdlog (`vcpkg install spdlog` | `sudo apt install libspdlog-dev`)
-- CGAL ([windows](https://doc.cgal.org/5.6.1/Manual/windows.html) | `sudo apt-get install libcgal-dev=5.6.1`)
+- CGAL ([windows](https://doc.cgal.org/5.6.1/Manual/windows.html) | `sudo apt-get install libcgal-dev`)
 - cxx build tools ([VS2019 community](https://www.techspot.com/downloads/7241-visual-studio-2019.html) | `sudo apt-get install build-essential gdb`)
 
 ## Clone
