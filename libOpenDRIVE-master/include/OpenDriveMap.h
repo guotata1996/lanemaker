@@ -28,6 +28,15 @@ public:
                  const bool         fix_spiral_edge_cases = true,
                  const bool         with_road_signals = true);
 
+    bool LoadString(const std::string& xodr_file,
+                    const bool         center_map = false,
+                    const bool         with_road_objects = true,
+                    const bool         with_lateral_profile = true,
+                    const bool         with_lane_height = true,
+                    const bool         abs_z_for_for_local_road_obj_outline = false,
+                    const bool         fix_spiral_edge_cases = true,
+                    const bool         with_road_signals = true);
+
     bool Load(const std::string& xodr_file,
               const bool         center_map = false,
               const bool         with_road_objects = true,
@@ -48,7 +57,6 @@ public:
     std::string        proj4 = "";
     double             x_offs = 0;
     double             y_offs = 0;
-    const std::string  xodr_file = "";
     pugi::xml_document xml_doc;
 
     std::map<std::string, Road>     id_to_road;

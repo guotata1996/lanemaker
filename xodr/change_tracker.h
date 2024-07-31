@@ -28,9 +28,12 @@ namespace RoadRunner
         void Clear();
         void Save(std::string path);
         bool Load(std::string path);
+        bool LoadStr(std::string path);
 
     private:
         ChangeTracker() = default;
+
+        void PostLoadActions();
 
         void PostChangeActions();
 

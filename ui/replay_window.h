@@ -60,6 +60,7 @@ private:
 	QPushButton* resetButton;
 	QPushButton* playPauseButton;
 	QCheckBox* withDelay;
+	std::string xodrToLoad;
 	std::vector<RoadRunner::UserAction> fullHistory;
 	size_t nextToReplay;
 

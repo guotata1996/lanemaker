@@ -20,8 +20,10 @@ namespace RoadRunner
 
         static ActionManager* Instance();
 
+        void Replay(std::string mapToLoad);
         void Replay(const UserAction&);
 
+        void Record(std::string loadedMap);
         void Record(RoadRunner::EditMode);
         void Record(double zoomVal, double rotateVal, int hScroll, int vScroll);
         void Record(QMouseEvent*);
@@ -35,10 +37,8 @@ namespace RoadRunner
 
         std::string AutosavePath() const;
 
-        void MarkException() { replayable = cleanAutoSave = false; }
+        void MarkException() { cleanAutoSave = false; }
         void Reset();
-
-        bool Replayable() const { return replayable; }
 
         bool CleanAutoSave() const { return cleanAutoSave; }
 
@@ -62,11 +62,10 @@ namespace RoadRunner
          */
         void FlushUnrecordedMouseMove();
 
+        std::string loadedXodr;
         std::vector<UserAction> history;
 
         static ActionManager* instance;
-
-        bool replayable = true;
 
         bool cleanAutoSave = true;
 

@@ -7,6 +7,7 @@
 #include <fstream>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
 #include "spdlog/spdlog.h"
 
 ReplayWindow::ReplayWindow(QWidget* parent): QDialog(parent)
@@ -75,7 +76,7 @@ std::vector<RoadRunner::UserAction> ReplayWindow::Load(std::string fpath)
 	std::ifstream inFile(fpath, std::ios::binary);
 	cereal::BinaryInputArchive iarchive(inFile);
 	std::vector<RoadRunner::UserAction> rtn;
-	iarchive(rtn);
+	iarchive(xodrToLoad, rtn);
 	return rtn;
 }
 
@@ -248,6 +249,11 @@ void ReplayWindow::SingleStep()
 	if (nextToReplay >= fullHistory.size())
 	{
 		return;
+	}
+
+	if (nextToReplay == 0 && !xodrToLoad.empty())
+	{
+		RoadRunner::ActionManager::Instance()->Replay(xodrToLoad);
 	}
 
 	if (!withDelay->isChecked())

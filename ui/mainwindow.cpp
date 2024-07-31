@@ -9,6 +9,8 @@
 #include <QScreen>
 #include <QDesktopWidget>
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 
 #include "main_widget.h"
 #include "change_tracker.h"
@@ -190,11 +192,17 @@ void MainWindow::loadFromFile()
     {
         reset();
         auto loc = s.toStdString();
+
         bool supported = RoadRunner::ChangeTracker::Instance()->Load(loc);
         if (!supported)
         {
             spdlog::error("xodr map needs to contain custom RoadProfile!");
         }
+        std::ifstream ifs(loc);
+        std::stringstream buffer;
+        buffer << ifs.rdbuf();
+        RoadRunner::ActionManager::Instance()->Record(buffer.str());
+
         mainWidget->AdjustSceneRect();
     }
 }
@@ -233,12 +241,6 @@ void MainWindow::verifyMap()
 
 void MainWindow::saveActionHistory()
 {
-    if (!RoadRunner::ActionManager::Instance()->Replayable())
-    {
-        spdlog::warn("Abort: can't save unreplayable history!");
-        return;
-    }
-
     QString s = QFileDialog::getSaveFileName(
         this,
         "Choose save location",
@@ -341,7 +343,6 @@ void MainWindow::keyPressEvent(QKeyEvent* e)
 void MainWindow::testReplay()
 {
     if (g_preference.alwaysVerify
-        && RoadRunner::ActionManager::Instance()->Replayable()
         && std::filesystem::exists(RoadRunner::ActionManager::Instance()->AutosavePath()))
     {
         g_preference.alwaysVerify = false; // No verification during replay

@@ -25,7 +25,6 @@ namespace RoadRunner
         Action_Redo,
         Action_ChangeMode,
         Action_ChangeProfile,
-        Action_LoadMap,
         Action_ResizeWindow
     };
 

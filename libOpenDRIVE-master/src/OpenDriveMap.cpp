@@ -30,8 +30,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include <iostream>
+#include <fstream>
 
 namespace odr
 {
@@ -66,8 +65,8 @@ OpenDriveMap::OpenDriveMap(const std::string& xodr_file,
                            const bool         with_lane_height,
                            const bool         abs_z_for_for_local_road_obj_outline,
                            const bool         fix_spiral_edge_cases,
-                           const bool         with_road_signals) :
-    xodr_file(xodr_file)
+                           const bool         with_road_signals)
+    //:xodr_file(xodr_file)
 {
     Load(xodr_file,
          center_map,
@@ -79,7 +78,8 @@ OpenDriveMap::OpenDriveMap(const std::string& xodr_file,
          with_road_signals);
 }
 
-bool OpenDriveMap::Load(const std::string& xodr_file,
+
+bool OpenDriveMap::LoadString(const std::string& xodr_str,
           const bool         center_map,
           const bool         with_road_objects,
           const bool         with_lateral_profile,
@@ -92,9 +92,9 @@ bool OpenDriveMap::Load(const std::string& xodr_file,
     id_to_junction.clear();
     bool supported = true;
 
-    pugi::xml_parse_result result = this->xml_doc.load_file(xodr_file.c_str());
+    pugi::xml_parse_result result = this->xml_doc.load_string(xodr_str.c_str());
     if (!result)
-        printf("%s\n", result.description());
+        printf("Err{} %s\n", result.description());
 
     pugi::xml_node odr_node = this->xml_doc.child("OpenDRIVE");
 
@@ -742,6 +742,28 @@ bool OpenDriveMap::Load(const std::string& xodr_file,
     }
 
     return supported;
+}
+
+bool OpenDriveMap::Load(const std::string& xodr_file,
+                        const bool         center_map,
+                        const bool         with_road_objects,
+                        const bool         with_lateral_profile,
+                        const bool         with_lane_height,
+                        const bool         abs_z_for_for_local_road_obj_outline,
+                        const bool         fix_spiral_edge_cases,
+                        const bool         with_road_signals)
+{
+    std::ifstream     ifs(xodr_file);
+    std::stringstream buffer;
+    buffer << ifs.rdbuf();
+    return LoadString(buffer.str(),
+                      center_map,
+                      with_road_objects,
+                      with_lateral_profile,
+                      with_lane_height,
+                      abs_z_for_for_local_road_obj_outline,
+                      fix_spiral_edge_cases,
+                      with_road_signals);
 }
 
 std::vector<Road> OpenDriveMap::get_roads() const { return get_map_values(this->id_to_road); }

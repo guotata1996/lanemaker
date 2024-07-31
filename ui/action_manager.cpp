@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
 #include <qscrollbar.h>
 
 
@@ -43,9 +44,13 @@ namespace RoadRunner
     ActionManager::ActionManager() : 
         startTime(QTime::currentTime()) {}
 
+    void ActionManager::Record(std::string loadedMap)
+    {
+        loadedXodr = loadedMap;
+    }
+
     void ActionManager::Record(RoadRunner::EditMode modeChange)
     {
-        if (!replayable) return;
         ChangeModeAction serialized{ modeChange };
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
         Save();
@@ -58,7 +63,6 @@ namespace RoadRunner
 
     void ActionManager::Record(double zoomVal, double rotateVal, int hScroll, int vScroll)
     {
-        if (!replayable) return;
         ChangeViewportAction serialized
         {
             zoomVal, rotateVal,
@@ -74,8 +78,6 @@ namespace RoadRunner
 
     void ActionManager::Record(QMouseEvent* evt)
     {
-        if (!replayable) return;
-
         FlushBufferedViewportChange();
         MouseAction serialized(evt);
 
@@ -90,7 +92,7 @@ namespace RoadRunner
             {
                 auto lastXY = g_mapView->mapFromScene(
                     lastRecordedMouseMove.value().sceneX,
-                    lastRecordedMouseMove.value().sceneX);
+                    lastRecordedMouseMove.value().sceneY);
 
                 int lastX = lastXY.x();
                 int lastY = lastXY.y();
@@ -156,7 +158,6 @@ namespace RoadRunner
 
     void ActionManager::Record(QKeyEvent* evt)
     {
-        if (!replayable) return;
         FlushUnrecordedMouseMove();
         KeyPressAction serialized{ evt->key() };
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
@@ -170,7 +171,6 @@ namespace RoadRunner
 
     void ActionManager::Record(const SectionProfile& left, const SectionProfile& right)
     {
-        if (!replayable) return;
         ChangeProfileAction serialized{ left, right };
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
         Save();
@@ -189,10 +189,6 @@ namespace RoadRunner
             history.emplace_back(actionNoParm, startTime.msecsTo(QTime::currentTime()));
             Save();
             break;
-        case RoadRunner::Action_LoadMap:
-            // To be supported
-            replayable = false;
-            break;
         default:
             spdlog::error("Invalid ActionType to Record: {}", static_cast<int>(actionNoParm));
         }
@@ -200,7 +196,6 @@ namespace RoadRunner
 
     void ActionManager::Record(const QSize& oldSize, const QSize& newSize)
     {
-        if (!replayable) return;
         ResizeWindowAction serialized{
             oldSize.width(), oldSize.height(),
             newSize.width(), newSize.height()};
@@ -212,6 +207,12 @@ namespace RoadRunner
     void ActionManager::Replay(const ResizeWindowAction& act)
     {
         g_mainWindow->resize(act.width, act.height);
+    }
+
+    void ActionManager::Replay(std::string mapToLoad)
+    {
+        RoadRunner::ChangeTracker::Instance()->LoadStr(mapToLoad);
+        loadedXodr = mapToLoad;
     }
 
     void ActionManager::Replay(const UserAction& action)
@@ -260,7 +261,7 @@ namespace RoadRunner
     {
         std::ofstream outFile(fpath, std::ios::binary);
         cereal::BinaryOutputArchive oarchive(outFile);
-        oarchive(history);
+        oarchive(loadedXodr, history);
     }
 
     std::string ActionManager::AutosavePath() const
@@ -272,11 +273,11 @@ namespace RoadRunner
 
     void ActionManager::Reset()
     {
+        loadedXodr.clear();
         history.clear();
         lastRecordedMouseMove.reset();
         lastUnrecordedMouseMove.reset();
         latestViewportChange.reset();
-        replayable = true;
     }
 
     void ActionManager::FlushBufferedViewportChange()
