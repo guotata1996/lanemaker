@@ -5,6 +5,7 @@
 #include "CreateRoadOptionWidget.h"
 #include "change_tracker.h"
 #include "util.h"
+#include "map_view.h"
 
 #include <fstream>
 #include <filesystem>
@@ -19,6 +20,15 @@ extern SectionProfileConfigWidget* g_createRoadOption;
 
 namespace RoadRunner
 {
+    MouseAction::MouseAction(QMouseEvent* evt)
+    {
+        auto scenePos = g_mapView->mapToScene(evt->pos());
+        sceneX = scenePos.x();
+        sceneY = scenePos.y();
+        type = evt->type();
+        button = evt->button();
+    }
+
     ActionManager* ActionManager::instance = nullptr;
 
     ActionManager* ActionManager::Instance()
@@ -33,7 +43,7 @@ namespace RoadRunner
     ActionManager::ActionManager() : 
         startTime(QTime::currentTime()) {}
 
-    void ActionManager::Record(MapView::EditMode modeChange)
+    void ActionManager::Record(RoadRunner::EditMode modeChange)
     {
         if (!replayable) return;
         ChangeModeAction serialized{ modeChange };
@@ -67,11 +77,8 @@ namespace RoadRunner
         if (!replayable) return;
 
         FlushBufferedViewportChange();
-        MouseAction serialized;
-        serialized.x = evt->pos().x();
-        serialized.y = evt->pos().y();
-        serialized.type = evt->type();
-        serialized.button = evt->button();
+        MouseAction serialized(evt);
+
         if (evt->type() == QEvent::Type::MouseMove)
         {
             bool recordNow = false;
@@ -81,10 +88,14 @@ namespace RoadRunner
             }
             else
             {
-                int lastX = lastRecordedMouseMove.value().x;
-                int lastY = lastRecordedMouseMove.value().y;
-                int distanceSqr = (lastX - serialized.x) * (lastX - serialized.x) +
-                    (lastY - serialized.y) * (lastY - serialized.y);
+                auto lastXY = g_mapView->mapFromScene(
+                    lastRecordedMouseMove.value().sceneX,
+                    lastRecordedMouseMove.value().sceneX);
+
+                int lastX = lastXY.x();
+                int lastY = lastXY.y();
+                int distanceSqr = std::pow(lastX - evt->pos().x(), 2) +
+                    std::pow(lastY - evt->pos().y(), 2);
                 if (distanceSqr > MouseMoveRecordThreshold * MouseMoveRecordThreshold)
                 {
                     recordNow = true;
@@ -121,29 +132,21 @@ namespace RoadRunner
 
     void ActionManager::Replay(const MouseAction& action)
     {
-        auto qMouseEvent = std::make_unique<QMouseEvent>(action.type,
-            QPointF(action.x, action.y), action.button,
-            QFlags<Qt::MouseButton>(), QFlags<Qt::KeyboardModifier>());
         switch (action.type)
         {
         case QEvent::Type::MouseButtonPress:
         {
-            auto scenePos = g_mapView->mapToScene(QPoint(action.x, action.y));
-            spdlog::trace("Click: {},{} ( {},{} )-> scene {},{}",
-                action.x, action.y, 
-                g_mapView->viewportTransform().dx(), g_mapView->viewportTransform().dy(),
-                scenePos.x(), scenePos.y());
-            g_mapView->OnMousePress(qMouseEvent.get());
+            g_mapView->OnMousePress(action);
             break;
         }
         case QEvent::Type::MouseButtonDblClick:
-            g_mapView->OnMouseDoubleClick(qMouseEvent.get());
+            g_mapView->OnMouseDoubleClick(action);
             break;
         case QEvent::Type::MouseMove:
-            g_mapView->OnMouseMove(qMouseEvent.get());
+            g_mapView->OnMouseMove(action);
             break;
         case QEvent::Type::MouseButtonRelease:
-            g_mapView->OnMouseRelease(qMouseEvent.get());
+            g_mapView->OnMouseRelease(action);
             break;
         default:
             spdlog::error("Unsupported MouseAction to replay: {}", static_cast<int>(action.type));
@@ -162,9 +165,7 @@ namespace RoadRunner
 
     void ActionManager::Replay(const KeyPressAction& action)
     {
-        auto qKeyEvent = std::make_unique<QKeyEvent>(QEvent::Type::KeyPress,
-            action.key, QFlags<Qt::KeyboardModifier>());
-        g_mapView->OnKeyPress(qKeyEvent.get());
+        g_mapView->OnKeyPress(action);
     }
 
     void ActionManager::Record(const SectionProfile& left, const SectionProfile& right)
@@ -210,42 +211,36 @@ namespace RoadRunner
 
     void ActionManager::Replay(const ResizeWindowAction& act)
     {
-        g_mainWindow->resizeDontRecord(act.width, act.height);
+        g_mainWindow->resize(act.width, act.height);
     }
 
     void ActionManager::Replay(const UserAction& action)
     {
-        history.emplace_back(action);
         switch (action.type)
         {
         case Action_Mouse:
-            if (lastViewportReplay.has_value())
-                Replay(lastViewportReplay.value()); // Weird: mapView->transform() changes silently
+            history.emplace_back(action);
             Replay(action.detail.mouse);
             break;
         case Action_KeyPress:
+            history.emplace_back(action);
             Replay(action.detail.keyPress);
             break;
         case Action_ChangeMode:
             Replay(action.detail.changeMode);
             break;
         case Action_Viewport:
-            lastViewportReplay.emplace(action.detail.viewport);
+            history.emplace_back(action);
+            Replay(action.detail.viewport);
             break;
         case Action_ChangeProfile:
             Replay(action.detail.changeProfile);
             break;
         case Action_Undo:
-            if (!ChangeTracker::Instance()->Undo())
-            {
-                spdlog::error("Error replaying undo action");
-            }
+            g_mainWindow->undo();
             break;
         case Action_Redo:
-            if (!ChangeTracker::Instance()->Redo())
-            {
-                spdlog::error("Error replaying redo action");
-            }
+            g_mainWindow->redo();
             break;
         case Action_ResizeWindow:
             Replay(action.detail.resizeWindow);
@@ -278,7 +273,6 @@ namespace RoadRunner
     void ActionManager::Reset()
     {
         history.clear();
-        lastViewportReplay.reset();
         lastRecordedMouseMove.reset();
         lastUnrecordedMouseMove.reset();
         latestViewportChange.reset();

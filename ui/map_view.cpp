@@ -80,7 +80,7 @@ void MapView::scrollContentsBy(int dx, int dy)
     parentContainer->RecordViewTransform();
 }
 
-void MapView::SetEditMode(EditMode aMode)
+void MapView::SetEditMode(RoadRunner::EditMode aMode)
 {
     editMode = aMode;
 
@@ -91,16 +91,16 @@ void MapView::SetEditMode(EditMode aMode)
     }
     switch (aMode)
     {
-    case Mode_Create:
+    case RoadRunner::Mode_Create:
         drawingSession = new RoadCreationSession(this);
         break;
-    case Mode_CreateLanes:
+    case RoadRunner::Mode_CreateLanes:
         drawingSession = new LanesCreationSession(this);
         break;
-    case Mode_Destroy:
+    case RoadRunner::Mode_Destroy:
         drawingSession = new RoadDestroySession(this);
         break;
-    case Mode_Modify:
+    case RoadRunner::Mode_Modify:
         drawingSession = new RoadModificationSession(this);
         break;
     default:
@@ -108,9 +108,9 @@ void MapView::SetEditMode(EditMode aMode)
     }
 }
 
-void MapView::OnMousePress(QMouseEvent* evt)
+void MapView::OnMousePress(const RoadRunner::MouseAction& evt)
 {
-    if (editMode != Mode_None)
+    if (editMode != RoadRunner::Mode_None)
     {
         if (!drawingSession->Update(evt))
         {
@@ -134,9 +134,9 @@ void MapView::mousePressEvent(QMouseEvent* evt)
     }
 }
 
-void MapView::OnMouseDoubleClick(QMouseEvent* evt)
+void MapView::OnMouseDoubleClick(const RoadRunner::MouseAction& evt)
 {
-    if (editMode != Mode_None)
+    if (editMode != RoadRunner::Mode_None)
     {
         drawingSession->Update(evt);
     }
@@ -157,10 +157,11 @@ void MapView::mouseDoubleClickEvent(QMouseEvent* evt)
     }
 }
 
-void MapView::OnMouseMove(QMouseEvent* evt)
+void MapView::OnMouseMove(const RoadRunner::MouseAction& evt)
 {
-    SnapCursor(evt->pos());
-    if (editMode != Mode_None)
+    auto viewPos = mapFromScene(evt.sceneX, evt.sceneY);
+    SnapCursor(viewPos);
+    if (editMode != RoadRunner::Mode_None)
     {
         drawingSession->Update(evt);
     }
@@ -181,9 +182,9 @@ void MapView::mouseMoveEvent(QMouseEvent* evt)
     }
 }
 
-void MapView::OnMouseRelease(QMouseEvent* evt)
+void MapView::OnMouseRelease(const RoadRunner::MouseAction& evt)
 {
-    if (editMode != Mode_None)
+    if (editMode != RoadRunner::Mode_None)
     {
         drawingSession->Update(evt);
     }
@@ -204,9 +205,9 @@ void MapView::mouseReleaseEvent(QMouseEvent* evt)
     }
 }
 
-void MapView::OnKeyPress(QKeyEvent* evt)
+void MapView::OnKeyPress(const RoadRunner::KeyPressAction& evt)
 {
-    switch (evt->key())
+    switch (evt.key)
     {
     case Qt::Key_Escape:
         quitEdit();
@@ -276,7 +277,7 @@ void MapView::keyPressEvent(QKeyEvent* evt)
     RoadRunner::ActionManager::Instance()->Record(evt);
     try
     {
-        OnKeyPress(evt);
+        OnKeyPress(RoadRunner::KeyPressAction{evt->key()});
     }
     catch (std::exception e)
     {

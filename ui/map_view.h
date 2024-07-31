@@ -4,6 +4,7 @@
 #include <qevent.h>
 
 #include "road_profile.h"
+#include "action_defs.h"
 
 class MainWidget;
 
@@ -16,26 +17,17 @@ class MapView : public QGraphicsView
 public:
     MapView(MainWidget* v);
 
-    enum EditMode
-    {
-        Mode_None,
-        Mode_Create,
-        Mode_CreateLanes,
-        Mode_Destroy,
-        Mode_Modify
-    };
-
-    void SetEditMode(EditMode aMode);
+    void SetEditMode(RoadRunner::EditMode aMode);
 
     void AdjustSceneRect();
 
     void ResetSceneRect();
 
-    void OnMousePress(QMouseEvent* event);
-    void OnMouseDoubleClick(QMouseEvent* event);
-    void OnMouseMove(QMouseEvent* event);
-    void OnMouseRelease(QMouseEvent* event);
-    void OnKeyPress(QKeyEvent* event);
+    void OnMousePress(const RoadRunner::MouseAction&);
+    void OnMouseDoubleClick(const RoadRunner::MouseAction&);
+    void OnMouseMove(const RoadRunner::MouseAction&);
+    void OnMouseRelease(const RoadRunner::MouseAction&);
+    void OnKeyPress(const RoadRunner::KeyPressAction&);
     double Zoom() const;
     void SetViewFromReplay(double zoomSliderVal, double rotateSliderVal,
         int hScrollbar, int vScrollbar);
@@ -71,7 +63,7 @@ private:
 
     RoadDrawingSession* drawingSession = nullptr;
 
-    EditMode editMode = Mode_None;
+    RoadRunner::EditMode editMode = RoadRunner::Mode_None;
 
     bool showingScale = false;
 

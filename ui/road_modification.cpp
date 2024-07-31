@@ -12,15 +12,15 @@ extern SectionProfileConfigWidget* g_createRoadOption;
 RoadModificationSession::RoadModificationSession(QGraphicsView* aView) : RoadDestroySession(aView)
 {}
 
-bool RoadModificationSession::Update(QMouseEvent* evt)
+bool RoadModificationSession::Update(const RoadRunner::MouseAction& evt)
 {
     RoadDestroySession::Update(evt);
 
-    if (!g_PointerRoad.expired() && evt->type() == QEvent::Type::MouseButtonPress)
+    if (!g_PointerRoad.expired() && evt.type == QEvent::Type::MouseButtonPress)
     {
         BeginPickingProfile();
     }
-    else if (evt->type() == QEvent::Type::MouseButtonRelease)
+    else if (evt.type == QEvent::Type::MouseButtonRelease)
     {
         EndPickingProfile();
     }

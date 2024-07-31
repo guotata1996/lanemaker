@@ -53,6 +53,10 @@ private:
 public slots:
     void ReplaySingleStep();
 
+    void undo();
+
+    void redo();
+
 private slots:
     void setHint(QString);
 
@@ -63,10 +67,6 @@ private slots:
     void saveToFile();
 
     void loadFromFile();
-
-    void undo();
-
-    void redo();
 
     void verifyMap();
 

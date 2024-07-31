@@ -135,15 +135,15 @@ RoadCreationSession::RoadCreationSession(QGraphicsView* aView) :
     ctrlPoints.push_back(QPointF());
 }
 
-bool RoadCreationSession::Update(QMouseEvent* event)
+bool RoadCreationSession::Update(const RoadRunner::MouseAction& evt)
 {
     SetHighlightTo(g_PointerRoad.lock());
 
-    QPointF scenePos = view->mapToScene(event->pos());
+    QPointF scenePos(evt.sceneX, evt.sceneY);
 
-    if (event->button() == Qt::MouseButton::LeftButton)
+    if (evt.button == Qt::MouseButton::LeftButton)
     {
-        if (event->type() == QEvent::Type::MouseButtonPress)
+        if (evt.type == QEvent::Type::MouseButtonPress)
         {
             if (ctrlPoints.size() == 1 || 
                 QVector2D(ctrlPoints[ctrlPoints.size() - 2]).distanceToPoint(QVector2D(ctrlPoints.back())) > RoadRunner::DupCtrlPointsDist)
@@ -160,7 +160,7 @@ bool RoadCreationSession::Update(QMouseEvent* event)
                 spdlog::warn("Cannot place ctrl point too close to the previous one!");
             }
         }
-        else if (event->type() == QEvent::Type::MouseButtonDblClick
+        else if (evt.type == QEvent::Type::MouseButtonDblClick
             && ctrlPoints.size() > 2
             && ctrlPoints.size() % 2 == 1
             && lastClickOnExtLine)
@@ -175,23 +175,23 @@ bool RoadCreationSession::Update(QMouseEvent* event)
             ctrlPoints.push_back(scenePos);
         }
     }
-    else if (event->button() == Qt::MouseButton::RightButton)
+    else if (evt.button == Qt::MouseButton::RightButton)
     {
         if (ctrlPoints.size() > 1)
         {
             // At least keep one
             ctrlPoints.pop_back();
         }
-        else if (!g_PointerRoad.expired() && event->type() == QEvent::Type::MouseButtonPress)
+        else if (!g_PointerRoad.expired() && evt.type == QEvent::Type::MouseButtonPress)
         {
             BeginPickingProfile();
         }
-        else if (event->type() == QEvent::Type::MouseButtonRelease)
+        else if (evt.type == QEvent::Type::MouseButtonRelease)
         {
             EndPickingProfile();
         }
     }
-    else if (event->button() == Qt::MouseButton::NoButton)
+    else if (evt.button == Qt::MouseButton::NoButton)
     {
         ctrlPoints.back().setX(scenePos.x());
         ctrlPoints.back().setY(scenePos.y());

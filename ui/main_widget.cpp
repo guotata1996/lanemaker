@@ -205,8 +205,8 @@ void MainWidget::gotoCreateRoadMode()
 {
     mapView->setDragMode(QGraphicsView::NoDrag);
     mapView->setInteractive(true);
-    mapView->SetEditMode(MapView::Mode_Create);
-    RoadRunner::ActionManager::Instance()->Record(MapView::Mode_Create);
+    mapView->SetEditMode(RoadRunner::Mode_Create);
+    RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Create);
     createRoadOption->GotoRoadMode();
     emit InReadOnlyMode(false);
 }
@@ -215,8 +215,8 @@ void MainWidget::gotoCreateLaneMode()
 {
     mapView->setDragMode(QGraphicsView::NoDrag);
     mapView->setInteractive(true);
-    mapView->SetEditMode(MapView::Mode_CreateLanes);
-    RoadRunner::ActionManager::Instance()->Record(MapView::Mode_CreateLanes);
+    mapView->SetEditMode(RoadRunner::Mode_CreateLanes);
+    RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_CreateLanes);
     createRoadOption->GotoLaneMode();
     emit InReadOnlyMode(false);
 }
@@ -225,8 +225,8 @@ void MainWidget::gotoDestroyMode()
 {
     mapView->setDragMode(QGraphicsView::NoDrag);
     mapView->setInteractive(true);
-    mapView->SetEditMode(MapView::Mode_Destroy);
-    RoadRunner::ActionManager::Instance()->Record(MapView::Mode_Destroy);
+    mapView->SetEditMode(RoadRunner::Mode_Destroy);
+    RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Destroy);
     createRoadOption->hide();
     emit InReadOnlyMode(false);
 }
@@ -235,8 +235,8 @@ void MainWidget::gotoModifyMode()
 {
     mapView->setDragMode(QGraphicsView::NoDrag);
     mapView->setInteractive(true);
-    mapView->SetEditMode(MapView::Mode_Modify);
-    RoadRunner::ActionManager::Instance()->Record(MapView::Mode_Modify);
+    mapView->SetEditMode(RoadRunner::Mode_Modify);
+    RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Modify);
     createRoadOption->GotoRoadMode();
     emit InReadOnlyMode(false);
 }
@@ -245,8 +245,8 @@ void MainWidget::gotoDragMode()
 {
     mapView->setDragMode(QGraphicsView::ScrollHandDrag);
     mapView->setInteractive(false);
-    mapView->SetEditMode(MapView::Mode_None);
-    RoadRunner::ActionManager::Instance()->Record(MapView::Mode_None);
+    mapView->SetEditMode(RoadRunner::Mode_None);
+    RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_None);
     createRoadOption->hide();
     emit InReadOnlyMode(true);
 }
@@ -355,16 +355,16 @@ void MainWidget::SetModeFromReplay(int mode)
 {
     switch (mode)
     {
-    case MapView::EditMode::Mode_Create:
+    case RoadRunner::Mode_Create:
         createModeButton->setChecked(true);
         break;
-    case MapView::EditMode::Mode_CreateLanes:
+    case RoadRunner::Mode_CreateLanes:
         createLaneModeButton->setChecked(true);
         break;
-    case MapView::EditMode::Mode_Modify:
+    case RoadRunner::Mode_Modify:
         modifyModeButton->setChecked(true);
         break;
-    case MapView::EditMode::Mode_Destroy:
+    case RoadRunner::Mode_Destroy:
         destroyModeButton->setChecked(true);
         break;
     default:

@@ -1,16 +1,8 @@
 #include "replay_window.h"
-#include <QPushButton>
-#include <QFileDialog>
-#include <QMenuBar>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QListWidget>
-#include <qtimer.h>
-#include <QCheckBox>
-#include <qlabel.h>
-
 #include "action_manager.h"
 #include "util.h"
+
+#include <QtWidgets>
 
 #include <fstream>
 #include <cereal/archives/binary.hpp>
@@ -148,8 +140,8 @@ void ReplayWindow::FillHistoryTable()
 				break;
 			}
 			desc += QString(" (%1, %2)")
-				.arg(action.detail.mouse.x)
-				.arg(action.detail.mouse.y);
+				.arg(action.detail.mouse.sceneX, 4, 'f', 2)
+				.arg(action.detail.mouse.sceneY, 4, 'f', 2);
 			break;
 		case RoadRunner::ActionType::Action_KeyPress:
 			desc = QString("KeyPress %1").arg(action.detail.keyPress.ToString());
@@ -173,19 +165,19 @@ void ReplayWindow::FillHistoryTable()
 			desc = "ChangeMode";
 			switch (action.detail.changeMode.mode)
 			{
-			case MapView::Mode_Create:
+			case RoadRunner::Mode_Create:
 				desc += " road";
 				icon = QIcon(QPixmap(":/icons/road_mode.png"));
 				break;
-			case MapView::Mode_CreateLanes:
+			case RoadRunner::Mode_CreateLanes:
 				desc += " lane";
 				icon = QIcon(QPixmap(":/icons/lane_mode.png"));
 				break;
-			case MapView::Mode_Modify:
+			case RoadRunner::Mode_Modify:
 				desc += " modify";
 				icon = QIcon(QPixmap(":/icons/modify_mode.PNG"));
 				break;
-			case MapView::Mode_Destroy:
+			case RoadRunner::Mode_Destroy:
 				desc += " destroy";
 				icon = QIcon(QPixmap(":/icons/destroy_mode.png"));
 				break;

@@ -33,9 +33,9 @@ RoadDestroySession::~RoadDestroySession()
     SetHighlightTo(nullptr);
 }
 
-bool RoadDestroySession::Update(QMouseEvent* evt)
+bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
 {
-    QPointF scenePos = view->mapToScene(evt->pos().x(), evt->pos().y());
+    QPointF scenePos(evt.sceneX, evt.sceneY);
     auto g_road = g_PointerRoad.lock();
     if (g_road != nullptr)
     {
@@ -94,7 +94,7 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
     hintItemRight->setPolygon(hintPolygonRight);
 
     // Change target, s1, s2
-    if (evt->button() == Qt::LeftButton 
+    if (evt.button == Qt::LeftButton 
         && g_road != nullptr && g_road->generated.junction == "-1")
     {
         if (g_road != target)
@@ -105,11 +105,11 @@ bool RoadDestroySession::Update(QMouseEvent* evt)
         }
         else
         {
-            if (evt->type() == QEvent::Type::MouseButtonPress)
+            if (evt.type == QEvent::Type::MouseButtonPress)
             {
                 s2 = std::make_unique<double>(GetAdjustedS());
             }
-            else if (evt->type() == QEvent::Type::MouseButtonDblClick)
+            else if (evt.type == QEvent::Type::MouseButtonDblClick)
             {
                 if (s2 == nullptr)
                 {

@@ -391,6 +391,14 @@ namespace RoadRunner
                     spdlog::trace("Collision detected between road {} @{}~{} vs road {} @{}~{}",
                         ID(), overlap->sBegin1, overlap->sEnd1,
                         colliding.first->ID(), overlap->sBegin2, overlap->sEnd2);
+
+                    // If multiple candidates overlap at the same s, pick the one with minimum ID
+                    if (sortedOverlap.find(overlap->sBegin1) != sortedOverlap.end()
+                        && std::stoi(sortedOverlap.at(overlap->sBegin1)->road2.lock()->ID()) > 
+                        std::stoi(overlap->road2.lock()->ID()))
+                    {
+                        sortedOverlap.erase(overlap->sBegin1);
+                    }
                     sortedOverlap.emplace(overlap->sBegin1, std::move(overlap));
                 }
             }

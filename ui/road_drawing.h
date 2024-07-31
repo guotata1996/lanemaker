@@ -1,6 +1,8 @@
 #pragma once
 
 #include "world.h"
+#include "action_defs.h"
+
 #include "qgraphicsview.h"
 #include "qgraphicsitem.h"
 #include <vector>
@@ -31,7 +33,7 @@ public:
     RoadDrawingSession(QGraphicsView* aView);
 
     /*return false if force complete*/
-    virtual bool Update(QMouseEvent* event) = 0;
+    virtual bool Update(const RoadRunner::MouseAction&) = 0;
 
     /*return false to abort change*/
     virtual bool Complete() = 0;
@@ -77,7 +79,7 @@ public:
     RoadCreationSession(QGraphicsView* aView);
     
     /*return false if force complete*/
-    virtual bool Update(QMouseEvent* event) override;
+    virtual bool Update(const RoadRunner::MouseAction&) override;
 
     virtual bool Complete() override;
 
@@ -169,7 +171,7 @@ public:
 
     virtual ~RoadDestroySession() override;
 
-    virtual bool Update(QMouseEvent* event) override;
+    virtual bool Update(const RoadRunner::MouseAction&) override;
 
     virtual bool Complete() override;
 
@@ -188,9 +190,7 @@ class RoadModificationSession : public RoadDestroySession
 public:
     RoadModificationSession(QGraphicsView* aView);
 
-    //virtual ~RoadModificationSession() override;
-
-    virtual bool Update(QMouseEvent* event) override;
+    virtual bool Update(const RoadRunner::MouseAction&) override;
 
     virtual bool Complete() override;
 };
