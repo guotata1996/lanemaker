@@ -122,6 +122,8 @@ void MapView::OnMousePress(const RoadRunner::MouseAction& evt)
 void MapView::mousePressEvent(QMouseEvent* evt)
 {
     QGraphicsView::mousePressEvent(evt);
+
+    spdlog::info("Mouse event at {},{}", evt->pos().x(), evt->pos().y());
     
     RoadRunner::ActionManager::Instance()->Record(evt);
     try
