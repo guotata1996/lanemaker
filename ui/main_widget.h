@@ -17,7 +17,7 @@ class MainWidget : public QFrame
 {
     Q_OBJECT
 public:
-    explicit MainWidget(const QString& name, QWidget* parent = nullptr);
+    explicit MainWidget(QGraphicsScene* scene, QWidget* parent = nullptr);
 
     QGraphicsView* view() const;
 

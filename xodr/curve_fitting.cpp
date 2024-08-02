@@ -80,30 +80,40 @@ namespace RoadRunner
     }
 
     template<typename F, typename T>
-    bool Newton(F xToError, T& x, double tol = 1e-4, bool verbose = true)
+    bool Newton(F xToError, T& x, double tol = 1e-4, std::string debugName="")
     {
+        spdlog::info("[Newton {}]", debugName);
         const double slopeProb = 2e-4; // TODO: should be relative to magnitude of delta_x
         for (int i = 0; i != 30; ++i)
         {
             double errA = xToError(x);
-            if (verbose && i > 10)
+            spdlog::info("  #{}A: x={} err={}", i, x, errA);
+
+            if (std::isnan(errA))
             {
-                spdlog::info("Iter {}: x={} err={}", i, x, errA);
+                spdlog::warn("[Q] function evaluates to NaN");
+                return false;
             }
 
             if (std::abs(errA) < tol)
             {
+                spdlog::info("[Q] Good");
                 return true;
             }
 
             double errB = xToError(x + slopeProb);
+            spdlog::info("  #{}B: x={} err={}", i, x + slopeProb, errB);
+
             if (std::abs(errA - errB) < slopeProb * 1e-3)
             {
+                spdlog::warn("[Q] slope almost zero");
                 return false;
             }
             double slope = (errB - errA) / slopeProb;
-            x -= errA / slope * 0.8;
+            //x -= errA / slope * 0.8;
+            x = std::min(x * 1.05, std::max(x * 0.95, x - errA / slope * 0.8)); // If failed, limit x step
         }
+        spdlog::info("[Q] Exceed max iteration");
         return false;
     }
 
@@ -127,7 +137,7 @@ namespace RoadRunner
         if (po == nullptr)
         {
             spdlog::info("No intersection found for circle center");
-            return;
+            return nullptr;
         }
 
         auto r = CGAL::squared_distance(p1, *po);
@@ -153,7 +163,7 @@ namespace RoadRunner
         {
             arcAngle = std::abs(arcAngle);
         }
-        auto arcLen = arcAngle * r;
+        const auto arcLen = arcAngle * r;
         
         spdlog::info("Start from {} circle centered at ({},{}) r={} Angle={} => end hdg err={}",
             cw ? "CW" : "CCW",
@@ -171,33 +181,41 @@ namespace RoadRunner
         // Bend the arc int spire
         double startMul = angleErr > 0 ? 0.99 : 1.01;
         double endMul;
+        auto spiralLen = arcLen;
 
-        auto endHdgErrorFunc = [=, &endMul](double startMul)
+        auto endHdgErrorFunc = [=, &endMul, &spiralLen](double startMul)
         {
             // Fit endMul so that spire pass through endPos
             endMul = 2 - startMul; // Initial guess
 
-            auto endPosErrorFunc = [=](double x)
+            auto endPosErrorFunc = [=, &spiralLen](double endMulVar)
             {
                 // TODO: treat special case: start crv == end crv
-                auto spiralTest = odr::Spiral(0, startPos[0], startPos[1], startAngle, 1, baseCrv * startMul, baseCrv * x);
-                double closeS = spiralTest.get_closest_s_to(endPos, arcLen);
-                //spdlog::info(" {} -> Close S = {};", arcLen, closeS);
+                auto spiralTest = odr::Spiral(0, startPos[0], startPos[1], startAngle, 1, baseCrv * startMul, baseCrv * endMulVar);
+                double closeS = spiralTest.get_closest_s_to(endPos, spiralLen); // TODO: use a moving initial guess
+                if (closeS < 0)
+                {
+                    spdlog::warn("Cannot find closest S!");
+                    return std::nan("1");
+                }
                 auto closeP = spiralTest.get_xy(closeS);
-                return odr::euclDistance(closeP, endPos);
+                auto pToTarget = odr::sub(endPos, closeP);
+                auto grad = odr::normalize(spiralTest.get_grad(closeS));
+                auto tan = odr::Vec2D{ grad[1], -grad[0] };
+                return odr::dot(pToTarget, tan); // Signed distance for Newton
+                //return odr::euclDistance(closeP, endPos);
             };
 
-            bool posFitSuccess = Newton(endPosErrorFunc, endMul);
+            bool posFitSuccess = Newton(endPosErrorFunc, endMul, 1e-4, "Fit endPos");
 
             if (!posFitSuccess)
             {
                 spdlog::warn("Cannot approx spiral to end pos!");
-                endMul = 0; // Mark solution invalid
-                return 0.0; // Exit outer loop immediately
+                return std::nan("0"); // Mark solution invalid; Exit outer loop immediately
             }
 
             auto spiralTest = odr::Spiral(0, startPos[0], startPos[1], startAngle, 1, baseCrv * startMul, baseCrv * endMul);
-            double closeS = spiralTest.get_closest_s_to(endPos, arcLen);
+            double closeS = spiralTest.get_closest_s_to(endPos, spiralLen);
             auto candAngle = spiralTest.get_grad(closeS);
             auto candErr = odr::angle(endHdg, candAngle);
             //spdlog::info("  OuterLoop: start mul={} end mul={} angle diff = {}", startMul, endMul, candErr);
@@ -205,20 +223,28 @@ namespace RoadRunner
         };
 
         // Fit startMul so that spire pass through endPos at endHdg
-        bool dirFitSuccess = Newton(endHdgErrorFunc, startMul);
+        bool dirFitSuccess = Newton(endHdgErrorFunc, startMul, 1e-4, "   Fit endHdg");
 
         if (dirFitSuccess && endMul != 0)
         {
-            auto fitResult = odr::Spiral(0, startPos[0], startPos[1], startAngle, 1, baseCrv * startMul, baseCrv * endMul);
-            double endS = fitResult.get_closest_s_to(endPos, arcLen);
-            auto endP = fitResult.get_xy(endS);
-            auto endH = fitResult.get_grad(endS);
+            auto startCrv = baseCrv * startMul;
+            auto endCrvNL = baseCrv * endMul;
+            auto resultNoLength = odr::Spiral(0, startPos[0], startPos[1], startAngle, 1, startCrv, endCrvNL);
+            auto cDot = endCrvNL - startCrv;
+            double length = resultNoLength.get_closest_s_to(endPos, spiralLen);
+            auto endCrv = startCrv + cDot * length;
+            auto result = std::make_unique<odr::Spiral>(0, startPos[0], startPos[1], startAngle, 
+                length, startCrv, endCrv);
+
+            auto endP = result->get_xy(length);
+            auto endH = result->get_grad(length);
             auto pError = odr::euclDistance(endP, endPos);
             auto hError = odr::angle(endH, endHdg);
 
             spdlog::info("Ans: start mul = {}, end mul = {}, len = {} => pErr = {}, hErr = {}", 
-                startMul, endMul, endS, pError, hError);
-            return std::make_unique<odr::Spiral>(0, startPos[0], startPos[1], startAngle, endS, baseCrv * startMul, baseCrv * endMul);
+                startMul, endMul, length, pError, hError);
+
+            return result;
         }
         return nullptr;
     }

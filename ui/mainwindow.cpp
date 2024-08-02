@@ -84,8 +84,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     g_scene = scene.get();
     vehicleManager = std::make_unique<VehicleManager>(this);
     
-    mainWidget = std::make_unique<MainWidget>("Main View");
-    mainWidget->view()->setScene(g_scene);
+    mainWidget = std::make_unique<MainWidget>(g_scene);
     mainWidget->toggleAntialiasing(g_preference.antiAlias);
 
     auto mainLayout = new QVBoxLayout;

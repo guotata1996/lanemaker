@@ -14,12 +14,12 @@
 
 extern SectionProfileConfigWidget* g_createRoadOption;
 
-MainWidget::MainWidget(const QString& name, QWidget* parent)
+MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     : QFrame(parent), createRoadOption(new SectionProfileConfigWidget),
     displayScaleTimer(new QTimer(this))
 {
     setFrameStyle(Sunken | StyledPanel);
-    mapView = new MapView(this);
+    mapView = new MapView(this, scene);
     mapView->setRenderHint(QPainter::Antialiasing, false);
     mapView->setDragMode(QGraphicsView::RubberBandDrag);
     mapView->setOptimizationFlags(QGraphicsView::DontSavePainterState);

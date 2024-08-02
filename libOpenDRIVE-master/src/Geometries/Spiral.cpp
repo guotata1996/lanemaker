@@ -105,6 +105,19 @@ double Spiral::get_closest_s_to(const Vec2D& target, double initialS)
         stepMul = -1;
     }
 
+    double lastErr = 1e8;
+    for (double s = initialS; s >= 0; s += stepMul * eps) 
+    {
+        auto p = get_xy(s);
+        auto err = odr::euclDistance(p, target);
+        if (err > lastErr) 
+        {
+            return s;
+        }
+        lastErr = err;
+    }
+    return -1;
+    /*
     double s0 = initialS;
     double s1 = s0 + stepMul * eps;
     double lastErr = errInitial;
@@ -143,6 +156,7 @@ double Spiral::get_closest_s_to(const Vec2D& target, double initialS)
         }
     }
     return (s0 + s1) / 2;
+    */
 }
 
 } // namespace odr

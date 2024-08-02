@@ -12,6 +12,8 @@
 #include <qmessagebox.h>
 #include <qapplication.h>
 
+#include "curve_fitting.h"
+
 
 std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 double g_PointerRoadS; /*Continous between 0 and Length() if g_PointerRoad is valid*/
@@ -23,11 +25,37 @@ int rotatingIndex;
 MapView* g_mapView;
 extern RoadRunner::SectionProfile leftProfileSetting, rightProfileSetting;
 
-MapView::MapView(MainWidget* v) :
-    QGraphicsView(), parentContainer(v)
+MapView::MapView(MainWidget* v, QGraphicsScene* scene) :
+    QGraphicsView(scene), parentContainer(v)
 {
     ResetSceneRect();
     g_mapView = this;
+    
+    odr::Vec2D startPos{ 0, 0 };
+    odr::Vec2D startHdg{ 0, 1 };
+    odr::Vec2D endPos{ 1, -1 };
+    odr::Vec2D endHdg{ -1, 0.5 };
+    endHdg = odr::normalize(endHdg);
+    auto fitGeo = RoadRunner::FitSpiral(startPos, startHdg, endPos, endHdg);
+    if (fitGeo == nullptr)
+    {
+        spdlog::error("Cannot fit geo");
+        return;
+    }
+
+    auto pen = QPen(QBrush(Qt::black), 0.02);
+    double prevS = -1;
+    for (double s = 0; s < fitGeo->length; s += 0.05)
+    {
+        if (prevS >= 0)
+        {
+            auto p0 = fitGeo->get_xy(prevS);
+            auto p1 = fitGeo->get_xy(s);
+            QLineF seg(QPointF(p0[0], p0[1]), QPointF(p1[0], p1[1]));
+            scene->addLine(seg, pen);
+        }
+        prevS = s;
+    }
 }
 
 void MapView::ResetSceneRect()

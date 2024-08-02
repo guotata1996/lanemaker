@@ -15,7 +15,7 @@ class MapView : public QGraphicsView
 {
     Q_OBJECT
 public:
-    MapView(MainWidget* v);
+    MapView(MainWidget* v, QGraphicsScene* scene);
 
     void SetEditMode(RoadRunner::EditMode aMode);
 
