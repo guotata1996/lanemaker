@@ -23,7 +23,7 @@ struct Spiral : public RoadGeometry
     void trim(double l) override;
     void rebase(double s0) override;
 
-    double get_closest_s_to(const Vec2D& target, double initialS);
+    double get_signed_error(const Vec2D& target, double s);
 
     double curv_start = 0;
     double curv_end = 0;

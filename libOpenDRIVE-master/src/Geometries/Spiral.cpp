@@ -85,78 +85,12 @@ void Spiral::rebase(double s0)
     *this = Spiral(0, x0, y0, hdg0, length, curv_start, curv_end);
 }
 
-double Spiral::get_closest_s_to(const Vec2D& target, double initialS) 
-{
-    int stepMul = 1;
-    const double eps = 1e-4;
-
-    auto pInitial = get_xy(initialS);
-    auto errInitial = odr::euclDistance(pInitial, target);
-    auto pPlus = get_xy(initialS + eps);
-    auto errPlus = odr::euclDistance(pPlus, target);
-    auto pMinus = get_xy(initialS - eps);
-    auto errMinus = odr::euclDistance(pMinus, target);
-    //std::cout << errInitial  << " Err +" << errPlus << " Err - " << errMinus << std::endl;
-    if (errPlus > errInitial) 
-    {
-        if (errMinus > errInitial) {
-            return initialS;
-        }
-        stepMul = -1;
-    }
-
-    double lastErr = 1e8;
-    for (double s = initialS; s >= 0; s += stepMul * eps) 
-    {
-        auto p = get_xy(s);
-        auto err = odr::euclDistance(p, target);
-        if (err > lastErr) 
-        {
-            return s;
-        }
-        lastErr = err;
-    }
-    return -1;
-    /*
-    double s0 = initialS;
-    double s1 = s0 + stepMul * eps;
-    double lastErr = errInitial;
-    double errS1;
-    while (true) 
-    {
-        auto pOtherEnd = get_xy(s1);
-        auto errOtherEnd = odr::euclDistance(pOtherEnd, target);
-        if (errOtherEnd > lastErr) 
-        {
-            errS1 = errOtherEnd;
-            break;
-        }
-
-        lastErr = errOtherEnd;
-        stepMul *= 2;
-        s1 += stepMul * eps;
-    }
-
-    auto errS0 = errInitial;
-    while (std::abs(s0 - s1) > eps) 
-    {
-        auto mid = (s0 + s1) / 2;
-        auto pMid = get_xy(mid);
-        auto errMid = odr::euclDistance(pMid, target);
-        //std::cout << s0 << " | " << mid << "(" << errMid << ") | " << s1 << std::endl;
-        if (errS0 > errS1) 
-        {
-            s0 = mid;
-            errS0 = errMid;
-        }
-        else
-        {
-            s1 = mid;
-            errS1 = errMid;
-        }
-    }
-    return (s0 + s1) / 2;
-    */
+double Spiral::get_signed_error(const Vec2D& target, double s) 
+{ 
+    auto p = get_xy(s);
+    auto g = get_grad(s);
+    auto pt = odr::sub(target, p);
+    return odr::dot(g, pt);
 }
 
 } // namespace odr

@@ -30,31 +30,84 @@ MapView::MapView(MainWidget* v, QGraphicsScene* scene) :
 {
     ResetSceneRect();
     g_mapView = this;
-    
-    odr::Vec2D startPos{ 0, 0 };
-    odr::Vec2D startHdg{ 0, 1 };
-    odr::Vec2D endPos{ 1, -1 };
-    odr::Vec2D endHdg{ -1, 0.5 };
-    endHdg = odr::normalize(endHdg);
-    auto fitGeo = RoadRunner::FitSpiral(startPos, startHdg, endPos, endHdg);
-    if (fitGeo == nullptr)
-    {
-        spdlog::error("Cannot fit geo");
-        return;
-    }
 
+    const double degToRad = M_PI / 180;
+    const odr::Vec2D startPos{ 0, 0 };
+    const odr::Vec2D startHdg{ 1, 0 };
     auto pen = QPen(QBrush(Qt::black), 0.02);
-    double prevS = -1;
-    for (double s = 0; s < fitGeo->length; s += 0.05)
+    const double radius = 10;
+
+    std::map<int, std::pair<int, int>> posAngleCombo =
     {
-        if (prevS >= 0)
+        {5, {5, 60}},
+        {10, {5, 70}},
+        {15, {5, 110}},
+        {20, {5, 130}},
+        {25, {5, 130}},
+        {30, {5, 130}},
+        {35, {5, 145}},
+        {40, {5, 140}},
+        {45, {5, 145}},
+        {50, {5, 140}},
+        {55, {5, 140}},
+        {60, {5, 140}},
+        {65, {5, 140}},
+        {70, {5, 135}},
+        {75, {5, 140}},
+        {80, {5, 140}},
+        {85, {5, 140}},
+        {90, {5, 140}},
+        {95, {5, 140}},
+        {100, {5, 140}},
+        {105, {5, 140}},
+        {110, {5, 140}},
+        {115, {5, 140}},
+        {120, {5, 145}},
+        {125, {5, 145}},
+        {130, {5, 145}},
+        {135, {10, 145}},
+        {140, {20, 145}},
+        {145, {35, 145}},
+        {150, {40, 145}},
+        {155, {50, 145}},
+        {160, {60, 95}},
+    };
+    
+    for (auto posAndAngle: posAngleCombo)
+    {
+        int posAngle = posAndAngle.first;
+        odr::Vec2D endPos{ std::cos(posAngle * degToRad), std::sin(posAngle * degToRad) };
+        endPos = odr::mut(radius, endPos);
+
+        int hdgBegin = posAndAngle.second.first;
+        int hdgEnd = posAndAngle.second.second;
+
+        for (int hdg = hdgBegin; hdg <= hdgEnd; hdg += 5)
         {
-            auto p0 = fitGeo->get_xy(prevS);
-            auto p1 = fitGeo->get_xy(s);
-            QLineF seg(QPointF(p0[0], p0[1]), QPointF(p1[0], p1[1]));
-            scene->addLine(seg, pen);
+            int hdgAngle = (posAngle + hdg);
+            odr::Vec2D endHdg{ std::cos(hdgAngle * degToRad), std::sin(hdgAngle * degToRad) };
+            auto fitGeo = RoadRunner::FitSpiral(startPos, startHdg, endPos, endHdg);
+            if (fitGeo == nullptr)
+            {
+                spdlog::error("No ans given angle {} hdg {}", posAngle, hdg);
+                continue;
+            }
+
+            // Draw
+            /*
+            double prevS = -1;
+            for (double s = 0; s < fitGeo->length; s += 0.05)
+            {
+                if (prevS >= 0)
+                {
+                    auto p0 = fitGeo->get_xy(prevS);
+                    auto p1 = fitGeo->get_xy(s);
+                    QLineF seg(QPointF(p0[0], p0[1]), QPointF(p1[0], p1[1]));
+                    scene->addLine(seg, pen);
+                }
+                prevS = s;
+            }*/
         }
-        prevS = s;
     }
 }
 

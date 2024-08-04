@@ -1,10 +1,9 @@
 #include <QApplication>
-#include <spdlog/spdlog.h>
 
 #include "mainwindow.h"
 
 int main(int argc, char** argv)
-{   
+{
     QApplication app(argc, argv);
     app.setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
     app.setAttribute(Qt::AA_DisableWindowContextHelpButton);
