@@ -74,12 +74,16 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     preferenceWindow = std::make_unique<PreferenceWindow>(this);
 
     scene = std::make_unique<QGraphicsScene>(this);
+
+    // Overlay button example 
+    /*
     QPushButton* testButton = new QPushButton("Test button");
     QGraphicsProxyWidget* proxy = scene->addWidget(testButton);
     proxy->setGeometry(QRectF(100, 100, 200, 300));
     QTransform matrix;
     matrix.scale(1, -1);
     proxy->setTransform(matrix);
+    */
 
     g_scene = scene.get();
     vehicleManager = std::make_unique<VehicleManager>(this);
@@ -116,7 +120,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
     connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
     connect(preferenceWindow.get(), &PreferenceWindow::ToggleAA, mainWidget.get(), &MainWidget::toggleAntialiasing);
-    connect(testButton, &QPushButton::clicked, []() {spdlog::info("Test btn press"); });
+    //connect(testButton, &QPushButton::clicked, []() {spdlog::info("Test btn press"); });
 
     if (g_preference.showWelcome)
         preferenceWindow->open();

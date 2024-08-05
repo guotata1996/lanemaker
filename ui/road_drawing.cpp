@@ -612,11 +612,11 @@ std::unique_ptr<odr::RoadGeometry> RoadCreationSession::createJoinAtEndGeo(bool 
     if (forPreview && ctrlPoints.size() % 2 == 0 || !forPreview && ctrlPoints.size() % 2 == 1)
     {
         // "abruply" join at end
-        return RoadRunner::ConnectLines(pos1, dir0, pos2, dir2);
+        return RoadRunner::ConnectRays(pos1, dir0, pos2, dir2);
     }
     else
     {
-        return RoadRunner::ConnectLines(pos0, dir0, pos2, dir2);
+        return RoadRunner::ConnectRays(pos0, dir0, pos2, dir2);
     }
 }
 

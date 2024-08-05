@@ -246,7 +246,7 @@ namespace RoadRunner
                 turningGroup.toOrigin,
                 odr::mut(outgoingCenetrS, outgoingRight));
 
-            auto connectingRefLine = ConnectLines(
+            auto connectingRefLine = ConnectRays(
                 incomingCenter, turningGroup.fromForward,
                 outgoingCenter, turningGroup.toForward);
 

@@ -179,6 +179,12 @@ namespace RoadRunnerTest
 #else
         ExpectOrAssert(odr::euclDistance(p1_in, p2_in) < epsilon);
 #endif
+
+        auto h1_out = road1->ref_line.get_grad_xy(s1);
+        auto h2_out = road2->ref_line.get_grad_xy(s2);
+        auto angle_out = std::abs(odr::angle(h1_out, h2_out));
+        auto angle_opp_out = std::abs(odr::angle(h1_out, odr::negate(h2_out)));
+        ExpectOrAssert(angle_out < epsilon || angle_opp_out < epsilon);
     }
 
     void Validation::VerifyDirectJunction(const RoadRunner::DirectJunction* junction)

@@ -54,7 +54,7 @@ namespace RoadRunner
 
         if (odr::euclDistance(p1, p2) > 1e-2 || !hdgClose)
         {
-            auto connectingRef = ConnectLines(p1, odr::normalize(f1), p2, odr::normalize(f2));
+            auto connectingRef = ConnectRays(p1, odr::normalize(f1), p2, odr::normalize(f2));
             if (connectingRef == nullptr)
             {
                 return RoadJoin_ConnectionInvalidShape;

@@ -4,8 +4,11 @@
 
 namespace RoadRunner
 {
+    std::unique_ptr<odr::RoadGeometry> ConnectRays(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
+        const odr::Vec2D& endPos, const odr::Vec2D& endHdg);
+
     // l1 --> conn --> l2
-    std::unique_ptr<odr::RoadGeometry> ConnectLines(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
+    std::unique_ptr<odr::RoadGeometry> FitParamPoly(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
         const odr::Vec2D& endPos, const odr::Vec2D& endHdg);
 
     /*Algorithm designed for this precesion for R < 500*/

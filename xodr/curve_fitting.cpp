@@ -27,8 +27,19 @@ typedef Cartesian<double>  Kernel;
 
 namespace RoadRunner
 {
+    std::unique_ptr<odr::RoadGeometry> ConnectRays(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
+        const odr::Vec2D& endPos, const odr::Vec2D& endHdg)
+    {
+        auto spiral = FitSpiral(startPos, startHdg, endPos, endHdg);
+        if (spiral != nullptr)
+        {
+            return spiral;
+        }
+        return FitParamPoly(startPos, startHdg, endPos, endHdg);
+    }
+
     // l1 --> conn --> l2
-    std::unique_ptr<odr::RoadGeometry> ConnectLines(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
+    std::unique_ptr<odr::RoadGeometry> FitParamPoly(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
         const odr::Vec2D& endPos, const odr::Vec2D& endHdg)
     {
         double hdg = std::atan2(startHdg[1], startHdg[0]);
@@ -486,15 +497,13 @@ namespace RoadRunner
         }
 
         // Check if input is within good range where solution is likely to exist
-        spdlog::trace("posAngle = {}, hdgAngle = {}, turn = {}", localPAngle / degToRad, localA / degToRad, turnAngle / degToRad);
-
         double localPAngleDeg = localPAngle / degToRad;
         double turnAngleDeg = turnAngle / degToRad;
         int pLow = std::floor(localPAngleDeg / 5) * 5;
         int pHi = std::ceil(localPAngleDeg / 5) * 5;
         if (posAngleCombo.find(pLow) == posAngleCombo.end() || posAngleCombo.find(pHi) == posAngleCombo.end())
         {
-            spdlog::warn("Invalid input: end pos out of range: {}-{}", pLow, pHi);
+            spdlog::trace("Invalid input: end pos out of range: {}-{}", pLow, pHi);
             return nullptr;
         }
 
@@ -503,14 +512,14 @@ namespace RoadRunner
         if (!(pLowRange.first <= turnAngleDeg && turnAngleDeg <= pLowRange.second &&
               pHiRange.first <= turnAngleDeg && turnAngleDeg <= pHiRange.second))
         {
-            spdlog::warn("Invalid input: end angle out of range");
+            spdlog::trace("Invalid input: end angle out of range");
             return nullptr;
         }
 
         auto lengthBoost = odr::euclDistance(startPos, endPos) / UnitRadius;
         if (lengthBoost > MaximumLengthBoost)
         {
-            spdlog::warn("Invalid input: crv is too long to fit within default precision.");
+            spdlog::info("Invalid input: crv is too long to fit within default precision.");
             return nullptr;
         }
 
@@ -534,7 +543,7 @@ namespace RoadRunner
                 fitSpiral->curv_start / lengthBoost * outputCrvMul, fitSpiral->curv_end / lengthBoost * outputCrvMul);
         }
 
-        spdlog::error("Valid input but exceeded complexity constraint");
+        spdlog::warn("Valid input but exceeded complexity constraint");
         return nullptr;
     }
 }
