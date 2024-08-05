@@ -8,6 +8,14 @@ namespace RoadRunner
     std::unique_ptr<odr::RoadGeometry> ConnectLines(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
         const odr::Vec2D& endPos, const odr::Vec2D& endHdg);
 
-    std::unique_ptr<odr::RoadGeometry> FitSpiral(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
+    std::unique_ptr<odr::RoadGeometry> FitUnitSpiral(
+        const double endPosAngle, const double endHdgAngle, int& complexityStat, const int complexityLimit = 0);
+
+    void WriteFitTable();
+
+    // std::unique_ptr<odr::RoadGeometry> FitSpiral(double posAngle, double hdgAngle);
+
+    std::unique_ptr<odr::RoadGeometry> FitSpiral(
+        const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
         const odr::Vec2D& endPos, const odr::Vec2D& endHdg);
 }

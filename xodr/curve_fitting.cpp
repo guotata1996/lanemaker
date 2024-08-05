@@ -11,6 +11,16 @@
 #include "CubicBezier.hpp"
 #include "spdlog/spdlog.h"
 
+#include <map>
+#include <fstream>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/map.hpp>
+
+#include <chrono>
+#include <vector>
+
+using namespace std::chrono;
+
 using namespace CGAL;
 
 typedef Cartesian<double>  Kernel;
@@ -83,37 +93,40 @@ namespace RoadRunner
     bool FindZeroCrossing(F function, T& x0, double tol = 7e-5)
     {
         // Determine search direction
-        double step = 0.001;
+        double step = 0.005;
         
         T y0 = function(x0);
         if (std::abs(y0) < tol)
         {
             return true;
         }
+        if (std::isnan(y0)) return false;
 
         // Search for boundary
         T yPlus = function(x0 + step);
+        if (std::isnan(yPlus)) return false;
         int stepDir = (y0 > 0 == y0 > yPlus) ? 1 : -1;
 
         T x1 = x0 + step * stepDir;
         T y1;
         
         bool boundryFound = false;
-        for (int i = 0; i != 300; ++i)
+        for (int i = 0; i != 500; ++i)
         {
             y1 = function(x1);
+            if (std::isnan(y1)) return false;
             if (y1 > 0 != y0 > 0)
             {
                 boundryFound = true;
                 break;
             }
-            step *= 1.03;
+            step *= 1.02;
             x1 += step * stepDir;
         }
 
         if (!boundryFound)
         {
-            spdlog::info("Exceed max loop! while Find other bound");
+            spdlog::warn("Exceed max loop while Find other bound");
             return false;
         }
 
@@ -122,6 +135,7 @@ namespace RoadRunner
         {
             T xM = (x0 + x1) / 2;
             T yM = function(xM);
+            if (std::isnan(yM)) return false;
             if (std::abs(yM) < tol)
             {
                 x0 = xM;
@@ -139,20 +153,31 @@ namespace RoadRunner
             }
         }
 
-        spdlog::info("Exceed max loop! x0={} x1={}", x0, x1);
+        spdlog::warn("Exceed max loop! x0={} x1={}", x0, x1);
         return false;
     }
 
-    std::unique_ptr<odr::RoadGeometry> FitSpiral(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
-        const odr::Vec2D& endPos, const odr::Vec2D& endHdg)
+    struct FitResult
     {
-        /*
-        auto base = odr::Spiral(0, 0, 0, 0, 1.5, 0.91, 0.72);
-        auto baseP = base.get_grad(base.length);
-        spdlog::info("Base pt: {},{}", baseP[0], baseP[1]);
-        auto ext = odr::Spiral(0, 0, 0, 0, 15, 0.091, 0.072);
-        auto extP = ext.get_grad(ext.length);
-        spdlog::info("Ext pt: {},{}", extP[0], extP[1]);*/
+        double beginCrv;
+        double endCrv;
+        double length;
+
+        template<class Archive>
+        void serialize(Archive& archive)
+        {
+            archive(beginCrv, endCrv, length);
+        }
+    };
+
+    std::unique_ptr<odr::RoadGeometry> FitUnitSpiral(
+        const double endPosAngle, const double endHdgAngle, int& complexityStat, const int complexityLimit)
+    {
+        const double radius = 10;
+        const odr::Vec2D startPos{ 0, 0 };
+        const odr::Vec2D startHdg{ 1, 0 };
+        const odr::Vec2D endPos = odr::mut(radius, odr::Vec2D{ std::cos(endPosAngle), std::sin(endPosAngle) });
+        const odr::Vec2D endHdg{ std::cos(endHdgAngle), std::sin(endHdgAngle) };
         
         Direction_2<Kernel> dir1(-startHdg[1], startHdg[0]);
         Point_2 <Kernel> p1(startPos[0], startPos[1]);
@@ -198,10 +223,6 @@ namespace RoadRunner
             arcAngle = std::abs(arcAngle);
         }
         const auto arcLen = arcAngle * r;
-        
-        /*spdlog::info("Start from {} circle centered at ({},{}) r={} Angle={} => end hdg err={}",
-            cw ? "CW" : "CCW",
-            po->x(), po->y(), r, arcAngle, angleErr);*/
 
         auto baseCrv = (cw ? -1.0 : 1.0) / r;
         double startAngle = std::atan2(startHdg[1], startHdg[0]);
@@ -212,21 +233,27 @@ namespace RoadRunner
             return std::make_unique<odr::Arc>(0, startPos[0], startPos[1], startAngle, arcLen, baseCrv);
         }
 
-        // Bend the arc int spire
-        double startMul = angleErr > 0 ? 0.99 : 1.01;
+        double startMul = angleErr > 0 ? 0.99 : 1.01; 
         double endMul;
-        auto spiralLen = arcLen;
+        double spiralLen = arcLen;
 
-        auto endHdgErrorFunc = [=, &endMul, &spiralLen](double startMul)
+        // Bend the arc int spire
+
+        auto endHdgErrorFunc = [=, &endMul, &spiralLen, &complexityStat](double startMul)
         {
             // Fit endMul so that spire pass through endPos
             endMul = 2 - startMul; // Initial guess
 
-            auto endPosErrorFunc = [=, &spiralLen](double endMulVar)
+            auto endPosErrorFunc = [=, &spiralLen, &complexityStat](double endMulVar)
             {
                 auto spiralTest = odr::Spiral(0, startPos[0], startPos[1], startAngle, arcLen, baseCrv * startMul, baseCrv * endMulVar);
 
-                if (!FindZeroCrossing([&spiralTest, endPos](double s){
+                if (!FindZeroCrossing([&spiralTest, endPos, &complexityStat, complexityLimit](double s){
+                        complexityStat++;
+                        if (complexityStat == complexityLimit)
+                        {
+                            return std::nan("2");
+                        }
                         return spiralTest.get_signed_error(endPos, s);
                     }, spiralLen))
                 {
@@ -240,6 +267,11 @@ namespace RoadRunner
                 auto grad = odr::normalize(spiralTest.get_grad(closeS));
                 auto tan = odr::Vec2D{ grad[1], -grad[0] };
                 auto err = odr::dot(pToTarget, tan);
+                complexityStat++;
+                if (complexityStat == complexityLimit)
+                {
+                    return std::nan("2");
+                }
                 return err; // Signed distance for Newton
             };
 
@@ -247,13 +279,18 @@ namespace RoadRunner
 
             if (!posFitSuccess)
             {
-                spdlog::warn("Cannot approx spiral to end pos at start mul = {}", startMul);
+                spdlog::warn("Cannot approx spiral to end pos ({}, {})", endPosAngle / M_PI * 180, endHdgAngle / M_PI * 180);
                 return std::nan("0"); // Mark solution invalid; Exit outer loop immediately
             }
 
             auto spiralTest = odr::Spiral(0, startPos[0], startPos[1], startAngle, arcLen, baseCrv * startMul, baseCrv * endMul);
 
-            if (!FindZeroCrossing([&spiralTest, endPos](double s){
+            if (!FindZeroCrossing([&spiralTest, endPos, &complexityStat, complexityLimit](double s){
+                    complexityStat++;
+                    if (complexityStat == complexityLimit)
+                    {
+                        return std::nan("2");
+                    }
                     return spiralTest.get_signed_error(endPos, s);
                 }, spiralLen))
             {
@@ -308,6 +345,210 @@ namespace RoadRunner
 
             return result;
         }
+        return nullptr;
+    }
+
+    const std::map<int, std::pair<int, int>> posAngleCombo =
+    {
+        {5, {5, 60}},
+        {10, {5, 70}},
+        {15, {5, 110}},
+        {20, {5, 130}},
+        {25, {5, 130}},
+        {30, {5, 130}},
+        {35, {5, 135}},
+        {40, {5, 140}},
+        {45, {5, 140}},
+        {50, {5, 140}},
+        {55, {5, 140}},
+        {60, {5, 140}},
+        {65, {5, 140}},
+        {70, {5, 140}},
+        {75, {5, 140}},
+        {80, {5, 140}},
+        {85, {5, 140}},
+        {90, {5, 140}},
+        {95, {5, 140}},
+        {100, {5, 140}},
+        {105, {5, 140}},
+        {110, {5, 140}},
+        {115, {5, 140}},
+        {120, {5, 145}},
+        {125, {5, 145}},
+        {130, {5, 145}},
+        {135, {10, 145}},
+        {140, {20, 145}},
+        {145, {35, 145}},
+        {150, {40, 145}},
+        {155, {50, 145}},
+        {160, {60, 95}},
+    };
+
+    constexpr double degToRad = M_PI / 180;
+
+    void WriteFitTable()
+    {
+        std::map<int, std::map<int, FitResult>> table;
+        std::vector<double> timeStats;
+        std::vector<int> complexityStats;
+
+        for (auto posAndAngle : posAngleCombo)
+        {
+            int posAngle = posAndAngle.first;
+
+            int hdgBegin = posAndAngle.second.first;
+            int hdgEnd = posAndAngle.second.second;
+
+            std::map<int, FitResult> hdgToRes;
+            for (int hdg = hdgBegin; hdg <= hdgEnd; hdg += 5)
+            {
+                int hdgAngle = (posAngle + hdg);
+                int complexity = 0;
+                auto t_start = high_resolution_clock::now();
+                auto fitGeo = RoadRunner::FitUnitSpiral(posAngle * degToRad, hdgAngle * degToRad, complexity);
+                auto t_end = high_resolution_clock::now();
+                auto duration = duration_cast<microseconds>(t_end - t_start).count();
+                timeStats.push_back(static_cast<double>(duration) / 1000000);
+                complexityStats.push_back(complexity);
+
+                if (fitGeo == nullptr)
+                {
+                    spdlog::error("No ans given angle {} hdg {}", posAngle, hdg);
+                    continue;
+                }
+                if (complexity > 300000)
+                {
+                    spdlog::info("High complexity at angle {} hdg {}", posAngle, hdg);
+                }
+
+                FitResult res;
+                auto fitArc = dynamic_cast<odr::Arc*>(fitGeo.get());
+                if (fitArc != nullptr)
+                {
+                    res = FitResult{ fitArc->curvature, fitArc->curvature, fitArc->length };
+                }
+                else
+                {
+                    auto fitSpiral = dynamic_cast<odr::Spiral*>(fitGeo.get());
+                    res = FitResult{ fitSpiral->curv_start, fitSpiral->curv_end, fitSpiral->length };
+                }
+                hdgToRes.emplace(hdg, res);
+
+                // Draw
+                /*
+                double prevS = -1;
+                for (double s = 0; s < fitGeo->length; s += 0.05)
+                {
+                    if (prevS >= 0)
+                    {
+                        auto p0 = fitGeo->get_xy(prevS);
+                        auto p1 = fitGeo->get_xy(s);
+                        QLineF seg(QPointF(p0[0], p0[1]), QPointF(p1[0], p1[1]));
+                        scene->addLine(seg, pen);
+                    }
+                    prevS = s;
+                }*/
+            }
+            table.emplace(posAngle, hdgToRes);
+        }
+        std::sort(timeStats.begin(), timeStats.end());
+        std::sort(complexityStats.begin(), complexityStats.end());
+
+        int percentile = static_cast<double>(timeStats.size()) * 0.9;
+        spdlog::info("95 Fitting micros = {} complexity = {}", 
+            timeStats[percentile],
+            complexityStats[percentile]);
+
+        std::ofstream outFile("spiral_lookup_table.json");
+        cereal::JSONOutputArchive oarchive(outFile);
+        oarchive(table);
+    }
+
+    std::map<int, std::map<int, FitResult>> loadedTable;
+
+    //std::unique_ptr<odr::RoadGeometry> FitSpiral(double posAngle, double hdgAngle)
+    //{
+    //    if (loadedTable.empty())
+    //    {
+    //        std::ifstream inFile("spiral_lookup_table.json");
+    //        cereal::JSONInputArchive iachive(inFile);
+    //        iachive(loadedTable);
+    //        assert(loadedTable.size() == posAngleCombo.size());
+    //    }
+
+    //    if (posAngle < loadedTable.begin()->first || posAngle >= loadedTable.rbegin()->first)
+    //    {
+    //        spdlog::info("posAngle not covered by table");
+    //        return nullptr;
+    //    }
+
+    //    auto posKeyHi = loadedTable.lower_bound(posAngle);
+    //    auto posKeyLow = posKeyHi++;
+    //    auto posKey = posAngle - posKeyLow->first < posKeyHi->first - posAngle ?
+    //        posKeyLow : posKeyHi;
+    //    auto hdgTable = posKey->second;
+
+    //    if (hdgAngle < hdgTable.begin()->first || hdgAngle >= hdgTable.rbegin()->first)
+    //    {
+    //        spdlog::info("hdgAngle not covered by table");
+    //        return nullptr;
+    //    }
+    //    auto hdgKeyHi = hdgTable.lower_bound(hdgAngle);
+    //    auto hdgKeyLow = hdgKeyHi++;
+
+    //    auto hdgKey = hdgAngle - hdgKeyLow->first < hdgKeyHi->first - hdgAngle ?
+    //        hdgKeyLow : hdgKeyHi;
+    //    auto lookupEntry = hdgKey->second;
+    //    spdlog::info("Begin from look up tabel: {},{}",
+    //        posKey->first, hdgKey->first);
+
+    //    int complexity = 0;
+    //    return FitUnitSpiral(posAngle, hdgAngle, complexity, 400000);
+    //    
+    //}
+
+    std::unique_ptr<odr::RoadGeometry> FitSpiral(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
+        const odr::Vec2D& endPos, const odr::Vec2D& endHdg)
+    {
+        auto localP = odr::toLocal(endPos, startPos, startHdg);
+        auto localA = odr::angle(startHdg, endHdg);
+        auto localPAngle = std::atan2(localP[1], localP[0]);
+        int outputCrvMul = 1;
+        if (localPAngle < 0)
+        {
+            outputCrvMul = -1; // Flip against X axis
+            localPAngle *= -1;
+            localA *= -1;
+        }
+
+        if (localPAngle < 5 * degToRad || localPAngle > 160 * degToRad)
+        {
+            spdlog::error("end pos out of range");
+        }
+        if (localA < 10 * degToRad || localA > 140 * degToRad)
+        {
+            spdlog::error("end angle out of range");
+        }
+        int complexityStat = 0;
+        auto fitResult = FitUnitSpiral(localPAngle, localA, complexityStat, 500000);
+        if (fitResult != nullptr)
+        {
+            const auto UnitLength = 10;
+            auto globalA = std::atan2(startHdg[1], startHdg[0]);
+            auto lengthBoost = odr::euclDistance(startPos, endPos) / UnitLength;
+            auto fitArc = dynamic_cast<odr::Arc*>(fitResult.get());
+
+            if (fitArc != nullptr)
+            {
+                return std::make_unique<odr::Arc>(0, startPos[0], startPos[1], globalA,
+                    fitArc->length * lengthBoost, fitArc->curvature / lengthBoost * outputCrvMul);
+            }
+            auto fitSpiral = dynamic_cast<odr::Spiral*>(fitResult.get());
+            return std::make_unique<odr::Spiral>(0, startPos[0], startPos[1], globalA,
+                fitSpiral->length * lengthBoost, 
+                fitSpiral->curv_start / lengthBoost * outputCrvMul, fitSpiral->curv_end / lengthBoost * outputCrvMul);
+        }
+
         return nullptr;
     }
 }

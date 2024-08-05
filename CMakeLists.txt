@@ -42,6 +42,25 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_17)
 
+
+# ====================================
+# Spiral lookup table
+# ====================================
+
+add_executable(SpiralLookupTable spiral_lookup_table.cpp
+    xodr/curve_fitting.cpp)
+
+target_include_directories(SpiralLookupTable PRIVATE
+    xodr 
+    ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/include
+    ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/thirdparty
+    cereal/include)
+
+target_link_libraries(SpiralLookupTable
+    CGAL::CGAL 
+    OpenDrive
+    spdlog::spdlog)
+
 # ====================================
 # Google Test
 # ====================================
