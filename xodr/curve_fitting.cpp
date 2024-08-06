@@ -1,6 +1,10 @@
 #pragma once
 #include "curve_fitting.h"
 
+#include <map>
+#include <chrono>
+#include <vector>
+
 #include <CGAL/intersections.h>
 #include <CGAL/Cartesian.h>
 
@@ -11,13 +15,11 @@
 #include "CubicBezier.hpp"
 #include "spdlog/spdlog.h"
 
-#include <map>
-#include <fstream>
-#include <cereal/archives/json.hpp>
-#include <cereal/types/map.hpp>
 
-#include <chrono>
-#include <vector>
+#ifdef G_TEST
+#include <gtest/gtest.h>
+#endif
+
 
 using namespace std::chrono;
 
@@ -181,182 +183,184 @@ namespace RoadRunner
         }
     };
 
-    std::unique_ptr<odr::RoadGeometry> FitUnitSpiral(
-        const double endPosAngle, const double endHdgAngle, double posPrecision, double hdgPrecision, 
-        int& complexityStat, const int complexityLimit)
+    namespace
     {
-        const odr::Vec2D startPos{ 0, 0 };
-        const odr::Vec2D startHdg{ 1, 0 };
-        const odr::Vec2D endPos = odr::mut(UnitRadius, odr::Vec2D{ std::cos(endPosAngle), std::sin(endPosAngle) });
-        const odr::Vec2D endHdg{ std::cos(endHdgAngle), std::sin(endHdgAngle) };
-        
-        Direction_2<Kernel> dir1(-startHdg[1], startHdg[0]);
-        Point_2 <Kernel> p1(startPos[0], startPos[1]);
-        Line_2 <Kernel> line1(p1, dir1);
-
-        auto start2End = odr::sub(endPos, startPos);
-        start2End = odr::normalize(start2End);
-        Direction_2<Kernel> dir2(-start2End[1], start2End[0]);
-        auto mid = odr::mut(0.5, odr::add(startPos, endPos));
-        Point_2 <Kernel> p2(mid[0], mid[1]);
-        Line_2 <Kernel> line2(p2, dir2);
-
-        Object result = intersection(line1, line2);
-        const CGAL::Point_2<Kernel>* po = object_cast<Point_2<Kernel>>(&result);
-
-        if (po == nullptr)
+        std::unique_ptr<odr::RoadGeometry> FitUnitSpiral(
+            const double endPosAngle, const double endHdgAngle, double posPrecision, double hdgPrecision,
+            int& complexityStat, const int complexityLimit)
         {
-            spdlog::info("No intersection found for circle center");
-            return nullptr;
-        }
+            const odr::Vec2D startPos{ 0, 0 };
+            const odr::Vec2D startHdg{ 1, 0 };
+            const odr::Vec2D endPos = odr::mut(UnitRadius, odr::Vec2D{ std::cos(endPosAngle), std::sin(endPosAngle) });
+            const odr::Vec2D endHdg{ std::cos(endHdgAngle), std::sin(endHdgAngle) };
 
-        auto r = CGAL::squared_distance(p1, *po);
-        r = std::sqrt(r);
-        odr::Vec2D O{ po->x(), po->y() };
-        auto O2Start = odr::sub(startPos, O);
-        bool cw = odr::crossProduct(startHdg, O2Start) > 0;
+            Direction_2<Kernel> dir1(-startHdg[1], startHdg[0]);
+            Point_2 <Kernel> p1(startPos[0], startPos[1]);
+            Line_2 <Kernel> line1(p1, dir1);
 
-        auto O2End = odr::sub(endPos, O);
-        odr::Vec2D arcEndHdg{ O2End[1], -O2End[0] };
-        if (!cw)
-        {
-            arcEndHdg = odr::negate(arcEndHdg);
-        }
-        auto angleErr = odr::angle(endHdg, arcEndHdg);
-        
-        auto arcAngle = odr::angle(O2Start, O2End);
-        if (cw == (arcAngle > 0))
-        {
-            arcAngle = M_PI * 2 - std::abs(arcAngle);
-        }
-        else
-        {
-            arcAngle = std::abs(arcAngle);
-        }
-        const auto arcLen = arcAngle * r;
+            auto start2End = odr::sub(endPos, startPos);
+            start2End = odr::normalize(start2End);
+            Direction_2<Kernel> dir2(-start2End[1], start2End[0]);
+            auto mid = odr::mut(0.5, odr::add(startPos, endPos));
+            Point_2 <Kernel> p2(mid[0], mid[1]);
+            Line_2 <Kernel> line2(p2, dir2);
 
-        auto baseCrv = (cw ? -1.0 : 1.0) / r;
-        double startAngle = std::atan2(startHdg[1], startHdg[0]);
-        
+            Object result = intersection(line1, line2);
+            const CGAL::Point_2<Kernel>* po = object_cast<Point_2<Kernel>>(&result);
 
-        if (std::abs(angleErr) < 1e-4)
-        {
-            return std::make_unique<odr::Arc>(0, startPos[0], startPos[1], startAngle, arcLen, baseCrv);
-        }
-
-        double startMul = angleErr > 0 ? 0.99 : 1.01; 
-        double endMul;
-        double spiralLen = arcLen;
-
-        // Bend the arc int spire
-
-        auto endHdgErrorFunc = [=, &endMul, &spiralLen, &complexityStat](double startMul)
-        {
-            // Fit endMul so that spire pass through endPos
-            endMul = 2 - startMul; // Initial guess
-
-            auto endPosErrorFunc = [=, &spiralLen, &complexityStat](double endMulVar)
+            if (po == nullptr)
             {
-                auto spiralTest = odr::Spiral(0, startPos[0], startPos[1], startAngle, arcLen, baseCrv * startMul, baseCrv * endMulVar);
+                spdlog::info("No intersection found for circle center");
+                return nullptr;
+            }
 
-                if (!FindZeroCrossing([&spiralTest, endPos, &complexityStat, complexityLimit](double s){
+            auto r = CGAL::squared_distance(p1, *po);
+            r = std::sqrt(r);
+            odr::Vec2D O{ po->x(), po->y() };
+            auto O2Start = odr::sub(startPos, O);
+            bool cw = odr::crossProduct(startHdg, O2Start) > 0;
+
+            auto O2End = odr::sub(endPos, O);
+            odr::Vec2D arcEndHdg{ O2End[1], -O2End[0] };
+            if (!cw)
+            {
+                arcEndHdg = odr::negate(arcEndHdg);
+            }
+            auto angleErr = odr::angle(endHdg, arcEndHdg);
+
+            auto arcAngle = odr::angle(O2Start, O2End);
+            if (cw == (arcAngle > 0))
+            {
+                arcAngle = M_PI * 2 - std::abs(arcAngle);
+            }
+            else
+            {
+                arcAngle = std::abs(arcAngle);
+            }
+            const auto arcLen = arcAngle * r;
+
+            auto baseCrv = (cw ? -1.0 : 1.0) / r;
+            double startAngle = std::atan2(startHdg[1], startHdg[0]);
+
+
+            if (std::abs(angleErr) < 1e-4)
+            {
+                return std::make_unique<odr::Arc>(0, startPos[0], startPos[1], startAngle, arcLen, baseCrv);
+            }
+
+            double startMul = angleErr > 0 ? 0.99 : 1.01;
+            double endMul;
+            double spiralLen = arcLen;
+
+            // Bend the arc int spire
+
+            auto endHdgErrorFunc = [=, &endMul, &spiralLen, &complexityStat](double startMul)
+            {
+                // Fit endMul so that spire pass through endPos
+                endMul = 2 - startMul; // Initial guess
+
+                auto endPosErrorFunc = [=, &spiralLen, &complexityStat](double endMulVar)
+                {
+                    auto spiralTest = odr::Spiral(0, startPos[0], startPos[1], startAngle, arcLen, baseCrv * startMul, baseCrv * endMulVar);
+
+                    if (!FindZeroCrossing([&spiralTest, endPos, &complexityStat, complexityLimit](double s) {
                         complexityStat++;
                         if (complexityStat == complexityLimit)
                         {
                             return std::nan("2");
                         }
                         return spiralTest.get_signed_error(endPos, s);
-                    }, spiralLen, posPrecision))
+                        }, spiralLen, posPrecision))
+                    {
+                        spdlog::warn("Inner: Cannot find closest S!");
+                        return std::nan("1");
+                    }
+
+                        double closeS = spiralLen;
+                        auto closeP = spiralTest.get_xy(closeS);
+                        auto pToTarget = odr::sub(endPos, closeP);
+                        auto grad = odr::normalize(spiralTest.get_grad(closeS));
+                        auto tan = odr::Vec2D{ grad[1], -grad[0] };
+                        auto err = odr::dot(pToTarget, tan);
+                        complexityStat++;
+                        if (complexityStat == complexityLimit)
+                        {
+                            return std::nan("2");
+                        }
+                        return err; // Signed distance for Newton
+                };
+
+                bool posFitSuccess = FindZeroCrossing(endPosErrorFunc, endMul, posPrecision);
+
+                if (!posFitSuccess)
                 {
-                    spdlog::warn("Inner: Cannot find closest S!");
-                    return std::nan("1");
+                    spdlog::warn("Cannot approx spiral to end pos ({}, {})", endPosAngle / M_PI * 180, endHdgAngle / M_PI * 180);
+                    return std::nan("0"); // Mark solution invalid; Exit outer loop immediately
                 }
 
-                double closeS = spiralLen;
-                auto closeP = spiralTest.get_xy(closeS);
-                auto pToTarget = odr::sub(endPos, closeP);
-                auto grad = odr::normalize(spiralTest.get_grad(closeS));
-                auto tan = odr::Vec2D{ grad[1], -grad[0] };
-                auto err = odr::dot(pToTarget, tan);
-                complexityStat++;
-                if (complexityStat == complexityLimit)
-                {
-                    return std::nan("2");
-                }
-                return err; // Signed distance for Newton
-            };
+                auto spiralTest = odr::Spiral(0, startPos[0], startPos[1], startAngle, arcLen, baseCrv * startMul, baseCrv * endMul);
 
-            bool posFitSuccess = FindZeroCrossing(endPosErrorFunc, endMul, posPrecision);
-
-            if (!posFitSuccess)
-            {
-                spdlog::warn("Cannot approx spiral to end pos ({}, {})", endPosAngle / M_PI * 180, endHdgAngle / M_PI * 180);
-                return std::nan("0"); // Mark solution invalid; Exit outer loop immediately
-            }
-
-            auto spiralTest = odr::Spiral(0, startPos[0], startPos[1], startAngle, arcLen, baseCrv * startMul, baseCrv * endMul);
-
-            if (!FindZeroCrossing([&spiralTest, endPos, &complexityStat, complexityLimit](double s){
+                if (!FindZeroCrossing([&spiralTest, endPos, &complexityStat, complexityLimit](double s) {
                     complexityStat++;
                     if (complexityStat == complexityLimit)
                     {
                         return std::nan("2");
                     }
                     return spiralTest.get_signed_error(endPos, s);
-                }, spiralLen, posPrecision))
+                    }, spiralLen, posPrecision))
+                {
+                    spdlog::warn("Outer: Cannot find closest S!");
+                    return std::nan("1");
+                }
+
+                    double closeS = spiralLen;
+                    auto candAngle = spiralTest.get_grad(closeS);
+                    auto candErr = odr::angle(endHdg, candAngle);
+                    return candErr;
+            };
+
+            // Fit startMul so that spire pass through endPos at endHdg
+            bool dirFitSuccess = FindZeroCrossing(endHdgErrorFunc, startMul, hdgPrecision);
+
+            if (dirFitSuccess && endMul != 0)
             {
-                spdlog::warn("Outer: Cannot find closest S!");
-                return std::nan("1");
-            }
+                auto startCrv = baseCrv * startMul;
+                auto endCrvNL = baseCrv * endMul;
+                auto resultNoLength = odr::Spiral(0, startPos[0], startPos[1], startAngle, arcLen, startCrv, endCrvNL);
 
-            double closeS = spiralLen;
-            auto candAngle = spiralTest.get_grad(closeS);
-            auto candErr = odr::angle(endHdg, candAngle);
-            //spdlog::info("  OuterLoop: start mul={} end mul={} angle diff = {}", startMul, endMul, candErr);
-            return candErr;
-        };
-
-        // Fit startMul so that spire pass through endPos at endHdg
-        bool dirFitSuccess = FindZeroCrossing(endHdgErrorFunc, startMul, hdgPrecision);
-
-        if (dirFitSuccess && endMul != 0)
-        {
-            auto startCrv = baseCrv * startMul;
-            auto endCrvNL = baseCrv * endMul;
-            auto resultNoLength = odr::Spiral(0, startPos[0], startPos[1], startAngle, arcLen, startCrv, endCrvNL);
-
-            if (!FindZeroCrossing([&resultNoLength, endPos](double s){
+                if (!FindZeroCrossing([&resultNoLength, endPos](double s) {
                     return resultNoLength.get_signed_error(endPos, s);
-                }, 
-                spiralLen, posPrecision))
-            {
-                spdlog::warn("Result: Cannot find closest S!");
-                return nullptr;
+                    },
+                    spiralLen, posPrecision))
+                {
+                    spdlog::warn("Result: Cannot find closest S!");
+                    return nullptr;
+                }
+
+                    auto cDot = (endCrvNL - startCrv) / arcLen;
+                    double length = spiralLen;
+                    auto endCrv = startCrv + cDot * length;
+                    auto result = std::make_unique<odr::Spiral>(0, startPos[0], startPos[1], startAngle,
+                        length, startCrv, endCrv);
+
+                    auto endP = result->get_xy(length);
+                    auto endH = result->get_grad(length);
+                    auto pError = odr::euclDistance(endP, endPos);
+                    auto hError = odr::angle(endH, endHdg);
+
+                    spdlog::trace("[ANS] start mul = {}, end mul = {}, len = {} => pErr = {}, hErr = {}",
+                        startMul, endMul, length, pError, hError);
+
+                    if (pError > SpiralPosPrecision || std::abs(hError) > SpiralHdgPrecision)
+                    {
+                        spdlog::error("[Fail check] {},{}", pError, hError);
+                        return nullptr;
+                    }
+
+                    return result;
             }
-
-            auto cDot = (endCrvNL - startCrv) / arcLen;
-            double length = spiralLen;
-            auto endCrv = startCrv + cDot * length;
-            auto result = std::make_unique<odr::Spiral>(0, startPos[0], startPos[1], startAngle, 
-                length, startCrv, endCrv);
-
-            auto endP = result->get_xy(length);
-            auto endH = result->get_grad(length);
-            auto pError = odr::euclDistance(endP, endPos);
-            auto hError = odr::angle(endH, endHdg);
-
-            spdlog::trace("[ANS] start mul = {}, end mul = {}, len = {} => pErr = {}, hErr = {}", 
-                startMul, endMul, length, pError, hError);
-
-            if (pError > SpiralPosPrecision || std::abs(hError) > SpiralHdgPrecision)
-            {
-                spdlog::error("[Fail check] {},{}", pError, hError);
-                return nullptr;
-            }
-
-            return result;
+            return nullptr;
         }
-        return nullptr;
     }
 
     const std::map<int, std::pair<int, int>> posAngleCombo =
@@ -396,88 +400,6 @@ namespace RoadRunner
     };
 
     constexpr double degToRad = M_PI / 180;
-
-    void WriteFitTable()
-    {
-        std::map<int, std::map<int, FitResult>> table;
-        std::vector<double> timeStats;
-        std::vector<int> complexityStats;
-
-        for (auto posAndAngle : posAngleCombo)
-        {
-            int posAngle = posAndAngle.first;
-
-            int hdgBegin = posAndAngle.second.first;
-            int hdgEnd = posAndAngle.second.second;
-
-            std::map<int, FitResult> hdgToRes;
-            for (int hdg = hdgBegin; hdg <= hdgEnd; hdg += 5)
-            {
-                int hdgAngle = (posAngle + hdg);
-                int complexity = 0;
-                auto t_start = high_resolution_clock::now();
-                auto fitGeo = RoadRunner::FitUnitSpiral(
-                    posAngle * degToRad, hdgAngle * degToRad, 
-                    SpiralPosPrecision * 0.7 / MaximumLengthBoost, SpiralHdgPrecision * 0.7 / MaximumLengthBoost, complexity);
-                auto t_end = high_resolution_clock::now();
-                auto duration = duration_cast<microseconds>(t_end - t_start).count();
-                timeStats.push_back(static_cast<double>(duration) / 1000000);
-                complexityStats.push_back(complexity);
-
-                if (fitGeo == nullptr)
-                {
-                    spdlog::error("No ans given angle {} hdg {}", posAngle, hdg);
-                    continue;
-                }
-                if (complexity > 300000)
-                {
-                    spdlog::info("High complexity at angle {} hdg {}", posAngle, hdg);
-                }
-
-                FitResult res;
-                auto fitArc = dynamic_cast<odr::Arc*>(fitGeo.get());
-                if (fitArc != nullptr)
-                {
-                    res = FitResult{ fitArc->curvature, fitArc->curvature, fitArc->length };
-                }
-                else
-                {
-                    auto fitSpiral = dynamic_cast<odr::Spiral*>(fitGeo.get());
-                    res = FitResult{ fitSpiral->curv_start, fitSpiral->curv_end, fitSpiral->length };
-                }
-                hdgToRes.emplace(hdg, res);
-
-                // Draw
-                /*
-                double prevS = -1;
-                for (double s = 0; s < fitGeo->length; s += 0.05)
-                {
-                    if (prevS >= 0)
-                    {
-                        auto p0 = fitGeo->get_xy(prevS);
-                        auto p1 = fitGeo->get_xy(s);
-                        QLineF seg(QPointF(p0[0], p0[1]), QPointF(p1[0], p1[1]));
-                        scene->addLine(seg, pen);
-                    }
-                    prevS = s;
-                }*/
-            }
-            table.emplace(posAngle, hdgToRes);
-        }
-        std::sort(timeStats.begin(), timeStats.end());
-        std::sort(complexityStats.begin(), complexityStats.end());
-
-        int percentile = static_cast<double>(timeStats.size()) * 0.95;
-        spdlog::info("95 Fitting micros = {} complexity = {}", 
-            timeStats[percentile],
-            complexityStats[percentile]);
-
-        std::ofstream outFile("spiral_lookup_table.json");
-        cereal::JSONOutputArchive oarchive(outFile);
-        oarchive(table);
-    }
-
-    std::map<int, std::map<int, FitResult>> loadedTable;
 
     std::unique_ptr<odr::RoadGeometry> FitSpiral(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
         const odr::Vec2D& endPos, const odr::Vec2D& endHdg)
@@ -546,4 +468,61 @@ namespace RoadRunner
         spdlog::warn("Valid input but exceeded complexity constraint");
         return nullptr;
     }
+
+#ifdef G_TEST
+    void TestSpiralFitting()
+    {
+        std::vector<double> timeStats;
+        std::vector<int> complexityStats;
+
+        for (auto posAndAngle : posAngleCombo)
+        {
+            int posAngle = posAndAngle.first;
+
+            int hdgBegin = posAndAngle.second.first;
+            int hdgEnd = posAndAngle.second.second;
+
+            std::map<int, FitResult> hdgToRes;
+            for (int hdg = hdgBegin; hdg <= hdgEnd; hdg += 5)
+            {
+                int hdgAngle = (posAngle + hdg);
+                int complexity = 0;
+                auto t_start = high_resolution_clock::now();
+                auto fitGeo = RoadRunner::FitUnitSpiral(
+                    posAngle * degToRad, hdgAngle * degToRad,
+                    SpiralPosPrecision * 0.7 / MaximumLengthBoost, SpiralHdgPrecision * 0.7 / MaximumLengthBoost, complexity);
+                auto t_end = high_resolution_clock::now();
+                auto duration = duration_cast<microseconds>(t_end - t_start).count();
+                timeStats.push_back(static_cast<double>(duration) / 1000000);
+                complexityStats.push_back(complexity);
+
+                EXPECT_TRUE(fitGeo != nullptr) << "No ans given";
+                if (complexity > 300000)
+                {
+                    spdlog::info("High complexity at angle {} hdg {}", posAngle, hdg);
+                }
+
+                FitResult res;
+                auto fitArc = dynamic_cast<odr::Arc*>(fitGeo.get());
+                if (fitArc != nullptr)
+                {
+                    res = FitResult{ fitArc->curvature, fitArc->curvature, fitArc->length };
+                }
+                else
+                {
+                    auto fitSpiral = dynamic_cast<odr::Spiral*>(fitGeo.get());
+                    res = FitResult{ fitSpiral->curv_start, fitSpiral->curv_end, fitSpiral->length };
+                }
+                hdgToRes.emplace(hdg, res);
+            }
+        }
+        std::sort(timeStats.begin(), timeStats.end());
+        std::sort(complexityStats.begin(), complexityStats.end());
+
+        int percentile = static_cast<double>(timeStats.size()) * 0.95;
+        spdlog::info("95 Fitting micros takes {}s; complexity = {}",
+            timeStats[percentile],
+            complexityStats[percentile]);
+    }
+#endif
 }

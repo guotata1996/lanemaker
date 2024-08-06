@@ -453,21 +453,10 @@ odr::RefLine RoadCreationSession::RefLineFromCtrlPoints() const
             odr::Vec2D point2{ middle.x(), middle.y() };
             odr::Vec2D point3{ end.x(), end.y() };
 
-            if (start.distanceToPoint(middle) < RoadRunner::DupCtrlPointsDist || middle.distanceToPoint(end) < RoadRunner::DupCtrlPointsDist
-                || std::abs(odr::angle(odr::sub(point2, point1), odr::sub(point3, point2))) < 3.14 / 1800)
-            {
-                localGeometry = std::make_unique<odr::Line>(cumLength, point1, point3);
-            }
-            else
-            {
-                auto maxCurve = odr::max_curvature(point1, point2, point3);
-                
-                if (maxCurve > RoadRunner::RoadMaxCurvature)
-                {
-                    return odr::RefLine("", 0);
-                }
-                localGeometry = std::make_unique<odr::ParamPoly3>(cumLength, point1, point2, point2, point3);
-            }
+            localGeometry = RoadRunner::ConnectRays(point1, odr::normalize(odr::sub(point2, point1)),
+                point3, odr::normalize(odr::sub(point3, point2)));
+            localGeometry->s0 = cumLength;
+
             double cumLengthPrev = cumLength;
             cumLength += localGeometry->length;
             rtn.s0_to_geometry.emplace(cumLengthPrev, std::move(localGeometry));

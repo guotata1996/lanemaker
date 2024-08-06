@@ -4,9 +4,12 @@
 #include "Geometries/Arc.h"
 #include "Geometries/Spiral.h"
 #include "Geometries/ParamPoly3.h"
+#include "curve_fitting.h"
 
 #include "spdlog/spdlog.h"
 #include "test_const.h"
+
+extern const std::map<int, std::pair<int, int>> posAngleCombo;
 
 namespace RoadRunnerTest
 {
@@ -221,5 +224,8 @@ namespace RoadRunnerTest
         Split_Reverse_RoadGeometry,
         testing::Range(1, Subdivision - 1));
 
-    // TODO: Verify profile
+    TEST(RoadGeometry, FitSpiral)
+    {
+        RoadRunner::TestSpiralFitting();
+    }
 }
