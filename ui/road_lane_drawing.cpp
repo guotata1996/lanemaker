@@ -473,13 +473,8 @@ RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QP
     bool snappedToSegBoundary = false;
     double g_roadS = GetAdjustedS(&snappedToSegBoundary);
 
-    if (ctrlPoints.size() == 2 && !extendFromStart.expired() && extendFromStartS != 0 && extendFromStartS != extendFromStart.lock()->Length()
-        && g_roadS != 0 && g_roadS != g_road->Length())
-    {
-        // Prohibit cutting the same road twice, due to s change due to cutting
-        return RoadCreationSession::Snap_Nothing;
-    }
-    if (ctrlPoints.size() == 2 && g_roadS != 0 && g_roadS != g_road->Length())
+    if (ctrlPoints.size() == 2 && g_roadS != 0 && g_roadS != g_road->Length() &&
+        g_road == extendFromStart.lock())
     {
         // Prevent 2-click connection from being misinterpreted as cutting
         return RoadCreationSession::Snap_Nothing;

@@ -351,12 +351,14 @@ namespace RoadRunner
                     spdlog::trace("[ANS] start mul = {}, end mul = {}, len = {} => pErr = {}, hErr = {}",
                         startMul, endMul, length, pError, hError);
 
+// Don't need self-check in normal run, as stepwise verification will cover this.
+#ifdef G_TEST
                     if (pError > SpiralPosPrecision || std::abs(hError) > SpiralHdgPrecision)
                     {
                         spdlog::error("[Fail check] {},{}", pError, hError);
                         return nullptr;
                     }
-
+#endif
                     return result;
             }
             return nullptr;
