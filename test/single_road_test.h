@@ -8,7 +8,7 @@
 
 namespace RoadRunnerTest
 {
-    void GenerateAndVerify(const RoadRunner::RoadProfile& configs, double refLineLength)
+    void GenerateAndVerify(const RoadRunner::LaneProfile& configs, double refLineLength)
     {
 #ifdef G_TEST
         const testing::TestInfo* const test_info =
@@ -48,16 +48,16 @@ namespace RoadRunnerTest
 
     TEST(SingleRoad, RightSideOnly)
     {
-        RoadRunner::RoadProfile profile(0, 0, 1, 0);
-        profile.OverwriteSection(-1, 30.0, 100.0, 1, -1);
+        RoadRunner::LaneProfile profile(0, 0, 1, 0);
+        profile.OverwriteSection(-1, 3000, 10000, 1, -1);
 
         GenerateAndVerify(profile, 100);
     }
 
     TEST(SingleRoad, LeftSideOnly)
     {
-        RoadRunner::RoadProfile profile(1, 0, 0, 0);
-        profile.OverwriteSection(1, 30.0, 0.0, 1, 1);
+        RoadRunner::LaneProfile profile(1, 0, 0, 0);
+        profile.OverwriteSection(1, 3000, 0, 1, 1);
 
         GenerateAndVerify(profile, 100);
     }

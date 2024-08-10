@@ -141,7 +141,7 @@ public:
     std::map<double, SpeedRecord>     s_to_speed;
     std::map<std::string, RoadObject> id_to_object;
     std::map<std::string, RoadSignal> id_to_signal;
-    RoadRunner::RoadProfile           rr_profile;
+    RoadRunner::LaneProfile           rr_profile;
 };
 
 } // namespace odr

@@ -10,7 +10,7 @@ namespace RoadRunnerTest
     {
         // Create 3 roads, C-(flipped C)
         auto refLine1 = std::make_unique<odr::Line>(0, -30, 0, 0, 60);
-        RoadRunner::RoadProfile config(2, 1, 2, -1);
+        RoadRunner::LaneProfile config(2, 1, 2, -1);
         std::shared_ptr<RoadRunner::Road> r1 = std::make_shared<RoadRunner::Road>(config, std::move(refLine1));
 
         const double R = 30;

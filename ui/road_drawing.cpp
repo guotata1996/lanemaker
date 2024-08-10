@@ -493,7 +493,7 @@ bool RoadCreationSession::CreateRoad()
         return true;
     }
 
-    RoadRunner::RoadProfile config(
+    RoadRunner::LaneProfile config(
         g_createRoadOption->LeftResult().laneCount, g_createRoadOption->LeftResult().offsetx2,
         g_createRoadOption->RightResult().laneCount, g_createRoadOption->RightResult().offsetx2);
 

@@ -202,8 +202,8 @@ namespace RoadRunnerTest
         //////////////////////
         // Right side
         //////////////////////
-        std::map<type_s, SectionProfile> rProfileCopy;
-        for (auto s2Profile : gen.rr_profile.rightProfiles)
+        std::map<type_s, LanePlan> rProfileCopy;
+        for (auto s2Profile : gen.rr_profile.rightPlan)
         {
             // We don't care about out-of-range(0-length) SectionConfigs
             if (to_odr_unit(s2Profile.first) < gen.length - epsilon)
@@ -266,13 +266,13 @@ namespace RoadRunnerTest
         ExpectOrAssert(sToSectionIt == rProfileCopy.end());
 
         {
-            bool hasMedianLane = !gen.rr_profile.rightProfiles.empty();
+            bool hasMedianLane = !gen.rr_profile.rightPlan.empty();
 
             //////////////////////
             // Left side
             //////////////////////
-            std::map<type_s, SectionProfile> lProfileCopy;
-            for (auto s2Profile : gen.rr_profile.leftProfiles)
+            std::map<type_s, LanePlan> lProfileCopy;
+            for (auto s2Profile : gen.rr_profile.leftPlans)
             {
                 // We don't care about out-of-range(1-length) SectionConfigs
                 if (0 < s2Profile.first && to_odr_unit(s2Profile.first) < gen.length - epsilon)

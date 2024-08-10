@@ -178,10 +178,10 @@ namespace RoadRunner
         type_s oldLength = from_odr_unit(roadAsPrev->Length());
         type_s splitPoint = from_odr_unit(s);
         roadAsPrev->SnapToSegmentBoundary(splitPoint);
-        RoadProfile& oldProfile = roadAsPrev->generated.rr_profile;
-        RoadProfile profile1(oldProfile.LeftExit().laneCount, oldProfile.LeftExit().offsetx2,
+        LaneProfile& oldProfile = roadAsPrev->generated.rr_profile;
+        LaneProfile profile1(oldProfile.LeftExit().laneCount, oldProfile.LeftExit().offsetx2,
             oldProfile.RightEntrance().laneCount, oldProfile.RightEntrance().offsetx2);
-        RoadProfile profile2(oldProfile.LeftEntrance().laneCount, oldProfile.LeftEntrance().offsetx2,
+        LaneProfile profile2(oldProfile.LeftEntrance().laneCount, oldProfile.LeftEntrance().offsetx2,
             oldProfile.RightExit().laneCount, oldProfile.RightExit().offsetx2);
         
         for (auto section : oldProfile.GetAllSections(oldLength, -1))
@@ -273,7 +273,7 @@ namespace RoadRunner
     }
 
     bool Road::ModifyProfile(double s1, double s2,
-        const SectionProfile& newLeftProfile, const SectionProfile& newRightProfile)
+        const LanePlan& newLeftProfile, const LanePlan& newRightProfile)
     {
         if (s1 > s2) std::swap(s1, s2);
         type_s s1RR = from_odr_unit(s1);

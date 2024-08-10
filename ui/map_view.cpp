@@ -21,7 +21,7 @@ std::vector<std::pair<RoadRunner::LaneGraphics*, double>> rotatingRoads;
 int rotatingIndex;
 
 MapView* g_mapView;
-extern RoadRunner::SectionProfile leftProfileSetting, rightProfileSetting;
+extern RoadRunner::LanePlan leftProfileSetting, rightProfileSetting;
 
 MapView::MapView(MainWidget* v, QGraphicsScene* scene) :
     QGraphicsView(scene), parentContainer(v)

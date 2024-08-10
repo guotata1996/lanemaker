@@ -17,7 +17,7 @@
 
 namespace RoadRunner
 {
-    Road::Road(const RoadProfile& p, std::unique_ptr<odr::RoadGeometry> l) :
+    Road::Road(const LaneProfile& p, std::unique_ptr<odr::RoadGeometry> l) :
         generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1")
     {
         generated.rr_profile = p;
@@ -26,7 +26,7 @@ namespace RoadRunner
         Generate();
     }
 
-    Road::Road(const RoadProfile& p, odr::RefLine& l) :
+    Road::Road(const LaneProfile& p, odr::RefLine& l) :
         generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1")
     {
         generated.rr_profile = p;

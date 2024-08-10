@@ -17,10 +17,10 @@ public:
 
     void Reset();
 
-    void SetOption(const RoadRunner::SectionProfile&, const RoadRunner::SectionProfile&);
+    void SetOption(const RoadRunner::LanePlan&, const RoadRunner::LanePlan&);
 
 signals:
-    void OptionChangedByUser(RoadRunner::SectionProfile left, RoadRunner::SectionProfile right);
+    void OptionChangedByUser(RoadRunner::LanePlan left, RoadRunner::LanePlan right);
 
 protected:
     void showEvent(QShowEvent* event) override;
@@ -38,8 +38,8 @@ protected:
 
     void mouseReleaseEvent(QMouseEvent* event) override;
 
-    RoadRunner::SectionProfile activeLeftSetting;
-    RoadRunner::SectionProfile activeRightSetting;
+    RoadRunner::LanePlan activeLeftSetting;
+    RoadRunner::LanePlan activeRightSetting;
 
     float TickInterval;
     int XCenter, YCenter, XLeft, XRight;
@@ -65,17 +65,17 @@ public:
 
     void Reset();
 
-    void SetOption(const RoadRunner::SectionProfile&, const RoadRunner::SectionProfile&);
+    void SetOption(const RoadRunner::LanePlan&, const RoadRunner::LanePlan&);
 
 protected:
     void showEvent(QShowEvent* event) override;
 
 signals:
-    void OptionChangedByUser(RoadRunner::SectionProfile left, RoadRunner::SectionProfile right);
+    void OptionChangedByUser(RoadRunner::LanePlan left, RoadRunner::LanePlan right);
 
 private:
-    RoadRunner::SectionProfile LeftResult() const;
-    RoadRunner::SectionProfile RightResult() const;
+    RoadRunner::LanePlan LeftResult() const;
+    RoadRunner::LanePlan RightResult() const;
 
     QSlider* leftSlider, * rightSlider;
     QLabel* resultLabel;
@@ -95,22 +95,22 @@ public:
     void Reset();
 
     /*picking from existing*/
-    void SetOption(const RoadRunner::SectionProfile&, const RoadRunner::SectionProfile&);
+    void SetOption(const RoadRunner::LanePlan&, const RoadRunner::LanePlan&);
 
     void GotoRoadMode();
     void GotoLaneMode();
 
-    RoadRunner::SectionProfile LeftResult() const { return leftProfileSetting; }
-    RoadRunner::SectionProfile RightResult() const { return rightProfileSetting; }
+    RoadRunner::LanePlan LeftResult() const { return leftProfileSetting; }
+    RoadRunner::LanePlan RightResult() const { return rightProfileSetting; }
 
     virtual QSize sizeHint() const override;
 
 public slots:
-    void OptionChangedOnPage(RoadRunner::SectionProfile left, RoadRunner::SectionProfile right);
+    void OptionChangedOnPage(RoadRunner::LanePlan left, RoadRunner::LanePlan right);
 
 private:
     CreateRoadOptionWidget* roadMode;
     CreateLaneOptionWidget* laneMode;
 
-    RoadRunner::SectionProfile leftProfileSetting, rightProfileSetting;
+    RoadRunner::LanePlan leftProfileSetting, rightProfileSetting;
 };

@@ -169,7 +169,7 @@ namespace RoadRunner
         g_mapView->OnKeyPress(action);
     }
 
-    void ActionManager::Record(const SectionProfile& left, const SectionProfile& right)
+    void ActionManager::Record(const LanePlan& left, const LanePlan& right)
     {
         ChangeProfileAction serialized{ left, right };
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));

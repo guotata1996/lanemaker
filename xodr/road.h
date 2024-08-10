@@ -18,9 +18,9 @@ namespace RoadRunner
     class Road: public std::enable_shared_from_this<Road>
     {
     public:
-        Road(const RoadProfile& p, std::unique_ptr<odr::RoadGeometry> l);
+        Road(const LaneProfile& p, std::unique_ptr<odr::RoadGeometry> l);
 
-        Road(const RoadProfile& p, odr::RefLine& l);
+        Road(const LaneProfile& p, odr::RefLine& l);
 
         Road(const odr::Road& serialized);
 
@@ -58,7 +58,7 @@ namespace RoadRunner
         static std::shared_ptr<Road> SplitRoad(std::shared_ptr<Road>& roadAsPrev, double s);
 
         bool ModifyProfile(double s1, double s2,
-            const SectionProfile& newLeftProfile, const SectionProfile& newRightProfile);
+            const LanePlan& newLeftProfile, const LanePlan& newRightProfile);
 
         double SnapToSegmentBoundary(double key, double limit, bool* outSuccess = nullptr);
 

@@ -22,12 +22,12 @@ std::vector<int> RandomSortedVector(int low, int hi, uint32_t count)
     return std::vector<int>(_set.begin(), _set.end());
 }
 
-RoadRunner::RoadProfile GenerateConfig(int seed, uint32_t length)
+RoadRunner::LaneProfile GenerateConfig(int seed, uint32_t length)
 {
     srand(seed);
 
     const uint32_t MinSection_M = 5;
-    RoadRunner::RoadProfile road(1, 0, 1, 0);
+    RoadRunner::LaneProfile road(1, 0, 1, 0);
 
     for (int modification = 0; modification != 15; ++modification)
     {
@@ -43,7 +43,7 @@ RoadRunner::RoadProfile GenerateConfig(int seed, uint32_t length)
         {
             std::swap(mBegin, mEnd);
         }
-        road.OverwriteSection(side, static_cast<double>(mBegin), static_cast<double>(mEnd), nLanes, offsetX2);
+        road.OverwriteSection(side, RoadRunner::from_odr_unit(mBegin), RoadRunner::from_odr_unit(mEnd), nLanes, offsetX2);
     }
 
     return road;

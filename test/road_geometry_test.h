@@ -112,7 +112,7 @@ namespace RoadRunnerTest
     std::shared_ptr<RoadRunner::Road> GenerateComplexRoad()
     {
         auto refLine1 = std::make_unique<odr::Line>(0, 0, 0, M_PI_2, 40);
-        RoadRunner::RoadProfile config(2, 0, 2, 0);
+        RoadRunner::LaneProfile config(2, 0, 2, 0);
         auto r1 = std::make_shared<RoadRunner::Road>(config, std::move(refLine1)); // (0, 40)
 
         {

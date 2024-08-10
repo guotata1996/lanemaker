@@ -19,7 +19,7 @@ CreateRoadOptionWidget::CreateRoadOptionWidget():
 
 void CreateRoadOptionWidget::Reset()
 {
-    SetOption(RoadRunner::SectionProfile{ 1, 1 }, RoadRunner::SectionProfile{ -1, 1 });
+    SetOption(RoadRunner::LanePlan{ 1, 1 }, RoadRunner::LanePlan{ -1, 1 });
 }
 
 void CreateRoadOptionWidget::showEvent(QShowEvent* event)
@@ -28,7 +28,7 @@ void CreateRoadOptionWidget::showEvent(QShowEvent* event)
     QWidget::showEvent(event);
 }
 
-void CreateRoadOptionWidget::SetOption(const RoadRunner::SectionProfile& l, const RoadRunner::SectionProfile& r)
+void CreateRoadOptionWidget::SetOption(const RoadRunner::LanePlan& l, const RoadRunner::LanePlan& r)
 {
     const QSignalBlocker blocker(this);
     activeLeftSetting = l;
@@ -249,17 +249,17 @@ CreateLaneOptionWidget::CreateLaneOptionWidget()
 
 void CreateLaneOptionWidget::Reset()
 {
-    SetOption(RoadRunner::SectionProfile{ 0, 0 }, RoadRunner::SectionProfile{ 0, 1 });
+    SetOption(RoadRunner::LanePlan{ 0, 0 }, RoadRunner::LanePlan{ 0, 1 });
 }
 
-RoadRunner::SectionProfile CreateLaneOptionWidget::LeftResult() const
+RoadRunner::LanePlan CreateLaneOptionWidget::LeftResult() const
 {
-    return RoadRunner::SectionProfile{ 0, static_cast<RoadRunner::type_t>(leftSlider->value()) };
+    return RoadRunner::LanePlan{ 0, static_cast<RoadRunner::type_t>(leftSlider->value()) };
 }
 
-RoadRunner::SectionProfile CreateLaneOptionWidget::RightResult() const
+RoadRunner::LanePlan CreateLaneOptionWidget::RightResult() const
 {
-    return RoadRunner::SectionProfile{ 0, static_cast<RoadRunner::type_t>(rightSlider->value()) };
+    return RoadRunner::LanePlan{ 0, static_cast<RoadRunner::type_t>(rightSlider->value()) };
 }
 
 void CreateLaneOptionWidget::showEvent(QShowEvent* event)
@@ -268,7 +268,7 @@ void CreateLaneOptionWidget::showEvent(QShowEvent* event)
     QWidget::showEvent(event);
 }
 
-void CreateLaneOptionWidget::SetOption(const RoadRunner::SectionProfile& l, const RoadRunner::SectionProfile& r)
+void CreateLaneOptionWidget::SetOption(const RoadRunner::LanePlan& l, const RoadRunner::LanePlan& r)
 {
     const QSignalBlocker blocker(this);
     leftSlider->setValue(l.laneCount);
@@ -304,7 +304,7 @@ void SectionProfileConfigWidget::Reset()
     laneMode->Reset();
 }
 
-void SectionProfileConfigWidget::OptionChangedOnPage(RoadRunner::SectionProfile left, RoadRunner::SectionProfile right)
+void SectionProfileConfigWidget::OptionChangedOnPage(RoadRunner::LanePlan left, RoadRunner::LanePlan right)
 {
     if (leftProfileSetting != left || rightProfileSetting != right)
     {
@@ -314,7 +314,7 @@ void SectionProfileConfigWidget::OptionChangedOnPage(RoadRunner::SectionProfile 
     rightProfileSetting = right;
 }
 
-void SectionProfileConfigWidget::SetOption(const RoadRunner::SectionProfile& l, const RoadRunner::SectionProfile& r)
+void SectionProfileConfigWidget::SetOption(const RoadRunner::LanePlan& l, const RoadRunner::LanePlan& r)
 {
     roadMode->SetOption(l, r);
     laneMode->SetOption(l, r);

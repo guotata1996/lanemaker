@@ -55,8 +55,8 @@ bool LanesCreationSession::CreateRoad()
         spdlog::warn("Cannot operate on the same road twice at a time.");
         return true;
     }
-    RoadRunner::RoadProfile config;
-    config = RoadRunner::RoadProfile(lLanes, lOffsetX2, rLanes, rOffsetX2);
+    RoadRunner::LaneProfile config;
+    config = RoadRunner::LaneProfile(lLanes, lOffsetX2, rLanes, rOffsetX2);
 
     auto newRoad = std::make_shared<RoadRunner::Road>(config, refLine);
     newRoad->GenerateAllSectionGraphics();
@@ -336,7 +336,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QP
         }
         else
         {
-            RoadRunner::SectionProfile prevProfile, nextProfile;
+            RoadRunner::LanePlan prevProfile, nextProfile;
             if (g_PointerLane < 0)
             {
                 prevProfile = g_roadProfile.ProfileAt(g_roadS - 0.01, -1);
@@ -579,7 +579,7 @@ RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QP
         }
         else
         {
-            RoadRunner::SectionProfile prevProfile, nextProfile;
+            RoadRunner::LanePlan prevProfile, nextProfile;
             if (g_PointerLane < 0)
             {
                 prevProfile = g_roadProfile.ProfileAt(g_roadS - 0.01, -1);

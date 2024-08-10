@@ -17,14 +17,14 @@ namespace RoadRunner
             auto roadPtr = roadAndS.road.lock();
             odr::Road* road = &roadPtr->generated;
             double meetAt = roadAndS.contact == odr::RoadLink::ContactPoint_Start ? 0 : road->length;
-            RoadProfile config = roadPtr->generated.rr_profile;
+            LaneProfile config = roadPtr->generated.rr_profile;
             odr::LaneSection meetSection = meetAt == 0 ?
                 road->s_to_lanesection.begin()->second : road->s_to_lanesection.rbegin()->second;
 
             if (meetAt == 0)
             {
                 road->predecessor = odr::RoadLink(junctionID, odr::RoadLink::Type_Junction);
-                SectionProfile rightEntrance = config.RightEntrance();
+                LanePlan rightEntrance = config.RightEntrance();
                 if (rightEntrance.laneCount != 0)
                 {
                     double offset = to_odr_unit(rightEntrance.offsetx2);
@@ -41,7 +41,7 @@ namespace RoadRunner
                             static_cast<uint8_t>(rightEntrance.laneCount)
                         });
                 }
-                SectionProfile leftExit = config.LeftExit();
+                LanePlan leftExit = config.LeftExit();
                 if (leftExit.laneCount != 0)
                 {
                     double offset = to_odr_unit(leftExit.offsetx2);
@@ -62,7 +62,7 @@ namespace RoadRunner
             else
             {
                 road->successor = odr::RoadLink(junctionID, odr::RoadLink::Type_Junction);
-                SectionProfile rightExit = config.RightExit();
+                LanePlan rightExit = config.RightExit();
                 if (rightExit.laneCount != 0)
                 {
                     double offset = to_odr_unit(rightExit.offsetx2);
@@ -79,7 +79,7 @@ namespace RoadRunner
                             static_cast<uint8_t>(rightExit.laneCount)
                         });
                 }
-                SectionProfile leftEntrance = config.LeftEntrance();
+                LanePlan leftEntrance = config.LeftEntrance();
                 if (leftEntrance.laneCount != 0)
                 {
                     double offset = to_odr_unit(leftEntrance.offsetx2);
@@ -256,7 +256,7 @@ namespace RoadRunner
                 continue;
             }
 
-            RoadRunner::RoadProfile connectingProfile(0, 0, turningGroup.nLanes, turningGroup.nLanes);
+            RoadRunner::LaneProfile connectingProfile(0, 0, turningGroup.nLanes, turningGroup.nLanes);
 
             auto connecting = std::make_shared<Road>(connectingProfile, std::move(connectingRefLine));
             connecting->Generate();

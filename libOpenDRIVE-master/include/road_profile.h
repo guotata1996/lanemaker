@@ -8,6 +8,12 @@
 namespace odr
 {
     class Road;
+    class OpenDriveMap;
+}
+
+namespace RoadRunnerTest
+{
+class Validation;
 }
 
 namespace RoadRunner
@@ -24,48 +30,49 @@ namespace RoadRunner
 
     constexpr type_s ProfileMinLengthCM = 100;
 
-    struct SectionProfile
+    struct LanePlan
     {
         type_t offsetx2; // follows XODR s definition
         type_t laneCount; // non-negative value
 
-        bool operator == (const SectionProfile& another) const
+        bool operator == (const LanePlan& another) const
         {
             return offsetx2 == another.offsetx2 && laneCount == another.laneCount;
         }
 
-        bool operator != (const SectionProfile& another) const
+        bool operator != (const LanePlan& another) const
         {
             return offsetx2 != another.offsetx2 || laneCount != another.laneCount;
         }
     };
 
-    class RoadProfile
+    typedef int8_t ElevationPlan;
+
+    class LaneProfile
     {
+        friend class odr::OpenDriveMap;
+        friend class RoadRunnerTest::Validation;
     public:
-        RoadProfile(){};
+        LaneProfile(){};
 
-        RoadProfile(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right);
+        LaneProfile(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right);
 
-        void SetDefault(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right);
+        LaneProfile& operator=(const LaneProfile& other);
 
-        RoadProfile& operator=(const RoadProfile& other);
-
-        void OverwriteSection(int side, double start, double end, uint8_t nLanes, int8_t offsetX2);
         void OverwriteSection(int side, type_s start, type_s end, uint8_t nLanes, int8_t offsetX2);
         /*First section travelling on left side, @s = Length*/
-        SectionProfile LeftEntrance() const;
+        LanePlan LeftEntrance() const;
         /*Last section travelling on left side, @s = 0*/
-        SectionProfile LeftExit() const;
+        LanePlan LeftExit() const;
         /*First section travelling on right side, @s = 0*/
-        SectionProfile RightEntrance() const;
+        LanePlan RightEntrance() const;
         /*Last section travelling on right side, @s = Length*/
-        SectionProfile RightExit() const;
+        LanePlan RightExit() const;
 
         // right side keys are in (s_small, s_big)
         // left side keys are in (s_big, s_small)
         // begins with 0, ends at length
-        std::map<std::pair<type_s, type_s>, SectionProfile> GetAllSections(type_s length, int side) const;
+        std::map<std::pair<type_s, type_s>, LanePlan> GetAllSections(type_s length, int side) const;
 
         // begins with 0, ends at length
         std::set<type_s> GetAllKeys(type_s length) const;
@@ -76,11 +83,11 @@ namespace RoadRunner
 
         std::string Log() const;
 
-        SectionProfile ProfileAt(double s, int side) const;
-
-        std::map<type_s, SectionProfile> leftProfiles, rightProfiles;
+        LanePlan ProfileAt(double s, int side) const;
 
     protected:
+        std::map<type_s, LanePlan> leftPlans, rightPlan;
+
         void ConvertSide(bool rightSide,
             std::string roadID,
             type_s length,
@@ -117,5 +124,31 @@ namespace RoadRunner
             int startLanes, newLanesOnLeft, newLanesOnRight;
             type_s transitionHalfLength;
         };
+    };
+
+    class HeightProfile
+    {
+    public:
+        HeightProfile(){};
+
+        void OverwriteSection(type_s start, type_s end, uint8_t nLanes, ElevationPlan offsetX2);
+
+        // right side keys are in (s_small, s_big)
+        // left side keys are in (s_big, s_small)
+        // begins with 0, ends at length
+        std::map<std::pair<type_s, type_s>, ElevationPlan> GetAllSections(type_s length, int side) const;
+
+        std::set<type_s> GetAllKeys(type_s length) const;
+
+        HeightProfile ProfileAt(double s, int side) const;
+
+    protected:
+        std::map<type_s, ElevationPlan> plans;
+    };
+
+    // Combine two
+    class RoadProfile
+    {
+    
     };
 }

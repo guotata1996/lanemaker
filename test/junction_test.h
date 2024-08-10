@@ -36,7 +36,7 @@ namespace RoadRunnerTest
             totalOuts += incoming ? leftLanes : rightLanes;
             numIncominglanes.push_back(incoming ? rightLanes : leftLanes);
 
-            RoadRunner::RoadProfile cfg(leftLanes, leftOffset, rightLanes, rightOffset);
+            RoadRunner::LaneProfile cfg(leftLanes, leftOffset, rightLanes, rightOffset);
 
             odr::Vec2D refLineOrigin = incoming ? farEnd : nearEnd;
             refLineOrigin = odr::rotateCCW(refLineOrigin, SeparationAngle * i);
@@ -72,7 +72,7 @@ namespace RoadRunnerTest
 
     TEST(SingleJunction, BothEnds)
     {
-        RoadRunner::RoadProfile commonProfile(2, 0, 2, 0);
+        RoadRunner::LaneProfile commonProfile(2, 0, 2, 0);
         auto circleRRef = std::make_unique<odr::Arc>(0, 20, 0, 0, 2 * M_PI * 20 * 0.75, 1 / 20.0);
         auto circleR = std::make_shared<RoadRunner::Road>(commonProfile, std::move(circleRRef));
         auto circleLRef = std::make_unique<odr::Arc>(0, 0, -20, M_PI_2 * 3, 2 * M_PI * 20 * 0.75, -1 / 20.0);

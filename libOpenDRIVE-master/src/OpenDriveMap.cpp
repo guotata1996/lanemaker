@@ -558,8 +558,8 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
                     auto s = sectionNode.attribute("type_s").as_uint();
                     auto laneCount = sectionNode.attribute("laneCount").as_int();
                     auto offsetX2 = sectionNode.attribute("offsetX2").as_int();
-                    RoadRunner::SectionProfile profile{offsetX2, laneCount};
-                    road.rr_profile.leftProfiles.emplace(s, profile);
+                    RoadRunner::LanePlan profile{offsetX2, laneCount};
+                    road.rr_profile.leftPlans.emplace(s, profile);
                 }
             }
             
@@ -571,8 +571,8 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
                     auto                       s = sectionNode.attribute("type_s").as_uint();
                     auto                       laneCount = sectionNode.attribute("laneCount").as_int();
                     auto                       offsetX2 = sectionNode.attribute("offsetX2").as_int();
-                    RoadRunner::SectionProfile profile{offsetX2, laneCount};
-                    road.rr_profile.rightProfiles.emplace(s, profile);
+                    RoadRunner::LanePlan profile{offsetX2, laneCount};
+                    road.rr_profile.rightPlan.emplace(s, profile);
                 }
             }
         }
@@ -1053,6 +1053,18 @@ void OpenDriveMap::export_file(const std::string& fpath) const
             }
         }
 
+        // elevationProfile
+        pugi::xml_node elevationProfile = road_node.append_child("elevationProfile");
+        for (const auto& s0_poly : road.ref_line.elevation_profile.s0_to_poly) 
+        {
+            pugi::xml_node elevation = elevationProfile.append_child("elevation");
+            elevation.append_attribute("s").set_value(s0_poly.first);
+            elevation.append_attribute("a").set_value(s0_poly.second.raw_a);
+            elevation.append_attribute("b").set_value(s0_poly.second.raw_b);
+            elevation.append_attribute("c").set_value(s0_poly.second.raw_c);
+            elevation.append_attribute("d").set_value(s0_poly.second.raw_d);
+        }
+
         // lanes
         pugi::xml_node lanes = road_node.append_child("lanes");
         for (auto it : road.lane_offset.s0_to_poly) 
@@ -1162,10 +1174,10 @@ void OpenDriveMap::export_file(const std::string& fpath) const
         }
         
         pugi::xml_node customProfile = road_node.append_child("roadRunnerProfile");
-        if (!road.rr_profile.leftProfiles.empty()) 
+        if (!road.rr_profile.leftPlans.empty()) 
         {
             pugi::xml_node customLeft = customProfile.append_child("left");
-            for (auto customProfile : road.rr_profile.leftProfiles)
+            for (auto customProfile : road.rr_profile.leftPlans)
             {
                 pugi::xml_node section = customLeft.append_child("section");
                 section.append_attribute("type_s").set_value(customProfile.first);
@@ -1173,10 +1185,10 @@ void OpenDriveMap::export_file(const std::string& fpath) const
                 section.append_attribute("offsetX2").set_value(customProfile.second.offsetx2);
             }
         }
-        if (!road.rr_profile.rightProfiles.empty()) 
+        if (!road.rr_profile.rightPlan.empty()) 
         {
             pugi::xml_node customRight = customProfile.append_child("right");
-            for (auto customProfile : road.rr_profile.rightProfiles) 
+            for (auto customProfile : road.rr_profile.rightPlan) 
             {
                 pugi::xml_node section = customRight.append_child("section");
                 section.append_attribute("type_s").set_value(customProfile.first);

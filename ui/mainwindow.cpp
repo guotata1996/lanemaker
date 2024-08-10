@@ -210,7 +210,7 @@ void MainWindow::loadFromFile()
         bool supported = RoadRunner::ChangeTracker::Instance()->Load(loc);
         if (!supported)
         {
-            spdlog::error("xodr map needs to contain custom RoadProfile!");
+            spdlog::error("xodr map needs to contain custom LaneProfile!");
         }
         std::ifstream ifs(loc);
         std::stringstream buffer;

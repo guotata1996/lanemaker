@@ -28,7 +28,7 @@ namespace RoadRunner
         void Record(double zoomVal, double rotateVal, int hScroll, int vScroll);
         void Record(QMouseEvent*);
         void Record(QKeyEvent*);
-        void Record(const SectionProfile&, const SectionProfile&);
+        void Record(const LanePlan&, const LanePlan&);
         void Record(ActionType);
         void Record(const QSize& oldSize, const QSize& newSize);
 

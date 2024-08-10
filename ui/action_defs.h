@@ -80,7 +80,7 @@ namespace RoadRunner
 
     struct ChangeProfileAction
     {
-        SectionProfile leftProfile, rightProfile;
+        LanePlan leftProfile, rightProfile;
     };
 
     struct ResizeWindowAction

@@ -60,8 +60,8 @@ namespace RoadRunner
         uint8_t skipProviderLanes; // Skip number of innermost linked lanes of InterfaceProvider
 
     private:
-        SectionProfile leftProfile;
-        SectionProfile rightProfile;
+        LanePlan leftProfile;
+        LanePlan rightProfile;
         odr::Vec2D refLinePos;
         double refLineHdg;
     };
