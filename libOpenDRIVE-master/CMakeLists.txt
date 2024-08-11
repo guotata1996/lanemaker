@@ -41,7 +41,8 @@ set(SOURCES
     src/RoadSignal.cpp
     src/RoutingGraph.cpp
     thirdparty/pugixml/pugixml.cpp
-    src/road_profile.cpp
+    src/lane_profile.cpp
+    src/elevation_profile.cpp
 )
 
 add_library(OpenDrive ${SOURCES})

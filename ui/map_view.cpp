@@ -231,7 +231,7 @@ void MapView::OnKeyPress(const RoadRunner::KeyPressAction& evt)
             }
             else
             {
-                ss << g_road->generated.rr_profile.Log();
+                ss << g_road->generated.rr_profile.ToString();
             }
 
             if (g_road->predecessorJunction != nullptr)

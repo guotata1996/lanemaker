@@ -69,24 +69,33 @@ namespace RoadRunner
         /*Last section travelling on right side, @s = Length*/
         LanePlan RightExit() const;
 
-        // right side keys are in (s_small, s_big)
-        // left side keys are in (s_big, s_small)
-        // begins with 0, ends at length
-        std::map<std::pair<type_s, type_s>, LanePlan> GetAllSections(type_s length, int side) const;
-
-        // begins with 0, ends at length
-        std::set<type_s> GetAllKeys(type_s length) const;
-
         bool HasSide(int side) const;
 
         void Apply(double length, odr::Road*);
 
-        std::string Log() const;
-
         LanePlan ProfileAt(double s, int side) const;
+        
+        bool SnapToSegmentBoundary(type_s& key, type_s length, type_s limit = 10);
+
+        LaneProfile Reversed(type_s length) const;
+
+        void Split(type_s length, type_s splitPoint, LaneProfile& p1, LaneProfile& p2) const;
+
+        void Join(type_s originalLength, type_s road2Base, type_s road2Length, 
+            const LaneProfile& road2Profile, type_s finalLength);
+
+        std::string ToString() const;
 
     protected:
         std::map<type_s, LanePlan> leftPlans, rightPlan;
+
+        // starts at 0, ends at length
+        std::set<type_s> GetAllKeys(type_s length) const;
+
+        // right side keys are in (s_small, s_big)
+        // left side keys are in (s_big, s_small)
+        // begins with 0, ends at length
+        std::map<std::pair<type_s, type_s>, LanePlan> GetAllSections(type_s length, int side) const;
 
         void ConvertSide(bool rightSide,
             std::string roadID,
@@ -126,29 +135,29 @@ namespace RoadRunner
         };
     };
 
-    class HeightProfile
+    class ElevationProfile
     {
     public:
-        HeightProfile(){};
+        ElevationProfile(){};
 
-        void OverwriteSection(type_s start, type_s end, uint8_t nLanes, ElevationPlan offsetX2);
+        void OverwriteSection(type_s start, type_s end, ElevationPlan offsetX2);
 
-        // right side keys are in (s_small, s_big)
-        // left side keys are in (s_big, s_small)
-        // begins with 0, ends at length
-        std::map<std::pair<type_s, type_s>, ElevationPlan> GetAllSections(type_s length, int side) const;
+        ElevationProfile ProfileAt(double s) const;
 
-        std::set<type_s> GetAllKeys(type_s length) const;
+        bool SnapToSegmentBoundary(type_s& key, type_s length, type_s limit = 10);
 
-        HeightProfile ProfileAt(double s, int side) const;
+        ElevationProfile Reversed(type_s length) const;
+
+        void Split(type_s length, type_s splitPoint, ElevationProfile& p1, ElevationProfile& p2) const;
+
+        void Join(type_s originalLength, type_s road2Base, type_s road2Length, const ElevationProfile& road2Profile, type_s finalLength);
+
+        void Apply(double length, odr::Road*);
 
     protected:
         std::map<type_s, ElevationPlan> plans;
-    };
 
-    // Combine two
-    class RoadProfile
-    {
-    
+        // begins with 0, ends at length
+        std::map<std::pair<type_s, type_s>, ElevationPlan> GetAllSections(type_s length, int side) const;
     };
 }

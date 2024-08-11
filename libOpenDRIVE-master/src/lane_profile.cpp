@@ -836,7 +836,6 @@ namespace RoadRunner
         {
             throw std::logic_error("LaneProfile::Apply empty");
         }
-        rtn->length = _length;
 
         rtn->s_to_lanesection.clear();
 
@@ -921,7 +920,7 @@ namespace RoadRunner
         _MergeSides(rtn, leftSections, centerWidths, rightSections, length);
     }
 
-    std::string LaneProfile::Log() const
+    std::string LaneProfile::ToString() const
     {
         std::stringstream ss;
         if (!rightPlan.empty())
@@ -965,5 +964,164 @@ namespace RoadRunner
         if (it->first == std::numeric_limits<uint32_t>::max())
             it--;
         return it->second;
+    }
+
+    bool LaneProfile::SnapToSegmentBoundary(type_s& key, type_s length, type_s limit) 
+    {
+        auto existingKeys = GetAllKeys(length);
+
+        if (key < limit)
+        {
+            key = 0;
+            return true;
+        }
+        if (key > length - limit)
+        {
+            key = length;
+            return true;
+        }
+
+        auto above = existingKeys.lower_bound(key);
+        if (*above - key < limit)
+        {
+            key = *above;
+            return true;
+        }
+
+        if (above != existingKeys.begin())
+        {
+            auto below = above;
+            below--;
+            if (key - *below < limit)
+            {
+                key = *below;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    LaneProfile LaneProfile::Reversed(type_s length) const
+    {
+        LaneProfile newProfile(
+            RightEntrance().laneCount, -RightEntrance().offsetx2, 
+            LeftEntrance().laneCount, -LeftEntrance().offsetx2);
+
+        for (const auto& lSectionInfo : GetAllSections(length, 1))
+        {
+            type_s fwdStart = lSectionInfo.first.first;
+            type_s fwdEnd = lSectionInfo.first.second;
+            newProfile.OverwriteSection(-1, length - fwdStart, length - fwdEnd, lSectionInfo.second.laneCount, -lSectionInfo.second.offsetx2);
+        }
+
+        for (const auto& rSectionInfo : GetAllSections(length, -1))
+        {
+            type_s fwdStart = rSectionInfo.first.first;
+            type_s fwdEnd = rSectionInfo.first.second;
+            newProfile.OverwriteSection(1, length - fwdStart, length - fwdEnd, rSectionInfo.second.laneCount, -rSectionInfo.second.offsetx2);
+        }
+        return newProfile;
+    }
+
+    void LaneProfile::Split(type_s length, type_s splitPoint, LaneProfile& profile1, LaneProfile& profile2) const
+    {
+        profile1 = LaneProfile(LeftExit().laneCount,
+                               LeftExit().offsetx2,
+                               RightEntrance().laneCount,
+                               RightEntrance().offsetx2);
+        profile2 = LaneProfile(LeftEntrance().laneCount,
+                               LeftEntrance().offsetx2,
+                               RightExit().laneCount,
+                               RightExit().offsetx2);
+
+        for (auto section : GetAllSections(length, -1))
+        {
+            type_s sectionBegin = section.first.first;
+            type_s sectionEnd = section.first.second;
+            if (sectionEnd <= splitPoint)
+            {
+                profile1.OverwriteSection(-1, sectionBegin, sectionEnd, section.second.laneCount, section.second.offsetx2);
+            }
+            else if (sectionBegin < splitPoint && splitPoint < sectionEnd)
+            {
+                profile1.OverwriteSection(-1, sectionBegin, splitPoint, section.second.laneCount, section.second.offsetx2);
+                profile2.OverwriteSection(-1, 0, sectionEnd - splitPoint, section.second.laneCount, section.second.offsetx2);
+            }
+            else if (splitPoint <= sectionEnd)
+            {
+                profile2.OverwriteSection(-1, sectionBegin - splitPoint, sectionEnd - splitPoint, section.second.laneCount, section.second.offsetx2);
+            }
+        }
+
+        for (auto section : GetAllSections(length, 1))
+        {
+            type_s sectionBegin = section.first.first;
+            type_s sectionEnd = section.first.second;
+            if (sectionBegin <= splitPoint)
+            {
+                profile1.OverwriteSection(1, sectionBegin, sectionEnd, section.second.laneCount, section.second.offsetx2);
+            }
+            else if (sectionEnd < splitPoint && splitPoint < sectionBegin)
+            {
+                profile1.OverwriteSection(1, splitPoint, sectionEnd, section.second.laneCount, section.second.offsetx2);
+                profile2.OverwriteSection(1, sectionBegin - splitPoint, 0, section.second.laneCount, section.second.offsetx2);
+            }
+            else
+            {
+                profile2.OverwriteSection(1, sectionBegin - splitPoint, sectionEnd - splitPoint, section.second.laneCount, section.second.offsetx2);
+            }
+        }
+    }
+
+    void LaneProfile::Join(type_s linkBase, type_s road2Base, type_s road2Length, 
+        const LaneProfile& road2Profile, type_s finalLength)
+    {
+#ifndef G_TEST
+        SnapToSegmentBoundary(linkBase, finalLength);
+        SnapToSegmentBoundary(road2Base, finalLength);
+#endif
+        // Join right profile
+        if (HasSide(-1))
+        {
+            if (road2Base != linkBase)
+            {
+                OverwriteSection(
+                    -1, linkBase, road2Base, RightExit().laneCount, RightExit().offsetx2);
+            }
+
+            for (const auto& road2section : road2Profile.GetAllSections(road2Length, -1))
+            {
+                type_s newStart = road2section.first.first + road2Base;
+                type_s newEnd = road2section.first.second + road2Base;
+#ifndef G_TEST
+                SnapToSegmentBoundary(newStart, finalLength);
+                SnapToSegmentBoundary(newEnd, finalLength);
+#endif
+                OverwriteSection(-1, newStart, newEnd, road2section.second.laneCount, road2section.second.offsetx2);
+            }
+        }
+        // Join left profile
+        if (HasSide(1))
+        {
+            if (road2Base != linkBase)
+            {
+                OverwriteSection(1,
+                    road2Base,
+                    linkBase,
+                    LeftEntrance().laneCount,
+                    LeftEntrance().offsetx2);
+            }
+
+            for (const auto& road2section : road2Profile.GetAllSections(road2Length, 1))
+            {
+                type_s newStart = road2section.first.first + road2Base;
+                type_s newEnd = road2section.first.second + road2Base;
+#ifndef G_TEST
+                SnapToSegmentBoundary(newStart, finalLength);
+                SnapToSegmentBoundary(newEnd, finalLength);
+#endif
+                OverwriteSection(1, newStart, newEnd, road2section.second.laneCount, road2section.second.offsetx2);
+            }
+        }
     }
 }

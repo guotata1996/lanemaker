@@ -90,56 +90,10 @@ namespace RoadRunner
             }
             road1->generated.ref_line.length = road1->Length() + road2->Length();
         }
-#ifndef G_TEST
-        road1->SnapToSegmentBoundary(linkBase);
-        road1->SnapToSegmentBoundary(road2Base);
-#endif
-        // Join right profile
-        if (road1->generated.rr_profile.HasSide(-1))
-        {
-            if (road2Base != linkBase)
-            {
-                road1->generated.rr_profile.OverwriteSection(-1,
-                    linkBase, road2Base,
-                    road1->generated.rr_profile.RightExit().laneCount, road1->generated.rr_profile.RightExit().offsetx2);
-            }
-
-            for (const auto& road2section : road2->generated.rr_profile.GetAllSections(from_odr_unit(road2->Length()), -1))
-            {
-                type_s newStart = road2section.first.first + road2Base;
-                type_s newEnd = road2section.first.second + road2Base;
-#ifndef G_TEST
-                road1->SnapToSegmentBoundary(newStart);
-                road1->SnapToSegmentBoundary(newEnd);
-#endif
-                road1->generated.rr_profile.OverwriteSection(-1, newStart, newEnd,
-                    road2section.second.laneCount, road2section.second.offsetx2);
-            }
-        }
-        // Join left profile
-        if (road1->generated.rr_profile.HasSide(1))
-        {
-            if (road2Base != linkBase)
-            {
-                road1->generated.rr_profile.OverwriteSection(1,
-                    road2Base, linkBase,
-                    road1->generated.rr_profile.LeftEntrance().laneCount, road1->generated.rr_profile.LeftEntrance().offsetx2);
-            }
-
-            for (const auto& road2section : road2->generated.rr_profile.GetAllSections(from_odr_unit(road2->Length()), 1))
-            {
-                type_s newStart = road2section.first.first + road2Base;
-                type_s newEnd = road2section.first.second + road2Base;
-#ifndef G_TEST
-                road1->SnapToSegmentBoundary(newStart);
-                road1->SnapToSegmentBoundary(newEnd);
-#endif
-                road1->generated.rr_profile.OverwriteSection(1, newStart, newEnd,
-                    road2section.second.laneCount, road2section.second.offsetx2);
-            }
-        }
-
+        road1->generated.rr_profile.Join(linkBase, road2Base,
+            from_odr_unit(road2->Length()), road2->generated.rr_profile, from_odr_unit(road1->Length()));
         road1->Generate();
+
 #ifndef G_TEST
         for (auto& s_graphics : road2->s_to_section_graphics)
         {
@@ -179,50 +133,8 @@ namespace RoadRunner
         type_s splitPoint = from_odr_unit(s);
         roadAsPrev->SnapToSegmentBoundary(splitPoint);
         LaneProfile& oldProfile = roadAsPrev->generated.rr_profile;
-        LaneProfile profile1(oldProfile.LeftExit().laneCount, oldProfile.LeftExit().offsetx2,
-            oldProfile.RightEntrance().laneCount, oldProfile.RightEntrance().offsetx2);
-        LaneProfile profile2(oldProfile.LeftEntrance().laneCount, oldProfile.LeftEntrance().offsetx2,
-            oldProfile.RightExit().laneCount, oldProfile.RightExit().offsetx2);
-        
-        for (auto section : oldProfile.GetAllSections(oldLength, -1))
-        {
-            type_s sectionBegin = section.first.first;
-            type_s sectionEnd = section.first.second;
-            if (sectionEnd <= splitPoint)
-            {
-                profile1.OverwriteSection(-1, sectionBegin, sectionEnd, section.second.laneCount, section.second.offsetx2);
-            }
-            else if (sectionBegin < splitPoint && splitPoint < sectionEnd)
-            {
-                profile1.OverwriteSection(-1, sectionBegin, splitPoint, section.second.laneCount, section.second.offsetx2);
-                profile2.OverwriteSection(-1, 0, sectionEnd - splitPoint, section.second.laneCount, section.second.offsetx2);
-            }
-            else if (splitPoint <= sectionEnd)
-            {
-                profile2.OverwriteSection(-1, sectionBegin - splitPoint, sectionEnd - splitPoint,
-                    section.second.laneCount, section.second.offsetx2);
-            }
-        }
-
-        for (auto section : oldProfile.GetAllSections(oldLength, 1))
-        {
-            type_s sectionBegin = section.first.first;
-            type_s sectionEnd = section.first.second;
-            if (sectionBegin <= splitPoint)
-            {
-                profile1.OverwriteSection(1, sectionBegin, sectionEnd, section.second.laneCount, section.second.offsetx2);
-            }
-            else if (sectionEnd < splitPoint && splitPoint < sectionBegin)
-            {
-                profile1.OverwriteSection(1, splitPoint, sectionEnd, section.second.laneCount, section.second.offsetx2);
-                profile2.OverwriteSection(1, sectionBegin - splitPoint, 0, section.second.laneCount, section.second.offsetx2);
-            }
-            else
-            {
-                profile2.OverwriteSection(1, sectionBegin - splitPoint, sectionEnd - splitPoint, 
-                    section.second.laneCount, section.second.offsetx2);
-            }
-        }
+        LaneProfile profile1, profile2;
+        oldProfile.Split(oldLength, splitPoint, profile1, profile2);
 
         auto refLine2 = roadAsPrev->RefLine().split(s);
         auto part2 = std::make_shared<Road>(profile2, refLine2);

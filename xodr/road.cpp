@@ -42,6 +42,7 @@ namespace RoadRunner
 
     void Road::Generate(bool notifyJunctions)
     {
+        generated.length = Length();
         generated.rr_profile.Apply(Length(), &generated);
 
         PlaceOdrRoadMarkings();
@@ -67,28 +68,8 @@ namespace RoadRunner
         generated.ref_line.reverse();
 
         type_s length = from_odr_unit(Length());
-        auto profile = generated.rr_profile;
-        decltype(profile) newProfile(
-            profile.RightEntrance().laneCount, -profile.RightEntrance().offsetx2,
-            profile.LeftEntrance().laneCount,  -profile.LeftEntrance().offsetx2);
-
-        for (const auto& lSectionInfo : profile.GetAllSections(length, 1))
-        {
-            type_s fwdStart = lSectionInfo.first.first;
-            type_s fwdEnd = lSectionInfo.first.second;
-            newProfile.OverwriteSection(-1, length - fwdStart, length - fwdEnd,
-                lSectionInfo.second.laneCount, -lSectionInfo.second.offsetx2);
-        }
-
-        for (const auto& rSectionInfo : profile.GetAllSections(length, -1))
-        {
-            type_s fwdStart = rSectionInfo.first.first;
-            type_s fwdEnd = rSectionInfo.first.second;
-            newProfile.OverwriteSection(1, length - fwdStart, length - fwdEnd,
-                rSectionInfo.second.laneCount, -rSectionInfo.second.offsetx2);
-        }
         
-        generated.rr_profile = newProfile;
+        generated.rr_profile = generated.rr_profile.Reversed(length);
         Generate(false);
 
         // Handle linkage
@@ -150,38 +131,7 @@ namespace RoadRunner
     bool Road::SnapToSegmentBoundary(type_s& key, type_s limit)
     {
         type_s profileLength = RoadRunner::from_odr_unit(Length());
-        auto existingKeys = generated.rr_profile.GetAllKeys(profileLength);
-
-        if (key < limit)
-        {
-            key = 0;
-            return true;
-        }
-        if (key > profileLength - limit)
-        {
-            key = profileLength;
-            return true;
-        }
-
-        auto above = existingKeys.lower_bound(key);
-        if (*above - key < limit)
-        {
-            key = *above;
-            return true;
-        }
-
-        if (above != existingKeys.begin())
-        {
-            auto below = above;
-            below--;
-            if (key - *below < limit)
-            {
-                key = *below;
-                return true;
-            }
-        }
-
-        return false;
+        return generated.rr_profile.SnapToSegmentBoundary(key, profileLength, limit);
     }
 
     double Road::SnapToSegmentBoundary(double key, double limit, bool* outSuccess)
