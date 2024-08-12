@@ -497,7 +497,13 @@ bool RoadCreationSession::CreateRoad()
         g_createRoadOption->LeftResult().laneCount, g_createRoadOption->LeftResult().offsetx2,
         g_createRoadOption->RightResult().laneCount, g_createRoadOption->RightResult().offsetx2);
 
-    auto newRoad = std::make_shared<RoadRunner::Road>(config, refLine);
+    RoadRunner::ElevationProfile eConfig;
+    eConfig.OverwriteSection(
+        RoadRunner::from_odr_unit(refLine.length * 0.3), 
+        RoadRunner::from_odr_unit(refLine.length * 0.67), 
+        RoadRunner::from_odr_unit(refLine.length), 5);
+
+    auto newRoad = std::make_shared<RoadRunner::Road>(config, eConfig, refLine);
     newRoad->GenerateAllSectionGraphics();
 
     bool standaloneRoad = true;

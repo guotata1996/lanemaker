@@ -52,11 +52,11 @@ private slots:
     void setResetButtonEnabled();
     void setupMatrix();
 
-    void gotoCreateRoadMode();
-    void gotoCreateLaneMode();
-    void gotoDestroyMode();
-    void gotoModifyMode();
-    void gotoDragMode();
+    void gotoCreateRoadMode(bool);
+    void gotoCreateLaneMode(bool);
+    void gotoDestroyMode(bool);
+    void gotoModifyMode(bool);
+    void gotoDragMode(bool c=true);
     void rotateLeft();
     void rotateRight();
 
@@ -70,6 +70,7 @@ private:
     QSlider* rotateSlider = nullptr;
 
     SectionProfileConfigWidget* createRoadOption;
+    QToolButton* createFlat;
 
     unsigned int nRepaints = 0;
     qint64 lastUpdateFPSMS = 0;

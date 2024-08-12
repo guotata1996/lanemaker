@@ -568,11 +568,22 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
             {
                 for (auto sectionNode : rightProfile.children("section"))
                 {
-                    auto                       s = sectionNode.attribute("type_s").as_uint();
-                    auto                       laneCount = sectionNode.attribute("laneCount").as_int();
-                    auto                       offsetX2 = sectionNode.attribute("offsetX2").as_int();
+                    auto s = sectionNode.attribute("type_s").as_uint();
+                    auto laneCount = sectionNode.attribute("laneCount").as_int();
+                    auto offsetX2 = sectionNode.attribute("offsetX2").as_int();
                     RoadRunner::LanePlan profile{offsetX2, laneCount};
                     road.rr_profile.rightPlan.emplace(s, profile);
+                }
+            }
+
+            pugi::xml_node elevationProfile = customProfile_node.child("elevation");
+            if (elevationProfile) 
+            {
+                for (auto sectionNode : elevationProfile.children("section")) 
+                {
+                    auto s = sectionNode.attribute("type_s").as_uint();
+                    auto plan = sectionNode.attribute("plan").as_uint();
+                    road.rr_eprofile.plans.emplace(s, plan);
                 }
             }
         }
@@ -1194,6 +1205,16 @@ void OpenDriveMap::export_file(const std::string& fpath) const
                 section.append_attribute("type_s").set_value(customProfile.first);
                 section.append_attribute("laneCount").set_value(customProfile.second.laneCount);
                 section.append_attribute("offsetX2").set_value(customProfile.second.offsetx2);
+            }
+        }
+        if (!road.rr_eprofile.plans.empty()) 
+        {
+            pugi::xml_node customElevation = customProfile.append_child("elevation");
+            for (auto customProfile : road.rr_eprofile.plans) 
+            {
+                pugi::xml_node section = customElevation.append_child("section");
+                section.append_attribute("type_s").set_value(customProfile.first);
+                section.append_attribute("plan").set_value(customProfile.second);
             }
         }
     }

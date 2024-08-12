@@ -48,6 +48,7 @@ namespace RoadRunner
         bool biDirRoad = gen.rr_profile.HasSide(-1) && gen.rr_profile.HasSide(1);
         const double sMin = std::min(sBegin, sEnd);
         const double sMax = std::max(sBegin, sEnd);
+        const double sectionElevation = gen.ref_line.elevation_profile.get((sMin + sMax) / 2);
         for (const auto& id2Lane : laneSection.id_to_lane)
         {
             const auto& lane = id2Lane.second;
@@ -78,6 +79,7 @@ namespace RoadRunner
                 }
                 auto laneSegmentItem = new LaneGraphics(poly, outerBorder, innerBorder,
                     laneID, laneIDWhenReversed, lane.type, this);
+                laneSegmentItem->setZValue(sectionElevation);
                 allLaneGraphics.push_back(laneSegmentItem);
 
                 for (const auto& markingGroup : lane.roadmark_groups)
@@ -119,7 +121,7 @@ namespace RoadRunner
                         {
                             QPolygonF markingPoly = LineToPoly(lines[i]);
                             auto markingItem = new QGraphicsPolygonItem(markingPoly, this);
-                            markingItem->setZValue(1);
+                            markingItem->setZValue(sectionElevation + 0.01);
                             markingItem->setPen(Qt::NoPen);
                             Qt::GlobalColor color = colors[i] == "yellow" ? Qt::yellow : Qt::white;
                             markingItem->setBrush(QBrush(color, Qt::SolidPattern));

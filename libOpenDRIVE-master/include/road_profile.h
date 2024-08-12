@@ -18,11 +18,12 @@ class Validation;
 
 namespace RoadRunner
 {
+    typedef int8_t   type_t;
+    typedef uint32_t type_s;
+
     constexpr double LaneWidth = 3.25;
     constexpr double MaxTransition = 20;
-
-    typedef int8_t type_t;
-    typedef uint32_t type_s;
+    const type_s     MaxTransitionS = MaxTransition * 100;
 
     double to_odr_unit(type_s l);
     double to_odr_unit(type_t l);
@@ -53,13 +54,15 @@ namespace RoadRunner
         friend class odr::OpenDriveMap;
         friend class RoadRunnerTest::Validation;
     public:
-        LaneProfile(){};
+        LaneProfile() = default;
 
         LaneProfile(uint8_t nLanes_Left, int8_t offsetX2_Left, uint8_t nLanes_Right, int8_t offsetX2_Right);
 
         LaneProfile& operator=(const LaneProfile& other);
 
-        void OverwriteSection(int side, type_s start, type_s end, uint8_t nLanes, int8_t offsetX2);
+        void OverwriteSection(double start, double end, type_s length,
+            const LanePlan& newLeftProfile, const LanePlan& newRightProfile);
+
         /*First section travelling on left side, @s = Length*/
         LanePlan LeftEntrance() const;
         /*Last section travelling on left side, @s = 0*/
@@ -75,7 +78,7 @@ namespace RoadRunner
 
         LanePlan ProfileAt(double s, int side) const;
         
-        bool SnapToSegmentBoundary(type_s& key, type_s length, type_s limit = 10);
+        bool SnapToSegmentBoundary(type_s& key, type_s length, type_s limit = 10) const;
 
         LaneProfile Reversed(type_s length) const;
 
@@ -96,6 +99,8 @@ namespace RoadRunner
         // left side keys are in (s_big, s_small)
         // begins with 0, ends at length
         std::map<std::pair<type_s, type_s>, LanePlan> GetAllSections(type_s length, int side) const;
+
+        void OverwriteSection(int side, type_s start, type_s end, uint8_t nLanes, int8_t offsetX2);
 
         void ConvertSide(bool rightSide,
             std::string roadID,
@@ -124,8 +129,6 @@ namespace RoadRunner
             const std::map<double, odr::LaneSection>& rightSections,
             type_s length) const;
 
-        const type_s MaxTransitionS = MaxTransition * 100;
-
         struct TransitionInfo
         {
             type_s cumulativeS;  // front start (right:s=0, left: s=L)
@@ -137,14 +140,11 @@ namespace RoadRunner
 
     class ElevationProfile
     {
+    friend class odr::OpenDriveMap;
     public:
-        ElevationProfile(){};
+        ElevationProfile();
 
-        void OverwriteSection(type_s start, type_s end, ElevationPlan offsetX2);
-
-        ElevationProfile ProfileAt(double s) const;
-
-        bool SnapToSegmentBoundary(type_s& key, type_s length, type_s limit = 10);
+        void OverwriteSection(type_s start, type_s end, type_s length, ElevationPlan elevation);
 
         ElevationProfile Reversed(type_s length) const;
 
@@ -155,9 +155,12 @@ namespace RoadRunner
         void Apply(double length, odr::Road*);
 
     protected:
-        std::map<type_s, ElevationPlan> plans;
+        bool SnapToSegmentBoundary(type_s& key, type_s length, type_s limit = 10) const;
 
-        // begins with 0, ends at length
-        std::map<std::pair<type_s, type_s>, ElevationPlan> GetAllSections(type_s length, int side) const;
+        void RemoveRedundantProfileKeys();
+
+        std::map<std::pair<type_s, type_s>, ElevationPlan> GetAllSections(type_s length) const;
+
+        std::map<type_s, ElevationPlan> plans;
     };
 }

@@ -92,6 +92,8 @@ namespace RoadRunner
         }
         road1->generated.rr_profile.Join(linkBase, road2Base,
             from_odr_unit(road2->Length()), road2->generated.rr_profile, from_odr_unit(road1->Length()));
+        road1->generated.rr_eprofile.Join(linkBase, road2Base,
+            from_odr_unit(road2->Length()), road2->generated.rr_eprofile, from_odr_unit(road1->Length()));
         road1->Generate();
 
 #ifndef G_TEST
@@ -130,15 +132,15 @@ namespace RoadRunner
         ConnectionInfo succJunctionInfo(roadAsPrev, odr::RoadLink::ContactPoint_End);
 
         type_s oldLength = from_odr_unit(roadAsPrev->Length());
-        type_s splitPoint = from_odr_unit(s);
-        roadAsPrev->SnapToSegmentBoundary(splitPoint);
-        LaneProfile& oldProfile = roadAsPrev->generated.rr_profile;
         LaneProfile profile1, profile2;
-        oldProfile.Split(oldLength, splitPoint, profile1, profile2);
+        roadAsPrev->generated.rr_profile.Split(oldLength, from_odr_unit(s), profile1, profile2);
+        ElevationProfile eProfile1, eProfile2;
+        roadAsPrev->generated.rr_eprofile.Split(oldLength, from_odr_unit(s), eProfile1, eProfile2);
 
         auto refLine2 = roadAsPrev->RefLine().split(s);
-        auto part2 = std::make_shared<Road>(profile2, refLine2);
+        auto part2 = std::make_shared<Road>(profile2, eProfile2, refLine2);
         roadAsPrev->generated.rr_profile = profile1;
+        roadAsPrev->generated.rr_eprofile = eProfile1;
         roadAsPrev->Generate(false);
 
         if (roadAsPrev->successorJunction != nullptr)
@@ -188,20 +190,8 @@ namespace RoadRunner
         const LanePlan& newLeftProfile, const LanePlan& newRightProfile)
     {
         if (s1 > s2) std::swap(s1, s2);
-        type_s s1RR = from_odr_unit(s1);
-        type_s s2RR = from_odr_unit(s2);
-        SnapToSegmentBoundary(s1RR);
-        SnapToSegmentBoundary(s2RR);
 
-        auto& profile = generated.rr_profile;
-        if (profile.HasSide(1))
-        {
-            profile.OverwriteSection(1, s2RR, s1RR, newLeftProfile.laneCount, newLeftProfile.offsetx2);
-        }
-        if (profile.HasSide(-1))
-        {
-            profile.OverwriteSection(-1, s1RR, s2RR, newRightProfile.laneCount, newRightProfile.offsetx2);
-        }
+        generated.rr_profile.OverwriteSection(s1, s2, from_odr_unit(Length()), newLeftProfile, newRightProfile);
         Generate(false);
 
         if (s1 == 0 && predecessorJunction != nullptr)

@@ -22,6 +22,8 @@ namespace RoadRunner
 
         Road(const LaneProfile& p, odr::RefLine& l);
 
+        Road(const LaneProfile& p, const ElevationProfile& e, odr::RefLine& l);
+
         Road(const odr::Road& serialized);
 
         ~Road();

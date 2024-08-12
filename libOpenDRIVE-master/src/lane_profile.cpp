@@ -77,6 +77,24 @@ namespace RoadRunner
         }
     }
 
+    void LaneProfile::OverwriteSection(double s1, double s2, type_s length,
+        const LanePlan& newLeftProfile, const LanePlan& newRightProfile) 
+    {
+        type_s s1RR = from_odr_unit(s1);
+        type_s s2RR = from_odr_unit(s2);
+        SnapToSegmentBoundary(s1RR, length);
+        SnapToSegmentBoundary(s2RR, length);
+
+        if (HasSide(1))
+        {
+            OverwriteSection(1, s2RR, s1RR, newLeftProfile.laneCount, newLeftProfile.offsetx2);
+        }
+        if (HasSide(-1))
+        {
+            OverwriteSection(-1, s1RR, s2RR, newRightProfile.laneCount, newRightProfile.offsetx2);
+        }
+    }
+
     void LaneProfile::OverwriteSection(int side, type_s start, type_s end, uint8_t nLanes, int8_t offsetX2)
     {
         if (side < 0)
@@ -966,10 +984,8 @@ namespace RoadRunner
         return it->second;
     }
 
-    bool LaneProfile::SnapToSegmentBoundary(type_s& key, type_s length, type_s limit) 
+    bool LaneProfile::SnapToSegmentBoundary(type_s& key, type_s length, type_s limit) const
     {
-        auto existingKeys = GetAllKeys(length);
-
         if (key < limit)
         {
             key = 0;
@@ -980,6 +996,8 @@ namespace RoadRunner
             key = length;
             return true;
         }
+
+        auto existingKeys = GetAllKeys(length);
 
         auto above = existingKeys.lower_bound(key);
         if (*above - key < limit)
@@ -1025,6 +1043,8 @@ namespace RoadRunner
 
     void LaneProfile::Split(type_s length, type_s splitPoint, LaneProfile& profile1, LaneProfile& profile2) const
     {
+        SnapToSegmentBoundary(splitPoint, length);
+
         profile1 = LaneProfile(LeftExit().laneCount,
                                LeftExit().offsetx2,
                                RightEntrance().laneCount,

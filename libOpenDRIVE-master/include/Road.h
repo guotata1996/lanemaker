@@ -142,6 +142,7 @@ public:
     std::map<std::string, RoadObject> id_to_object;
     std::map<std::string, RoadSignal> id_to_signal;
     RoadRunner::LaneProfile           rr_profile;
+    RoadRunner::ElevationProfile      rr_eprofile;
 };
 
 } // namespace odr

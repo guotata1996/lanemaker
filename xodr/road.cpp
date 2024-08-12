@@ -34,6 +34,15 @@ namespace RoadRunner
         Generate();
     }
 
+    Road::Road(const LaneProfile& p, const ElevationProfile& e, odr::RefLine& l) :
+        generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1")
+    {
+        generated.rr_profile = p;
+        generated.rr_eprofile = e;
+        generated.ref_line = std::move(l);
+        Generate();
+    }
+
     Road::Road(const odr::Road& serialized):
         generated(serialized)
     {
@@ -44,6 +53,7 @@ namespace RoadRunner
     {
         generated.length = Length();
         generated.rr_profile.Apply(Length(), &generated);
+        generated.rr_eprofile.Apply(Length(), &generated);
 
         PlaceOdrRoadMarkings();
         generated.DeriveLaneBorders();
@@ -70,6 +80,7 @@ namespace RoadRunner
         type_s length = from_odr_unit(Length());
         
         generated.rr_profile = generated.rr_profile.Reversed(length);
+        generated.rr_eprofile = generated.rr_eprofile.Reversed(length);
         Generate(false);
 
         // Handle linkage
@@ -130,7 +141,7 @@ namespace RoadRunner
 
     bool Road::SnapToSegmentBoundary(type_s& key, type_s limit)
     {
-        type_s profileLength = RoadRunner::from_odr_unit(Length());
+        type_s profileLength = from_odr_unit(Length());
         return generated.rr_profile.SnapToSegmentBoundary(key, profileLength, limit);
     }
 

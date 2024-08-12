@@ -499,6 +499,12 @@ void MapView::SnapCursor(const QPoint& viewPos)
             .arg(g_PointerRoad.lock()->ID().c_str())
             .arg(g_PointerRoadS, 6, 'f', 3)
             .arg(g_PointerLane);
+
+        auto roadElevation = g_PointerRoad.lock()->generated.ref_line.elevation_profile.get(g_PointerRoadS);
+        if (roadElevation != 0)
+        {
+            roadInfo += QString(" Z %1").arg(roadElevation, 5, 'f', 2);
+        }
     }
 
     parentContainer->SetHovering(cursorInfo + roadInfo);

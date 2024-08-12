@@ -13,6 +13,7 @@
 #include <QtMath>
 
 extern SectionProfileConfigWidget* g_createRoadOption;
+int8_t g_createRoadElevationOption;
 
 MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     : QFrame(parent), createRoadOption(new SectionProfileConfigWidget),
@@ -50,6 +51,49 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
 
     // Zoom slider layout
     QVBoxLayout* zoomSliderLayout = new QVBoxLayout;
+    auto createAbove = new QToolButton;
+    createAbove->setText("^");
+    createAbove->setCheckable(true);
+    connect(createAbove, &QToolButton::toggled, [](bool checked) {
+        if (checked)
+        {
+            g_createRoadElevationOption = 1;
+        }
+    });
+
+    createFlat = new QToolButton;
+    createFlat->setText("=");
+    createFlat->setCheckable(true);
+    connect(createFlat, &QToolButton::toggled, [](bool checked) {
+        if (checked)
+        {
+            g_createRoadElevationOption = 0;
+        }
+    });
+
+    auto createBelow = new QToolButton;
+    createBelow->setText("v");
+    createBelow->setCheckable(true);
+    connect(createBelow, &QToolButton::toggled, [](bool checked) {
+        if (checked)
+        {
+            g_createRoadElevationOption = -1;
+        }});
+
+    auto elevationOptions = new QButtonGroup(this);
+    auto elevationLayout = new QVBoxLayout;
+    elevationLayout->addWidget(createAbove);
+    elevationLayout->addWidget(createFlat);
+    elevationLayout->addWidget(createBelow);
+    elevationLayout->setSpacing(0);
+
+    elevationOptions->setExclusive(true);
+    elevationOptions->addButton(createAbove);
+    elevationOptions->addButton(createFlat);
+    elevationOptions->addButton(createBelow);
+    
+    zoomSliderLayout->addLayout(elevationLayout);
+
     zoomSliderLayout->addWidget(zoomInIcon);
     zoomSliderLayout->addWidget(zoomSlider);
     zoomSliderLayout->addWidget(zoomOutIcon);
@@ -201,8 +245,9 @@ void MainWidget::setupMatrix()
     displayScaleTimer->start(1000);
 }
 
-void MainWidget::gotoCreateRoadMode()
+void MainWidget::gotoCreateRoadMode(bool checked)
 {
+    if (!checked) return;
     mapView->setDragMode(QGraphicsView::NoDrag);
     mapView->setInteractive(true);
     mapView->SetEditMode(RoadRunner::Mode_Create);
@@ -211,8 +256,9 @@ void MainWidget::gotoCreateRoadMode()
     emit InReadOnlyMode(false);
 }
 
-void MainWidget::gotoCreateLaneMode()
+void MainWidget::gotoCreateLaneMode(bool checked)
 {
+    if (!checked) return;
     mapView->setDragMode(QGraphicsView::NoDrag);
     mapView->setInteractive(true);
     mapView->SetEditMode(RoadRunner::Mode_CreateLanes);
@@ -221,8 +267,9 @@ void MainWidget::gotoCreateLaneMode()
     emit InReadOnlyMode(false);
 }
 
-void MainWidget::gotoDestroyMode()
+void MainWidget::gotoDestroyMode(bool checked)
 {
+    if (!checked) return;
     mapView->setDragMode(QGraphicsView::NoDrag);
     mapView->setInteractive(true);
     mapView->SetEditMode(RoadRunner::Mode_Destroy);
@@ -231,8 +278,9 @@ void MainWidget::gotoDestroyMode()
     emit InReadOnlyMode(false);
 }
 
-void MainWidget::gotoModifyMode()
+void MainWidget::gotoModifyMode(bool checked)
 {
+    if (!checked) return;
     mapView->setDragMode(QGraphicsView::NoDrag);
     mapView->setInteractive(true);
     mapView->SetEditMode(RoadRunner::Mode_Modify);
@@ -241,8 +289,9 @@ void MainWidget::gotoModifyMode()
     emit InReadOnlyMode(false);
 }
 
-void MainWidget::gotoDragMode()
+void MainWidget::gotoDragMode(bool checked)
 {
+    if (!checked) return;
     mapView->setDragMode(QGraphicsView::ScrollHandDrag);
     mapView->setInteractive(false);
     mapView->SetEditMode(RoadRunner::Mode_None);
@@ -328,6 +377,7 @@ void MainWidget::Reset()
         btn->setChecked(false);
     }
     pointerModeGroup->setExclusive(true);
+    createFlat->setChecked(true);
     gotoDragMode();
     resetView(); // Make sure to RecordViewTransform()
     mapView->ResetSceneRect();
