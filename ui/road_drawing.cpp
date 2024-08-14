@@ -16,6 +16,7 @@ extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 
 extern SectionProfileConfigWidget* g_createRoadOption;
+extern int8_t g_createRoadElevationOption;
 
 extern MapView* g_mapView;
 
@@ -117,16 +118,16 @@ RoadCreationSession::RoadCreationSession(QGraphicsView* aView) :
     RoadDrawingSession(aView)
 {
     setPreviewItem = scene->addPath(setPath);
-    setPreviewItem->setZValue(10);
+    setPreviewItem->setZValue(129);
 
     flexPreviewItem = scene->addPath(flexPath);
-    flexPreviewItem->setZValue(10);
+    flexPreviewItem->setZValue(129);
     QPen flexPen;
     flexPen.setStyle(Qt::DashLine);
     flexPreviewItem->setPen(flexPen);
 
     hintItem = scene->addPath(hintPath);
-    hintItem->setZValue(10);
+    hintItem->setZValue(129);
     QPen hintPen;
     hintPen.setColor(QColor(0, 200, 100, 80));
     hintPen.setStyle(Qt::DotLine);
@@ -498,10 +499,6 @@ bool RoadCreationSession::CreateRoad()
         g_createRoadOption->RightResult().laneCount, g_createRoadOption->RightResult().offsetx2);
 
     RoadRunner::ElevationProfile eConfig;
-    eConfig.OverwriteSection(
-        RoadRunner::from_odr_unit(refLine.length * 0.3), 
-        RoadRunner::from_odr_unit(refLine.length * 0.67), 
-        RoadRunner::from_odr_unit(refLine.length), 5);
 
     auto newRoad = std::make_shared<RoadRunner::Road>(config, eConfig, refLine);
     newRoad->GenerateAllSectionGraphics();
@@ -544,7 +541,7 @@ bool RoadCreationSession::CreateRoad()
         {
             spdlog::error("Join error {}", joinResult);
         }
-        world->allRoads.insert(newRoad); //TODO: same change for lane mode
+        world->allRoads.insert(newRoad);
     }
 
     if (standaloneRoad)
@@ -552,7 +549,14 @@ bool RoadCreationSession::CreateRoad()
         world->allRoads.insert(newRoad);
     }
 
-    return tryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd);
+    if (g_createRoadElevationOption == 0)
+    {
+        return tryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd);
+    }
+    else
+    {
+        return tryCreateBridgeAndTunnel(std::move(newRoad), newPartBegin, newPartEnd);
+    }
 }
 
 std::unique_ptr<odr::RoadGeometry> RoadCreationSession::CreateJoinAtEndGeo(bool forPreview) const
@@ -813,5 +817,62 @@ bool RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
         newPartBegin = 0;
         newPartEnd -= sEnd1;
     }
+    return true;
+}
+
+bool RoadCreationSession::tryCreateBridgeAndTunnel(std::shared_ptr<RoadRunner::Road> newRoad, double newPartBegin, double newPartEnd)
+{
+    auto newPartBeginS = RoadRunner::from_odr_unit(newPartBegin);
+    auto newPartEndS = RoadRunner::from_odr_unit(newPartEnd);
+
+    auto allOverlaps = newRoad->AllOverlaps(newPartBegin, newPartEnd);
+    if (allOverlaps.empty())
+    {
+        return true;
+    }
+
+    const RoadRunner::ElevationPlan clearance = 5;
+    auto& existingProfile = newRoad->generated.rr_eprofile;
+    auto  newRoadLength = RoadRunner::from_odr_unit(newRoad->Length());
+    for (const auto& overlap : allOverlaps)
+    {
+        const auto& overlappingProfile = overlap->road2.lock()->generated.rr_eprofile;
+
+        const auto sBegin1S = RoadRunner::from_odr_unit(overlap->sBegin1);
+        const auto sEnd1S = RoadRunner::from_odr_unit(overlap->sEnd1);
+        const auto sBegin2S = RoadRunner::from_odr_unit(overlap->sBegin2);
+        const auto sEnd2S = RoadRunner::from_odr_unit(overlap->sEnd2);
+        if (g_createRoadElevationOption > 0)
+        {
+            auto existingClosest = existingProfile.GetMin(sBegin1S, sEnd1S);
+            auto existingSafest = existingProfile.GetMax(sBegin1S, sEnd1S);
+            RoadRunner::ElevationPlan overlapRequirement = overlappingProfile.GetMax(sBegin2S, sEnd2S) + clearance;
+            if (existingClosest < overlapRequirement)
+            {
+                existingProfile.OverwriteSection(sBegin1S, sEnd1S, newRoadLength,
+                    std::max(existingSafest, overlapRequirement));
+            }
+        }
+        else if (g_createRoadElevationOption < 0)
+        {
+            auto existingClosest = existingProfile.GetMax(sBegin1S, sEnd1S);
+            auto existingSafest = existingProfile.GetMin(sBegin1S, sEnd1S);
+            RoadRunner::ElevationPlan overlapRequirement = overlappingProfile.GetMin(sBegin2S, sEnd2S) - clearance;
+            if (existingClosest > overlapRequirement)
+            {
+                existingProfile.OverwriteSection(sBegin1S, sEnd1S, newRoadLength,
+                    std::min(existingSafest, overlapRequirement));
+            }
+        }
+    }
+
+    existingProfile.Apply(RoadRunner::from_odr_unit(newRoad->Length()), &newRoad->generated);
+
+    for (const auto& overlap : allOverlaps)
+    {
+        // TODO: -3 * MaxTransition once smooth transition is made
+        newRoad->GenerateOrUpdateSectionGraphicsBetween(overlap->sBegin1, overlap->sEnd1);
+    }
+    
     return true;
 }

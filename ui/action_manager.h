@@ -29,6 +29,7 @@ namespace RoadRunner
         void Record(QMouseEvent*);
         void Record(QKeyEvent*);
         void Record(const LanePlan&, const LanePlan&);
+        void Record(ElevationPlan);
         void Record(ActionType);
         void Record(const QSize& oldSize, const QSize& newSize);
 
@@ -50,6 +51,7 @@ namespace RoadRunner
         static void Replay(const MouseAction&);
         static void Replay(const KeyPressAction&);
         static void Replay(const ChangeProfileAction&);
+        static void Replay(const ChangeElevationAction&);
         static void Replay(const ResizeWindowAction&);
 
         /* Save last viewport change (if exist) before key frame

@@ -25,6 +25,7 @@ namespace RoadRunner
         Action_Redo,
         Action_ChangeMode,
         Action_ChangeProfile,
+        Action_ChangeElevation,
         Action_ResizeWindow
     };
 
@@ -83,6 +84,11 @@ namespace RoadRunner
         LanePlan leftProfile, rightProfile;
     };
 
+    struct ChangeElevationAction
+    {
+        ElevationPlan plan;
+    };
+
     struct ResizeWindowAction
     {
         int oldWidth, oldHeight;
@@ -96,6 +102,7 @@ namespace RoadRunner
         ChangeViewportAction viewport;
         ChangeModeAction changeMode;
         ChangeProfileAction changeProfile;
+        ChangeElevationAction changeElevation;
         ResizeWindowAction resizeWindow;
 
         ActionDetail() = default;
@@ -147,6 +154,12 @@ namespace RoadRunner
         {
             type = Action_ChangeProfile;
             detail.changeProfile = c;
+        }
+
+        UserAction(ChangeElevationAction c, int aTime)
+        {
+            type = Action_ChangeElevation;
+            detail.changeElevation = c;
         }
 
         UserAction(ResizeWindowAction c, int aTime)

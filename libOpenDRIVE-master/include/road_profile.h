@@ -146,6 +146,10 @@ namespace RoadRunner
 
         void OverwriteSection(type_s start, type_s end, type_s length, ElevationPlan elevation);
 
+        ElevationPlan GetMax(type_s start, type_s end) const;
+
+        ElevationPlan GetMin(type_s start, type_s end) const;
+
         ElevationProfile Reversed(type_s length) const;
 
         void Split(type_s length, type_s splitPoint, ElevationProfile& p1, ElevationProfile& p2) const;
@@ -160,6 +164,8 @@ namespace RoadRunner
         void RemoveRedundantProfileKeys();
 
         std::map<std::pair<type_s, type_s>, ElevationPlan> GetAllSections(type_s length) const;
+
+        ElevationPlan GetExtreme(type_s start, type_s end, bool _max) const;
 
         std::map<type_s, ElevationPlan> plans;
     };

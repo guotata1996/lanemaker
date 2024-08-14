@@ -11,6 +11,7 @@ extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern int g_PointerLane;
 
 extern SectionProfileConfigWidget* g_createRoadOption;
+extern int8_t g_createRoadElevationOption;
 
 LanesCreationSession::LanesCreationSession(QGraphicsView* aView) :
     RoadCreationSession(aView), lLanes(0), rLanes(0)
@@ -62,6 +63,7 @@ bool LanesCreationSession::CreateRoad()
     newRoad->GenerateAllSectionGraphics();
 
     bool standaloneRoad = true;
+    double newPartBegin = 0, newPartEnd = newRoad->Length();
     if (!extendFromStart.expired())
     {
         auto toExtend = extendFromStart.lock();
@@ -88,6 +90,8 @@ bool LanesCreationSession::CreateRoad()
             else if (startFullyMatch)
             {
                 standaloneRoad = false;
+                newPartBegin += toExtend->Length();
+                newPartEnd += toExtend->Length();
                 int joinResult = RoadRunner::Road::JoinRoads(toExtend,
                     extendFromStartS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End,
                     newRoad, odr::RoadLink::ContactPoint_Start);
@@ -217,7 +221,15 @@ bool LanesCreationSession::CreateRoad()
     {
         world->allRoads.insert(newRoad);
     }
-    return true;
+
+    if (g_createRoadElevationOption == 0)
+    {
+        return tryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd);
+    }
+    else
+    {
+        return tryCreateBridgeAndTunnel(std::move(newRoad), newPartBegin, newPartEnd);
+    }
 }
 
 LanesCreationSession::~LanesCreationSession()

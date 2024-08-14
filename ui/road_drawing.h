@@ -14,7 +14,7 @@ public:
     CustomCursorItem() : QGraphicsEllipseItem(
         -InitialRadius, -InitialRadius,
         2 * InitialRadius, 2 * InitialRadius) {
-        setZValue(99);
+        setZValue(999);
     }
 
     virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
@@ -104,6 +104,10 @@ protected:
 
     std::unique_ptr<odr::RoadGeometry> createJoinAtEndGeo(bool forPreview, ForceDirection joinPointDir) const;
 
+    /*Return false upon error*/
+    bool tryCreateJunction(std::shared_ptr<RoadRunner::Road>, double, double);
+    bool tryCreateBridgeAndTunnel(std::shared_ptr<RoadRunner::Road>, double, double);
+
     std::vector<QPointF> ctrlPoints;
 
     std::unique_ptr<QVector2D> startDir;
@@ -115,9 +119,6 @@ protected:
     bool lastClickOnExtLine; /*Prohibit random dbl-click*/
 
 private:
-    /*Return false upon error*/
-    bool tryCreateJunction(std::shared_ptr<RoadRunner::Road>, double, double);
-    
     QPainterPath setPath;
     QGraphicsPathItem* setPreviewItem;
 

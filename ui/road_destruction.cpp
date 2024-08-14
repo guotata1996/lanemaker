@@ -13,14 +13,14 @@ RoadDestroySession::RoadDestroySession(QGraphicsView* aView):
     RoadDrawingSession(aView)
 {
     hintItemLeft = scene->addPolygon(hintPolygonLeft);
-    hintItemLeft->setZValue(10);
+    hintItemLeft->setZValue(129);
     QPen pen;
     pen.setColor(Qt::red);
     pen.setWidthF(0.5);
     hintItemLeft->setPen(pen);
 
     hintItemRight = scene->addPolygon(hintPolygonRight);
-    hintItemRight->setZValue(10);
+    hintItemRight->setZValue(129);
     pen.setColor(Qt::green);
     hintItemRight->setPen(pen);
 }

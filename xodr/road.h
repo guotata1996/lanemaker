@@ -89,6 +89,9 @@ namespace RoadRunner
         // Excluded: Overlap w/ Junction connectingRead and DirectJunction linkedRoad
         std::unique_ptr<RoadsOverlap> FirstOverlap(double sBegin, double sEnd) const;
 
+        // Everything included
+        std::vector<std::unique_ptr<RoadsOverlap>> AllOverlaps(double sBegin, double sEnd) const;
+
         void EnableHighlight(bool enabled);
 #endif
 

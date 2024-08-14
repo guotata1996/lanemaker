@@ -196,6 +196,9 @@ void ReplayWindow::FillHistoryTable()
 				.arg(action.detail.changeProfile.rightProfile.offsetx2);
 			icon = QIcon(QPixmap(":/icons/car_coming.png"));
 			break;
+		case RoadRunner::ActionType::Action_ChangeElevation:
+			desc = QString("ChangeElevation: %1").arg(action.detail.changeElevation.plan);
+			break;
 		case RoadRunner::ActionType::Action_ResizeWindow:
 			desc = QString("Resize windows from (%1,%2) to (%3,%4)")
 				.arg(action.detail.resizeWindow.oldWidth)

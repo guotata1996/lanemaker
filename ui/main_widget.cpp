@@ -51,13 +51,14 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
 
     // Zoom slider layout
     QVBoxLayout* zoomSliderLayout = new QVBoxLayout;
-    auto createAbove = new QToolButton;
+    createAbove = new QToolButton;
     createAbove->setText("^");
     createAbove->setCheckable(true);
     connect(createAbove, &QToolButton::toggled, [](bool checked) {
         if (checked)
         {
             g_createRoadElevationOption = 1;
+            RoadRunner::ActionManager::Instance()->Record(g_createRoadElevationOption);
         }
     });
 
@@ -68,16 +69,18 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
         if (checked)
         {
             g_createRoadElevationOption = 0;
+            RoadRunner::ActionManager::Instance()->Record(g_createRoadElevationOption);
         }
     });
 
-    auto createBelow = new QToolButton;
+    createBelow = new QToolButton;
     createBelow->setText("v");
     createBelow->setCheckable(true);
     connect(createBelow, &QToolButton::toggled, [](bool checked) {
         if (checked)
         {
             g_createRoadElevationOption = -1;
+            RoadRunner::ActionManager::Instance()->Record(g_createRoadElevationOption);
         }});
 
     auto elevationOptions = new QButtonGroup(this);
@@ -420,5 +423,23 @@ void MainWidget::SetModeFromReplay(int mode)
     default:
         dragModeButton->setChecked(true);
         break;
+    }
+}
+
+void MainWidget::SetElevationFromReplay(int8_t elevationSetting)
+{
+    switch (elevationSetting)
+    {
+    case -1:
+        createBelow->setChecked(true);
+        break;
+    case 0:
+        createFlat->setChecked(true);
+        break;
+    case 1:
+        createAbove->setChecked(true);
+        break;
+    default:
+        assert(false);
     }
 }

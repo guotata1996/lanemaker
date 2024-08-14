@@ -32,6 +32,7 @@ public:
     void RecordViewTransform();
     void SetViewFromReplay(double zoomSliderVal, double rotateSliderVal);
     void SetModeFromReplay(int mode);
+    void SetElevationFromReplay(int8_t elevationSetting);
 
 signals:
     void HoveringChanged(QString);
@@ -70,7 +71,7 @@ private:
     QSlider* rotateSlider = nullptr;
 
     SectionProfileConfigWidget* createRoadOption;
-    QToolButton* createFlat;
+    QToolButton* createFlat, *createAbove, *createBelow;
 
     unsigned int nRepaints = 0;
     qint64 lastUpdateFPSMS = 0;

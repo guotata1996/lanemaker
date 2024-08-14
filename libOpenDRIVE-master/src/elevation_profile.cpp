@@ -69,6 +69,31 @@ namespace RoadRunner
         }
     }
 
+    ElevationPlan ElevationProfile::GetMax(type_s start, type_s end) const 
+    { 
+        return GetExtreme(start, end, true);
+    }
+
+    ElevationPlan ElevationProfile::GetMin(type_s start, type_s end) const 
+    { 
+        return GetExtreme(start, end, false);
+    }
+
+    ElevationPlan ElevationProfile::GetExtreme(type_s start, type_s end, bool _max) const 
+    {
+        auto start_iter = plans.upper_bound(start);
+        start_iter--;
+        auto end_iter = plans.lower_bound(end);
+        assert(start_iter != end_iter);
+
+        ElevationPlan rtn = _max ? - 128 : 127;
+        for (auto it = start_iter; it != end_iter; ++it)
+        {
+            rtn = _max ? std::max(rtn, it->second) : std::min(rtn, it->second);
+        }
+        return rtn;
+    }
+
     ElevationProfile ElevationProfile::Reversed(type_s length) const 
     { 
         ElevationProfile newProfile;

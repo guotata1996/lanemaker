@@ -97,11 +97,13 @@ bool Vehicle::Step(double dt, const odr::OpenDriveMap& odrMap, const odr::Routin
     auto angleFromRefLine = 180 / M_PI * std::atan2(gradFromRefLine[1], gradFromRefLine[0]);
 
     auto angle = angleFromRefLine + angleFromLane + angleFromlaneChange;
-
     if (reversedTraverse) angle += 180;
+
+    auto roadElevation = road.ref_line.elevation_profile.get(sOnRefLine + currKey.lanesection_s0);
 
     graphics->setPos(QPointF(pos3[0], pos3[1]));
     graphics->setRotation(angle);
+    graphics->setZValue(roadElevation + 2.5);
     graphics->show();
     return true;
 }

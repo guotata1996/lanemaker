@@ -181,6 +181,18 @@ namespace RoadRunner
         g_createRoadOption->SetOption(action.leftProfile, action.rightProfile);
     }
 
+    void ActionManager::Record(ElevationPlan plan)
+    {
+        ChangeElevationAction serialized{ plan };
+        history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
+        Save();
+    }
+
+    void ActionManager::Replay(const ChangeElevationAction& action)
+    {
+        g_mapView->parentContainer->SetElevationFromReplay(action.plan);
+    }
+
     void ActionManager::Record(ActionType actionNoParm)
     {
         switch (actionNoParm)
@@ -236,6 +248,9 @@ namespace RoadRunner
             break;
         case Action_ChangeProfile:
             Replay(action.detail.changeProfile);
+            break;
+        case Action_ChangeElevation:
+            Replay(action.detail.changeElevation);
             break;
         case Action_Undo:
             g_mainWindow->undo();
