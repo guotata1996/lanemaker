@@ -14,6 +14,8 @@
 #include <utility>
 #include <vector>
 
+#include <iostream>
+
 namespace odr
 {
 Poly3::Poly3(double s0, double a, double b, double c, double d) : raw_a(a), raw_b(b), raw_c(c), raw_d(d)
@@ -210,6 +212,77 @@ double CubicSpline::get_max(double s_start, double s_end) const
     const double max_val = (max_iter == max_poly_vals.end()) ? 0 : *max_iter;
     return max_val;
 }
+
+double CubicSpline::get_min(double s_start, double s_end) const 
+{ 
+    return -negate().get_max(s_start, s_end); 
+}
+
+void CubicSpline::reverse(double length) 
+{
+    decltype(s0_to_poly) reversed;
+    for (auto it = s0_to_poly.begin(); it != s0_to_poly.end(); ++it) 
+    {
+        auto   endIt = it;
+        endIt++;
+        double revS = endIt == s0_to_poly.end() ? 0 : length - endIt->first;
+        double segLen = endIt == s0_to_poly.end() ? length - it->first : endIt->first - it->first;
+
+        auto&  poly = it->second;
+        // old_x(local) <- new_x - x
+        double revRawA = poly.raw_a + poly.raw_b * segLen + poly.raw_c * pow(segLen, 2) + poly.raw_d * pow(segLen, 3);
+        double revRawB = -poly.raw_b - 2 * poly.raw_c * segLen - 3 * poly.raw_d * pow(segLen, 2);
+        double revRawC = poly.raw_c + 3 * poly.raw_d * segLen;
+        double revRawD = -poly.raw_d;
+        odr::Poly3 revSeg(revS, revRawA, revRawB, revRawC, revRawD);
+        reversed.emplace(revS, std::move(revSeg));
+    }
+
+    s0_to_poly = reversed;
+}
+
+CubicSpline CubicSpline::split(double s) 
+{ 
+    CubicSpline rtn;
+    if (s0_to_poly.empty())
+        return rtn;
+    auto secondaryBegin = s0_to_poly.upper_bound(s);
+    secondaryBegin--;
+    if (secondaryBegin->first != s) 
+    {
+        Poly3 splitAt = secondaryBegin->second;
+        double deltaS0 = s - secondaryBegin->first;
+        // old_x(local) = new_x + deltaS0
+        double shiftRawA = splitAt.raw_a + splitAt.raw_b * deltaS0 + splitAt.raw_c * pow(deltaS0, 2) + splitAt.raw_d * pow(deltaS0, 3);
+        double shiftRawB = splitAt.raw_b + 2 * splitAt.raw_c * deltaS0 + 3 * splitAt.raw_d * pow(deltaS0, 2);
+        double shiftRawC = splitAt.raw_c + 3 * splitAt.raw_d * deltaS0;
+        double shiftRawD = splitAt.raw_d;
+        rtn.s0_to_poly.emplace(0, Poly3(0, shiftRawA, shiftRawB, shiftRawC, shiftRawD));
+
+        secondaryBegin++;
+    }
+    for (auto it = secondaryBegin; it != s0_to_poly.end(); ++it) 
+    {
+        double sInSecond = it->first - s;
+        Poly3& poly = it->second;
+        rtn.s0_to_poly.emplace(sInSecond, Poly3(sInSecond, poly.raw_a, poly.raw_b, poly.raw_c, poly.raw_d));
+    }
+    s0_to_poly.erase(secondaryBegin, s0_to_poly.end());
+
+    return rtn;
+}
+
+void CubicSpline::join(double length, const CubicSpline& second)
+{
+    for (const auto& s_poly : second.s0_to_poly) 
+    {
+        Poly3 poly = s_poly.second;
+        s0_to_poly.emplace(length + s_poly.first, 
+            Poly3(length + s_poly.first, poly.raw_a, poly.raw_b, poly.raw_c, poly.raw_d));
+    }
+}
+
+
 
 std::set<double> CubicSpline::approximate_linear(double eps, double s_start, double s_end) const
 {

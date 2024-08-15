@@ -181,7 +181,7 @@ namespace RoadRunner
         g_createRoadOption->SetOption(action.leftProfile, action.rightProfile);
     }
 
-    void ActionManager::Record(ElevationPlan plan)
+    void ActionManager::Record(int8_t plan)
     {
         ChangeElevationAction serialized{ plan };
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));

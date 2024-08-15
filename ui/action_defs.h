@@ -86,7 +86,7 @@ namespace RoadRunner
 
     struct ChangeElevationAction
     {
-        ElevationPlan plan;
+        int8_t plan;
     };
 
     struct ResizeWindowAction

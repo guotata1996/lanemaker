@@ -38,12 +38,17 @@ struct CubicSpline
     double get(double s, double default_val = 0.0, bool extend_start = true) const;
     double get_grad(double s, double default_val = 0.0, bool extend_start = true) const;
     double get_max(double s_start, double s_end) const;
+    double get_min(double s_start, double s_end) const;
     Poly3  get_poly(double s, bool extend_start = true) const;
 
     bool        empty() const;
     std::size_t size() const;
     CubicSpline negate() const;
     CubicSpline add(const CubicSpline& other) const;
+
+    void        reverse(double length);
+    CubicSpline split(double s); 
+    void        join(double selfLength, const CubicSpline& second);
 
     std::set<double> approximate_linear(double eps, double s_start, double s_end) const;
 

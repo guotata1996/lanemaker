@@ -92,8 +92,7 @@ namespace RoadRunner
         }
         road1->generated.rr_profile.Join(linkBase, road2Base,
             from_odr_unit(road2->Length()), road2->generated.rr_profile, from_odr_unit(road1->Length()));
-        road1->generated.rr_eprofile.Join(linkBase, road2Base,
-            from_odr_unit(road2->Length()), road2->generated.rr_eprofile, from_odr_unit(road1->Length()));
+        road1->RefLine().elevation_profile.join(road1->Length(), road2->RefLine().elevation_profile);
         road1->Generate();
 
 #ifndef G_TEST
@@ -134,13 +133,10 @@ namespace RoadRunner
         type_s oldLength = from_odr_unit(roadAsPrev->Length());
         LaneProfile profile1, profile2;
         roadAsPrev->generated.rr_profile.Split(oldLength, from_odr_unit(s), profile1, profile2);
-        ElevationProfile eProfile1, eProfile2;
-        roadAsPrev->generated.rr_eprofile.Split(oldLength, from_odr_unit(s), eProfile1, eProfile2);
 
         auto refLine2 = roadAsPrev->RefLine().split(s);
-        auto part2 = std::make_shared<Road>(profile2, eProfile2, refLine2);
+        auto part2 = std::make_shared<Road>(profile2, refLine2);
         roadAsPrev->generated.rr_profile = profile1;
-        roadAsPrev->generated.rr_eprofile = eProfile1;
         roadAsPrev->Generate(false);
 
         if (roadAsPrev->successorJunction != nullptr)

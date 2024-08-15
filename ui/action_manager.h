@@ -29,7 +29,7 @@ namespace RoadRunner
         void Record(QMouseEvent*);
         void Record(QKeyEvent*);
         void Record(const LanePlan&, const LanePlan&);
-        void Record(ElevationPlan);
+        void Record(int8_t elevationPlan);
         void Record(ActionType);
         void Record(const QSize& oldSize, const QSize& newSize);
 

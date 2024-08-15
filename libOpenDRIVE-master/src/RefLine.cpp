@@ -52,6 +52,8 @@ void RefLine::reverse()
     }
 
     s0_to_geometry = std::move(new_s0_to_geo);
+
+    elevation_profile.reverse(length);
 }
 
 RefLine RefLine::split(double s) 
@@ -118,6 +120,8 @@ RefLine RefLine::split(double s)
 
     enforceMinGeoLength();
     second.enforceMinGeoLength();
+
+    second.elevation_profile = elevation_profile.split(s);
     
     return second;
 }

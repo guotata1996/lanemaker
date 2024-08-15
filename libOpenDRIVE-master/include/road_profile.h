@@ -47,7 +47,7 @@ namespace RoadRunner
         }
     };
 
-    typedef int8_t ElevationPlan;
+    //typedef int8_t ElevationPlan;
 
     class LaneProfile
     {
@@ -138,35 +138,44 @@ namespace RoadRunner
         };
     };
 
+    class CubicSplineGenerator
+    {
+    public:
+        static void OverwriteSection(odr::CubicSpline& target, double start, double end, double value){};
+
+        static void OverwriteEnd(odr::CubicSpline& target, bool contactStart, double value);
+    };
+    /*
     class ElevationProfile
     {
     friend class odr::OpenDriveMap;
     public:
         ElevationProfile();
 
-        void OverwriteSection(type_s start, type_s end, type_s length, ElevationPlan elevation);
+        void OverwriteSection(double start, double end, double length, ElevationPlan elevation);
 
-        ElevationPlan GetMax(type_s start, type_s end) const;
+        //ElevationPlan GetMax(type_s start, type_s end) const;
 
-        ElevationPlan GetMin(type_s start, type_s end) const;
+        //ElevationPlan GetMin(type_s start, type_s end) const;
 
-        ElevationProfile Reversed(type_s length) const;
+        ElevationProfile Reversed(double length) const;
 
-        void Split(type_s length, type_s splitPoint, ElevationProfile& p1, ElevationProfile& p2) const;
+        void Split(double length, double splitPoint, ElevationProfile& p1, ElevationProfile& p2) const;
 
-        void Join(type_s originalLength, type_s road2Base, type_s road2Length, const ElevationProfile& road2Profile, type_s finalLength);
+        void Join(double originalLength, double road2Base, double road2Length, const ElevationProfile& road2Profile);
 
         void Apply(double length, odr::Road*);
 
     protected:
-        bool SnapToSegmentBoundary(type_s& key, type_s length, type_s limit = 10) const;
+        bool SnapToSegmentBoundary(double& key, double length, double limit = 0.1) const;
 
         void RemoveRedundantProfileKeys();
 
-        std::map<std::pair<type_s, type_s>, ElevationPlan> GetAllSections(type_s length) const;
+        std::map<std::pair<double, double>, ElevationPlan> GetAllSections(double length) const;
 
-        ElevationPlan GetExtreme(type_s start, type_s end, bool _max) const;
+        //ElevationPlan GetExtreme(double start, double end, bool _max) const;
 
-        std::map<type_s, ElevationPlan> plans;
+        std::map<double, ElevationPlan> plans;
     };
+    */
 }

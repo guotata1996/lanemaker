@@ -2,7 +2,7 @@
 #include <Road.h>
 
 #include <cassert>
-
+/*
 namespace RoadRunner
 {
     ElevationProfile::ElevationProfile() 
@@ -47,7 +47,6 @@ namespace RoadRunner
         RemoveRedundantProfileKeys();
     }
 
-    /*TODO: make smooth ramps, not staircase*/
     void ElevationProfile::Apply(double _length, odr::Road* r) 
     { 
         type_s length = from_odr_unit(_length);
@@ -215,4 +214,4 @@ namespace RoadRunner
         }
     }
 }
-    
+*/
