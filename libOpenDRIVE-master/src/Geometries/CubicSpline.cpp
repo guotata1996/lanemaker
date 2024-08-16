@@ -42,20 +42,21 @@ double Poly3::get_grad(double s) const { return b + 2 * c * s + 3 * d * s * s; }
 
 double Poly3::get_max(double s_start, double s_end) const
 {
+    const auto endPointMax = std::max(this->get(s_start), this->get(s_end));
     if (this->d != 0)
     {
         const double s_extr = (std::sqrt(c * c - 3 * b * d) - c) / (3 * d);
         const double max_val1 = this->get(std::min(std::max(s_extr, s_start), s_end));
         const double max_val2 = this->get(std::min(std::max(-s_extr, s_start), s_end));
-        return std::max(max_val1, max_val2);
+        return std::max(endPointMax, std::max(max_val1, max_val2));
     }
     else if (this->c != 0)
     {
         const double s_extr = (-b) / (2 * c);
-        return this->get(std::min(std::max(s_extr, s_start), s_end));
+        return std::max(endPointMax, this->get(std::min(std::max(s_extr, s_start), s_end)));
     }
 
-    return this->get(s_start);
+    return endPointMax;
 }
 
 std::set<double> Poly3::approximate_linear(double eps, double s_start, double s_end) const
@@ -117,6 +118,11 @@ bool Poly3::isnan() const { return (std::isnan(this->a) || std::isnan(this->b) |
 bool CubicSpline::empty() const { return this->s0_to_poly.empty(); }
 
 std::size_t CubicSpline::size() const { return this->s0_to_poly.size(); }
+
+CubicSpline::CubicSpline(double height) 
+{ 
+    s0_to_poly.emplace(0, odr::Poly3(0, 0, 0, 0, 0)); 
+}
 
 double CubicSpline::get(double s, double default_val, bool extend_start) const
 {
@@ -258,7 +264,6 @@ CubicSpline CubicSpline::split(double s)
         double shiftRawC = splitAt.raw_c + 3 * splitAt.raw_d * deltaS0;
         double shiftRawD = splitAt.raw_d;
         rtn.s0_to_poly.emplace(0, Poly3(0, shiftRawA, shiftRawB, shiftRawC, shiftRawD));
-
         secondaryBegin++;
     }
     for (auto it = secondaryBegin; it != s0_to_poly.end(); ++it) 
@@ -268,7 +273,6 @@ CubicSpline CubicSpline::split(double s)
         rtn.s0_to_poly.emplace(sInSecond, Poly3(sInSecond, poly.raw_a, poly.raw_b, poly.raw_c, poly.raw_d));
     }
     s0_to_poly.erase(secondaryBegin, s0_to_poly.end());
-
     return rtn;
 }
 

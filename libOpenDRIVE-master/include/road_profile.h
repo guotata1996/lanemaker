@@ -141,41 +141,11 @@ namespace RoadRunner
     class CubicSplineGenerator
     {
     public:
-        static void OverwriteSection(odr::CubicSpline& target, double start, double end, double value){};
+        static void OverwriteSection(odr::CubicSpline& target, double length, double start, double end, double value);
 
-        static void OverwriteEnd(odr::CubicSpline& target, bool contactStart, double value);
+        static double MaxTransitionLength;
+    private:
+        // f(0) = y0, f(len) = y1, f'(0) = f'(len) = 0
+        static odr::Poly3 FitPoly3(double s0, double y0, double s1, double y1);
     };
-    /*
-    class ElevationProfile
-    {
-    friend class odr::OpenDriveMap;
-    public:
-        ElevationProfile();
-
-        void OverwriteSection(double start, double end, double length, ElevationPlan elevation);
-
-        //ElevationPlan GetMax(type_s start, type_s end) const;
-
-        //ElevationPlan GetMin(type_s start, type_s end) const;
-
-        ElevationProfile Reversed(double length) const;
-
-        void Split(double length, double splitPoint, ElevationProfile& p1, ElevationProfile& p2) const;
-
-        void Join(double originalLength, double road2Base, double road2Length, const ElevationProfile& road2Profile);
-
-        void Apply(double length, odr::Road*);
-
-    protected:
-        bool SnapToSegmentBoundary(double& key, double length, double limit = 0.1) const;
-
-        void RemoveRedundantProfileKeys();
-
-        std::map<std::pair<double, double>, ElevationPlan> GetAllSections(double length) const;
-
-        //ElevationPlan GetExtreme(double start, double end, bool _max) const;
-
-        std::map<double, ElevationPlan> plans;
-    };
-    */
 }

@@ -92,7 +92,7 @@ namespace RoadRunner
         }
         road1->generated.rr_profile.Join(linkBase, road2Base,
             from_odr_unit(road2->Length()), road2->generated.rr_profile, from_odr_unit(road1->Length()));
-        road1->RefLine().elevation_profile.join(road1->Length(), road2->RefLine().elevation_profile);
+        road1->RefLine().elevation_profile.join(linkBaseD, road2->RefLine().elevation_profile);
         road1->Generate();
 
 #ifndef G_TEST

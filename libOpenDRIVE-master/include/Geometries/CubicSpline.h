@@ -34,6 +34,7 @@ struct Poly3
 struct CubicSpline
 {
     CubicSpline() = default;
+    CubicSpline(double height);
 
     double get(double s, double default_val = 0.0, bool extend_start = true) const;
     double get_grad(double s, double default_val = 0.0, bool extend_start = true) const;
