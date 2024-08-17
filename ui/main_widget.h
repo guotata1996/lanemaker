@@ -21,7 +21,7 @@ public:
 
     QGraphicsView* view() const;
 
-    void AdjustSceneRect();
+    void PostEditActions();
 
     void SetHovering(QString);
 

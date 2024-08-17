@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <map>
 #include <set>
+#include <string>
 
 namespace odr
 {
@@ -52,6 +53,8 @@ struct CubicSpline
     void        join(double selfLength, const CubicSpline& second);
 
     std::set<double> approximate_linear(double eps, double s_start, double s_end) const;
+
+    std::string ToString() const;
 
     std::map<double, Poly3> s0_to_poly;
 };

@@ -19,7 +19,7 @@ public:
 
     void SetEditMode(RoadRunner::EditMode aMode);
 
-    void AdjustSceneRect();
+    void PostEditActions();
 
     void ResetSceneRect();
 

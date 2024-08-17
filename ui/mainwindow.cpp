@@ -217,7 +217,7 @@ void MainWindow::loadFromFile()
         buffer << ifs.rdbuf();
         RoadRunner::ActionManager::Instance()->Record(buffer.str());
 
-        mainWidget->AdjustSceneRect();
+        mainWidget->PostEditActions();
     }
 }
 
@@ -230,7 +230,7 @@ void MainWindow::undo()
     }
     else
     {
-        mainWidget->AdjustSceneRect();
+        mainWidget->PostEditActions();
     }
 }
 
@@ -243,7 +243,7 @@ void MainWindow::redo()
     }
     else
     {
-        mainWidget->AdjustSceneRect();
+        mainWidget->PostEditActions();
     }
 }
 

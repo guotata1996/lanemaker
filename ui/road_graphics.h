@@ -40,6 +40,7 @@ namespace RoadRunner
           so it's possible that sBegin > sEnd*/
         double sBegin, sEnd;
         const double Length;
+        double sectionElevation;
 
     private:
         void Create(const odr::LaneSection&);
@@ -49,7 +50,6 @@ namespace RoadRunner
 
         std::vector< LaneGraphics*> allLaneGraphics;
         QGraphicsPathItem* refLineHint;
-        double sectionElevation;
     };
 
     class LaneGraphics : public QGraphicsPolygonItem

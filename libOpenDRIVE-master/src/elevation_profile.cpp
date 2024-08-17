@@ -16,6 +16,13 @@ namespace RoadRunner
         if (table.empty())
             table.emplace(0, odr::Poly3(0, 0, 0, 0, 0));
 
+        if (std::abs(target.get(start) - value) < 1e-3 &&
+            std::abs(target.get(end) - value) < 1e-3) 
+        {
+            // already satisfied
+            return;
+        }
+
         // erase keys where start < key < end
         auto keyBegin = table.lower_bound(start);
         auto keyBefore = keyBegin;
@@ -33,7 +40,10 @@ namespace RoadRunner
         table.erase(keyBegin, keyAfter);
 
         // put a straight line between start and end
-        table[start] = odr::Poly3(start, value, 0, 0, 0);
+        if (start != length)
+        {
+            table[start] = odr::Poly3(start, value, 0, 0, 0);
+        }
         if (prevS != start) 
         {
             table[prevS] = FitPoly3(prevS, prevY, start, value);

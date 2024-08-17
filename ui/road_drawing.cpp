@@ -14,6 +14,8 @@
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
+extern int rotatingIndex;
+extern int g_RotatingSize;
 
 extern SectionProfileConfigWidget* g_createRoadOption;
 extern int8_t g_createRoadElevationOption;
@@ -98,6 +100,19 @@ void RoadDrawingSession::EndPickingProfile()
 {
     beginPickingRoad.reset();
     view->setCursor(Qt::ArrowCursor);
+}
+
+bool RoadDrawingSession::IsElevationConsistWithExtend()
+{
+    switch (g_createRoadElevationOption)
+    {
+    case 1:
+        return rotatingIndex == 0;
+    case -1:
+        return rotatingIndex == g_RotatingSize - 1;
+    default:
+        return g_RotatingSize == 1;
+    }
 }
 
 double CustomCursorItem::SnapRadiusPx = 20;
@@ -290,7 +305,8 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapFirstPointToExisting(QPo
     double snapS = g_PointerRoadS;
     bool onExisting = false;
     if (g_PointerRoadS < snapThreshold &&
-        dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->predecessorJunction.get()) == nullptr)
+        dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->predecessorJunction.get()) == nullptr &&
+        IsElevationConsistWithExtend())
     {
         snapS = 0;
         auto grad = g_road->generated.ref_line.get_grad_xy(snapS);
@@ -299,7 +315,8 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapFirstPointToExisting(QPo
         extendFromStartS = 0;
     }
     else if (g_PointerRoadS > g_road->Length() - snapThreshold &&
-        dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->successorJunction.get()) == nullptr)
+        dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->successorJunction.get()) == nullptr &&
+        IsElevationConsistWithExtend())
     {
         snapS = g_road->Length();
         auto grad = g_road->generated.ref_line.get_grad_xy(snapS);
@@ -330,13 +347,15 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapLastPointToExisting(QPoi
     double snapS;
     const double snapThreshold = SnapDistFromScale();
     if (g_PointerRoadS < snapThreshold &&
-        dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->predecessorJunction.get()) == nullptr)
+        dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->predecessorJunction.get()) == nullptr &&
+        IsElevationConsistWithExtend())
     {
         snapS = 0;
         joinAtEnd = g_PointerRoad;
     }
     else if (g_PointerRoadS > g_road->Length() - snapThreshold &&
-        dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->successorJunction.get()) == nullptr)
+        dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->successorJunction.get()) == nullptr &&
+        IsElevationConsistWithExtend())
     {
         snapS = g_road->Length();
         joinAtEnd = g_PointerRoad;

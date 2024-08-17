@@ -344,9 +344,9 @@ void MainWidget::rotateRight()
     RecordViewTransform();
 }
 
-void MainWidget::AdjustSceneRect()
+void MainWidget::PostEditActions()
 {
-    mapView->AdjustSceneRect();
+    mapView->PostEditActions();
 }
 
 void MainWidget::SetHovering(QString a)

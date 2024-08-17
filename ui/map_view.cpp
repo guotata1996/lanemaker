@@ -19,9 +19,28 @@ int g_PointerLane;
 
 std::vector<std::pair<RoadRunner::LaneGraphics*, double>> rotatingRoads;
 int rotatingIndex;
+int g_RotatingSize;
 
 MapView* g_mapView;
 extern RoadRunner::LanePlan leftProfileSetting, rightProfileSetting;
+
+QString PointerRoadInfo()
+{
+    if (g_PointerRoad.expired())
+        return QString();
+
+    auto roadInfo = QString("Road %1 @%2 Lane %3")
+        .arg(g_PointerRoad.lock()->ID().c_str())
+        .arg(g_PointerRoadS, 6, 'f', 3)
+        .arg(g_PointerLane);
+
+    auto roadElevation = g_PointerRoad.lock()->generated.ref_line.elevation_profile.get(g_PointerRoadS);
+    if (roadElevation != 0)
+    {
+        roadInfo += QString(" Z %1").arg(roadElevation, 5, 'f', 2);
+    }
+    return roadInfo;
+}
 
 MapView::MapView(MainWidget* v, QGraphicsScene* scene) :
     QGraphicsView(scene), parentContainer(v)
@@ -232,6 +251,7 @@ void MapView::OnKeyPress(const RoadRunner::KeyPressAction& evt)
             else
             {
                 ss << g_road->generated.rr_profile.ToString();
+                ss << g_road->RefLine().elevation_profile.ToString();
             }
 
             if (g_road->predecessorJunction != nullptr)
@@ -265,6 +285,7 @@ void MapView::OnKeyPress(const RoadRunner::KeyPressAction& evt)
             {
                 drawingSession->SetHighlightTo(g_PointerRoad.lock());
             }
+            parentContainer->SetHovering(PointerRoadInfo());
         }
         break;
     }
@@ -343,9 +364,13 @@ void MapView::drawForeground(QPainter* painter, const QRectF& rect)
     }
 }
 
-void MapView::AdjustSceneRect()
+void MapView::PostEditActions()
 {
-    //auto original = scene()->itemsBoundingRect();
+    rotatingRoads.clear();
+    g_RotatingSize = 0;
+    g_PointerRoad.reset();
+
+    // Adjust scene rect
     QRectF original(0, 0, 0, 0);
     for (auto item : scene()->items())
     {
@@ -367,7 +392,7 @@ void MapView::confirmEdit()
     RoadRunner::ChangeTracker::Instance()->FinishRecordEdit(!cleanState);
     quitEdit();
 
-    AdjustSceneRect();
+    PostEditActions();
 }
 
 void MapView::quitEdit()
@@ -390,6 +415,11 @@ void MapView::handleException(std::exception e)
 void MapView::SnapCursor(const QPoint& viewPos)
 {
     QVector2D viewPosVec(viewPos);
+    std::shared_ptr<RoadRunner::Road> prevTopRoad;
+    if (!rotatingRoads.empty())
+    {
+        prevTopRoad = rotatingRoads.begin()->first->GetRoad();
+    }
     rotatingRoads.clear();
 
     // Direct candidates
@@ -439,40 +469,26 @@ void MapView::SnapCursor(const QPoint& viewPos)
     rotatingIndex = 0;
     if (!directOver.empty())
     {
-        // Try retain previous selected
-        for (int i = 0; i != directOver.size(); ++i)
-        {
-            if (directOver[i].first->GetRoad() == g_PointerRoad.lock())
+        // Sort by z value
+        std::sort(directOver.begin(), directOver.end(), [](
+            const std::pair<RoadRunner::LaneGraphics*, double>& a, const std::pair<RoadRunner::LaneGraphics*, double>& b)
             {
-                rotatingIndex = i;
-                break;
-            }
-        }
-
+                auto aSection = dynamic_cast<RoadRunner::SectionGraphics*>(a.first->parentItem());
+                auto bSection = dynamic_cast<RoadRunner::SectionGraphics*>(b.first->parentItem());
+                return aSection->sectionElevation > bSection->sectionElevation;
+            });
         rotatingRoads = directOver;
     }
     else if (!indirectOver.empty())
     {
-        // Try retain previous selected
-        for (int i = 0; i != indirectOver.size(); ++i)
-        {
-            if (indirectOver[i].first->GetRoad() == g_PointerRoad.lock())
-            {
-                rotatingIndex = i;
-                break;
-            }
-        }
-        if (rotatingIndex == -1)
-        {
-            std::sort(indirectOver.begin(), indirectOver.end(),
-                [this, viewPosVec](const auto& a, const auto& b) {
-                    odr::Vec2D p1 = a.first->GetRoad()->RefLine().get_xy(a.second);
-                    QVector2D q1(mapFromScene(p1[0], p1[1]));
-                    odr::Vec2D p2 = b.first->GetRoad()->RefLine().get_xy(b.second);
-                    QVector2D q2(mapFromScene(p1[0], p2[1]));
-                    return q1.distanceToPoint(viewPosVec) < q2.distanceToPoint(viewPosVec);
-                });
-        }
+        std::sort(indirectOver.begin(), indirectOver.end(),
+            [this, viewPosVec](const auto& a, const auto& b) {
+                odr::Vec2D p1 = a.first->GetRoad()->RefLine().get_xy(a.second);
+                QVector2D q1(mapFromScene(p1[0], p1[1]));
+                odr::Vec2D p2 = b.first->GetRoad()->RefLine().get_xy(b.second);
+                QVector2D q2(mapFromScene(p1[0], p2[1]));
+                return q1.distanceToPoint(viewPosVec) < q2.distanceToPoint(viewPosVec);
+            });
 
         rotatingRoads = indirectOver;
     }
@@ -480,32 +496,36 @@ void MapView::SnapCursor(const QPoint& viewPos)
     {
         rotatingRoads.clear();
     }
+    g_RotatingSize = rotatingRoads.size();
 
-    auto cursorInfo = QString("(%1, %2)")
+    auto cursorInfo = QString("(%1, %2)| ")
         .arg(scenePos.x(), 4, 'f', 1)
         .arg(scenePos.y(), 4, 'f', 1);
-    QString roadInfo;
+
     if (rotatingRoads.empty())
     {
         g_PointerRoad.reset();
     }
     else
     {
+        if (prevTopRoad == rotatingRoads.front().first->GetRoad())
+        {
+            // Try retain previous selected
+            for (int i = 0; i != rotatingRoads.size(); ++i)
+            {
+                if (rotatingRoads[i].first->GetRoad() == g_PointerRoad.lock())
+                {
+                    rotatingIndex = i;
+                    break;
+                }
+            }
+        }
+
         g_PointerRoad = rotatingRoads[rotatingIndex].first->GetRoad();
         g_PointerLane = rotatingRoads[rotatingIndex].first->LaneID();
         g_PointerRoadS = rotatingRoads[rotatingIndex].second;
-        
-        roadInfo = QString(" | Road %1 @%2 Lane %3")
-            .arg(g_PointerRoad.lock()->ID().c_str())
-            .arg(g_PointerRoadS, 6, 'f', 3)
-            .arg(g_PointerLane);
-
-        auto roadElevation = g_PointerRoad.lock()->generated.ref_line.elevation_profile.get(g_PointerRoadS);
-        if (roadElevation != 0)
-        {
-            roadInfo += QString(" Z %1").arg(roadElevation, 5, 'f', 2);
-        }
+       
     }
 
-    parentContainer->SetHovering(cursorInfo + roadInfo);
+    parentContainer->SetHovering(cursorInfo + PointerRoadInfo());
 }

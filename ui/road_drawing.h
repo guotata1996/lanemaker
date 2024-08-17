@@ -57,6 +57,9 @@ protected:
     void BeginPickingProfile();
     void ContinuePickingProfile();
     void EndPickingProfile();
+    bool PickProfileMode() const { return !beginPickingRoad.expired(); }
+
+    static bool IsElevationConsistWithExtend();
 
     QGraphicsView* view;
     QGraphicsScene* scene;
@@ -64,7 +67,6 @@ protected:
 
     CustomCursorItem* cursorItem;
 
-    bool PickProfileMode() const { return !beginPickingRoad.expired(); }
 
 private:
     std::weak_ptr<RoadRunner::Road> highlighted;

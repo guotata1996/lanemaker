@@ -211,6 +211,22 @@ namespace RoadRunner
     int Junction::CreateFrom(const std::vector<ConnectionInfo>& connected)
     {
         connectingRoads.clear();
+        // Make sure all ends share same elevation
+        double avgElevation = 0;
+        for (const auto& conn : connected)
+        {
+            auto e = conn.road.lock()->RefLine().elevation_profile.get(conn.contact == odr::RoadLink::ContactPoint_Start ?
+                0 : conn.road.lock()->Length());
+            avgElevation += e;
+        }
+        avgElevation /= connected.size();
+        for (const auto& conn : connected)
+        {
+            auto s = conn.contact == odr::RoadLink::ContactPoint_Start ? 0 : conn.road.lock()->Length();
+            CubicSplineGenerator::OverwriteSection(conn.road.lock()->RefLine().elevation_profile,
+                conn.road.lock()->Length(), s, s, avgElevation);
+        }
+
         generationError = GenerateConnections(generated.id, connected, connectingRoads);
 
         generated.id_to_connection.clear();
@@ -228,6 +244,9 @@ namespace RoadRunner
                 prevConn.lane_links.insert(odr::JunctionLaneLink(connectinglane.predecessor, connectinglane.id));
             }
             generated.id_to_connection.emplace(prevConn.id, prevConn);
+
+            CubicSplineGenerator::OverwriteSection(connecting->RefLine().elevation_profile,
+                connecting->Length(), 0, connecting->Length(), avgElevation);
         }
 
         std::for_each(connected.begin(), connected.end(), [this](const ConnectionInfo& info) {

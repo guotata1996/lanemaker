@@ -287,7 +287,6 @@ void CubicSpline::join(double length, const CubicSpline& second)
 }
 
 
-
 std::set<double> CubicSpline::approximate_linear(double eps, double s_start, double s_end) const
 {
     if ((s_start == s_end) || this->s0_to_poly.empty())
@@ -316,6 +315,18 @@ std::set<double> CubicSpline::approximate_linear(double eps, double s_start, dou
     }
 
     return s_vals;
+}
+
+std::string CubicSpline::ToString() const
+{
+    std::stringstream ss;
+    ss << "\n====Elevation Profile====\n";
+    for (const auto& s_poly : s0_to_poly)
+    {
+        ss << s_poly.first << " :a= " << s_poly.second.raw_a << " b= " << s_poly.second.raw_b << " c= " << s_poly.second.raw_c
+           << " d= " << s_poly.second.raw_d << std::endl;
+    }
+    return ss.str();
 }
 
 } // namespace odr

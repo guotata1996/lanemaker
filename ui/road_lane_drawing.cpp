@@ -265,7 +265,7 @@ bool LanesCreationSession::ValidateSnap() const
     {
         return false;
     }
-    return true;
+    return IsElevationConsistWithExtend();
 }
 
 RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
