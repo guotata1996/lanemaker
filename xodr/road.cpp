@@ -308,11 +308,47 @@ namespace RoadRunner
 
                 double sBeginOnOther = otherCollidingArea.first;
                 double sEndOnOther = otherCollidingArea.second;
+                bool isDirectJunctionOverlap = false;
+
+                std::set<DirectJunction*> othersDirectJunctions;
+                if (sBeginOnOther == 0 && colliding.first.get()->predecessorJunction != nullptr)
+                {
+                    auto junc = dynamic_cast<DirectJunction*>(colliding.first.get()->predecessorJunction.get());
+                    if (junc != nullptr) othersDirectJunctions.emplace(junc);
+                }
+                if (sEndOnOther == colliding.first.get()->Length() &&
+                    colliding.first.get()->successorJunction != nullptr)
+                {
+                    auto junc = dynamic_cast<DirectJunction*>(colliding.first.get()->successorJunction.get());
+                    if (junc != nullptr) othersDirectJunctions.emplace(junc);
+                }
 
                 for (auto mine: myCollidingPieces)
                 {
                     SectionGraphics* mySegment = dynamic_cast<SectionGraphics*>(mine->parentItem());
 
+                    std::set<DirectJunction*> myDirectJunctions;
+                    if (std::min(mySegment->sBegin, mySegment->sEnd) == 0
+                        && predecessorJunction != nullptr)
+                    {
+                        auto junc = dynamic_cast<DirectJunction*>(predecessorJunction.get());
+                        if (othersDirectJunctions.find(junc) != othersDirectJunctions.end())
+                        {
+                            isDirectJunctionOverlap = true;
+                            break;
+                        }
+                    }
+                    if (std::max(mySegment->sBegin, mySegment->sEnd) == Length()
+                        && successorJunction != nullptr)
+                    {
+                        auto junc = dynamic_cast<DirectJunction*>(successorJunction.get());
+                        if (othersDirectJunctions.find(junc) != othersDirectJunctions.end())
+                        {
+                            isDirectJunctionOverlap = true;
+                            break;
+                        }
+                    }
+                    /*
                     if (std::min(mySegment->sBegin, mySegment->sEnd) == 0
                         && predecessorJunction != nullptr
                         && dynamic_cast<DirectJunction*>(predecessorJunction.get()) != nullptr)
@@ -325,7 +361,7 @@ namespace RoadRunner
                     {
                         continue;
                     }
-
+                    */
                     for (auto otherPiece : mine->collidingItems())
                     {
                         LaneGraphics* collisionSegmentItem = dynamic_cast<LaneGraphics*>(otherPiece);
@@ -343,6 +379,8 @@ namespace RoadRunner
                         }
                     }
                 }
+
+                if (isDirectJunctionOverlap) continue;
 
                 for (const auto& myCollidingInterval : myCollidingIntervals.Merge())
                 {

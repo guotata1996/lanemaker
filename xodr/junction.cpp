@@ -25,11 +25,17 @@ namespace RoadRunner
             generationError = Junction_DuplicateConn;
             return generationError;
         }
+        auto connRoad = conn.road.lock();
+        double connS = conn.contact == odr::RoadLink::ContactPoint_Start ?
+            0 : connRoad->Length();
+        RoadRunner::CubicSplineGenerator::OverwriteSection(
+            connRoad->RefLine().elevation_profile, connRoad->Length(), connS, connS, Elevation());
+
         std::vector<ConnectionInfo> newConnections = { conn };
         for (auto existing : formedFrom)
         {
-            if (existing.road.expired())
-                continue;
+            // if (existing.road.expired())
+            //    continue;
             ConnectionInfo existingInfo{ existing.road.lock(), existing.contact, existing.skipProviderLanes };
             newConnections.push_back(existingInfo);
         }
@@ -179,6 +185,14 @@ namespace RoadRunner
     {
         auto record = formedFrom.find(info);
         info = *record;
+    }
+
+    double AbstractJunction::Elevation() const
+    {
+        const auto road = formedFrom.begin()->road.lock();
+        auto s = formedFrom.begin()->contact == odr::RoadLink::ContactPoint_Start ? 0 :
+            road->Length();
+        return road->RefLine().elevation_profile.get(s);
     }
 
     Junction::Junction() : AbstractJunction() {}

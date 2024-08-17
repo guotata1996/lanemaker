@@ -172,6 +172,8 @@ namespace RoadRunner
 
         void FillConnectionInfo(ConnectionInfo&) const;
 
+        double Elevation() const;
+
         virtual std::string Log() const;
 
         odr::Junction generated;

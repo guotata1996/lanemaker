@@ -90,6 +90,9 @@ bool LanesCreationSession::CreateRoad()
             else if (startFullyMatch)
             {
                 standaloneRoad = false;
+                auto joinPointElevation = toExtend->RefLine().elevation_profile.get(extendFromStartS);
+                RoadRunner::CubicSplineGenerator::OverwriteSection(
+                    newRoad->RefLine().elevation_profile, newRoad->Length(), 0, 0, joinPointElevation);
                 newPartBegin += toExtend->Length();
                 newPartEnd += toExtend->Length();
                 int joinResult = RoadRunner::Road::JoinRoads(toExtend,
@@ -172,6 +175,11 @@ bool LanesCreationSession::CreateRoad()
                 }
                 standaloneRoad = false;
                 world->allRoads.erase(toJoin);
+                auto joinPointElevation = toJoin->RefLine().elevation_profile.get(joinAtEndS);
+                RoadRunner::CubicSplineGenerator::OverwriteSection(
+                    newRoad->RefLine().elevation_profile, newRoad->Length(), 
+                    newRoad->Length(), newRoad->Length(), joinPointElevation);
+
                 int joinResult = RoadRunner::Road::JoinRoads(newRoad, odr::RoadLink::ContactPoint_End,
                     toJoin, joinAtEndS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End);
                 if (joinResult != 0)
