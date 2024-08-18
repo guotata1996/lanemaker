@@ -18,8 +18,9 @@ double g_PointerRoadS; /*Continous between 0 and Length() if g_PointerRoad is va
 int g_PointerLane;
 
 std::vector<std::pair<RoadRunner::LaneGraphics*, double>> rotatingRoads;
-int rotatingIndex;
+int g_RotatingIndex;
 int g_RotatingSize;
+std::string topRoadID;
 
 MapView* g_mapView;
 extern RoadRunner::LanePlan leftProfileSetting, rightProfileSetting;
@@ -278,9 +279,9 @@ void MapView::OnKeyPress(const RoadRunner::KeyPressAction& evt)
     case Qt::Key_A:
         if (!rotatingRoads.empty())
         {
-            rotatingIndex = (rotatingIndex + 1) % rotatingRoads.size();
-            g_PointerRoad = rotatingRoads[rotatingIndex].first->GetRoad();
-            g_PointerRoadS = rotatingRoads[rotatingIndex].second;
+            g_RotatingIndex = (g_RotatingIndex + 1) % rotatingRoads.size();
+            g_PointerRoad = rotatingRoads[g_RotatingIndex].first->GetRoad();
+            g_PointerRoadS = rotatingRoads[g_RotatingIndex].second;
             if (drawingSession != nullptr)
             {
                 drawingSession->SetHighlightTo(g_PointerRoad.lock());
@@ -415,11 +416,7 @@ void MapView::handleException(std::exception e)
 void MapView::SnapCursor(const QPoint& viewPos)
 {
     QVector2D viewPosVec(viewPos);
-    std::shared_ptr<RoadRunner::Road> prevTopRoad;
-    if (!rotatingRoads.empty())
-    {
-        prevTopRoad = rotatingRoads.begin()->first->GetRoad();
-    }
+
     rotatingRoads.clear();
 
     // Direct candidates
@@ -466,7 +463,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
         }
     }
 
-    rotatingIndex = 0;
+    g_RotatingIndex = 0;
     if (!directOver.empty())
     {
         // Sort by z value
@@ -505,26 +502,27 @@ void MapView::SnapCursor(const QPoint& viewPos)
     if (rotatingRoads.empty())
     {
         g_PointerRoad.reset();
+        topRoadID.clear();
     }
     else
     {
-        if (prevTopRoad == rotatingRoads.front().first->GetRoad())
+        if (topRoadID == rotatingRoads.front().first->GetRoad()->ID())
         {
-            // Try retain previous selected
+            // Try retain previous selected unless top road alters
             for (int i = 0; i != rotatingRoads.size(); ++i)
             {
                 if (rotatingRoads[i].first->GetRoad() == g_PointerRoad.lock())
                 {
-                    rotatingIndex = i;
+                    g_RotatingIndex = i;
                     break;
                 }
             }
         }
 
-        g_PointerRoad = rotatingRoads[rotatingIndex].first->GetRoad();
-        g_PointerLane = rotatingRoads[rotatingIndex].first->LaneID();
-        g_PointerRoadS = rotatingRoads[rotatingIndex].second;
-       
+        g_PointerRoad = rotatingRoads[g_RotatingIndex].first->GetRoad();
+        g_PointerLane = rotatingRoads[g_RotatingIndex].first->LaneID();
+        g_PointerRoadS = rotatingRoads[g_RotatingIndex].second;
+        topRoadID = rotatingRoads.front().first->GetRoad()->ID();
     }
 
     parentContainer->SetHovering(cursorInfo + PointerRoadInfo());

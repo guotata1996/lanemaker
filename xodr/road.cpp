@@ -34,15 +34,6 @@ namespace RoadRunner
         Generate();
     }
 
-    /*Road::Road(const LaneProfile& p, const ElevationProfile& e, odr::RefLine& l) :
-        generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1")
-    {
-        generated.rr_profile = p;
-        generated.rr_eprofile = e;
-        generated.ref_line = std::move(l);
-        Generate();
-    }*/
-
     Road::Road(const odr::Road& serialized):
         generated(serialized)
     {
@@ -230,7 +221,7 @@ namespace RoadRunner
     Road::RoadsOverlap Road::CalcOverlapWith(std::shared_ptr<Road> target, double sWithin) const
     {
         // wide enough search range to cover road width < 100
-        for (auto overlapResult : AllOverlaps(std::max(0.0, sWithin - 100), std::min(target->Length(), sWithin + 100)))
+        for (auto overlapResult : AllOverlaps(std::max(0.0, sWithin - 100), std::min(Length(), sWithin + 100)))
         {
             if (overlapResult.road2.lock() == target &&
                 overlapResult.sBegin2 <= sWithin && sWithin <= overlapResult.sEnd2)
@@ -396,7 +387,19 @@ namespace RoadRunner
                 }
             }
         }
-
+        // Make sure result is deterministic in case multiple overlap at the same point
+        std::sort(rtn.begin(), rtn.end(), [](const Road::RoadsOverlap& a, const Road::RoadsOverlap& b)
+        {
+            if (a.sBegin1 != b.sBegin1)
+            {
+                return a.sBegin1 < b.sBegin1;
+            }
+            if (a.sBegin2 != b.sBegin2)
+            {
+                return a.sBegin2 < b.sBegin2;
+            }
+            return std::stoi(a.road2.lock()->ID()) < std::stoi(b.road2.lock()->ID());
+        });
         return rtn;
     }
 
@@ -405,20 +408,7 @@ namespace RoadRunner
         std::optional<Road::RoadsOverlap> rtn;
         auto allOverlaps = AllOverlaps(sBegin, sEnd);
         if (allOverlaps.empty()) return rtn;
-
-        std::map<double, RoadsOverlap> sortedOverlap;
-        for (auto& overlap : allOverlaps)
-        {
-            // If multiple candidates overlap at the same s, pick the one with minimum ID
-            if (sortedOverlap.find(overlap.sBegin1) != sortedOverlap.end()
-                && std::stoi(sortedOverlap.at(overlap.sBegin1).road2.lock()->ID()) >
-                std::stoi(overlap.road2.lock()->ID()))
-            {
-                sortedOverlap.erase(overlap.sBegin1);
-            }
-            sortedOverlap.emplace(overlap.sBegin1, overlap);
-        }
-        rtn.emplace(sortedOverlap.begin()->second);
+        rtn.emplace(allOverlaps.front());
         return rtn;
     }
 

@@ -14,7 +14,7 @@
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
-extern int rotatingIndex;
+extern int g_RotatingIndex;
 extern int g_RotatingSize;
 
 extern SectionProfileConfigWidget* g_createRoadOption;
@@ -107,9 +107,9 @@ bool RoadDrawingSession::IsElevationConsistWithExtend()
     switch (g_createRoadElevationOption)
     {
     case 1:
-        return rotatingIndex == 0;
+        return g_RotatingIndex == 0;
     case -1:
-        return rotatingIndex == g_RotatingSize - 1;
+        return g_RotatingIndex == g_RotatingSize - 1;
     default:
         return g_RotatingSize == 1;
     }
@@ -547,6 +547,7 @@ bool RoadCreationSession::CreateRoad()
         }
 
         newRoad = toExtend;
+        firstCtrlPointPreferredTarget.reset();
     }
 
     if (!joinAtEnd.expired())
@@ -573,6 +574,7 @@ bool RoadCreationSession::CreateRoad()
             spdlog::error("Join error {}", joinResult);
         }
         world->allRoads.insert(newRoad);
+        lastCtrlPointPreferredTarget.reset();
     }
 
     if (standaloneRoad)
@@ -654,9 +656,28 @@ bool RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
 {
     const double JunctionExtaTrim = 10; // Space for connecting road curvature
     const double RoadMinLength = 5; // Discard if any leftover road is too short
+
+    bool firstIter = true;
     while (true)
     {
-        auto overlap = newRoad->FirstOverlap(newPartBegin, newPartEnd);
+        std::optional<RoadRunner::Road::RoadsOverlap> overlap;
+        if (firstIter && !firstCtrlPointPreferredTarget.expired())
+        {
+            overlap.emplace(newRoad->CalcOverlapWith(firstCtrlPointPreferredTarget.lock(), firstCtrlPointPreferredS));
+        }
+        else
+        {
+            if (!lastCtrlPointPreferredTarget.expired())
+            {
+                overlap.emplace(newRoad->CalcOverlapWith(lastCtrlPointPreferredTarget.lock(), lastCtrlPointPreferredS));
+            }
+            if (!overlap.has_value() || std::abs(overlap->sEnd1 - newPartEnd) > 1e-2)
+            {
+                overlap = newRoad->FirstOverlap(newPartBegin, newPartEnd);
+            }
+        }
+        firstIter = false;
+        
         if (!overlap.has_value())
         {
             break;

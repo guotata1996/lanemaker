@@ -4,7 +4,7 @@
 
 namespace RoadRunner
 {
-    double CubicSplineGenerator::MaxTransitionLength = 30;
+    double CubicSplineGenerator::MaxTransitionLength = 60;
 
     void CubicSplineGenerator::OverwriteSection(odr::CubicSpline& target, double length, 
         double start, double end, double value) 

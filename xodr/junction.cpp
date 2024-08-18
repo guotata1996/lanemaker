@@ -30,6 +30,9 @@ namespace RoadRunner
             0 : connRoad->Length();
         RoadRunner::CubicSplineGenerator::OverwriteSection(
             connRoad->RefLine().elevation_profile, connRoad->Length(), connS, connS, Elevation());
+        connRoad->GenerateOrUpdateSectionGraphicsBetween(
+            std::max(connS - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
+            std::min(connS + RoadRunner::CubicSplineGenerator::MaxTransitionLength, connRoad->Length()));
 
         std::vector<ConnectionInfo> newConnections = { conn };
         for (auto existing : formedFrom)
@@ -222,9 +225,13 @@ namespace RoadRunner
         avgElevation /= connected.size();
         for (const auto& conn : connected)
         {
-            auto s = conn.contact == odr::RoadLink::ContactPoint_Start ? 0 : conn.road.lock()->Length();
-            CubicSplineGenerator::OverwriteSection(conn.road.lock()->RefLine().elevation_profile,
-                conn.road.lock()->Length(), s, s, avgElevation);
+            auto connRoad = conn.road.lock();
+            auto connS = conn.contact == odr::RoadLink::ContactPoint_Start ? 0 : connRoad->Length();
+            CubicSplineGenerator::OverwriteSection(connRoad->RefLine().elevation_profile,
+                connRoad->Length(), connS, connS, avgElevation);
+            connRoad->GenerateOrUpdateSectionGraphicsBetween(
+                std::max(connS - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
+                std::min(connS + RoadRunner::CubicSplineGenerator::MaxTransitionLength, connRoad->Length()));
         }
 
         generationError = GenerateConnections(generated.id, connected, connectingRoads);
