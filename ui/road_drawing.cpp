@@ -383,7 +383,8 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCtrlPoint(float maxOffse
     {
         startDir.reset();
         extendFromStart.reset();
-
+        firstCtrlPointPreferredTarget = g_PointerRoad;
+        firstCtrlPointPreferredS = g_PointerRoadS;
         return SnapFirstPointToExisting(nextPoint);
     }
     else if (ctrlPoints.size() == 2)
@@ -398,6 +399,8 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCtrlPoint(float maxOffse
     if (!extendFromStart.expired() && ctrlPoints.size() == 2)
     {
         joinAtEnd.reset();
+        lastCtrlPointPreferredTarget = g_PointerRoad;
+        lastCtrlPointPreferredS = g_PointerRoadS;
         result = SnapLastPointToExisting(nextPoint);
         if (result)
         {
@@ -408,6 +411,8 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCtrlPoint(float maxOffse
     if (ctrlPoints.size() >= 3)
     {
         joinAtEnd.reset();
+        lastCtrlPointPreferredTarget = g_PointerRoad;
+        lastCtrlPointPreferredS = g_PointerRoadS;
         result = SnapLastPointToExisting(nextPoint);
 
         if (result == RoadDrawingSession::Snap_Nothing)
@@ -652,7 +657,7 @@ bool RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
     while (true)
     {
         auto overlap = newRoad->FirstOverlap(newPartBegin, newPartEnd);
-        if (overlap == nullptr)
+        if (!overlap.has_value())
         {
             break;
         }
@@ -862,28 +867,28 @@ bool RoadCreationSession::tryCreateBridgeAndTunnel(std::shared_ptr<RoadRunner::R
     auto  newRoadLength = RoadRunner::from_odr_unit(newRoad->Length());
     for (const auto& overlap : allOverlaps)
     {
-        const auto& overlappingProfile = overlap->road2.lock()->RefLine().elevation_profile;
+        const auto& overlappingProfile = overlap.road2.lock()->RefLine().elevation_profile;
 
         if (g_createRoadElevationOption > 0)
         {
-            auto existingClosest = existingProfile.get_min(overlap->sBegin1, overlap->sEnd1);
-            auto existingSafest = existingProfile.get_max(overlap->sBegin1, overlap->sEnd1);
-            double overlapRequirement = overlappingProfile.get_max(overlap->sBegin2, overlap->sEnd2) + clearance;
+            auto existingClosest = existingProfile.get_min(overlap.sBegin1, overlap.sEnd1);
+            auto existingSafest = existingProfile.get_max(overlap.sBegin1, overlap.sEnd1);
+            double overlapRequirement = overlappingProfile.get_max(overlap.sBegin2, overlap.sEnd2) + clearance;
             if (existingClosest < overlapRequirement)
             {
                 RoadRunner::CubicSplineGenerator::OverwriteSection(existingProfile, newRoad->Length(),
-                    overlap->sBegin1, overlap->sEnd1, std::max(existingSafest, overlapRequirement));
+                    overlap.sBegin1, overlap.sEnd1, std::max(existingSafest, overlapRequirement));
             }
         }
         else if (g_createRoadElevationOption < 0)
         {
-            auto existingClosest = existingProfile.get_max(overlap->sBegin1, overlap->sEnd1);
-            auto existingSafest = existingProfile.get_min(overlap->sBegin1, overlap->sEnd1);
-            double overlapRequirement = overlappingProfile.get_min(overlap->sBegin2, overlap->sEnd2) - clearance;
+            auto existingClosest = existingProfile.get_max(overlap.sBegin1, overlap.sEnd1);
+            auto existingSafest = existingProfile.get_min(overlap.sBegin1, overlap.sEnd1);
+            double overlapRequirement = overlappingProfile.get_min(overlap.sBegin2, overlap.sEnd2) - clearance;
             if (existingClosest > overlapRequirement)
             {
                 RoadRunner::CubicSplineGenerator::OverwriteSection(existingProfile, newRoad->Length(),
-                    overlap->sBegin1, overlap->sEnd1, std::min(existingSafest, overlapRequirement));
+                    overlap.sBegin1, overlap.sEnd1, std::min(existingSafest, overlapRequirement));
             }
         }
     }
@@ -891,8 +896,9 @@ bool RoadCreationSession::tryCreateBridgeAndTunnel(std::shared_ptr<RoadRunner::R
 
     for (const auto& overlap : allOverlaps)
     {
-        // TODO: -3 * MaxTransition once smooth transition is made
-        newRoad->GenerateOrUpdateSectionGraphicsBetween(overlap->sBegin1, overlap->sEnd1);
+        newRoad->GenerateOrUpdateSectionGraphicsBetween(
+            std::max(overlap.sBegin1 - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
+            std::min(overlap.sEnd1 + RoadRunner::CubicSplineGenerator::MaxTransitionLength, newRoad->Length()));
     }
     
     return true;

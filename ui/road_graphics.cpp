@@ -49,6 +49,7 @@ namespace RoadRunner
         const double sMin = std::min(sBegin, sEnd);
         const double sMax = std::max(sBegin, sEnd);
         sectionElevation = gen.ref_line.elevation_profile.get((sMin + sMax) / 2);
+        setZValue(sectionElevation);
         for (const auto& id2Lane : laneSection.id_to_lane)
         {
             const auto& lane = id2Lane.second;
@@ -79,7 +80,6 @@ namespace RoadRunner
                 }
                 auto laneSegmentItem = new LaneGraphics(poly, outerBorder, innerBorder,
                     laneID, laneIDWhenReversed, lane.type, this);
-                setZValue(sectionElevation);
                 allLaneGraphics.push_back(laneSegmentItem);
 
                 for (const auto& markingGroup : lane.roadmark_groups)

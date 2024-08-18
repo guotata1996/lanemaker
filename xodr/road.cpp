@@ -227,9 +227,23 @@ namespace RoadRunner
         GenerateSectionGraphicsBetween(createBegin, createEnd);
     }
 
-    std::vector<std::unique_ptr<Road::RoadsOverlap>> Road::AllOverlaps(double sBegin, double sEnd) const
+    Road::RoadsOverlap Road::CalcOverlapWith(std::shared_ptr<Road> target, double sWithin) const
     {
-        std::vector<std::unique_ptr<Road::RoadsOverlap>> rtn;
+        // wide enough search range to cover road width < 100
+        for (auto overlapResult : AllOverlaps(std::max(0.0, sWithin - 100), std::min(target->Length(), sWithin + 100)))
+        {
+            if (overlapResult.road2.lock() == target &&
+                overlapResult.sBegin2 <= sWithin && sWithin <= overlapResult.sEnd2)
+            {
+                return overlapResult;
+            }
+        }
+        return Road::RoadsOverlap(0, 0, std::weak_ptr<Road>(), 0, 0);
+    }
+
+    std::vector<Road::RoadsOverlap> Road::AllOverlaps(double sBegin, double sEnd) const
+    {
+        std::vector<Road::RoadsOverlap> rtn;
         if (sBegin >= sEnd) 
             return rtn;
         auto beginIt = s_to_section_graphics.upper_bound(sBegin - 1e-3f);
@@ -371,14 +385,14 @@ namespace RoadRunner
 
                 for (const auto& myCollidingInterval : myCollidingIntervals.Merge())
                 {
-                    auto overlap = std::make_unique<RoadsOverlap>(
+                    auto overlap = RoadsOverlap(
                         myCollidingInterval.first, myCollidingInterval.second,
                         colliding.first, sBeginOnOther , sEndOnOther );
                     spdlog::trace("Collision detected between road {} @{}~{} vs road {} @{}~{}",
-                        ID(), overlap->sBegin1, overlap->sEnd1,
-                        colliding.first->ID(), overlap->sBegin2, overlap->sEnd2);
+                        ID(), overlap.sBegin1, overlap.sEnd1,
+                        colliding.first->ID(), overlap.sBegin2, overlap.sEnd2);
 
-                    rtn.emplace_back(std::move(overlap));
+                    rtn.emplace_back(overlap);
                 }
             }
         }
@@ -386,25 +400,26 @@ namespace RoadRunner
         return rtn;
     }
 
-    std::unique_ptr<Road::RoadsOverlap> Road::FirstOverlap(double sBegin, double sEnd) const
+    std::optional<Road::RoadsOverlap> Road::FirstOverlap(double sBegin, double sEnd) const
     {
+        std::optional<Road::RoadsOverlap> rtn;
         auto allOverlaps = AllOverlaps(sBegin, sEnd);
-        if (allOverlaps.empty()) return nullptr;
+        if (allOverlaps.empty()) return rtn;
 
-        std::map<double, std::unique_ptr<RoadsOverlap>> sortedOverlap;
+        std::map<double, RoadsOverlap> sortedOverlap;
         for (auto& overlap : allOverlaps)
         {
             // If multiple candidates overlap at the same s, pick the one with minimum ID
-            if (sortedOverlap.find(overlap->sBegin1) != sortedOverlap.end()
-                && std::stoi(sortedOverlap.at(overlap->sBegin1)->road2.lock()->ID()) >
-                std::stoi(overlap->road2.lock()->ID()))
+            if (sortedOverlap.find(overlap.sBegin1) != sortedOverlap.end()
+                && std::stoi(sortedOverlap.at(overlap.sBegin1).road2.lock()->ID()) >
+                std::stoi(overlap.road2.lock()->ID()))
             {
-                sortedOverlap.erase(overlap->sBegin1);
+                sortedOverlap.erase(overlap.sBegin1);
             }
-            sortedOverlap.emplace(overlap->sBegin1, std::move(overlap));
+            sortedOverlap.emplace(overlap.sBegin1, overlap);
         }
-
-        return std::move(sortedOverlap.begin()->second);
+        rtn.emplace(sortedOverlap.begin()->second);
+        return rtn;
     }
 
     void Road::EnableHighlight(bool enabled)

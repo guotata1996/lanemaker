@@ -3,6 +3,7 @@
 #include <list>
 #include <map>
 #include <cassert>
+#include <optional>
 #include "spdlog/spdlog.h"
 
 #include "OpenDriveMap.h"
@@ -72,23 +73,22 @@ namespace RoadRunner
 
         struct RoadsOverlap
         {
-            RoadsOverlap(double aSBegin1, double aSEnd1, 
-                std::weak_ptr<Road> aRoad2, double aSBegin2, double aSEnd2):
-                sBegin1(aSBegin1), sEnd1(aSEnd1), 
-                road2(aRoad2), sBegin2(aSBegin2), sEnd2(aSEnd2)
-            {
-
-            }
+            RoadsOverlap(double aSBegin1, double aSEnd1,
+                std::weak_ptr<Road> aRoad2, double aSBegin2, double aSEnd2) :
+                sBegin1(aSBegin1), sEnd1(aSEnd1),
+                road2(aRoad2), sBegin2(aSBegin2), sEnd2(aSEnd2) {}
             double sBegin1, sEnd1;
             std::weak_ptr<Road> road2;
             double sBegin2, sEnd2;
         };
 
         // Excluded: Overlap w/ Junction connectingRead and DirectJunction linkedRoad
-        std::unique_ptr<RoadsOverlap> FirstOverlap(double sBegin, double sEnd) const;
+        std::optional<RoadsOverlap> FirstOverlap(double sBegin, double sEnd) const;
 
         // Everything included
-        std::vector<std::unique_ptr<RoadsOverlap>> AllOverlaps(double sBegin, double sEnd) const;
+        std::vector<RoadsOverlap> AllOverlaps(double sBegin, double sEnd) const;
+
+        RoadsOverlap CalcOverlapWith(std::shared_ptr<Road> target, double sWithin) const;
 
         void EnableHighlight(bool enabled);
 #endif

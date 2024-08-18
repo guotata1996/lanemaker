@@ -67,7 +67,6 @@ protected:
 
     CustomCursorItem* cursorItem;
 
-
 private:
     std::weak_ptr<RoadRunner::Road> highlighted;
 
@@ -121,6 +120,9 @@ protected:
     bool lastClickOnExtLine; /*Prohibit random dbl-click*/
 
 private:
+    std::weak_ptr<RoadRunner::Road> firstCtrlPointPreferredTarget, lastCtrlPointPreferredTarget;
+    double firstCtrlPointPreferredS, lastCtrlPointPreferredS;
+
     QPainterPath setPath;
     QGraphicsPathItem* setPreviewItem;
 
