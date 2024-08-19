@@ -214,27 +214,30 @@ namespace RoadRunner
     int Junction::CreateFrom(const std::vector<ConnectionInfo>& connected)
     {
         connectingRoads.clear();
-        // Make sure all ends share same elevation
-        double avgElevation = 0;
-        for (const auto& conn : connected)
-        {
-            auto e = conn.road.lock()->RefLine().elevation_profile.get(conn.contact == odr::RoadLink::ContactPoint_Start ?
-                0 : conn.road.lock()->Length());
-            avgElevation += e;
-        }
-        avgElevation /= connected.size();
+
         for (const auto& conn : connected)
         {
             auto connRoad = conn.road.lock();
             auto connS = conn.contact == odr::RoadLink::ContactPoint_Start ? 0 : connRoad->Length();
-            CubicSplineGenerator::OverwriteSection(connRoad->RefLine().elevation_profile,
-                connRoad->Length(), connS, connS, avgElevation);
             connRoad->GenerateOrUpdateSectionGraphicsBetween(
                 std::max(connS - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
                 std::min(connS + RoadRunner::CubicSplineGenerator::MaxTransitionLength, connRoad->Length()));
         }
 
         generationError = GenerateConnections(generated.id, connected, connectingRoads);
+
+        std::for_each(connected.begin(), connected.end(), [this](const ConnectionInfo& info) {
+            formedFrom.insert(info);
+            auto roadPtr = info.road.lock();
+            if (info.contact == odr::RoadLink::ContactPoint_Start)
+            {
+                roadPtr->predecessorJunction = shared_from_this();
+            }
+            else
+            {
+                roadPtr->successorJunction = shared_from_this();
+            }
+        });
 
         generated.id_to_connection.clear();
         int junctionConnID = 0;
@@ -253,21 +256,8 @@ namespace RoadRunner
             generated.id_to_connection.emplace(prevConn.id, prevConn);
 
             CubicSplineGenerator::OverwriteSection(connecting->RefLine().elevation_profile,
-                connecting->Length(), 0, connecting->Length(), avgElevation);
+                connecting->Length(), 0, connecting->Length(), Elevation());
         }
-
-        std::for_each(connected.begin(), connected.end(), [this](const ConnectionInfo& info) {
-            formedFrom.insert(info);
-            auto roadPtr = info.road.lock();
-            if (info.contact == odr::RoadLink::ContactPoint_Start)
-            {
-                roadPtr->predecessorJunction = shared_from_this();
-            }
-            else
-            {
-                roadPtr->successorJunction = shared_from_this();
-            }
-            });
 
 #ifndef G_TEST
         for (auto& connecting : connectingRoads)

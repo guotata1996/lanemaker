@@ -88,6 +88,7 @@ namespace RoadRunner
         // Everything included
         std::vector<RoadsOverlap> AllOverlaps(double sBegin, double sEnd) const;
 
+        // sWithin is expected to stay within overlapping section against target
         RoadsOverlap CalcOverlapWith(std::shared_ptr<Road> target, double sWithin) const;
 
         void EnableHighlight(bool enabled);

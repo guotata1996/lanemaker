@@ -115,12 +115,14 @@ protected:
     std::weak_ptr<RoadRunner::Road> extendFromStart;
     std::weak_ptr<RoadRunner::Road> joinAtEnd;
 
+    std::weak_ptr<RoadRunner::Road> firstCtrlPointPreferredTarget;
+    std::weak_ptr<RoadRunner::Road> lastCtrlPointPreferredTarget;
+
     double extendFromStartS, joinAtEndS;
 
     bool lastClickOnExtLine; /*Prohibit random dbl-click*/
 
 private:
-    std::weak_ptr<RoadRunner::Road> firstCtrlPointPreferredTarget, lastCtrlPointPreferredTarget;
     double firstCtrlPointPreferredS, lastCtrlPointPreferredS;
 
     QPainterPath setPath;

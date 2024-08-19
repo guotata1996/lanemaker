@@ -66,6 +66,7 @@ bool LanesCreationSession::CreateRoad()
     double newPartBegin = 0, newPartEnd = newRoad->Length();
     if (!extendFromStart.expired())
     {
+        firstCtrlPointPreferredTarget.reset();
         auto toExtend = extendFromStart.lock();
         RoadRunner::ConnectionInfo linkedInfo(newRoad, odr::RoadLink::ContactPoint_Start, startLanesSkip);
         if (extendFromStartS == 0 || extendFromStartS == toExtend->Length())
@@ -145,6 +146,7 @@ bool LanesCreationSession::CreateRoad()
     
     if (!joinAtEnd.expired())
     {
+        lastCtrlPointPreferredTarget.reset();
         auto toJoin = joinAtEnd.lock();
         RoadRunner::ConnectionInfo linkedInfo(newRoad, odr::RoadLink::ContactPoint_End, endLanesSkip);
         if (joinAtEndS == 0 || joinAtEndS == toJoin->Length())

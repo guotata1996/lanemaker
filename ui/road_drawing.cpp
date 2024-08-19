@@ -813,6 +813,9 @@ bool RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
         }
         else
         {
+            // Elevation is preserved from existing road
+            auto junctionElevation = road2->RefLine().elevation_profile.get((sBegin2 + sEnd2) / 2);
+
             std::shared_ptr<RoadRunner::Road> road2BeforeJunction, road2PastJunction;
             if (sEnd2 != road2->Length())
             {
@@ -851,6 +854,14 @@ bool RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
             {
                 // 2-road junction, should really be a Join
                 canCreateJunction = false;
+            }
+
+            for (const auto& conn : junctionInfo)
+            {
+                auto connRoad = conn.road.lock();
+                auto connS = conn.contact == odr::RoadLink::ContactPoint_Start ? 0 : connRoad->Length();
+                RoadRunner::CubicSplineGenerator::OverwriteSection(connRoad->RefLine().elevation_profile,
+                    connRoad->Length(), connS, connS, junctionElevation);
             }
             auto junction = std::make_shared<RoadRunner::Junction>();
             auto errorCode = junction->CreateFrom(junctionInfo);

@@ -157,6 +157,7 @@ void MainWindow::reset()
     /*Road destruction order be random, which could cause temporary invalid state.*/
     spdlog::set_level(spdlog::level::critical);
 
+    enableSimulation(false);
     mainWidget->Reset();
     RoadRunner::ChangeTracker::Instance()->Clear();
     RoadRunner::ActionManager::Instance()->Reset();
@@ -223,6 +224,7 @@ void MainWindow::loadFromFile()
 
 void MainWindow::undo()
 {
+    enableSimulation(false);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::ActionType::Action_Undo);
     if (!RoadRunner::ChangeTracker::Instance()->Undo())
     {
@@ -236,6 +238,7 @@ void MainWindow::undo()
 
 void MainWindow::redo()
 {
+    enableSimulation(false);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::ActionType::Action_Redo);
     if (!RoadRunner::ChangeTracker::Instance()->Redo())
     {
