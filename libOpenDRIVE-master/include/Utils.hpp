@@ -325,4 +325,33 @@ bool check_class_members_equal(const T& obj_a, const T& obj_b, S field, Ss... fi
     return check_class_members_equal(obj_a, obj_b, fields...);
 };
 
+template<class K>
+bool snapToExistingKey(const std::set<K>& existingKeys, K& key, K limit)
+{
+    if (key < limit)
+    {
+        key = 0;
+        return true;
+    }
+
+    auto above = existingKeys.lower_bound(key);
+    if (above != existingKeys.end() && *above - key < limit)
+    {
+        key = *above;
+        return true;
+    }
+
+    if (above != existingKeys.begin())
+    {
+        auto below = above;
+        below--;
+        if (key - *below < limit)
+        {
+            key = *below;
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace odr

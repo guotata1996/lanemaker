@@ -147,5 +147,7 @@ namespace RoadRunner
     private:
         // f(0) = y0, f(len) = y1, f'(0) = f'(len) = 0
         static odr::Poly3 FitPoly3(double s0, double y0, double s1, double y1);
+
+        static double Precision;
     };
 }

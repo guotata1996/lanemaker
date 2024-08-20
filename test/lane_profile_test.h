@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "road.h"
 #include "randomization_utils.h"
 #include "validation.h"
+#include "xodr/road.h"
 
 #include "Geometries/Line.h"
 
@@ -43,10 +43,7 @@ namespace RoadRunnerTest
         Validation::VerifySingleRoad(road.generated);
     }
 
-    struct Seed_SingleRoad
-        : public testing::TestWithParam<int> {};
-
-    TEST(SingleRoad, RightSideOnly)
+    TEST(LaneProfile, RightSideOnly)
     {
         RoadRunner::LaneProfile profile(0, 0, 1, 0);
         profile.OverwriteSection(30.0, 100.0, 100.0, RoadRunner::LanePlan{ 0, 0 }, RoadRunner::LanePlan{-1, 1});
@@ -54,7 +51,7 @@ namespace RoadRunnerTest
         GenerateAndVerify(profile, 100);
     }
 
-    TEST(SingleRoad, LeftSideOnly)
+    TEST(LaneProfile, LeftSideOnly)
     {
         RoadRunner::LaneProfile profile(1, 0, 0, 0);
         profile.OverwriteSection(0.0, 30.0, 100.0, RoadRunner::LanePlan{ 1, 1 }, RoadRunner::LanePlan{ 0, 0 });
@@ -62,7 +59,10 @@ namespace RoadRunnerTest
         GenerateAndVerify(profile, 100);
     }
 
-    TEST_P(Seed_SingleRoad, SingleRoad) {
+    struct RandLaneParam
+        : public testing::TestWithParam<int> {};
+
+    TEST_P(RandLaneParam, LaneProfile) {
         auto seed = GetParam();
         const uint32_t Length_M = 100;
         auto road = GenerateConfig(seed, Length_M);
@@ -71,6 +71,6 @@ namespace RoadRunnerTest
 
     INSTANTIATE_TEST_SUITE_P(
         RandomRoad,
-        Seed_SingleRoad,
+        RandLaneParam,
         testing::Range(1, 30));
 }

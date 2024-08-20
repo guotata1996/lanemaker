@@ -986,11 +986,7 @@ namespace RoadRunner
 
     bool LaneProfile::SnapToSegmentBoundary(type_s& key, type_s length, type_s limit) const
     {
-        if (key < limit)
-        {
-            key = 0;
-            return true;
-        }
+
         if (key > length - limit)
         {
             key = length;
@@ -999,24 +995,7 @@ namespace RoadRunner
 
         auto existingKeys = GetAllKeys(length);
 
-        auto above = existingKeys.lower_bound(key);
-        if (*above - key < limit)
-        {
-            key = *above;
-            return true;
-        }
-
-        if (above != existingKeys.begin())
-        {
-            auto below = above;
-            below--;
-            if (key - *below < limit)
-            {
-                key = *below;
-                return true;
-            }
-        }
-        return false;
+        return odr::snapToExistingKey(existingKeys, key, limit);
     }
 
     LaneProfile LaneProfile::Reversed(type_s length) const

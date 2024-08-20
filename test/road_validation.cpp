@@ -19,6 +19,7 @@ namespace RoadRunnerTest
 #endif
         VerifySingleRoadLinkage(road);
         VerifyProfileIntegrity(road);
+        VerifySingleRoadElevation(road.ref_line.elevation_profile);
     }
 
     void Validation::VerifyLaneWidthinBound(const odr::Road& road)
@@ -340,14 +341,13 @@ namespace RoadRunnerTest
         }
     }
 
-    void Validation::VerifySingleRoadElevation(const odr::Road& road)
+    void Validation::VerifySingleRoadElevation(const odr::CubicSpline& eProfile)
     {
-        auto s_profile = road.ref_line.elevation_profile;
-        for (auto it = s_profile.s0_to_poly.begin(); it != s_profile.s0_to_poly.end(); ++it)
+        for (auto it = eProfile.s0_to_poly.begin(); it != eProfile.s0_to_poly.end(); ++it)
         {
             auto next = it;
             next++;
-            if (next == s_profile.s0_to_poly.end()) break;
+            if (next == eProfile.s0_to_poly.end()) break;
             auto s = next->first;
             ExpectNearOrAssert(it->second.get(s), next->second.get(s), epsilon);
         }

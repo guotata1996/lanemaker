@@ -1,9 +1,7 @@
 #pragma once
 
-#include "xodr/road.h"
-#include "xodr/junction.h"
-
-#include "spdlog/spdlog.h"
+#include <gtest/gtest.h>
+#include "road_profile.h"
 
 // Inclusive
 int RandomIntBetween(int low, int hi);
@@ -12,4 +10,3 @@ int RandomIntBetween(int low, int hi);
 std::vector<int> RandomSortedVector(int low, int hi, uint32_t count);
 
 RoadRunner::LaneProfile GenerateConfig(int seed, uint32_t length);
-

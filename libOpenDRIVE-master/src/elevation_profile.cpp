@@ -5,6 +5,7 @@
 namespace RoadRunner
 {
     double CubicSplineGenerator::MaxTransitionLength = 60;
+    double CubicSplineGenerator::Precision = 1e-3;
 
     void CubicSplineGenerator::OverwriteSection(odr::CubicSpline& target, double length, 
         double start, double end, double value) 
@@ -16,8 +17,21 @@ namespace RoadRunner
         if (table.empty())
             table.emplace(0, odr::Poly3(0, 0, 0, 0, 0));
 
-        if (std::abs(target.get(start) - value) < 1e-3 &&
-            std::abs(target.get(end) - value) < 1e-3) 
+        // Snap keys
+        const auto existingKeys = odr::get_map_keys(table);
+        if (start > length - Precision)
+        {
+            start = length;
+        }
+        odr::snapToExistingKey(existingKeys, start, Precision);
+        if (end > length - Precision) 
+        {
+            end = length;
+        }
+        odr::snapToExistingKey(existingKeys, end, Precision);
+
+        if (std::abs(target.get(start) - value) < Precision &&
+            std::abs(target.get(end) - value) < Precision) 
         {
             // already satisfied
             return;

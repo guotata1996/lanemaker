@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "single_road_test.h"
+#include "lane_profile_test.h"
+#include "elevation_profile_test.h"
 #include "junction_test.h"
 #include "road_geometry_test.h"
 #include "road_operation_test.h"

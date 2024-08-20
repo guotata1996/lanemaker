@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace odr { class Road; }
+namespace odr { class Road; class CubicSpline; }
 namespace RoadRunner {
     class AbstractJunction;
     class Junction;
@@ -23,6 +23,7 @@ namespace RoadRunnerTest
 
         static bool CompareFiles(const std::string& p1, const std::string& p2);
 
+        static void VerifySingleRoadElevation(const odr::CubicSpline&);
     private:
 #ifndef G_TEST
         static void RoadIDSetMatch();
@@ -39,8 +40,6 @@ namespace RoadRunnerTest
         static void VerifySingleRoadLinkage(const odr::Road& road);
 
         static void VerifyProfileIntegrity(const odr::Road& road);
-
-        static void VerifySingleRoadElevation(const odr::Road& road);
 
         static void VerifyCommonJunction(const RoadRunner::Junction* junction);
 

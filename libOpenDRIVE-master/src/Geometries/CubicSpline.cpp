@@ -286,7 +286,6 @@ void CubicSpline::join(double length, const CubicSpline& second)
     }
 }
 
-
 std::set<double> CubicSpline::approximate_linear(double eps, double s_start, double s_end) const
 {
     if ((s_start == s_end) || this->s0_to_poly.empty())
