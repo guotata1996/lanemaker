@@ -77,13 +77,13 @@ namespace RoadRunner
         }
     }
 
-    void LaneProfile::OverwriteSection(double s1, double s2, type_s length,
+    void LaneProfile::OverwriteSection(double s1, double s2, double length,
         const LanePlan& newLeftProfile, const LanePlan& newRightProfile) 
     {
         type_s s1RR = from_odr_unit(s1);
         type_s s2RR = from_odr_unit(s2);
-        SnapToSegmentBoundary(s1RR, length);
-        SnapToSegmentBoundary(s2RR, length);
+        SnapToSegmentBoundary(s1RR, from_odr_unit(length));
+        SnapToSegmentBoundary(s2RR, from_odr_unit(length));
 
         if (HasSide(1))
         {

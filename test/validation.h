@@ -40,6 +40,8 @@ namespace RoadRunnerTest
 
         static void VerifyProfileIntegrity(const odr::Road& road);
 
+        static void VerifySingleRoadElevation(const odr::Road& road);
+
         static void VerifyCommonJunction(const RoadRunner::Junction* junction);
 
         static void VerifyDirectJunction(const RoadRunner::DirectJunction* junction);

@@ -218,10 +218,9 @@ namespace RoadRunner
         GenerateSectionGraphicsBetween(createBegin, createEnd);
     }
 
-    Road::RoadsOverlap Road::CalcOverlapWith(std::shared_ptr<Road> target, double sWithin) const
+    Road::RoadsOverlap Road::CalcOverlapWith(std::shared_ptr<Road> target, double sWithin, double sBegin1, double sEnd1) const
     {
-        // wide enough search range to cover road width < 100
-        for (auto overlapResult : AllOverlaps(std::max(0.0, sWithin - 100), std::min(Length(), sWithin + 100)))
+        for (auto overlapResult : AllOverlaps(sBegin1, sEnd1))
         {
             if (overlapResult.road2.lock() == target &&
                 overlapResult.sBegin2 <= sWithin && sWithin <= overlapResult.sEnd2)
@@ -269,8 +268,17 @@ namespace RoadRunner
                     auto collidingRoad = collidingGraphicsSegment->road.lock();
                     if (collidingRoad == shared_from_this())
                     {
-                        // self-intersection is ignored for now
-                        continue;
+                        if (SegmentsIntersect(myGraphicsSegment->sBegin - 0.01, myGraphicsSegment->sEnd + 0.01,
+                            collidingGraphicsSegment->sBegin - 0.01, collidingGraphicsSegment->sEnd + 0.01))
+                        {
+                            // Ignore self-overlaps between neighboring pieces
+                            continue;
+                        }
+                        if (myGraphicsSegment->sBegin < collidingGraphicsSegment->sBegin)
+                        {
+                            // Only record pairs where s1 > s2
+                            continue;
+                        }
                     }
 
                     if (collidingRoad->generated.junction != "-1")
@@ -360,6 +368,17 @@ namespace RoadRunner
                         if (collisionSegmentItem == nullptr)
                         {
                             continue;
+                        }
+
+                        if (collisionSegmentItem->GetRoad() == shared_from_this())
+                        {
+                            if (mySegment->sBegin < sBeginOnOther ||
+                                SegmentsIntersect(mySegment->sBegin - 0.01, mySegment->sEnd + 0.01,
+                                sBeginOnOther - 0.01, sEndOnOther + 0.01))
+                            {
+                                // Ignore self-overlaps between neighboring pieces
+                                continue;
+                            }
                         }
 
                         SectionGraphics* collidingGraphicsSegment = dynamic_cast<SectionGraphics*>(collisionSegmentItem->parentItem());

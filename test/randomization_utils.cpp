@@ -34,16 +34,16 @@ RoadRunner::LaneProfile GenerateConfig(int seed, uint32_t length)
         int mBegin = RandomIntBetween(0, length / MinSection_M) * MinSection_M;
         int mEnd = RandomIntBetween(0, length / MinSection_M) * MinSection_M;
         if (mBegin == mEnd) continue;
-        int side = RandomIntBetween(0, 1) == 0 ? -1 : 1;
-        int8_t offsetX2 = RandomIntBetween(0, 3) * side;
+        int8_t offsetX2 = RandomIntBetween(0, 3);
         uint8_t nLanes = RandomIntBetween(1, 4);
+        RoadRunner::LanePlan lPlan{ RandomIntBetween(0, 3) , RandomIntBetween(1, 4) };
+        RoadRunner::LanePlan rPlan{ -RandomIntBetween(0, 3) , RandomIntBetween(1, 4) };
         
-        if (side == 1 && mBegin < mEnd ||
-            side == -1 && mBegin > mEnd)
+        if (mBegin > mEnd)
         {
             std::swap(mBegin, mEnd);
         }
-        road.OverwriteSection(side, RoadRunner::from_odr_unit(mBegin), RoadRunner::from_odr_unit(mEnd), nLanes, offsetX2);
+        road.OverwriteSection(mBegin, mEnd, length, lPlan, rPlan);
     }
 
     return road;

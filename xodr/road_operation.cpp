@@ -187,7 +187,7 @@ namespace RoadRunner
     {
         if (s1 > s2) std::swap(s1, s2);
 
-        generated.rr_profile.OverwriteSection(s1, s2, from_odr_unit(Length()), newLeftProfile, newRightProfile);
+        generated.rr_profile.OverwriteSection(s1, s2, Length(), newLeftProfile, newRightProfile);
         Generate(false);
 
         if (s1 == 0 && predecessorJunction != nullptr)

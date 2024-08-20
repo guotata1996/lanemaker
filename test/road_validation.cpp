@@ -339,4 +339,17 @@ namespace RoadRunnerTest
         ExpectOrAssert(sToSectionIt == lProfileCopy.rend());
         }
     }
+
+    void Validation::VerifySingleRoadElevation(const odr::Road& road)
+    {
+        auto s_profile = road.ref_line.elevation_profile;
+        for (auto it = s_profile.s0_to_poly.begin(); it != s_profile.s0_to_poly.end(); ++it)
+        {
+            auto next = it;
+            next++;
+            if (next == s_profile.s0_to_poly.end()) break;
+            auto s = next->first;
+            ExpectNearOrAssert(it->second.get(s), next->second.get(s), epsilon);
+        }
+    }
 }

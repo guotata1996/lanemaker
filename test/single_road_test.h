@@ -49,7 +49,7 @@ namespace RoadRunnerTest
     TEST(SingleRoad, RightSideOnly)
     {
         RoadRunner::LaneProfile profile(0, 0, 1, 0);
-        profile.OverwriteSection(-1, 3000, 10000, 1, -1);
+        profile.OverwriteSection(30.0, 100.0, 100.0, RoadRunner::LanePlan{ 0, 0 }, RoadRunner::LanePlan{-1, 1});
 
         GenerateAndVerify(profile, 100);
     }
@@ -57,7 +57,7 @@ namespace RoadRunnerTest
     TEST(SingleRoad, LeftSideOnly)
     {
         RoadRunner::LaneProfile profile(1, 0, 0, 0);
-        profile.OverwriteSection(1, 3000, 0, 1, 1);
+        profile.OverwriteSection(0.0, 30.0, 100.0, RoadRunner::LanePlan{ 1, 1 }, RoadRunner::LanePlan{ 0, 0 });
 
         GenerateAndVerify(profile, 100);
     }

@@ -658,22 +658,31 @@ bool RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
     const double RoadMinLength = 5; // Discard if any leftover road is too short
 
     bool firstIter = true;
+    bool lastTarget = false;
     while (true)
     {
         std::optional<RoadRunner::Road::RoadsOverlap> overlap;
         if (firstIter && !firstCtrlPointPreferredTarget.expired())
         {
-            overlap.emplace(newRoad->CalcOverlapWith(firstCtrlPointPreferredTarget.lock(), firstCtrlPointPreferredS));
+            overlap.emplace(newRoad->CalcOverlapWith(firstCtrlPointPreferredTarget.lock(), firstCtrlPointPreferredS, newPartBegin, newPartEnd));
         }
         else
         {
+            if (lastTarget)
+            {
+                break;
+            }
             if (!lastCtrlPointPreferredTarget.expired())
             {
-                overlap.emplace(newRoad->CalcOverlapWith(lastCtrlPointPreferredTarget.lock(), lastCtrlPointPreferredS));
+                overlap.emplace(newRoad->CalcOverlapWith(lastCtrlPointPreferredTarget.lock(), lastCtrlPointPreferredS, newPartBegin, newPartBegin));
             }
             if (!overlap.has_value() || std::abs(overlap->sEnd1 - newPartEnd) > 1e-2)
             {
                 overlap = newRoad->FirstOverlap(newPartBegin, newPartEnd);
+            }
+            else
+            {
+                lastTarget = true;
             }
         }
         firstIter = false;
@@ -684,6 +693,12 @@ bool RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
         }
 
         auto road2 = overlap->road2.lock();
+
+        if (road2 == newRoad)
+        {
+            spdlog::warn("Self-intersection is currently not supported by junction creation!");
+            return false;
+        }
 
         bool canCreateJunction = true; // If not, this collision will end up as an overlap
         double sBegin1 = overlap->sBegin1 - JunctionExtaTrim;
@@ -862,6 +877,9 @@ bool RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
                 auto connS = conn.contact == odr::RoadLink::ContactPoint_Start ? 0 : connRoad->Length();
                 RoadRunner::CubicSplineGenerator::OverwriteSection(connRoad->RefLine().elevation_profile,
                     connRoad->Length(), connS, connS, junctionElevation);
+                connRoad->GenerateOrUpdateSectionGraphicsBetween(
+                    std::max(connS - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
+                    std::min(connS + RoadRunner::CubicSplineGenerator::MaxTransitionLength, connRoad->Length()));
             }
             auto junction = std::make_shared<RoadRunner::Junction>();
             auto errorCode = junction->CreateFrom(junctionInfo);

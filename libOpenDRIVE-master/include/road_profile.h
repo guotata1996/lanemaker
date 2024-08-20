@@ -60,7 +60,7 @@ namespace RoadRunner
 
         LaneProfile& operator=(const LaneProfile& other);
 
-        void OverwriteSection(double start, double end, type_s length,
+        void OverwriteSection(double start, double end, double length,
             const LanePlan& newLeftProfile, const LanePlan& newRightProfile);
 
         /*First section travelling on left side, @s = Length*/
