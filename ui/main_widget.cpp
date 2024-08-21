@@ -52,7 +52,9 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     // Zoom slider layout
     QVBoxLayout* zoomSliderLayout = new QVBoxLayout;
     createAbove = new QToolButton;
-    createAbove->setText("^");
+    createAbove->setIcon(QPixmap(":/icons/bridge.png"));
+    createAbove->setIconSize(iconSize);
+    createAbove->setToolTip(tr("Above existing"));
     createAbove->setCheckable(true);
     connect(createAbove, &QToolButton::toggled, [](bool checked) {
         if (checked)
@@ -63,7 +65,9 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     });
 
     createFlat = new QToolButton;
-    createFlat->setText("=");
+    createFlat->setIcon(QPixmap(":/icons/flat.png"));
+    createFlat->setIconSize(iconSize);
+    createFlat->setToolTip(tr("Form junction"));
     createFlat->setCheckable(true);
     connect(createFlat, &QToolButton::toggled, [](bool checked) {
         if (checked)
@@ -74,7 +78,9 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     });
 
     createBelow = new QToolButton;
-    createBelow->setText("v");
+    createBelow->setIcon(QPixmap(":/icons/tunnel.png"));
+    createBelow->setIconSize(iconSize);
+    createBelow->setToolTip(tr("Below existing"));
     createBelow->setCheckable(true);
     connect(createBelow, &QToolButton::toggled, [](bool checked) {
         if (checked)
