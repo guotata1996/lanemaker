@@ -194,63 +194,25 @@ namespace RoadRunner
             const odr::Vec2D endPos = odr::mut(UnitRadius, odr::Vec2D{ std::cos(endPosAngle), std::sin(endPosAngle) });
             const odr::Vec2D endHdg{ std::cos(endHdgAngle), std::sin(endHdgAngle) };
 
-            Direction_2<Kernel> dir1(-startHdg[1], startHdg[0]);
-            Point_2 <Kernel> p1(startPos[0], startPos[1]);
-            Line_2 <Kernel> line1(p1, dir1);
-
-            auto start2End = odr::sub(endPos, startPos);
-            start2End = odr::normalize(start2End);
-            Direction_2<Kernel> dir2(-start2End[1], start2End[0]);
-            auto mid = odr::mut(0.5, odr::add(startPos, endPos));
-            Point_2 <Kernel> p2(mid[0], mid[1]);
-            Line_2 <Kernel> line2(p2, dir2);
-
-            Object result = intersection(line1, line2);
-            const CGAL::Point_2<Kernel>* po = object_cast<Point_2<Kernel>>(&result);
-
-            if (po == nullptr)
-            {
-                spdlog::info("No intersection found for circle center");
+            auto baseArc = FitArc(startPos, startHdg, endPos);
+            if (baseArc == nullptr)
                 return nullptr;
-            }
 
-            auto r = CGAL::squared_distance(p1, *po);
-            r = std::sqrt(r);
-            odr::Vec2D O{ po->x(), po->y() };
-            auto O2Start = odr::sub(startPos, O);
-            bool cw = odr::crossProduct(startHdg, O2Start) > 0;
-
-            auto O2End = odr::sub(endPos, O);
-            odr::Vec2D arcEndHdg{ O2End[1], -O2End[0] };
-            if (!cw)
-            {
-                arcEndHdg = odr::negate(arcEndHdg);
-            }
-            auto angleErr = odr::angle(endHdg, arcEndHdg);
-
-            auto arcAngle = odr::angle(O2Start, O2End);
-            if (cw == (arcAngle > 0))
-            {
-                arcAngle = M_PI * 2 - std::abs(arcAngle);
-            }
-            else
-            {
-                arcAngle = std::abs(arcAngle);
-            }
-            const auto arcLen = arcAngle * r;
-
-            auto baseCrv = (cw ? -1.0 : 1.0) / r;
-            double startAngle = std::atan2(startHdg[1], startHdg[0]);
-
+            auto baseArcEndHdg = baseArc->get_grad(baseArc->length);
+            auto angleErr = odr::angle(endHdg, baseArcEndHdg);
 
             if (std::abs(angleErr) < 1e-4)
             {
-                return std::make_unique<odr::Arc>(0, startPos[0], startPos[1], startAngle, arcLen, baseCrv);
+                return baseArc;
             }
+
+            const double startAngle = std::atan2(startHdg[1], startHdg[0]);
+            const double arcLen = baseArc->length;
+            const double baseCrv = baseArc->curvature;
 
             double startMul = angleErr > 0 ? 0.99 : 1.01;
             double endMul;
-            double spiralLen = arcLen;
+            double spiralLen = baseArc->length;
 
             // Bend the arc int spire
 
@@ -469,6 +431,53 @@ namespace RoadRunner
 
         spdlog::warn("Valid input but exceeded complexity constraint");
         return nullptr;
+    }
+
+    std::unique_ptr<odr::Arc> FitArc(const odr::Vec2D& startPos,
+        const odr::Vec2D& startHdg, const odr::Vec2D& endPos)
+    {
+        Direction_2<Kernel> dir1(-startHdg[1], startHdg[0]);
+        Point_2 <Kernel> p1(startPos[0], startPos[1]);
+        Line_2 <Kernel> line1(p1, dir1);
+
+        auto start2End = odr::sub(endPos, startPos);
+        start2End = odr::normalize(start2End);
+        Direction_2<Kernel> dir2(-start2End[1], start2End[0]);
+        auto mid = odr::mut(0.5, odr::add(startPos, endPos));
+        Point_2 <Kernel> p2(mid[0], mid[1]);
+        Line_2 <Kernel> line2(p2, dir2);
+
+        Object result = intersection(line1, line2);
+        const CGAL::Point_2<Kernel>* po = object_cast<Point_2<Kernel>>(&result);
+
+        if (po == nullptr)
+        {
+            spdlog::trace("No intersection found for circle center");
+            return nullptr;
+        }
+
+        auto r = CGAL::squared_distance(p1, *po);
+        r = std::sqrt(r);
+        odr::Vec2D O{ po->x(), po->y() };
+        auto O2Start = odr::sub(startPos, O);
+        bool cw = odr::crossProduct(startHdg, O2Start) > 0;
+
+        auto O2End = odr::sub(endPos, O);
+
+        auto arcAngle = odr::angle(O2Start, O2End);
+        if (cw == (arcAngle > 0))
+        {
+            arcAngle = M_PI * 2 - std::abs(arcAngle);
+        }
+        else
+        {
+            arcAngle = std::abs(arcAngle);
+        }
+        const auto arcLen = arcAngle * r;
+
+        auto baseCrv = (cw ? -1.0 : 1.0) / r;
+        double startAngle = std::atan2(startHdg[1], startHdg[0]);
+        return std::make_unique<odr::Arc>(0, startPos[0], startPos[1], startAngle, arcLen, baseCrv);
     }
 
 #ifdef G_TEST

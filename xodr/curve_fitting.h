@@ -1,13 +1,13 @@
 #pragma once
 
 #include "Geometries/RoadGeometry.h"
+#include "Geometries/Arc.h"
 
 namespace RoadRunner
 {
     std::unique_ptr<odr::RoadGeometry> ConnectRays(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
         const odr::Vec2D& endPos, const odr::Vec2D& endHdg);
 
-    // l1 --> conn --> l2
     std::unique_ptr<odr::RoadGeometry> FitParamPoly(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
         const odr::Vec2D& endPos, const odr::Vec2D& endHdg);
 
@@ -32,4 +32,7 @@ namespace RoadRunner
 #ifdef G_TEST
     void TestSpiralFitting();
 #endif
+
+    std::unique_ptr<odr::Arc> FitArc(const odr::Vec2D& startPos,
+        const odr::Vec2D& startHdg, const odr::Vec2D& endPos);
 }

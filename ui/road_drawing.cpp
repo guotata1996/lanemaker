@@ -161,6 +161,17 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& evt)
     {
         if (evt.type == QEvent::Type::MouseButtonPress)
         {
+            if (ctrlPoints.size() == 1)
+            {
+                firstCtrlPointPreferredTarget = g_PointerRoad;
+                firstCtrlPointPreferredS = g_PointerRoadS;
+            }
+            else
+            {
+                lastCtrlPointPreferredTarget = g_PointerRoad;
+                lastCtrlPointPreferredS = g_PointerRoadS;
+            }
+
             if (ctrlPoints.size() == 1 || 
                 QVector2D(ctrlPoints[ctrlPoints.size() - 2]).distanceToPoint(QVector2D(ctrlPoints.back())) > RoadRunner::DupCtrlPointsDist)
             {
@@ -383,8 +394,6 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCtrlPoint(float maxOffse
     {
         startDir.reset();
         extendFromStart.reset();
-        firstCtrlPointPreferredTarget = g_PointerRoad;
-        firstCtrlPointPreferredS = g_PointerRoadS;
         return SnapFirstPointToExisting(nextPoint);
     }
     else if (ctrlPoints.size() == 2)
@@ -399,8 +408,6 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCtrlPoint(float maxOffse
     if (!extendFromStart.expired() && ctrlPoints.size() == 2)
     {
         joinAtEnd.reset();
-        lastCtrlPointPreferredTarget = g_PointerRoad;
-        lastCtrlPointPreferredS = g_PointerRoadS;
         result = SnapLastPointToExisting(nextPoint);
         if (result)
         {
@@ -411,8 +418,6 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCtrlPoint(float maxOffse
     if (ctrlPoints.size() >= 3)
     {
         joinAtEnd.reset();
-        lastCtrlPointPreferredTarget = g_PointerRoad;
-        lastCtrlPointPreferredS = g_PointerRoadS;
         result = SnapLastPointToExisting(nextPoint);
 
         if (result == RoadDrawingSession::Snap_Nothing)
@@ -674,7 +679,7 @@ bool RoadCreationSession::tryCreateJunction(std::shared_ptr<RoadRunner::Road> ne
             }
             if (!lastCtrlPointPreferredTarget.expired())
             {
-                overlap.emplace(newRoad->CalcOverlapWith(lastCtrlPointPreferredTarget.lock(), lastCtrlPointPreferredS, newPartBegin, newPartBegin));
+                overlap.emplace(newRoad->CalcOverlapWith(lastCtrlPointPreferredTarget.lock(), lastCtrlPointPreferredS, newPartBegin, newPartEnd));
             }
             if (!overlap.has_value() || std::abs(overlap->sEnd1 - newPartEnd) > 1e-2)
             {
