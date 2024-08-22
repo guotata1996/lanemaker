@@ -194,7 +194,8 @@ namespace RoadRunner
             const odr::Vec2D endPos = odr::mut(UnitRadius, odr::Vec2D{ std::cos(endPosAngle), std::sin(endPosAngle) });
             const odr::Vec2D endHdg{ std::cos(endHdgAngle), std::sin(endHdgAngle) };
 
-            auto baseArc = FitArc(startPos, startHdg, endPos);
+            auto baseArcOrLine = FitArcOrLine(startPos, startHdg, endPos);
+            auto baseArc = dynamic_cast<odr::Arc*>(baseArcOrLine.get());
             if (baseArc == nullptr)
                 return nullptr;
 
@@ -203,7 +204,7 @@ namespace RoadRunner
 
             if (std::abs(angleErr) < 1e-4)
             {
-                return baseArc;
+                return baseArcOrLine;
             }
 
             const double startAngle = std::atan2(startHdg[1], startHdg[0]);
@@ -433,19 +434,34 @@ namespace RoadRunner
         return nullptr;
     }
 
-    std::unique_ptr<odr::Arc> FitArc(const odr::Vec2D& startPos,
+    std::unique_ptr<odr::RoadGeometry> FitArcOrLine(const odr::Vec2D& startPos,
         const odr::Vec2D& startHdg, const odr::Vec2D& endPos)
     {
-        Direction_2<Kernel> dir1(-startHdg[1], startHdg[0]);
         Point_2 <Kernel> p1(startPos[0], startPos[1]);
-        Line_2 <Kernel> line1(p1, dir1);
+        Point_2 <Kernel> p2(endPos[0], endPos[1]);
 
+        double startAngle = std::atan2(startHdg[1], startHdg[0]);
         auto start2End = odr::sub(endPos, startPos);
         start2End = odr::normalize(start2End);
-        Direction_2<Kernel> dir2(-start2End[1], start2End[0]);
+
+        Direction_2< Kernel > dir1(startHdg[0], startHdg[1]);
+        Direction_2< Kernel> dir2(start2End[0], start2End[1]);
+        Ray_2< Kernel > ray1(p1, dir1);
+        Ray_2< Kernel > ray2(p2, -dir2);
+
+        if (squared_distance(ray1, p2) < std::pow(1e-4, 2) && squared_distance(ray2, p1) < std::pow(1e-4, 2))
+        {
+            // collinear case
+            return std::make_unique<odr::Line>(0, startPos[0], startPos[1], startAngle, odr::euclDistance(startPos, endPos));
+        }
+
+        Direction_2<Kernel> tan1(-startHdg[1], startHdg[0]);
+        Line_2 <Kernel> line1(p1, tan1);
+
+        Direction_2<Kernel> tan2(-start2End[1], start2End[0]);
         auto mid = odr::mut(0.5, odr::add(startPos, endPos));
-        Point_2 <Kernel> p2(mid[0], mid[1]);
-        Line_2 <Kernel> line2(p2, dir2);
+        Point_2 <Kernel> pMid(mid[0], mid[1]);
+        Line_2 <Kernel> line2(pMid, tan2);
 
         Object result = intersection(line1, line2);
         const CGAL::Point_2<Kernel>* po = object_cast<Point_2<Kernel>>(&result);
@@ -476,7 +492,6 @@ namespace RoadRunner
         const auto arcLen = arcAngle * r;
 
         auto baseCrv = (cw ? -1.0 : 1.0) / r;
-        double startAngle = std::atan2(startHdg[1], startHdg[0]);
         return std::make_unique<odr::Arc>(0, startPos[0], startPos[1], startAngle, arcLen, baseCrv);
     }
 
@@ -515,14 +530,18 @@ namespace RoadRunner
 
                 FitResult res;
                 auto fitArc = dynamic_cast<odr::Arc*>(fitGeo.get());
+                auto fitSpiral = dynamic_cast<odr::Spiral*>(fitGeo.get());
                 if (fitArc != nullptr)
                 {
                     res = FitResult{ fitArc->curvature, fitArc->curvature, fitArc->length };
                 }
+                else if (fitSpiral != nullptr)
+                {
+                    res = FitResult{ fitSpiral->curv_start, fitSpiral->curv_end, fitSpiral->length };
+                }
                 else
                 {
-                    auto fitSpiral = dynamic_cast<odr::Spiral*>(fitGeo.get());
-                    res = FitResult{ fitSpiral->curv_start, fitSpiral->curv_end, fitSpiral->length };
+                    FAIL();
                 }
                 hdgToRes.emplace(hdg, res);
             }

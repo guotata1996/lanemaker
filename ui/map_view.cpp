@@ -1,6 +1,7 @@
 #include "map_view.h"
 #include "main_widget.h"
 #include "road_drawing.h"
+#include "road_drawing_new.h"
 #include "road_graphics.h"
 #include "change_tracker.h"
 #include "junction.h"
@@ -112,7 +113,7 @@ void MapView::SetEditMode(RoadRunner::EditMode aMode)
     switch (aMode)
     {
     case RoadRunner::Mode_Create:
-        drawingSession = new RoadCreationSession(this);
+        drawingSession = new RoadCreationSession_NEW(this);
         break;
     case RoadRunner::Mode_CreateLanes:
         drawingSession = new LanesCreationSession(this);

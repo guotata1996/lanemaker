@@ -33,6 +33,6 @@ namespace RoadRunner
     void TestSpiralFitting();
 #endif
 
-    std::unique_ptr<odr::Arc> FitArc(const odr::Vec2D& startPos,
+    std::unique_ptr<odr::RoadGeometry> FitArcOrLine(const odr::Vec2D& startPos,
         const odr::Vec2D& startHdg, const odr::Vec2D& endPos);
 }
