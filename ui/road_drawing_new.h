@@ -5,6 +5,19 @@
 #include <vector>
 #include <optional>
 
+namespace 
+{
+	class DirectionHandle : public QGraphicsPixmapItem
+	{
+	public:
+		DirectionHandle();
+
+	protected:
+		virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, 
+			QWidget* widget = nullptr) override;
+	};
+}
+
 class RoadCreationSession_NEW: public RoadDrawingSession
 {
 public:
@@ -36,4 +49,5 @@ private:
 
 	QGraphicsPathItem* stagedPreview;
 	QGraphicsPathItem* flexPreview;
+	DirectionHandle* directionHandle;
 };

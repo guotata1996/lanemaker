@@ -39,4 +39,9 @@ void RoadGeometry::trim(double l)
     assert(l <= length);
     length = l; 
 }
+
+Vec2D RoadGeometry::get_end() 
+{ 
+    return get_xy(length); 
+}
 } // namespace odr

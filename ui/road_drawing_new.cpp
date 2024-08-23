@@ -1,10 +1,29 @@
 #include "road_drawing_new.h"
 #include "curve_fitting.h"
 #include "CreateRoadOptionWidget.h"
+#include "map_view.h"
+
+#include <QGraphicsSceneMouseEvent>
+#include <math.h>
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 extern SectionProfileConfigWidget* g_createRoadOption;
+
+extern MapView* g_mapView;
+
+DirectionHandle::DirectionHandle()
+{
+	auto pic = QPixmap(":/icons/dir_cursor.png");
+	setPixmap(pic);
+	setOffset(-pic.width() / 2, -pic.height() / 2);
+}
+
+void DirectionHandle::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+{
+	this->setScale(0.4 / g_mapView->Zoom());
+	QGraphicsPixmapItem::paint(painter, option, widget);
+}
 
 RoadCreationSession_NEW::RoadCreationSession_NEW(QGraphicsView* aView):
 	RoadDrawingSession(aView)
@@ -14,6 +33,9 @@ RoadCreationSession_NEW::RoadCreationSession_NEW(QGraphicsView* aView):
 	QPen flexPen;
 	flexPen.setStyle(Qt::DotLine);
 	flexPreview->setPen(flexPen);
+	directionHandle = new DirectionHandle;
+	scene->addItem(directionHandle);
+	directionHandle->hide();
 }
 
 bool RoadCreationSession_NEW::SnapCursor(odr::Vec2D& point) const
@@ -46,12 +68,20 @@ bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
 	{
 		if (act.button == Qt::MouseButton::LeftButton)
 		{
+			if (directionHandle->contains(directionHandle->mapFromScene(QPointF(act.sceneX, act.sceneY))))
+			{
+				spdlog::info("Handle has cursor");
+			}
 			if (!startPos.has_value())
 			{
 				startPos.emplace(scenePos);
 			}
 			else if (flexGeo != nullptr)
 			{
+				auto newEnd = flexGeo->get_end();
+				directionHandle->setPos(newEnd[0], newEnd[1]);
+				directionHandle->setScale(0);
+				directionHandle->show();
 				stagedGeometries.push_back(StagedGeometry
 					{
 						std::move(flexGeo), flexPreviewPath
@@ -70,6 +100,15 @@ bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
 				for (const auto& staged : stagedGeometries)
 				{
 					stagedPreviewPath.addPath(staged.preview);
+				}
+				if (stagedGeometries.empty())
+				{
+					directionHandle->hide();
+				}
+				else
+				{
+					auto newEnd = stagedGeometries.back().geo->get_end();
+					directionHandle->setPos(newEnd[0], newEnd[1]);
 				}
 			}
 			else
@@ -155,5 +194,6 @@ RoadCreationSession_NEW::~RoadCreationSession_NEW()
 	scene->removeItem(stagedPreview);
 	scene->removeItem(flexPreview);
 	scene->removeItem(cursorItem);
+	scene->removeItem(directionHandle);
 	SetHighlightTo(nullptr);
 }

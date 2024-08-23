@@ -26,5 +26,6 @@
         <file>icons/bridge.png</file>
         <file>icons/flat.png</file>
         <file>icons/tunnel.png</file>
+        <file>icons/dir_cursor.png</file>
     </qresource>
 </RCC>

@@ -31,6 +31,7 @@ struct RoadGeometry : public XmlNode
     virtual void reverse();
     virtual void trim(double new_length);
     virtual void rebase(double new_base);
+    Vec2D        get_end();
 
     double       s0 = 0;
     double       x0 = 0;
