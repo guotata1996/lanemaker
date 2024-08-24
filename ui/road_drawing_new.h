@@ -12,9 +12,17 @@ namespace
 	public:
 		DirectionHandle();
 
+		bool Update(const RoadRunner::MouseAction& act);
+
 	protected:
+		virtual bool contains(const QPointF& point) const override;
+
 		virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, 
 			QWidget* widget = nullptr) override;
+
+	private:
+		double dragging = false;
+		double deltaRotation;
 	};
 }
 
@@ -42,6 +50,9 @@ protected:
 
 private:
 	bool SnapCursor(odr::Vec2D&) const;
+
+	static void GeneratePainterPath(const std::unique_ptr<odr::RoadGeometry>&, 
+		QPainterPath&);
 
 	std::unique_ptr<odr::RoadGeometry> flexGeo;
 	QPainterPath flexPreviewPath;

@@ -14,9 +14,40 @@ extern MapView* g_mapView;
 
 DirectionHandle::DirectionHandle()
 {
-	auto pic = QPixmap(":/icons/dir_cursor.png");
+	QMatrix rotTrans;
+	rotTrans.rotate(90);
+	auto pic = QPixmap(":/icons/dir_cursor.png").transformed(rotTrans);
 	setPixmap(pic);
 	setOffset(-pic.width() / 2, -pic.height() / 2);
+}
+
+bool DirectionHandle::Update(const RoadRunner::MouseAction& act)
+{
+	if (!isVisible())
+		return false;
+	auto localPos = QPointF(act.sceneX, act.sceneY) - pos();
+	if (act.type == QEvent::Type::MouseButtonPress && contains(localPos))
+	{
+		dragging = true;
+		deltaRotation = rotation() - std::atan2(localPos.y(), localPos.x()) * 180 / M_PI;
+	}
+	else if (act.type == QEvent::Type::MouseButtonRelease && dragging)
+	{
+		dragging = false;
+	}
+	else if (dragging)
+	{
+		double newRotation = std::atan2(localPos.y(), localPos.x()) * 180 / M_PI + deltaRotation;
+		setRotation(newRotation);
+	}
+	return dragging;
+}
+
+bool DirectionHandle::contains(const QPointF& point) const
+{
+	double dis = std::sqrt(std::pow(point.x(), 2) + std::pow(point.y(), 2));
+	dis /= scale();
+	return 86 < dis && dis < 132; // Pixel count from raw image
 }
 
 void DirectionHandle::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
@@ -61,101 +92,123 @@ bool RoadCreationSession_NEW::SnapCursor(odr::Vec2D& point) const
 bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
 {
 	SetHighlightTo(g_PointerRoad.lock());
+	auto prevHandleDir = directionHandle->rotation();
+	bool dirHandleEvt = directionHandle->Update(act);
+	auto currHandleDir = directionHandle->rotation();
+
 	odr::Vec2D  scenePos{ act.sceneX, act.sceneY };
 	SnapCursor(scenePos);
 
-	if (act.type == QEvent::Type::MouseButtonPress)
+	if (dirHandleEvt)
 	{
-		if (act.button == Qt::MouseButton::LeftButton)
+		cursorItem->hide();
+		if (prevHandleDir != currHandleDir)
 		{
-			if (directionHandle->contains(directionHandle->mapFromScene(QPointF(act.sceneX, act.sceneY))))
-			{
-				spdlog::info("Handle has cursor");
-			}
-			if (!startPos.has_value())
-			{
-				startPos.emplace(scenePos);
-			}
-			else if (flexGeo != nullptr)
-			{
-				auto newEnd = flexGeo->get_end();
-				directionHandle->setPos(newEnd[0], newEnd[1]);
-				directionHandle->setScale(0);
-				directionHandle->show();
-				stagedGeometries.push_back(StagedGeometry
-					{
-						std::move(flexGeo), flexPreviewPath
-					}); // Do stage
-				stagedPreviewPath.addPath(flexPreviewPath);
-				stagedPreview->setPath(stagedPreviewPath);
-			}
-		}
-		else if (act.button == Qt::MouseButton::RightButton)
-		{
+			auto& toRefit = stagedGeometries.back();
+			auto startPos = toRefit.geo->get_xy(0);
+			auto startHdg = odr::normalize(toRefit.geo->get_grad(0));
+			auto endPos = toRefit.geo->get_end_pos();
+			auto targetHdg = currHandleDir / 180 * M_PI;
+			auto endHdg = odr::Vec2D{ std::cos(targetHdg), std::sin(targetHdg) };
+			auto adjustedFit = RoadRunner::ConnectRays(startPos, startHdg, endPos, endHdg);
+
+			GeneratePainterPath(adjustedFit, toRefit.preview);
+			toRefit.geo = std::move(adjustedFit);
+
 			stagedPreviewPath.clear();
-			if (!stagedGeometries.empty())
+			for (const auto& staged : stagedGeometries)
 			{
-				// Unstage one
-				stagedGeometries.pop_back();
-				for (const auto& staged : stagedGeometries)
-				{
-					stagedPreviewPath.addPath(staged.preview);
-				}
-				if (stagedGeometries.empty())
-				{
-					directionHandle->hide();
-				}
-				else
-				{
-					auto newEnd = stagedGeometries.back().geo->get_end();
-					directionHandle->setPos(newEnd[0], newEnd[1]);
-				}
-			}
-			else
-			{
-				startPos.reset();
+				stagedPreviewPath.addPath(staged.preview);
 			}
 			stagedPreview->setPath(stagedPreviewPath);
 		}
 	}
-
-	cursorItem->setPos(QPointF(act.sceneX, act.sceneY));
-	cursorItem->show();
-
-	// Update flex geo
-	flexPreviewPath.clear();
-	if (startPos.has_value() || !stagedGeometries.empty())
+	else
 	{
-		odr::Vec2D localStartPos, localStartDir;
-		if (stagedGeometries.empty())
+		if (act.type == QEvent::Type::MouseButtonPress)
 		{
-			localStartPos = startPos.value();
-			localStartDir = startDir.value_or(odr::sub(scenePos, localStartPos));
+			if (act.button == Qt::MouseButton::LeftButton)
+			{
+				if (!startPos.has_value())
+				{
+					startPos.emplace(scenePos);
+				}
+				else if (flexGeo != nullptr)
+				{
+					auto newEnd = flexGeo->get_end_pos();
+					auto newHdg = flexGeo->get_end_hdg();
+					directionHandle->setPos(newEnd[0], newEnd[1]);
+					directionHandle->setRotation(newHdg * 180 / M_PI);
+					directionHandle->setScale(0);
+					directionHandle->show();
+					stagedGeometries.push_back(StagedGeometry
+						{
+							std::move(flexGeo), flexPreviewPath
+						}); // Do stage
+					stagedPreviewPath.addPath(flexPreviewPath);
+					stagedPreview->setPath(stagedPreviewPath);
+				}
+			}
+			else if (act.button == Qt::MouseButton::RightButton)
+			{
+				stagedPreviewPath.clear();
+				if (!stagedGeometries.empty())
+				{
+					// Unstage one
+					stagedGeometries.pop_back();
+					for (const auto& staged : stagedGeometries)
+					{
+						stagedPreviewPath.addPath(staged.preview);
+					}
+					if (stagedGeometries.empty())
+					{
+						directionHandle->hide();
+					}
+					else
+					{
+						auto newEnd = stagedGeometries.back().geo->get_end_pos();
+						auto newHdg = stagedGeometries.back().geo->get_end_hdg();
+						directionHandle->setPos(newEnd[0], newEnd[1]);
+						directionHandle->setRotation(newHdg * 180 / M_PI);
+					}
+				}
+				else
+				{
+					startPos.reset();
+				}
+				stagedPreview->setPath(stagedPreviewPath);
+			}
+		}
+
+		cursorItem->setPos(QPointF(act.sceneX, act.sceneY));
+		cursorItem->show();
+
+		// Update flex geo
+		if (startPos.has_value() || !stagedGeometries.empty())
+		{
+			odr::Vec2D localStartPos, localStartDir;
+			if (stagedGeometries.empty())
+			{
+				localStartPos = startPos.value();
+				localStartDir = startDir.value_or(odr::sub(scenePos, localStartPos));
+			}
+			else
+			{
+				const auto& geo = stagedGeometries.back().geo;
+				localStartPos = geo->get_xy(geo->length);
+				localStartDir = geo->get_grad(geo->length);
+			}
+			localStartDir = odr::normalize(localStartDir);
+			flexGeo = RoadRunner::FitArcOrLine(localStartPos, localStartDir, scenePos);
+		
+			GeneratePainterPath(flexGeo, flexPreviewPath);
 		}
 		else
 		{
-			const auto& geo = stagedGeometries.back().geo;
-			localStartPos = geo->get_xy(geo->length);
-			localStartDir = geo->get_grad(geo->length);
+			flexPreviewPath.clear();
 		}
-		localStartDir = odr::normalize(localStartDir);
-		flexGeo = RoadRunner::FitArcOrLine(localStartPos, localStartDir, scenePos);
-		
-		if (flexGeo != nullptr)
-		{
-			auto flexLen = flexGeo->length;
-			for (int i = 0; i != 30; ++i)
-			{
-				auto s = flexLen / 29 * i;
-				auto p = flexGeo->get_xy(s);
-				if (i == 0)
-					flexPreviewPath.moveTo(p[0], p[1]);
-				else
-					flexPreviewPath.lineTo(p[0], p[1]);
-			}
-		}
+		flexPreview->setPath(flexPreviewPath);
 	}
-	flexPreview->setPath(flexPreviewPath);
 	return true;
 }
 
@@ -196,4 +249,23 @@ RoadCreationSession_NEW::~RoadCreationSession_NEW()
 	scene->removeItem(cursorItem);
 	scene->removeItem(directionHandle);
 	SetHighlightTo(nullptr);
+}
+
+void RoadCreationSession_NEW::GeneratePainterPath(const std::unique_ptr<odr::RoadGeometry>& geo,
+	QPainterPath& path)
+{
+	path.clear();
+	if (geo != nullptr)
+	{
+		auto flexLen = geo->length;
+		for (int i = 0; i != 30; ++i)
+		{
+			auto s = flexLen / 29 * i;
+			auto p = geo->get_xy(s);
+			if (i == 0)
+				path.moveTo(p[0], p[1]);
+			else
+				path.lineTo(p[0], p[1]);
+		}
+	}
 }

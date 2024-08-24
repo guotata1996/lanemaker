@@ -50,33 +50,38 @@ namespace RoadRunner
         Direction_2< Kernel> dir2(endHdg[0], endHdg[1]);
         Ray_2< Kernel > ray1(p1, dir1);
         Ray_2< Kernel > ray2(p2, -dir2);
+        bool p2OnRay1 = squared_distance(ray1, p2) < std::pow(1e-4, 2);
+        bool p1OnRay2 = squared_distance(ray2, p1) < std::pow(1e-4, 2);
 
-        if (squared_distance(ray1, p2) < std::pow(1e-4, 2) && squared_distance(ray2, p1) < std::pow(1e-4, 2))
+        if (p2OnRay1 && p1OnRay2)
         {
             // collinear case
             return std::make_unique<odr::Line>(0, startPos[0], startPos[1], hdg, odr::euclDistance(startPos, endPos));
         }
 
-        Object result = intersection(ray1, ray2);
-
-        if (const CGAL::Point_2<Kernel>* pm = object_cast<Point_2<Kernel>>(&result))
+        if (!p2OnRay1 && !p1OnRay2)
         {
-            // Converging case - 2nd order
-            odr::Vec2D odr_p0{ 0, 0 };
-            odr::Vec2D odr_p1{ pm->x(), pm->y() };
-            odr_p1 = odr::toLocal(odr_p1, startPos, startHdg);
-            odr::Vec2D odr_p2({ p2.x(), p2.y() });
-            odr_p2 = odr::toLocal(odr_p2, startPos, startHdg);
+            Object result = intersection(ray1, ray2);
 
-            if (odr::euclDistance(odr_p0, odr_p1) < odr::euclDistance(odr_p0, odr_p2) * 5)
+            if (const CGAL::Point_2<Kernel>* pm = object_cast<Point_2<Kernel>>(&result))
             {
-                // project against very far intersection point, i.e. nearly parallel hdg
-                odr::CubicBezier2D curve({ odr_p0, odr_p1, odr_p1, odr_p2 });
-                auto coefficients = odr::CubicBezier2D::get_coefficients(curve.control_points);
-                return std::make_unique<odr::ParamPoly3>(0, startPos[0], startPos[1], hdg, curve.get_length(),
-                    coefficients[0][0], coefficients[1][0], coefficients[2][0], coefficients[3][0],
-                    coefficients[0][1], coefficients[1][1], coefficients[2][1], coefficients[3][1],
-                    true);
+                // Converging case - 2nd order
+                odr::Vec2D odr_p0{ 0, 0 };
+                odr::Vec2D odr_p1{ pm->x(), pm->y() };
+                odr_p1 = odr::toLocal(odr_p1, startPos, startHdg);
+                odr::Vec2D odr_p2({ p2.x(), p2.y() });
+                odr_p2 = odr::toLocal(odr_p2, startPos, startHdg);
+
+                if (odr::euclDistance(odr_p0, odr_p1) < odr::euclDistance(odr_p0, odr_p2) * 5)
+                {
+                    // project against very far intersection point, i.e. nearly parallel hdg
+                    odr::CubicBezier2D curve({ odr_p0, odr_p1, odr_p1, odr_p2 });
+                    auto coefficients = odr::CubicBezier2D::get_coefficients(curve.control_points);
+                    return std::make_unique<odr::ParamPoly3>(0, startPos[0], startPos[1], hdg, curve.get_length(),
+                        coefficients[0][0], coefficients[1][0], coefficients[2][0], coefficients[3][0],
+                        coefficients[0][1], coefficients[1][1], coefficients[2][1], coefficients[3][1],
+                        true);
+                }
             }
         }
 

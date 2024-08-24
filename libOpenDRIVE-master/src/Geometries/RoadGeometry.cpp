@@ -40,8 +40,15 @@ void RoadGeometry::trim(double l)
     length = l; 
 }
 
-Vec2D RoadGeometry::get_end() 
+Vec2D RoadGeometry::get_end_pos() 
 { 
     return get_xy(length); 
 }
+
+double RoadGeometry::get_end_hdg()
+{
+    auto grad = get_grad(length);
+    return std::atan2(grad[1], grad[0]);
+}
+
 } // namespace odr
