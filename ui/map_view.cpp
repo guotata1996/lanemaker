@@ -1,11 +1,11 @@
 #include "map_view.h"
 #include "main_widget.h"
 #include "road_drawing.h"
-#include "road_drawing_new.h"
 #include "road_graphics.h"
 #include "change_tracker.h"
 #include "junction.h"
 #include "action_manager.h"
+#include "constants.h"
 
 #include <sstream>
 #include <iomanip> //std::setprecision
@@ -113,7 +113,7 @@ void MapView::SetEditMode(RoadRunner::EditMode aMode)
     switch (aMode)
     {
     case RoadRunner::Mode_Create:
-        drawingSession = new RoadCreationSession_NEW(this);
+        drawingSession = new RoadCreationSession(this);
         break;
     case RoadRunner::Mode_CreateLanes:
         drawingSession = new LanesCreationSession(this);
@@ -424,7 +424,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
     decltype(rotatingRoads) directOver, indirectOver;
 
     // Nearby candidates
-    double r = CustomCursorItem::SnapRadiusPx;
+    double r = RoadRunner::SnapRadiusPx;
     auto candidates = items(viewPos.x() - r, viewPos.y() - r, 2 * r, 2 * r);
     auto scenePos = mapToScene(viewPos);
     for (auto item : candidates)
@@ -447,7 +447,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
                     QVector2D endViewPos(mapFromScene(QPoint(x, y)));
                     double distToEnd = endViewPos.distanceToPoint(viewPosVec);
 
-                    if (std::min(distToStart, distToEnd) < CustomCursorItem::SnapRadiusPx)
+                    if (std::min(distToStart, distToEnd) < RoadRunner::SnapRadiusPx)
                     {
                         double closestS = distToStart < distToEnd ? 0 : laneGraphicsItem->GetRoad()->Length();
                         indirectOver.push_back(std::make_pair(laneGraphicsItem, closestS));

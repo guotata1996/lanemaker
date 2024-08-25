@@ -8,24 +8,6 @@
 #include <vector>
 #include <QPainterPath>
 
-class CustomCursorItem : public QGraphicsEllipseItem
-{
-public:
-    CustomCursorItem() : QGraphicsEllipseItem(
-        -InitialRadius, -InitialRadius,
-        2 * InitialRadius, 2 * InitialRadius) {
-        setZValue(999);
-    }
-
-    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
-
-    void EnableHighlight(int level);
-
-    static double SnapRadiusPx;
-
-private:
-    static double InitialRadius;
-};
 
 class RoadDrawingSession
 {
@@ -43,6 +25,23 @@ public:
     void SetHighlightTo(std::shared_ptr<RoadRunner::Road>);
 
 protected:
+    class CustomCursorItem : public QGraphicsEllipseItem
+    {
+    public:
+        CustomCursorItem() : QGraphicsEllipseItem(
+            -InitialRadius, -InitialRadius,
+            2 * InitialRadius, 2 * InitialRadius) {
+            setZValue(999);
+        }
+
+        virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
+
+        void EnableHighlight(int level);
+
+    private:
+        static double InitialRadius;
+    };
+
     enum SnapResult
     {
         Snap_Nothing,
@@ -74,65 +73,78 @@ private:
     std::weak_ptr<RoadRunner::Road> beginPickingRoad;
 };
 
-class RoadCreationSession: public RoadDrawingSession
+class RoadCreationSession : public RoadDrawingSession
 {
 public:
     RoadCreationSession(QGraphicsView* aView);
-    
-    /*return false if force complete*/
-    virtual bool Update(const RoadRunner::MouseAction&) override;
+
+    virtual bool Update(const RoadRunner::MouseAction&);
 
     virtual bool Complete() override;
 
-    virtual ~RoadCreationSession() override;
+    virtual ~RoadCreationSession();
 
 protected:
-    virtual SnapResult SnapFirstPointToExisting(QPointF&);
-    virtual SnapResult SnapLastPointToExisting(QPointF&);
-
-    SnapResult SnapCtrlPoint(float maxOffset);
-
-    odr::RefLine RefLineFromCtrlPoints() const;
-
-    enum class ForceDirection
+    struct StagedGeometry
     {
-        None, Original, Negate
+        std::unique_ptr<odr::RoadGeometry> geo;
+        QPainterPath preview;
     };
+    std::vector<StagedGeometry> stagedGeometries;
 
-    virtual std::unique_ptr<odr::RoadGeometry> CreateJoinAtEndGeo(bool forPreview) const;
+    std::optional<odr::Vec2D> startPos; // Can be on blank or extend from
 
-    virtual bool CreateRoad();
+    // Record extend / join
+    virtual SnapResult SnapFirstPointToExisting(odr::Vec2D&);
+    virtual SnapResult SnapLastPointToExisting(odr::Vec2D&);
 
-    std::unique_ptr<odr::RoadGeometry> createJoinAtEndGeo(bool forPreview, ForceDirection joinPointDir) const;
-
-    /*Return false upon error*/
-    bool tryCreateJunction(std::shared_ptr<RoadRunner::Road>, double, double);
-    bool tryCreateBridgeAndTunnel(std::shared_ptr<RoadRunner::Road>, double, double);
-
-    std::vector<QPointF> ctrlPoints;
-
-    std::unique_ptr<QVector2D> startDir;
     std::weak_ptr<RoadRunner::Road> extendFromStart;
+    double extendFromStartS;
     std::weak_ptr<RoadRunner::Road> joinAtEnd;
+    double joinAtEndS;
 
-    std::weak_ptr<RoadRunner::Road> firstCtrlPointPreferredTarget;
-    std::weak_ptr<RoadRunner::Road> lastCtrlPointPreferredTarget;
+    // Record overlap (for junction / bridge / tunnel) // TODO:
+    std::weak_ptr<RoadRunner::Road> overlapAtStart;
+    double overlapAtStartS;
+    std::weak_ptr<RoadRunner::Road> overlapAtEnd;
+    double overlapAtEndS;
 
-    double extendFromStartS, joinAtEndS;
+    virtual odr::Vec2D ExtendFromDir() const;
+    virtual odr::Vec2D JoinAtEndDir() const;
 
-    bool lastClickOnExtLine; /*Prohibit random dbl-click*/
+    odr::RefLine ResultRefLine() const;
 
 private:
-    double firstCtrlPointPreferredS, lastCtrlPointPreferredS;
+    class DirectionHandle : public QGraphicsPixmapItem
+    {
+    public:
+        DirectionHandle();
 
-    QPainterPath setPath;
-    QGraphicsPathItem* setPreviewItem;
+        bool Update(const RoadRunner::MouseAction& act);
 
-    QPainterPath flexPath;
-    QGraphicsPathItem* flexPreviewItem;
+    protected:
+        virtual bool contains(const QPointF& point) const override;
 
-    QPainterPath hintPath;
-    QGraphicsPathItem* hintItem;
+        virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
+            QWidget* widget = nullptr) override;
+
+    private:
+        double dragging = false;
+        double deltaRotation;
+    };
+
+    SnapResult SnapCursor(odr::Vec2D&);
+
+    static void GeneratePainterPath(const std::unique_ptr<odr::RoadGeometry>&,
+        QPainterPath&);
+
+    std::unique_ptr<odr::RoadGeometry> flexGeo;
+    QPainterPath flexPreviewPath;
+    QPainterPath stagedPreviewPath;
+
+    QGraphicsPathItem* stagedPreview;
+    QGraphicsPathItem* flexPreview;
+    DirectionHandle* directionHandle;
 };
 
 
@@ -141,15 +153,15 @@ class LanesCreationSession : public RoadCreationSession
 public:
     LanesCreationSession(QGraphicsView* aView);
 
-    virtual bool CreateRoad() override;
+    virtual bool Complete() override;
 
     virtual ~LanesCreationSession() override;
 
 protected:
-    virtual SnapResult SnapFirstPointToExisting(QPointF&) override;
-    virtual SnapResult SnapLastPointToExisting(QPointF&) override;
-
-    virtual std::unique_ptr<odr::RoadGeometry> CreateJoinAtEndGeo(bool forPreview) const override;
+    virtual SnapResult SnapFirstPointToExisting(odr::Vec2D&) override;
+    virtual SnapResult SnapLastPointToExisting(odr::Vec2D&) override;
+    virtual odr::Vec2D ExtendFromDir() const override;
+    virtual odr::Vec2D JoinAtEndDir() const override;
 
 private:
     bool ValidateSnap() const;

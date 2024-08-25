@@ -8,4 +8,6 @@ namespace RoadRunner
 
     /*Consecutive ctrl points can either duplicate (by dbl-clicking), or placed further than this threshold.*/
     const double DupCtrlPointsDist = 0.1;
+
+    const double SnapRadiusPx = 20;
 }

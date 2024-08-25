@@ -6,6 +6,8 @@
 #include "CreateRoadOptionWidget.h"
 #include "junction.h"
 #include "constants.h"
+#include "road_drawing.h"
+#include "road_overlaps.h"
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern int g_PointerLane;
@@ -19,28 +21,19 @@ LanesCreationSession::LanesCreationSession(QGraphicsView* aView) :
 
 }
 
-bool LanesCreationSession::CreateRoad()
+bool LanesCreationSession::Complete()
 {
     if (extendFromStart.expired() && joinAtEnd.expired())
     {
         // Standalone road
-        return RoadCreationSession::CreateRoad();
+        return RoadCreationSession::Complete();
     }
 
-    auto refLine = RefLineFromCtrlPoints();
+    auto refLine = ResultRefLine();
     if (refLine.length == 0)
     {
         spdlog::warn("Too few control points / curve too sharp");
         return true;
-    }
-    
-    if (!joinAtEnd.expired() && ctrlPoints.size() > 4)
-    {
-        auto lastPiece = CreateJoinAtEndGeo(false);
-        auto lastPieceLength = lastPiece->length;
-        lastPiece->s0 = refLine.length;
-        refLine.s0_to_geometry.emplace(refLine.length, std::move(lastPiece));
-        refLine.length += lastPieceLength;
     }
 
     if (refLine.length > RoadRunner::SingleDrawMaxLength)
@@ -66,7 +59,6 @@ bool LanesCreationSession::CreateRoad()
     double newPartBegin = 0, newPartEnd = newRoad->Length();
     if (!extendFromStart.expired())
     {
-        firstCtrlPointPreferredTarget.reset();
         auto toExtend = extendFromStart.lock();
         RoadRunner::ConnectionInfo linkedInfo(newRoad, odr::RoadLink::ContactPoint_Start, startLanesSkip);
         if (extendFromStartS == 0 || extendFromStartS == toExtend->Length())
@@ -146,7 +138,6 @@ bool LanesCreationSession::CreateRoad()
     
     if (!joinAtEnd.expired())
     {
-        lastCtrlPointPreferredTarget.reset();
         auto toJoin = joinAtEnd.lock();
         RoadRunner::ConnectionInfo linkedInfo(newRoad, odr::RoadLink::ContactPoint_End, endLanesSkip);
         if (joinAtEndS == 0 || joinAtEndS == toJoin->Length())
@@ -234,11 +225,12 @@ bool LanesCreationSession::CreateRoad()
 
     if (g_createRoadElevationOption == 0)
     {
-        return tryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd);
+        return RoadRunner::TryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd,
+            overlapAtStart, overlapAtStartS, overlapAtEnd, overlapAtEndS);
     }
     else
     {
-        return tryCreateBridgeAndTunnel(std::move(newRoad), newPartBegin, newPartEnd);
+        return RoadRunner::TryCreateBridgeAndTunnel(std::move(newRoad), newPartBegin, newPartEnd);
     }
 }
 
@@ -270,7 +262,7 @@ bool LanesCreationSession::ValidateSnap() const
     return IsElevationConsistWithExtend();
 }
 
-RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QPointF& point)
+RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(odr::Vec2D& point)
 {
     if (!ValidateSnap())
     {
@@ -321,9 +313,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QP
                     rOffsetX2 = rightProfile.offsetx2;
                     lOffsetX2 = leftProfile.offsetx2;
                 }
-                auto snapPos = g_road->generated.get_xyz(g_roadS, 0, 0);
-                point.setX(snapPos[0]);
-                point.setY(snapPos[1]);
+                point = g_road->generated.ref_line.get_xy(g_roadS);
 
                 extendFromStart = g_road;
                 if (g_roadS == 0) g_dir = -g_dir;
@@ -393,7 +383,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QP
 
         if (startFullyMatch)
         {
-            auto snapPos = g_road->generated.get_xyz(g_roadS, 0, 0);
+            point = g_road->generated.ref_line.get_xy(g_roadS);
             if (g_roadS == 0)
             {
                 rOffsetX2 = -leftProfile.offsetx2;
@@ -402,8 +392,6 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QP
             {
                 rOffsetX2 = rightProfile.offsetx2;
             }
-            point.setX(snapPos[0]);
-            point.setY(snapPos[1]);
 
             extendFromStart = g_road;
             if (g_roadS == 0) g_dir = -g_dir;
@@ -427,7 +415,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QP
                     auto p = g_road->generated.get_xyz(g_roadS, t, 0);
 
                     QVector2D medianPos(p[0], p[1]);
-                    float matchError = medianPos.distanceToPoint(QVector2D(point));
+                    float matchError = medianPos.distanceToPoint(QVector2D(point[0], point[1]));
                     if (matchError < bestError)
                     {
                         bestSkip = searchInner - 1;
@@ -439,8 +427,8 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QP
 
             if (bestError < 1e9)
             {
-                point.setX(bestSnapPos.x());
-                point.setY(bestSnapPos.y());
+                point[0] = bestSnapPos.x();
+                point[1] = bestSnapPos.y();
                 extendFromStart = g_road;
                 startLanesSkip = bestSkip;
                 lOffsetX2 = 0;
@@ -457,12 +445,11 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(QP
     {
         extendFromStartS = g_roadS;
        
-        startDir = std::make_unique<QVector2D>(g_dir);
         return snappedToSegBoundary ? RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Line;
     }
 }
 
-RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QPointF& point)
+RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr::Vec2D& point)
 {
     if (!ValidateSnap())
     {
@@ -489,18 +476,11 @@ RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QP
     if (rLanes == 0)
     {
         spdlog::warn("Right lanes must > 0");
-        return RoadCreationSession::Snap_Nothing;
+        return RoadDrawingSession::Snap_Nothing;
     }
 
     bool snappedToSegBoundary = false;
     double g_roadS = GetAdjustedS(&snappedToSegBoundary);
-
-    if (ctrlPoints.size() == 2 && g_roadS != 0 && g_roadS != g_road->Length() &&
-        g_road == extendFromStart.lock())
-    {
-        // Prevent 2-click connection from being misinterpreted as cutting
-        return RoadCreationSession::Snap_Nothing;
-    }
 
     const auto& g_roadProfile = g_road->generated.rr_profile;
     const auto rightProfile = g_roadProfile.ProfileAt(g_roadS, -1);
@@ -544,9 +524,7 @@ RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QP
                 if (endFullyMatch)
                 {
                     // Make sure ref line connects
-                    auto snapPos = g_road->generated.get_xyz(g_roadS, 0, 0);
-                    point.setX(snapPos[0]);
-                    point.setY(snapPos[1]);
+                    point = g_road->generated.ref_line.get_xy(g_roadS);
                 }
                 else
                 {
@@ -563,9 +541,7 @@ RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QP
                         }
                     }
 
-                    auto snapPos = g_road->generated.get_xyz(g_roadS, RoadRunner::LaneWidth * refLineShift / 2, 0);
-                    point.setX(snapPos[0]);
-                    point.setY(snapPos[1]);
+                    point = g_road->generated.ref_line.get_xy(g_roadS, RoadRunner::LaneWidth * refLineShift / 2);
                 }
             }
         }
@@ -637,9 +613,7 @@ RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QP
         if (endFullyMatch)
         {
             // Make sure ref line connects
-            auto snapPos = g_road->generated.get_xyz(g_roadS, 0 , 0);
-            point.setX(snapPos[0]);
-            point.setY(snapPos[1]);
+            point = g_road->generated.ref_line.get_xy(g_roadS);
             joinAtEnd = g_road;
         }
         else
@@ -658,10 +632,10 @@ RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QP
                 {
                     double middleDist = static_cast<double>((int)searchInner + (int)searchOuter - 1) / 2;
                     double t = (baseOffset + endSide * middleDist) * RoadRunner::LaneWidth;
-                    auto p = g_road->generated.get_xyz(g_roadS, t, 0);
+                    auto p = g_road->generated.ref_line.get_xy(g_roadS, t);
 
                     QVector2D medianPos(p[0], p[1]);
-                    float matchError = medianPos.distanceToPoint(QVector2D(point));
+                    float matchError = medianPos.distanceToPoint(QVector2D(point[0], point[1]));
                     if (matchError < bestError)
                     {
                         bestSkip = searchInner - 1;
@@ -673,8 +647,8 @@ RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QP
 
             if (bestError < 1e9)
             {
-                point.setX(bestSnapPos.x());
-                point.setY(bestSnapPos.y());
+                point[0] = bestSnapPos.x();
+                point[1] = bestSnapPos.y();
                 joinAtEnd = g_road;
                 endLanesSkip = bestSkip;
             }
@@ -686,21 +660,31 @@ RoadCreationSession::SnapResult LanesCreationSession::SnapLastPointToExisting(QP
 
     if (joinAtEnd.expired())
     {
-        return RoadCreationSession::Snap_Nothing;
+        return RoadDrawingSession::Snap_Nothing;
     }
     else
     {
         joinAtEndS = g_roadS;
-        return snappedToSegBoundary ? RoadCreationSession::Snap_Point : RoadCreationSession::Snap_Line;
+        return snappedToSegBoundary ? RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Line;
     }
 }
 
-std::unique_ptr<odr::RoadGeometry> LanesCreationSession::CreateJoinAtEndGeo(bool forPreview) const
+odr::Vec2D LanesCreationSession::ExtendFromDir() const
 {
-    auto joinPointDir = ForceDirection::None;
-    if (lLanes == 0)
+    if (lLanes != 0)
     {
-        joinPointDir = g_PointerLane < 0 ? ForceDirection::Original : ForceDirection::Negate;
+        return RoadCreationSession::ExtendFromDir();
     }
-    return RoadCreationSession::createJoinAtEndGeo(forPreview, joinPointDir);
+    auto grad = extendFromStart.lock()->RefLine().get_grad_xy(extendFromStartS);
+    return g_PointerLane > 0 ? odr::negate(grad) : grad;
+}
+
+odr::Vec2D LanesCreationSession::JoinAtEndDir() const
+{
+    if (lLanes != 0)
+    {
+        return RoadCreationSession::JoinAtEndDir();
+    }
+    auto grad = joinAtEnd.lock()->RefLine().get_grad_xy(joinAtEndS);
+    return g_PointerLane > 0 ? odr::negate(grad) : grad;
 }

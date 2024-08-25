@@ -1,4 +1,4 @@
-#include "road_drawing_new.h"
+#include "road_drawing.h"
 #include "curve_fitting.h"
 #include "CreateRoadOptionWidget.h"
 #include "map_view.h"
@@ -15,7 +15,7 @@ extern SectionProfileConfigWidget* g_createRoadOption;
 extern int8_t g_createRoadElevationOption;
 extern MapView* g_mapView;
 
-DirectionHandle::DirectionHandle()
+RoadCreationSession::DirectionHandle::DirectionHandle()
 {
 	QMatrix rotTrans;
 	rotTrans.rotate(90);
@@ -24,7 +24,7 @@ DirectionHandle::DirectionHandle()
 	setOffset(-pic.width() / 2, -pic.height() / 2);
 }
 
-bool DirectionHandle::Update(const RoadRunner::MouseAction& act)
+bool RoadCreationSession::DirectionHandle::Update(const RoadRunner::MouseAction& act)
 {
 	if (!isVisible())
 		return false;
@@ -46,20 +46,20 @@ bool DirectionHandle::Update(const RoadRunner::MouseAction& act)
 	return dragging;
 }
 
-bool DirectionHandle::contains(const QPointF& point) const
+bool RoadCreationSession::DirectionHandle::contains(const QPointF& point) const
 {
 	double dis = std::sqrt(std::pow(point.x(), 2) + std::pow(point.y(), 2));
 	dis /= scale();
 	return 86 < dis && dis < 132; // Pixel count from raw image
 }
 
-void DirectionHandle::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+void RoadCreationSession::DirectionHandle::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
 	this->setScale(0.4 / g_mapView->Zoom());
 	QGraphicsPixmapItem::paint(painter, option, widget);
 }
 
-RoadCreationSession_NEW::RoadCreationSession_NEW(QGraphicsView* aView):
+RoadCreationSession::RoadCreationSession(QGraphicsView* aView):
 	RoadDrawingSession(aView)
 {
 	stagedPreview = scene->addPath(stagedPreviewPath);
@@ -72,21 +72,23 @@ RoadCreationSession_NEW::RoadCreationSession_NEW(QGraphicsView* aView):
 	directionHandle->hide();
 }
 
-RoadCreationSession_NEW::SnapResult RoadCreationSession_NEW::SnapCursor(odr::Vec2D& point)
+RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point)
 {
 	// Snap to existing road
 	if (!startPos.has_value())
 	{
+		extendFromStart.reset();
 		auto snapFirstResult = SnapFirstPointToExisting(point);
-		if (snapFirstResult != RoadCreationSession_NEW::Snap_Nothing)
+		if (snapFirstResult != RoadDrawingSession::Snap_Nothing)
 		{
 			return snapFirstResult;
 		}
 	}
 	else
 	{
+		joinAtEnd.reset();
 		auto snapLastResult = SnapLastPointToExisting(point);
-		if (snapLastResult != RoadCreationSession_NEW::Snap_Nothing)
+		if (snapLastResult != RoadDrawingSession::Snap_Nothing)
 		{
 			return snapLastResult;
 		}
@@ -105,29 +107,28 @@ RoadCreationSession_NEW::SnapResult RoadCreationSession_NEW::SnapCursor(odr::Vec
 		if (odr::euclDistance(point, projected) < SnapDistFromScale())
 		{
 			point = projected;
-			return RoadCreationSession_NEW::Snap_Line;
+			return RoadDrawingSession::Snap_Line;
 		}
 	}
-	return RoadCreationSession_NEW::Snap_Nothing;
+	return RoadDrawingSession::Snap_Nothing;
 }
 
-odr::Vec2D RoadCreationSession_NEW::ExtendFromDir() const
+odr::Vec2D RoadCreationSession::ExtendFromDir() const
 {
 	auto grad = extendFromStart.lock()->RefLine().get_grad_xy(extendFromStartS);
 	return extendFromStartS == 0 ? odr::negate(grad) : grad;
 }
 
-odr::Vec2D RoadCreationSession_NEW::JoinAtEndDir() const
+odr::Vec2D RoadCreationSession::JoinAtEndDir() const
 {
 	auto grad = joinAtEnd.lock()->RefLine().get_grad_xy(joinAtEndS);
 	return joinAtEndS == 0 ? grad : odr::negate(grad);
 }
 
-RoadCreationSession_NEW::SnapResult RoadCreationSession_NEW::SnapFirstPointToExisting(odr::Vec2D& point)
+RoadDrawingSession::SnapResult RoadCreationSession::SnapFirstPointToExisting(odr::Vec2D& point)
 {
-	extendFromStart.reset();
 	auto g_road = g_PointerRoad.lock();
-	if (g_road == nullptr) return RoadCreationSession_NEW::Snap_Nothing;
+	if (g_road == nullptr) return RoadDrawingSession::Snap_Nothing;
 
 	const double snapThreshold = SnapDistFromScale();
 	double snapS = g_PointerRoadS;
@@ -155,14 +156,13 @@ RoadCreationSession_NEW::SnapResult RoadCreationSession_NEW::SnapFirstPointToExi
 		point = g_road->generated.ref_line.get_xy(snapS);
 		onExisting = true;
 	}
-	return onExisting ? RoadCreationSession_NEW::Snap_Point : RoadCreationSession_NEW::Snap_Nothing;
+	return onExisting ? RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Nothing;
 }
 
-RoadCreationSession_NEW::SnapResult RoadCreationSession_NEW::SnapLastPointToExisting(odr::Vec2D& point)
+RoadDrawingSession::SnapResult RoadCreationSession::SnapLastPointToExisting(odr::Vec2D& point)
 {
-	joinAtEnd.reset();
 	auto g_road = g_PointerRoad.lock();
-	if (g_road == nullptr) return RoadCreationSession_NEW::Snap_Nothing;
+	if (g_road == nullptr) return RoadDrawingSession::Snap_Nothing;
 
 	bool onExisting = false;
 
@@ -190,10 +190,10 @@ RoadCreationSession_NEW::SnapResult RoadCreationSession_NEW::SnapLastPointToExis
 		joinAtEndS = snapS;
 	}
 	cursorItem->EnableHighlight(onExisting);
-	return onExisting ? RoadCreationSession_NEW::Snap_Point : RoadCreationSession_NEW::Snap_Nothing;
+	return onExisting ? RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Nothing;
 }
 
-bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
+bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 {
 	SetHighlightTo(g_PointerRoad.lock());
 	auto prevHandleDir = directionHandle->rotation();
@@ -240,13 +240,27 @@ bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
 				if (!startPos.has_value())
 				{
 					startPos.emplace(scenePos);
-					overlapAtStart = g_PointerRoad;
-					overlapAtStartS = g_PointerRoadS;
+					if (extendFromStart.expired())
+					{
+						overlapAtStart = g_PointerRoad;
+						overlapAtStartS = g_PointerRoadS;
+					}
+					else
+					{
+						overlapAtStart.reset();
+					}
 				}
 				else if (flexGeo != nullptr)
 				{
-					overlapAtEnd = g_PointerRoad;
-					overlapAtEndS = g_PointerRoadS;
+					if (joinAtEnd.expired())
+					{
+						overlapAtEnd = g_PointerRoad;
+						overlapAtEndS = g_PointerRoadS;
+					}
+					else
+					{
+						overlapAtEnd.reset();
+					}
 
 					auto newEnd = flexGeo->get_end_pos();
 					auto newHdg = flexGeo->get_end_hdg();
@@ -336,7 +350,22 @@ bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
 	return true;
 }
 
-bool RoadCreationSession_NEW::Complete()
+odr::RefLine RoadCreationSession::ResultRefLine() const
+{
+	odr::RefLine refLine("", 0);
+	for (auto& staged : stagedGeometries)
+	{
+		const auto& localGeo = staged.geo;
+		auto localLength = localGeo->length;
+		localGeo->s0 = refLine.length;
+		refLine.s0_to_geometry.emplace(refLine.length, localGeo->clone());
+		refLine.length += localLength;
+	}
+	refLine.elevation_profile = odr::CubicSpline(0);
+	return refLine;
+}
+
+bool RoadCreationSession::Complete()
 {
 	if (g_createRoadOption->LeftResult().laneCount + g_createRoadOption->RightResult().laneCount == 0)
 	{
@@ -350,15 +379,7 @@ bool RoadCreationSession_NEW::Complete()
 		return true;
 	}
 
-	odr::RefLine refLine("", 0);
-	for (auto& staged : stagedGeometries)
-	{
-		auto& localGeo = staged.geo;
-		auto localLength = localGeo->length;
-		localGeo->s0 = refLine.length;
-		refLine.s0_to_geometry.emplace(refLine.length, std::move(localGeo));
-		refLine.length += localLength;
-	}
+	auto refLine = ResultRefLine();
 
 	if (refLine.length == 0)
 	{
@@ -375,7 +396,7 @@ bool RoadCreationSession_NEW::Complete()
 		g_createRoadOption->LeftResult().laneCount, g_createRoadOption->LeftResult().offsetx2,
 		g_createRoadOption->RightResult().laneCount, g_createRoadOption->RightResult().offsetx2);
 
-	refLine.elevation_profile = odr::CubicSpline(0);
+	
 	auto newRoad = std::make_shared<RoadRunner::Road>(config, refLine);
 	newRoad->GenerateAllSectionGraphics();
 	
@@ -445,7 +466,7 @@ bool RoadCreationSession_NEW::Complete()
 	return true;
 }
 
-RoadCreationSession_NEW::~RoadCreationSession_NEW()
+RoadCreationSession::~RoadCreationSession()
 {
 	scene->removeItem(stagedPreview);
 	scene->removeItem(flexPreview);
@@ -454,7 +475,7 @@ RoadCreationSession_NEW::~RoadCreationSession_NEW()
 	SetHighlightTo(nullptr);
 }
 
-void RoadCreationSession_NEW::GeneratePainterPath(const std::unique_ptr<odr::RoadGeometry>& geo,
+void RoadCreationSession::GeneratePainterPath(const std::unique_ptr<odr::RoadGeometry>& geo,
 	QPainterPath& path)
 {
 	path.clear();
