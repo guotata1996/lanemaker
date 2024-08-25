@@ -20,7 +20,7 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp ${APP_ICON_RESOURCE_WINDOWS}
     xodr/id_generator.cpp xodr/change_tracker.cpp xodr/world.cpp
     ui/mainwindow.cpp ui/main_widget.cpp ui/map_view.cpp ${srcs_for_exe}
     ui/road_graphics.cpp ui/road_drawing.cpp ui/road_lane_drawing.cpp ui/road_drawing_new.cpp
-    ui/road_modification.cpp ui/road_destruction.cpp 
+    ui/road_modification.cpp ui/road_destruction.cpp ui/road_overlaps.cpp
     ui/CreateRoadOptionWidget.cpp ui/action_manager.cpp ui/util.cpp ui/replay_window.cpp
     traffic/vehicle.cpp traffic/vehicle_manager.cpp
     util/stats.cpp util/multi_segment.cpp util/label_with_link.cpp util/preference.cpp

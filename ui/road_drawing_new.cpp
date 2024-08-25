@@ -2,6 +2,9 @@
 #include "curve_fitting.h"
 #include "CreateRoadOptionWidget.h"
 #include "map_view.h"
+#include "junction.h"
+#include "constants.h"
+#include "road_overlaps.h"
 
 #include <QGraphicsSceneMouseEvent>
 #include <math.h>
@@ -9,7 +12,7 @@
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 extern SectionProfileConfigWidget* g_createRoadOption;
-
+extern int8_t g_createRoadElevationOption;
 extern MapView* g_mapView;
 
 DirectionHandle::DirectionHandle()
@@ -69,8 +72,27 @@ RoadCreationSession_NEW::RoadCreationSession_NEW(QGraphicsView* aView):
 	directionHandle->hide();
 }
 
-bool RoadCreationSession_NEW::SnapCursor(odr::Vec2D& point) const
+RoadCreationSession_NEW::SnapResult RoadCreationSession_NEW::SnapCursor(odr::Vec2D& point)
 {
+	// Snap to existing road
+	if (!startPos.has_value())
+	{
+		auto snapFirstResult = SnapFirstPointToExisting(point);
+		if (snapFirstResult != RoadCreationSession_NEW::Snap_Nothing)
+		{
+			return snapFirstResult;
+		}
+	}
+	else
+	{
+		auto snapLastResult = SnapLastPointToExisting(point);
+		if (snapLastResult != RoadCreationSession_NEW::Snap_Nothing)
+		{
+			return snapLastResult;
+		}
+	}
+
+	// Snap to end dir extension line
 	if (!stagedGeometries.empty())
 	{
 		const auto& geo = stagedGeometries.back().geo;
@@ -83,10 +105,92 @@ bool RoadCreationSession_NEW::SnapCursor(odr::Vec2D& point) const
 		if (odr::euclDistance(point, projected) < SnapDistFromScale())
 		{
 			point = projected;
-			return true;
+			return RoadCreationSession_NEW::Snap_Line;
 		}
 	}
-	return false;
+	return RoadCreationSession_NEW::Snap_Nothing;
+}
+
+odr::Vec2D RoadCreationSession_NEW::ExtendFromDir() const
+{
+	auto grad = extendFromStart.lock()->RefLine().get_grad_xy(extendFromStartS);
+	return extendFromStartS == 0 ? odr::negate(grad) : grad;
+}
+
+odr::Vec2D RoadCreationSession_NEW::JoinAtEndDir() const
+{
+	auto grad = joinAtEnd.lock()->RefLine().get_grad_xy(joinAtEndS);
+	return joinAtEndS == 0 ? grad : odr::negate(grad);
+}
+
+RoadCreationSession_NEW::SnapResult RoadCreationSession_NEW::SnapFirstPointToExisting(odr::Vec2D& point)
+{
+	extendFromStart.reset();
+	auto g_road = g_PointerRoad.lock();
+	if (g_road == nullptr) return RoadCreationSession_NEW::Snap_Nothing;
+
+	const double snapThreshold = SnapDistFromScale();
+	double snapS = g_PointerRoadS;
+	bool onExisting = false;
+	if (g_PointerRoadS < snapThreshold &&
+		dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->predecessorJunction.get()) == nullptr &&
+		IsElevationConsistWithExtend())
+	{
+		snapS = 0;
+		extendFromStart = g_PointerRoad;
+		extendFromStartS = 0;
+	}
+	else if (g_PointerRoadS > g_road->Length() - snapThreshold &&
+		dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->successorJunction.get()) == nullptr &&
+		IsElevationConsistWithExtend())
+	{
+		snapS = g_road->Length();
+		extendFromStart = g_PointerRoad;
+		extendFromStartS = g_road->Length();
+	}
+
+	if (!extendFromStart.expired())
+	{
+		// only snap to ends
+		point = g_road->generated.ref_line.get_xy(snapS);
+		onExisting = true;
+	}
+	return onExisting ? RoadCreationSession_NEW::Snap_Point : RoadCreationSession_NEW::Snap_Nothing;
+}
+
+RoadCreationSession_NEW::SnapResult RoadCreationSession_NEW::SnapLastPointToExisting(odr::Vec2D& point)
+{
+	joinAtEnd.reset();
+	auto g_road = g_PointerRoad.lock();
+	if (g_road == nullptr) return RoadCreationSession_NEW::Snap_Nothing;
+
+	bool onExisting = false;
+
+	// Join to existing
+	double snapS;
+	const double snapThreshold = SnapDistFromScale();
+	if (g_PointerRoadS < snapThreshold &&
+		dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->predecessorJunction.get()) == nullptr &&
+		IsElevationConsistWithExtend())
+	{
+		snapS = 0;
+		joinAtEnd = g_PointerRoad;
+	}
+	else if (g_PointerRoadS > g_road->Length() - snapThreshold &&
+		dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad.lock()->successorJunction.get()) == nullptr &&
+		IsElevationConsistWithExtend())
+	{
+		snapS = g_road->Length();
+		joinAtEnd = g_PointerRoad;
+	}
+	if (!joinAtEnd.expired())
+	{
+		point = g_road->generated.ref_line.get_xy(snapS);
+		onExisting = true;
+		joinAtEndS = snapS;
+	}
+	cursorItem->EnableHighlight(onExisting);
+	return onExisting ? RoadCreationSession_NEW::Snap_Point : RoadCreationSession_NEW::Snap_Nothing;
 }
 
 bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
@@ -97,20 +201,24 @@ bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
 	auto currHandleDir = directionHandle->rotation();
 
 	odr::Vec2D  scenePos{ act.sceneX, act.sceneY };
-	SnapCursor(scenePos);
+	auto snapLevel = SnapCursor(scenePos);
+	cursorItem->setPos(QPointF(scenePos[0], scenePos[1]));
+	cursorItem->EnableHighlight(snapLevel);
+	cursorItem->show();
 
 	if (dirHandleEvt)
 	{
+		// Adjust end direction by rotary
 		cursorItem->hide();
 		if (prevHandleDir != currHandleDir)
 		{
 			auto& toRefit = stagedGeometries.back();
-			auto startPos = toRefit.geo->get_xy(0);
+			auto refitStartPos = toRefit.geo->get_xy(0);
 			auto startHdg = odr::normalize(toRefit.geo->get_grad(0));
 			auto endPos = toRefit.geo->get_end_pos();
 			auto targetHdg = currHandleDir / 180 * M_PI;
 			auto endHdg = odr::Vec2D{ std::cos(targetHdg), std::sin(targetHdg) };
-			auto adjustedFit = RoadRunner::ConnectRays(startPos, startHdg, endPos, endHdg);
+			auto adjustedFit = RoadRunner::ConnectRays(refitStartPos, startHdg, endPos, endHdg);
 
 			GeneratePainterPath(adjustedFit, toRefit.preview);
 			toRefit.geo = std::move(adjustedFit);
@@ -132,9 +240,14 @@ bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
 				if (!startPos.has_value())
 				{
 					startPos.emplace(scenePos);
+					overlapAtStart = g_PointerRoad;
+					overlapAtStartS = g_PointerRoadS;
 				}
 				else if (flexGeo != nullptr)
 				{
+					overlapAtEnd = g_PointerRoad;
+					overlapAtEndS = g_PointerRoadS;
+
 					auto newEnd = flexGeo->get_end_pos();
 					auto newHdg = flexGeo->get_end_hdg();
 					directionHandle->setPos(newEnd[0], newEnd[1]);
@@ -147,6 +260,11 @@ bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
 						}); // Do stage
 					stagedPreviewPath.addPath(flexPreviewPath);
 					stagedPreview->setPath(stagedPreviewPath);
+				}
+				if (!joinAtEnd.expired())
+				{
+					// force complete
+					return false;
 				}
 			}
 			else if (act.button == Qt::MouseButton::RightButton)
@@ -175,13 +293,11 @@ bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
 				else
 				{
 					startPos.reset();
+					extendFromStart.reset();
 				}
 				stagedPreview->setPath(stagedPreviewPath);
 			}
 		}
-
-		cursorItem->setPos(QPointF(act.sceneX, act.sceneY));
-		cursorItem->show();
 
 		// Update flex geo
 		if (startPos.has_value() || !stagedGeometries.empty())
@@ -190,7 +306,7 @@ bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
 			if (stagedGeometries.empty())
 			{
 				localStartPos = startPos.value();
-				localStartDir = startDir.value_or(odr::sub(scenePos, localStartPos));
+				localStartDir = extendFromStart.expired() ? odr::sub(scenePos, localStartPos) : ExtendFromDir();
 			}
 			else
 			{
@@ -199,7 +315,15 @@ bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
 				localStartDir = geo->get_grad(geo->length);
 			}
 			localStartDir = odr::normalize(localStartDir);
-			flexGeo = RoadRunner::FitArcOrLine(localStartPos, localStartDir, scenePos);
+
+			if (joinAtEnd.expired())
+			{
+				flexGeo = RoadRunner::FitArcOrLine(localStartPos, localStartDir, scenePos);
+			}
+			else
+			{
+				flexGeo = RoadRunner::ConnectRays(localStartPos, localStartDir, scenePos, JoinAtEndDir());
+			}
 		
 			GeneratePainterPath(flexGeo, flexPreviewPath);
 		}
@@ -214,6 +338,18 @@ bool RoadCreationSession_NEW::Update(const RoadRunner::MouseAction& act)
 
 bool RoadCreationSession_NEW::Complete()
 {
+	if (g_createRoadOption->LeftResult().laneCount + g_createRoadOption->RightResult().laneCount == 0)
+	{
+		spdlog::warn("Cannot create empty road!");
+		return true;
+	}
+
+	if (!extendFromStart.expired() && extendFromStart.lock() == joinAtEnd.lock())
+	{
+		spdlog::warn("Self-loop is not supported!");
+		return true;
+	}
+
 	odr::RefLine refLine("", 0);
 	for (auto& staged : stagedGeometries)
 	{
@@ -229,6 +365,11 @@ bool RoadCreationSession_NEW::Complete()
 		spdlog::warn("Too few control points");
 		return true;
 	}
+	if (refLine.length > RoadRunner::SingleDrawMaxLength)
+	{
+		spdlog::warn("Invalid shape or Road to create is too long");
+		return true;
+	}
 
 	RoadRunner::LaneProfile config(
 		g_createRoadOption->LeftResult().laneCount, g_createRoadOption->LeftResult().offsetx2,
@@ -237,8 +378,70 @@ bool RoadCreationSession_NEW::Complete()
 	refLine.elevation_profile = odr::CubicSpline(0);
 	auto newRoad = std::make_shared<RoadRunner::Road>(config, refLine);
 	newRoad->GenerateAllSectionGraphics();
-	world->allRoads.insert(newRoad);
+	
+	bool standaloneRoad = true;
+	// Which part of newRoad will be newly-created?
+	double newPartBegin = 0, newPartEnd = newRoad->Length();
+	if (!extendFromStart.expired())
+	{
+		standaloneRoad = false;
+		auto toExtend = extendFromStart.lock();
+		auto joinPointElevation = toExtend->RefLine().elevation_profile.get(extendFromStartS);
+		RoadRunner::CubicSplineGenerator::OverwriteSection(
+			newRoad->RefLine().elevation_profile, newRoad->Length(), 0, 0, joinPointElevation);
+		newPartBegin += toExtend->Length();
+		newPartEnd += toExtend->Length();
+		int joinResult = RoadRunner::Road::JoinRoads(toExtend,
+			extendFromStartS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End,
+			newRoad, odr::RoadLink::ContactPoint_Start);
+		if (joinResult != 0)
+		{
+			spdlog::error("Extend error {}", joinResult);
+		}
 
+		newRoad = toExtend;
+	}
+
+	if (!joinAtEnd.expired())
+	{
+		if (!standaloneRoad)
+		{
+			world->allRoads.erase(newRoad);
+		}
+
+		standaloneRoad = false;
+		auto toJoin = joinAtEnd.lock();
+		world->allRoads.erase(toJoin);
+
+		auto joinPointElevation = toJoin->RefLine().elevation_profile.get(joinAtEndS);
+		RoadRunner::CubicSplineGenerator::OverwriteSection(
+			newRoad->RefLine().elevation_profile, newRoad->Length(),
+			newRoad->Length(), newRoad->Length(), joinPointElevation);
+
+		int joinResult = RoadRunner::Road::JoinRoads(
+			newRoad, odr::RoadLink::ContactPoint_End,
+			toJoin, joinAtEndS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End);
+		if (joinResult != 0)
+		{
+			spdlog::error("Join error {}", joinResult);
+		}
+		world->allRoads.insert(newRoad);
+	}
+
+	if (standaloneRoad)
+	{
+		world->allRoads.insert(newRoad);
+	}
+	
+	if (g_createRoadElevationOption == 0)
+	{
+		return TryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd, 
+			overlapAtStart, overlapAtStartS, overlapAtEnd, overlapAtEndS);
+	}
+	else
+	{
+		return TryCreateBridgeAndTunnel(std::move(newRoad), newPartBegin, newPartEnd);
+	}
 	return true;
 }
 
