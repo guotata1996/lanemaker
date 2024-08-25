@@ -33,7 +33,7 @@ namespace RoadRunner
     {
         double sceneX, sceneY;
         QEvent::Type type;
-        Qt::MouseButton button;
+        Qt::MouseButton button; // In case of MoseMove, the single buttons() or NoButton
 
         MouseAction() = default;
 

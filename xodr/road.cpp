@@ -44,7 +44,6 @@ namespace RoadRunner
     {
         generated.length = Length();
         generated.rr_profile.Apply(Length(), &generated);
-        //generated.rr_eprofile.Apply(Length(), &generated);
 
         PlaceOdrRoadMarkings();
         generated.DeriveLaneBorders();
@@ -71,7 +70,7 @@ namespace RoadRunner
         type_s length = from_odr_unit(Length());
         
         generated.rr_profile = generated.rr_profile.Reversed(length);
-        //generated.rr_eprofile = generated.rr_eprofile.Reversed(length);
+
         Generate(false);
 
         // Handle linkage

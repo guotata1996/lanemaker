@@ -676,7 +676,7 @@ odr::Vec2D LanesCreationSession::ExtendFromDir() const
         return RoadCreationSession::ExtendFromDir();
     }
     auto grad = extendFromStart.lock()->RefLine().get_grad_xy(extendFromStartS);
-    return g_PointerLane > 0 ? odr::negate(grad) : grad;
+    return startSide > 0 ? odr::negate(grad) : grad;
 }
 
 odr::Vec2D LanesCreationSession::JoinAtEndDir() const
@@ -686,5 +686,5 @@ odr::Vec2D LanesCreationSession::JoinAtEndDir() const
         return RoadCreationSession::JoinAtEndDir();
     }
     auto grad = joinAtEnd.lock()->RefLine().get_grad_xy(joinAtEndS);
-    return g_PointerLane > 0 ? odr::negate(grad) : grad;
+    return endSide > 0 ? odr::negate(grad) : grad;
 }

@@ -27,7 +27,28 @@ namespace RoadRunner
         sceneX = scenePos.x();
         sceneY = scenePos.y();
         type = evt->type();
-        button = evt->button();
+        if (type == QEvent::MouseMove)
+        {
+            switch (evt->buttons())
+            {
+            case Qt::LeftButton:
+                button = Qt::LeftButton;
+                break;
+            case Qt::RightButton:
+                button = Qt::RightButton;
+                break;
+            case Qt::MiddleButton:
+                button = Qt::MiddleButton;
+                break;
+            default:
+                button = Qt::NoButton;
+                break;
+            }
+        }
+        else
+        {
+            button = evt->button();
+        }
     }
 
     ActionManager* ActionManager::instance = nullptr;
@@ -84,7 +105,11 @@ namespace RoadRunner
         if (evt->type() == QEvent::Type::MouseMove)
         {
             bool recordNow = false;
-            if (!lastRecordedMouseMove.has_value())
+            if (serialized.button == Qt::LeftButton)
+            {
+                recordNow = true;
+            }
+            else if (!lastRecordedMouseMove.has_value())
             {
                 recordNow = true;
             }
@@ -120,15 +145,6 @@ namespace RoadRunner
             FlushUnrecordedMouseMove();
             history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
             Save();
-        }
-
-        if (evt->type() == QEvent::Type::MouseButtonPress)
-        {
-            auto scenePos = g_mapView->mapToScene(evt->pos());
-            spdlog::trace("Record Click: {},{} ( {},{} )-> scene {},{}", 
-                evt->pos().x(), evt->pos().y(),
-                g_mapView->viewportTransform().dx(), g_mapView->viewportTransform().dy(),
-                scenePos.x(), scenePos.y());
         }
     }
 

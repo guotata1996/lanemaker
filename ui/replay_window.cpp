@@ -266,6 +266,7 @@ void ReplayWindow::SingleStep()
 		{
 			bool consecutiveMouseMove = 
 				fullHistory[nextToReplay].type == RoadRunner::Action_Mouse
+				&& fullHistory[nextToReplay].detail.mouse.button != Qt::LeftButton     // Not a L-drag
 				&& fullHistory[nextToReplay].detail.mouse.type == QEvent::MouseMove
 				&& fullHistory[nextToReplay + 1].type == RoadRunner::Action_Mouse
 				&& fullHistory[nextToReplay + 1].detail.mouse.type == QEvent::MouseMove;

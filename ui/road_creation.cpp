@@ -195,6 +195,8 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapLastPointToExisting(odr:
 
 bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 {
+	RoadDrawingSession::Update(act);
+
 	SetHighlightTo(g_PointerRoad.lock());
 	auto prevHandleDir = directionHandle->rotation();
 	bool dirHandleEvt = directionHandle->Update(act);

@@ -15,7 +15,7 @@ public:
     RoadDrawingSession(QGraphicsView* aView);
 
     /*return false if force complete*/
-    virtual bool Update(const RoadRunner::MouseAction&) = 0;
+    virtual bool Update(const RoadRunner::MouseAction&);
 
     /*return false to abort change*/
     virtual bool Complete() = 0;

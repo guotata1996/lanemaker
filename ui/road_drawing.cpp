@@ -30,6 +30,28 @@ RoadDrawingSession::RoadDrawingSession(QGraphicsView* aView) :
     cursorItem->hide(); // Hide until we receive mouse position
 }
 
+bool RoadDrawingSession::Update(const RoadRunner::MouseAction& evt)
+{
+    if (evt.button == Qt::RightButton)
+    {
+        if (!g_PointerRoad.expired() &&
+            evt.type == QEvent::Type::MouseButtonPress)
+        {
+            BeginPickingProfile();
+        }
+        else if (evt.type == QEvent::Type::MouseButtonRelease)
+        {
+            EndPickingProfile();
+        }
+    }
+    
+    if (PickProfileMode())
+    {
+        ContinuePickingProfile();
+    }
+    return true;
+}
+
 void RoadDrawingSession::SetHighlightTo(std::shared_ptr<RoadRunner::Road> target)
 {
     auto currHighlighted = highlighted.lock();

@@ -14,21 +14,8 @@ RoadModificationSession::RoadModificationSession(QGraphicsView* aView) : RoadDes
 
 bool RoadModificationSession::Update(const RoadRunner::MouseAction& evt)
 {
-    RoadDestroySession::Update(evt);
-
-    if (!g_PointerRoad.expired() && evt.type == QEvent::Type::MouseButtonPress)
-    {
-        BeginPickingProfile();
-    }
-    else if (evt.type == QEvent::Type::MouseButtonRelease)
-    {
-        EndPickingProfile();
-    }
-    if (PickProfileMode())
-    {
-        ContinuePickingProfile();
-    }
-    return true;
+    RoadDrawingSession::Update(evt);
+    return RoadDestroySession::Update(evt);
 }
 
 bool RoadModificationSession::Complete()
