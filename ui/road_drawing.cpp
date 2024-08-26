@@ -137,6 +137,23 @@ bool RoadDrawingSession::IsElevationConsistWithExtend()
     }
 }
 
+bool RoadDrawingSession::IsProfileChangePoint(const std::shared_ptr<RoadRunner::Road>& road, double s)
+{
+    bool leftOffsetChange = false, rightOffsetChange = false;
+    const auto& profile = road->generated.rr_profile;
+    if (profile.HasSide(1))
+    {
+        leftOffsetChange = profile.ProfileAt(s + 0.01, 1).offsetx2 !=
+            profile.ProfileAt(s - 0.01, 1).offsetx2;
+    }
+    if (profile.HasSide(-1))
+    {
+        rightOffsetChange = profile.ProfileAt(s - 0.01, -1).offsetx2 !=
+            profile.ProfileAt(s + 0.01, -1).offsetx2;
+    }
+    return leftOffsetChange || rightOffsetChange;
+}
+
 void RoadDrawingSession::CustomCursorItem::EnableHighlight(int level)
 {
     setBrush(level > 0 ? QBrush(level == 1 ? Qt::darkRed : Qt::red, Qt::SolidPattern) : Qt::NoBrush);

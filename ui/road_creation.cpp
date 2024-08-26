@@ -95,11 +95,21 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point
 	}
 
 	// Snap to end dir extension line
-	if (!stagedGeometries.empty())
+	if (!stagedGeometries.empty() || !extendFromStart.expired())
 	{
-		const auto& geo = stagedGeometries.back().geo;
-		auto localStartPos = geo->get_xy(geo->length);
-		auto localStartDir = odr::normalize(geo->get_grad(geo->length));
+		odr::Vec2D localStartPos, localStartDir;
+		if (!stagedGeometries.empty())
+		{
+			const auto& geo = stagedGeometries.back().geo;
+			localStartPos = geo->get_xy(geo->length);
+			localStartDir = odr::normalize(geo->get_grad(geo->length));
+		}
+		else
+		{
+			localStartPos = extendFromStart.lock()->RefLine().get_xy(extendFromStartS);
+			localStartDir = ExtendFromDir();
+		}
+		
 		auto start2Point = odr::sub(point, localStartPos);
 		auto projLength = odr::dot(start2Point, localStartDir);
 		projLength = std::max(0.0, projLength);
@@ -115,13 +125,13 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point
 
 odr::Vec2D RoadCreationSession::ExtendFromDir() const
 {
-	auto grad = extendFromStart.lock()->RefLine().get_grad_xy(extendFromStartS);
+	auto grad = odr::normalize(extendFromStart.lock()->RefLine().get_grad_xy(extendFromStartS));
 	return extendFromStartS == 0 ? odr::negate(grad) : grad;
 }
 
 odr::Vec2D RoadCreationSession::JoinAtEndDir() const
 {
-	auto grad = joinAtEnd.lock()->RefLine().get_grad_xy(joinAtEndS);
+	auto grad = odr::normalize(joinAtEnd.lock()->RefLine().get_grad_xy(joinAtEndS));
 	return joinAtEndS == 0 ? grad : odr::negate(grad);
 }
 
@@ -419,7 +429,8 @@ bool RoadCreationSession::Complete()
 			newRoad, odr::RoadLink::ContactPoint_Start);
 		if (joinResult != 0)
 		{
-			spdlog::error("Extend error {}", joinResult);
+			spdlog::error("RoadCreationSession:: Extend error {}", joinResult);
+			return false;
 		}
 
 		newRoad = toExtend;
@@ -446,7 +457,8 @@ bool RoadCreationSession::Complete()
 			toJoin, joinAtEndS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End);
 		if (joinResult != 0)
 		{
-			spdlog::error("Join error {}", joinResult);
+			spdlog::error("RoadCreationSession:: Join error {}", joinResult);
+			return false;
 		}
 		world->allRoads.insert(newRoad);
 	}

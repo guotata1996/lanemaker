@@ -33,12 +33,111 @@ bool RoadModificationSession::Complete()
         return true;
     }
 
-    if (target->generated.rr_profile.HasSide(1) != (g_createRoadOption->LeftResult().laneCount > 0) ||
-        (target->generated.rr_profile.HasSide(-1) != (g_createRoadOption->RightResult().laneCount > 0)))
+    double sBegin = std::min(*s1, *s2);
+    double sEnd = std::max(*s1, *s2);
+
+    auto currBeginLeft = target->generated.rr_profile.ProfileAt(sBegin, 1);
+    auto currBeginRight = target->generated.rr_profile.ProfileAt(sBegin, -1);
+    auto currEndLeft = target->generated.rr_profile.ProfileAt(sEnd, 1);
+    auto currEndRight = target->generated.rr_profile.ProfileAt(sEnd, -1);
+
+    if (!(sBegin == 0 && sEnd == target->Length()) &&
+        (target->generated.rr_profile.HasSide(1) != (g_createRoadOption->LeftResult().laneCount > 0) ||
+        target->generated.rr_profile.HasSide(-1) != (g_createRoadOption->RightResult().laneCount > 0)))
     {
-        spdlog::warn("Modified road must have some travel direction(s) as before!");
+        if (sBegin != 0 && IsProfileChangePoint(target, sBegin)
+            || sEnd != 0 && IsProfileChangePoint(target, sEnd))
+        {
+            spdlog::warn("Direct junction cannot be created next to changing profile.");
+            return true;
+        }
+
+        // Form direct junction
+        std::shared_ptr<RoadRunner::Road> before, toModify, after;
+        if (sEnd != target->Length())
+        {
+            after = RoadRunner::Road::SplitRoad(target, sEnd);
+            World::Instance()->allRoads.insert(after);
+            toModify = target;
+        }
+
+        if (sBegin != 0)
+        {
+            toModify = RoadRunner::Road::SplitRoad(target, sBegin);
+            World::Instance()->allRoads.insert(toModify);
+            before = target;
+        }
+
+        toModify->ModifyProfile(0, toModify->Length(), g_createRoadOption->LeftResult(), g_createRoadOption->RightResult());
+        if (before != nullptr)
+        {
+            if (currBeginLeft.laneCount != 0 && g_createRoadOption->LeftResult().laneCount != 0
+                && currBeginLeft.offsetx2 != g_createRoadOption->LeftResult().offsetx2
+                ||
+                currBeginRight.laneCount != 0 && g_createRoadOption->RightResult().laneCount != 0
+                && currBeginRight.offsetx2 != g_createRoadOption->RightResult().offsetx2)
+            {
+                spdlog::warn("Offset must remain the same while creating direct junction.");
+                return false;
+            }
+
+            auto toModifyInfo = RoadRunner::ConnectionInfo(toModify, odr::RoadLink::ContactPoint_Start);
+            auto beforeInfo = RoadRunner::ConnectionInfo(before, odr::RoadLink::ContactPoint_End);
+
+            if (currBeginLeft.laneCount <= g_createRoadOption->LeftResult().laneCount
+                && currBeginRight.laneCount <= g_createRoadOption->RightResult().laneCount)
+            {
+                auto junc = std::make_shared< RoadRunner::DirectJunction>(toModifyInfo);
+                junc->Attach(beforeInfo);
+            }
+            else if (currBeginLeft.laneCount >= g_createRoadOption->LeftResult().laneCount
+                && currBeginRight.laneCount >= g_createRoadOption->RightResult().laneCount)
+            {
+                auto junc = std::make_shared< RoadRunner::DirectJunction>(beforeInfo);
+                junc->Attach(toModifyInfo);
+            }
+            else
+            {
+                spdlog::warn("Can't find interface provider for direct junction.");
+                return false;
+            }
+        }
+        if (after != nullptr)
+        {
+            if (currEndLeft.laneCount != 0 && g_createRoadOption->LeftResult().laneCount != 0
+                && currEndLeft.offsetx2 != g_createRoadOption->LeftResult().offsetx2
+                ||
+                currEndRight.laneCount != 0 && g_createRoadOption->RightResult().laneCount != 0
+                && currEndRight.offsetx2 != g_createRoadOption->RightResult().offsetx2)
+            {
+                spdlog::warn("Offset must remain the same while creating direct junction!");
+                return false;
+            }
+
+            auto toModifyInfo = RoadRunner::ConnectionInfo(toModify, odr::RoadLink::ContactPoint_End);
+            auto afterInfo = RoadRunner::ConnectionInfo(after, odr::RoadLink::ContactPoint_Start);
+
+            if (currEndLeft.laneCount <= g_createRoadOption->LeftResult().laneCount
+                && currEndRight.laneCount <= g_createRoadOption->RightResult().laneCount)
+            {
+                auto junc = std::make_shared< RoadRunner::DirectJunction>(toModifyInfo);
+                junc->Attach(afterInfo);
+            }
+            else if (currEndLeft.laneCount >= g_createRoadOption->LeftResult().laneCount
+                && currEndRight.laneCount >= g_createRoadOption->RightResult().laneCount)
+            {
+                auto junc = std::make_shared< RoadRunner::DirectJunction>(afterInfo);
+                junc->Attach(toModifyInfo);
+            }
+            else
+            {
+                spdlog::warn("Can't find interface provider for direct junction!");
+                return false;
+            }
+        }
+
         return true;
     }
 
-    return target->ModifyProfile(*s1, *s2, g_createRoadOption->LeftResult(), g_createRoadOption->RightResult());
+    return target->ModifyProfile(sBegin, sEnd, g_createRoadOption->LeftResult(), g_createRoadOption->RightResult());
 }

@@ -177,7 +177,8 @@ bool LanesCreationSession::Complete()
                     toJoin, joinAtEndS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End);
                 if (joinResult != 0)
                 {
-                    spdlog::error("Join error {}", joinResult);
+                    spdlog::error("LanesCreationSession:: Join error {}", joinResult);
+                    return false;
                 }
                 world->allRoads.insert(newRoad);
             }
@@ -239,7 +240,10 @@ LanesCreationSession::~LanesCreationSession()
     SetHighlightTo(nullptr);
 }
 
-// lane editing cannot happen to connecting roads, or at normal junction interface
+// lane editing cannot happen to 
+// 1) connecting roads
+// 2) at normal junction interface
+// 3) Where lane offset changes (on either side)
 bool LanesCreationSession::ValidateSnap() const
 {
     auto g_road = g_PointerRoad.lock();
@@ -360,7 +364,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(od
                 nextProfile = g_roadProfile.ProfileAt(g_roadS - 0.01, 1);
             }
 
-            if (prevProfile.offsetx2 == nextProfile.offsetx2)
+            if (!IsProfileChangePoint(g_road, g_roadS))
             {
                 // No offset change: can exit from right
                 searchRanges.push_back(std::make_pair(nextProfile.laneCount, prevProfile.laneCount));
@@ -589,7 +593,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
                 nextProfile = g_roadProfile.ProfileAt(g_roadS - 0.01, 1);
             }
 
-            if (prevProfile.offsetx2 == nextProfile.offsetx2)
+            if (!IsProfileChangePoint(g_road, g_roadS))
             {
                 // No offset change: can enter from right
                 searchRanges.push_back(std::make_pair(prevProfile.laneCount, nextProfile.laneCount));

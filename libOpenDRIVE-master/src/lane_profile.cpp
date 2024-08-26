@@ -85,13 +85,36 @@ namespace RoadRunner
         SnapToSegmentBoundary(s1RR, from_odr_unit(length));
         SnapToSegmentBoundary(s2RR, from_odr_unit(length));
 
-        if (HasSide(1))
+        if (newLeftProfile.laneCount != 0) 
         {
-            OverwriteSection(1, s2RR, s1RR, newLeftProfile.laneCount, newLeftProfile.offsetx2);
+            if (HasSide(1))
+            {
+                OverwriteSection(1, s2RR, s1RR, newLeftProfile.laneCount, newLeftProfile.offsetx2);
+            }
+            else
+            {
+                leftPlans.emplace(std::numeric_limits<uint32_t>::max(), newLeftProfile);
+            }
         }
-        if (HasSide(-1))
+        else 
         {
-            OverwriteSection(-1, s1RR, s2RR, newRightProfile.laneCount, newRightProfile.offsetx2);
+            leftPlans.clear();
+        }
+
+        if (newRightProfile.laneCount != 0) 
+        {
+            if (HasSide(-1))
+            {
+                OverwriteSection(-1, s1RR, s2RR, newRightProfile.laneCount, newRightProfile.offsetx2);
+            }
+            else
+            {
+                rightPlan.emplace(0, newRightProfile);
+            }
+        }
+        else
+        {
+            rightPlan.clear();
         }
     }
 

@@ -59,6 +59,7 @@ protected:
     bool PickProfileMode() const { return !beginPickingRoad.expired(); }
 
     static bool IsElevationConsistWithExtend();
+    static bool IsProfileChangePoint(const std::shared_ptr<RoadRunner::Road>&, double s);
 
     QGraphicsView* view;
     QGraphicsScene* scene;

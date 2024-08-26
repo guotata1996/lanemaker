@@ -185,8 +185,6 @@ namespace RoadRunner
     bool Road::ModifyProfile(double s1, double s2,
         const LanePlan& newLeftProfile, const LanePlan& newRightProfile)
     {
-        if (s1 > s2) std::swap(s1, s2);
-
         generated.rr_profile.OverwriteSection(s1, s2, Length(), newLeftProfile, newRightProfile);
         Generate(false);
 
