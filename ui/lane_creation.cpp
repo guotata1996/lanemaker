@@ -692,3 +692,13 @@ odr::Vec2D LanesCreationSession::JoinAtEndDir() const
     auto grad = joinAtEnd.lock()->RefLine().get_grad_xy(joinAtEndS);
     return endSide > 0 ? odr::negate(grad) : grad;
 }
+
+RoadRunner::type_t LanesCreationSession::PreviewRightOffsetX2() const
+{
+    return rOffsetX2;
+}
+
+RoadRunner::type_t LanesCreationSession::PreviewLeftOffsetX2() const
+{
+    return lLanes == 0 ? -rOffsetX2 : lOffsetX2;
+}

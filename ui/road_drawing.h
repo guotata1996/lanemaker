@@ -86,15 +86,6 @@ public:
     virtual ~RoadCreationSession();
 
 protected:
-    struct StagedGeometry
-    {
-        std::unique_ptr<odr::RoadGeometry> geo;
-        QPainterPath preview;
-    };
-    std::vector<StagedGeometry> stagedGeometries;
-
-    std::optional<odr::Vec2D> startPos; // Can be on blank or extend from
-
     // Record extend / join
     virtual SnapResult SnapFirstPointToExisting(odr::Vec2D&);
     virtual SnapResult SnapLastPointToExisting(odr::Vec2D&);
@@ -115,6 +106,9 @@ protected:
 
     odr::RefLine ResultRefLine() const;
 
+    virtual RoadRunner::type_t PreviewRightOffsetX2() const;
+    virtual RoadRunner::type_t PreviewLeftOffsetX2() const;
+
 private:
     class DirectionHandle : public QGraphicsPixmapItem
     {
@@ -134,17 +128,34 @@ private:
         double deltaRotation;
     };
 
+    struct StagedGeometry
+    {
+        std::unique_ptr<odr::RoadGeometry> geo;
+        QPainterPath refLinePreview;
+        QPainterPath boundaryPreview;
+    };
+
     SnapResult SnapCursor(odr::Vec2D&);
 
-    static void GeneratePainterPath(const std::unique_ptr<odr::RoadGeometry>&,
-        QPainterPath&);
+    std::vector<StagedGeometry> stagedGeometries;
+
+    std::optional<odr::Vec2D> startPos; // Can be on blank or extend from
+
+    void GeneratePainterPath(const std::unique_ptr<odr::RoadGeometry>&,
+        QPainterPath&, QPainterPath&);
+
+    void UpdateStagedFromGeometries();
 
     std::unique_ptr<odr::RoadGeometry> flexGeo;
-    QPainterPath flexPreviewPath;
-    QPainterPath stagedPreviewPath;
+    QPainterPath flexRefLinePath;
+    QPainterPath flexBoundaryPath;
+    QPainterPath stagedRefLinePath;
+    QPainterPath stagedBoundaryPath;
 
-    QGraphicsPathItem* stagedPreview;
-    QGraphicsPathItem* flexPreview;
+    QGraphicsPathItem* stagedRefLinePreview;
+    QGraphicsPathItem* stagedBoundaryPreview;
+    QGraphicsPathItem* flexRefLinePreview;
+    QGraphicsPathItem* flexBoundaryPreview;
     DirectionHandle* directionHandle;
 };
 
@@ -163,6 +174,9 @@ protected:
     virtual SnapResult SnapLastPointToExisting(odr::Vec2D&) override;
     virtual odr::Vec2D ExtendFromDir() const override;
     virtual odr::Vec2D JoinAtEndDir() const override;
+
+    virtual RoadRunner::type_t PreviewRightOffsetX2() const override;
+    virtual RoadRunner::type_t PreviewLeftOffsetX2() const override;
 
 private:
     bool ValidateSnap() const;
