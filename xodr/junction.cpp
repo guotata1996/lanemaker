@@ -3,6 +3,7 @@
 
 #include "id_generator.h"
 #include "constants.h"
+#include "world.h"
 
 namespace RoadRunner
 {
@@ -200,6 +201,22 @@ namespace RoadRunner
         return road->RefLine().elevation_profile.get(s);
     }
 
+    AbstractJunction::~AbstractJunction()
+    {
+        for (const auto& connectingRoad : formedFrom)
+        {
+            if (!connectingRoad.road.expired())
+            {
+                spdlog::error("Junction gets destroyed before its connected road!");
+            }
+        }
+
+        if (!ID().empty())
+        {
+            IDGenerator::ForJunction()->FreeID(ID());
+        }
+    }
+
     Junction::Junction() : AbstractJunction() {}
 
     Junction::Junction(const odr::Junction& serialized) : AbstractJunction(serialized)
@@ -272,20 +289,62 @@ namespace RoadRunner
         return generationError;
     }
 
-    AbstractJunction::~AbstractJunction()
+    void Junction::CheckForDegeneration()
     {
-        for (const auto& connectingRoad : formedFrom)
+        if (formedFrom.size() != 2)
         {
-            if (!connectingRoad.road.expired())
-            {
-                spdlog::error("Junction gets destroyed before its connected road!");
-            }
+            return;
+        }
+        auto roadA = formedFrom.begin()->road.lock();
+        auto contactA = formedFrom.begin()->contact;
+        auto roadB = formedFrom.rbegin()->road.lock();
+        auto contactB = formedFrom.rbegin()->contact;
+        if (roadA == roadB)
+        {
+            // RoadJoin_SelfLoop
+            return;
+        }
+        auto roadAIn = contactA == odr::RoadLink::ContactPoint_Start ? roadA->generated.rr_profile.LeftExit().laneCount :
+            roadA->generated.rr_profile.RightExit().laneCount;
+        auto roadAOut = contactA == odr::RoadLink::ContactPoint_Start ? roadA->generated.rr_profile.RightEntrance().laneCount :
+            roadA->generated.rr_profile.LeftEntrance().laneCount;
+
+        auto roadBIn = contactB == odr::RoadLink::ContactPoint_Start ? roadB->generated.rr_profile.LeftExit().laneCount :
+            roadB->generated.rr_profile.RightExit().laneCount;
+        auto roadBOut = contactB == odr::RoadLink::ContactPoint_Start ? roadB->generated.rr_profile.RightEntrance().laneCount :
+            roadB->generated.rr_profile.LeftEntrance().laneCount;
+
+        if (roadAIn > 0 != roadBOut > 0 || roadAOut > 0 != roadBIn > 0)
+        {
+            // RoadJoin_DirNoOutlet
+            return;
         }
 
-        if (!ID().empty())
+        // JoinRoads is guaranteed to succeed
+        if (contactA == odr::RoadLink::ContactPoint_Start)
         {
-            IDGenerator::ForJunction()->FreeID(ID());
+            roadA->predecessorJunction.reset();
         }
+        else
+        {
+            roadA->successorJunction.reset();
+        }
+        if (contactB == odr::RoadLink::ContactPoint_Start)
+        {
+            roadB->predecessorJunction.reset();
+        }
+        else
+        {
+            roadB->successorJunction.reset();
+        }
+        World::Instance()->allRoads.erase(roadB);
+        auto joinResult = Road::JoinRoads(roadA, contactA, roadB, contactB);
+        if (joinResult != RoadJoin_Success)
+        {
+            throw std::logic_error("Junction::CheckForDegeneration join exception");
+        }
+        // Destruct self
+        formedFrom.clear();
     }
 
     DirectJunction::DirectJunction(ConnectionInfo aInterfaceProvider) : AbstractJunction()
@@ -477,6 +536,47 @@ namespace RoadRunner
         }
 
         AbstractJunction::AttachNoRegenerate(conn);
+    }
+
+    void DirectJunction::CheckForDegeneration()
+    {
+        if (formedFrom.size() != 2)
+        {
+            return;
+        }
+        auto roadA = formedFrom.begin()->road.lock();
+        auto contactA = formedFrom.begin()->contact;
+        auto roadB = formedFrom.rbegin()->road.lock();
+        auto contactB = formedFrom.rbegin()->contact;
+
+        if (roadA == roadB)
+        {
+            return;
+        }
+        
+        auto roadAIn = contactA == odr::RoadLink::ContactPoint_Start ? roadA->generated.rr_profile.LeftExit().laneCount :
+            roadA->generated.rr_profile.RightExit().laneCount;
+        auto roadAOut = contactA == odr::RoadLink::ContactPoint_Start ? roadA->generated.rr_profile.RightEntrance().laneCount :
+            roadA->generated.rr_profile.LeftEntrance().laneCount;
+
+        auto roadBIn = contactB == odr::RoadLink::ContactPoint_Start ? roadB->generated.rr_profile.LeftExit().laneCount :
+            roadB->generated.rr_profile.RightExit().laneCount;
+        auto roadBOut = contactB == odr::RoadLink::ContactPoint_Start ? roadB->generated.rr_profile.RightEntrance().laneCount :
+            roadB->generated.rr_profile.LeftEntrance().laneCount;
+
+        if (roadAIn != roadBOut || roadAOut != roadBIn)
+        {
+            return;
+        }
+
+        World::Instance()->allRoads.erase(roadB);
+        auto joinResult = Road::JoinRoads(roadA, contactA, roadB, contactB);
+        if (joinResult != RoadJoin_Success)
+        {
+            throw std::logic_error("DirectJunction::CheckForDegeneration join exception");
+        }
+        // Destruct self
+        formedFrom.clear();
     }
 
     odr::Vec2D DirectJunction::calcInterfaceDir(const ConnectionInfo& aInterfaceProvider)

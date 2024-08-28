@@ -9,20 +9,12 @@
 
 namespace RoadRunner
 {
-    enum RoadJoinError
-    {
-        RoadJoin_Success,
-        RoadJoin_InputIsIdentical,
-        RoadJoin_DirNoOutlet,
-        RoadJoin_ConnectionInvalidShape
-    };
-
     int Road::JoinRoads(std::shared_ptr<Road>& road1, odr::RoadLink::ContactPoint c1,
         std::shared_ptr<Road>& road2, odr::RoadLink::ContactPoint c2)
     {
-        if (road1 == road2 && c1 == c2)
+        if (road1 == road2)
         {
-            return RoadJoin_InputIsIdentical;
+            return RoadJoin_SelfLoop;
         }
 
         if (c1 == odr::RoadLink::ContactPoint_Start)
@@ -55,10 +47,6 @@ namespace RoadRunner
         if (odr::euclDistance(p1, p2) > 1e-2 || !hdgClose)
         {
             auto connectingRef = ConnectRays(p1, odr::normalize(f1), p2, odr::normalize(f2));
-            if (connectingRef == nullptr)
-            {
-                return RoadJoin_ConnectionInvalidShape;
-            }
             road2BaseD = road1->Length() + connectingRef->length;
             road2Base = from_odr_unit(road2BaseD);
             // Connect ref lines

@@ -119,4 +119,11 @@ namespace RoadRunner
         bool highlighted = false;
 #endif
     };
+
+    enum RoadJoinError
+    {
+        RoadJoin_Success,
+        RoadJoin_SelfLoop,
+        RoadJoin_DirNoOutlet
+    };
 }

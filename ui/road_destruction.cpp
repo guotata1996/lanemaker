@@ -178,5 +178,14 @@ bool RoadDestroySession::Complete()
         return false;
     }
 
+    if (predJunction != nullptr)
+    {
+        predJunction->CheckForDegeneration();
+    }
+    if (succJunction != nullptr)
+    {
+        succJunction->CheckForDegeneration();
+    }
+
     return true;
 }
