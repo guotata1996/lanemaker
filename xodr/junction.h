@@ -69,11 +69,12 @@ namespace RoadRunner
     enum JunctionError
     {
         Junction_NoError = 0,
-        Junction_TooManyIncomingLanes = 1,
-        Junction_ConnectionInvalidShape = 2,
-        Junction_AlgoFail = 4,
-        Junction_DuplicateConn = 8,
-        Junction_DirectNoProvider = 16
+        Junction_NoIncomingLanes = 1,
+        Junction_TooManyIncomingLanes = 2,
+        Junction_ConnectionInvalidShape = 4,
+        Junction_AlgoFail = 8,
+        Junction_DuplicateConn = 16,
+        Junction_DirectNoProvider = 32
     };
 
     int GenerateConnections(

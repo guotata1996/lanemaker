@@ -1,5 +1,6 @@
 #include "road_overlaps.h"
 #include "world.h"
+#include "constants.h"
 
 extern int8_t g_createRoadElevationOption;
 
@@ -10,7 +11,6 @@ namespace RoadRunner
         std::weak_ptr<RoadRunner::Road> firstCtrlPointPreferredTarget, double firstCtrlPointPreferredS,
         std::weak_ptr<RoadRunner::Road> lastCtrlPointPreferredTarget, double lastCtrlPointPreferredS)
     {
-        const double JunctionExtaTrim = 10; // Space for connecting road curvature
         const double RoadMinLength = 5; // Discard if any leftover road is too short
 
         bool firstIter = true;

@@ -217,17 +217,24 @@ namespace RoadRunner
         GenerateSectionGraphicsBetween(createBegin, createEnd);
     }
 
+    /*sBegin-sEnd provides a rough range where overlap with target falls at
+    not necessarily inclusive because ref line may fall out of road width*/
     Road::RoadsOverlap Road::CalcOverlapWith(std::shared_ptr<Road> target, double sWithin, double sBegin1, double sEnd1) const
     {
+        std::map<double, Road::RoadsOverlap> sErrorToOverlap;
         for (auto overlapResult : AllOverlaps(sBegin1, sEnd1))
         {
-            if (overlapResult.road2.lock() == target &&
-                overlapResult.sBegin2 <= sWithin && sWithin <= overlapResult.sEnd2)
+            if (overlapResult.road2.lock() == target)
             {
-                return overlapResult;
+                if (overlapResult.sBegin2 <= sWithin && sWithin <= overlapResult.sEnd2)
+                {
+                    return overlapResult;
+                }
+                double sErr = std::min(overlapResult.sBegin2 - sWithin, sWithin - overlapResult.sEnd2);
+                sErrorToOverlap.emplace(sErr, overlapResult);
             }
         }
-        return Road::RoadsOverlap(0, 0, std::weak_ptr<Road>(), 0, 0);
+        return sErrorToOverlap.begin()->second;
     }
 
     std::vector<Road::RoadsOverlap> Road::AllOverlaps(double sBegin, double sEnd) const

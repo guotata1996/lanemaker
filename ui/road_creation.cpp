@@ -441,35 +441,54 @@ bool RoadCreationSession::Complete()
 	double newPartBegin = 0, newPartEnd = newRoad->Length();
 	if (!extendFromStart.expired())
 	{
-		standaloneRoad = false;
 		auto toExtend = extendFromStart.lock();
 		auto joinPointElevation = toExtend->RefLine().elevation_profile.get(extendFromStartS);
 		RoadRunner::CubicSplineGenerator::OverwriteSection(
 			newRoad->RefLine().elevation_profile, newRoad->Length(), 0, 0, joinPointElevation);
-		newPartBegin += toExtend->Length();
-		newPartEnd += toExtend->Length();
 		int joinResult = RoadRunner::Road::JoinRoads(toExtend,
 			extendFromStartS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End,
 			newRoad, odr::RoadLink::ContactPoint_Start);
-		if (joinResult != 0)
+		switch (joinResult)
 		{
-			spdlog::error("RoadCreationSession:: Extend error {}", joinResult);
+		case RoadRunner::RoadJoin_SelfLoop:
+			spdlog::warn("Self-loop is not supported!");
 			return false;
+		case RoadRunner::RoadJoin_DirNoOutlet:
+			{
+				if (newRoad->Length() > RoadRunner::JunctionExtaTrim)
+				{
+					// Make a junction instead of extending if direction mismatch
+					newRoad = RoadRunner::Road::SplitRoad(newRoad, RoadRunner::JunctionExtaTrim);
+					std::vector<RoadRunner::ConnectionInfo> junctionInfo =
+					{
+						RoadRunner::ConnectionInfo{toExtend, odr::RoadLink::ContactPoint_End},
+						RoadRunner::ConnectionInfo{newRoad, odr::RoadLink::ContactPoint_Start}
+					};
+					auto junction = std::make_shared<RoadRunner::Junction>();
+					auto errorCode = junction->CreateFrom(junctionInfo);
+					if (errorCode == RoadRunner::Junction_NoError)
+					{
+						IDGenerator::ForRoad()->NotifyChange(toExtend->ID());
+						break;
+					}
+				}
+			}
+			spdlog::warn("Roads with opposite direction cannot be joined!");
+			return false;
+		default:
+			// Okay
+			newPartBegin += toExtend->Length();
+			newPartEnd += toExtend->Length();
+			standaloneRoad = false;
+			newRoad = toExtend;
+			break;
 		}
-
-		newRoad = toExtend;
 	}
 
 	if (!joinAtEnd.expired())
 	{
-		if (!standaloneRoad)
-		{
-			world->allRoads.erase(newRoad);
-		}
-
-		standaloneRoad = false;
 		auto toJoin = joinAtEnd.lock();
-		world->allRoads.erase(toJoin);
+		auto copyOfToJoin = toJoin;
 
 		auto joinPointElevation = toJoin->RefLine().elevation_profile.get(joinAtEndS);
 		RoadRunner::CubicSplineGenerator::OverwriteSection(
@@ -479,12 +498,38 @@ bool RoadCreationSession::Complete()
 		int joinResult = RoadRunner::Road::JoinRoads(
 			newRoad, odr::RoadLink::ContactPoint_End,
 			toJoin, joinAtEndS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End);
-		if (joinResult != 0)
+		switch (joinResult)
 		{
-			spdlog::error("RoadCreationSession:: Join error {}", joinResult);
+		case RoadRunner::RoadJoin_SelfLoop:
+			spdlog::warn("Self-loop is not supported!");
 			return false;
-		}
-		world->allRoads.insert(newRoad);
+		case RoadRunner::RoadJoin_DirNoOutlet:
+			if (newRoad->Length() > RoadRunner::JunctionExtaTrim)
+			{
+				// Make a junction instead of extending if direction mismatch
+				RoadRunner::Road::SplitRoad(newRoad, newRoad->Length() - RoadRunner::JunctionExtaTrim);
+				std::vector<RoadRunner::ConnectionInfo> junctionInfo =
+				{
+					RoadRunner::ConnectionInfo{toJoin, odr::RoadLink::ContactPoint_Start},
+					RoadRunner::ConnectionInfo{newRoad, odr::RoadLink::ContactPoint_End}
+				};
+				auto junction = std::make_shared<RoadRunner::Junction>();
+				auto errorCode = junction->CreateFrom(junctionInfo);
+				if (errorCode == RoadRunner::Junction_NoError)
+				{
+					IDGenerator::ForRoad()->NotifyChange(toJoin->ID());
+					break;
+				}
+			}
+			spdlog::warn("Roads with opposite direction cannot be joined!");
+			return false;
+		default:
+			// Okay
+			standaloneRoad = false;
+			world->allRoads.erase(copyOfToJoin);
+			world->allRoads.insert(newRoad);
+			break;
+		} 
 	}
 
 	if (standaloneRoad)

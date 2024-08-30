@@ -102,6 +102,11 @@ namespace RoadRunner
         std::map<std::pair<RoadEndpoint, RoadEndpoint>, TurningGroup> turningGroups;
 
         // Determine incoming info for turningGroups
+        if (incomingEndpoints.empty())
+        {
+            spdlog::warn("No lane going into the junction!");
+            errorCode |= Junction_NoIncomingLanes;
+        }
         for (const RoadEndpoint& incomingRoad : incomingEndpoints)
         {
             // Sort outgoing road in CW order
