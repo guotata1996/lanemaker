@@ -5,6 +5,106 @@
 
 namespace RoadRunner
 {
+    void RoadEndpoint::FromConnInfo(const ConnectionInfo& roadAndS, RoadEndpoint& incoming, RoadEndpoint& outgoing)
+    {
+        auto roadPtr = roadAndS.road.lock();
+        odr::Road* road = &roadPtr->generated;
+        double meetAt = roadAndS.contact == odr::RoadLink::ContactPoint_Start ? 0 : road->length;
+        LaneProfile config = roadPtr->generated.rr_profile;
+
+        if (meetAt == 0)
+        {
+            LanePlan rightEntrance = config.RightEntrance();
+            if (rightEntrance.laneCount != 0)
+            {
+                double offset = to_odr_unit(rightEntrance.offsetx2);
+                odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
+                odr::Vec2D origin = { origin3[0], origin3[1] };
+                odr::Vec2D forward = odr::normalize(road->ref_line.get_grad_xy(meetAt));
+                outgoing = RoadEndpoint
+                {
+                    road,
+                    odr::RoadLink::ContactPoint_Start,
+                    -1,
+                    origin,
+                    forward,
+                    static_cast<uint8_t>(rightEntrance.laneCount)
+                };
+            }
+            else
+            {
+                outgoing.contact = odr::RoadLink::ContactPoint_None;
+            }
+
+            LanePlan leftExit = config.LeftExit();
+            if (leftExit.laneCount != 0)
+            {
+                double offset = to_odr_unit(leftExit.offsetx2);
+                odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
+                odr::Vec2D origin = { origin3[0], origin3[1] };
+                odr::Vec2D forward = odr::normalize(odr::negate(road->ref_line.get_grad_xy(meetAt)));
+                incoming = RoadEndpoint
+                {
+                    road,
+                    odr::RoadLink::ContactPoint_Start,
+                    1,
+                    origin,
+                    forward,
+                    static_cast<uint8_t>(leftExit.laneCount)
+                };
+            }
+            else
+            {
+                incoming.contact = odr::RoadLink::ContactPoint_None;
+            }
+        }
+        else
+        {
+            LanePlan rightExit = config.RightExit();
+            if (rightExit.laneCount != 0)
+            {
+                double offset = to_odr_unit(rightExit.offsetx2);
+                odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
+                odr::Vec2D origin = { origin3[0], origin3[1] };
+                odr::Vec2D forward = odr::normalize(road->ref_line.get_grad_xy(meetAt));
+                incoming = RoadEndpoint
+                {
+                    road,
+                    odr::RoadLink::ContactPoint_End,
+                    -1,
+                    origin,
+                    forward,
+                    static_cast<uint8_t>(rightExit.laneCount)
+                };
+            }
+            else
+            {
+                incoming.contact = odr::RoadLink::ContactPoint_None;
+            }
+            LanePlan leftEntrance = config.LeftEntrance();
+            if (leftEntrance.laneCount != 0)
+            {
+                double offset = to_odr_unit(leftEntrance.offsetx2);
+                odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
+                odr::Vec2D origin = { origin3[0], origin3[1] };
+                odr::Vec2D forward = odr::normalize(odr::negate(road->ref_line.get_grad_xy(road->length)));
+                outgoing = RoadEndpoint
+                {
+                    road,
+                    odr::RoadLink::ContactPoint_End,
+                    1,
+                    origin,
+                    forward,
+                    static_cast<uint8_t>(leftEntrance.laneCount)
+                };
+            }
+            else
+            {
+                outgoing.contact = odr::RoadLink::ContactPoint_None;
+            }
+        }
+    }
+
     int GenerateConnections(std::string junctionID,
         std::vector<ConnectionInfo> connected,
         std::vector<std::shared_ptr<Road>>& connectings)
@@ -12,90 +112,29 @@ namespace RoadRunner
         auto errorCode = 0;
         // Collect endpoint info of each connected road
         std::vector<RoadEndpoint> incomingEndpoints, outgoingEndpoints;
+        
         for (auto& roadAndS : connected)
         {
+            RoadEndpoint incoming, outgoing;
+            RoadEndpoint::FromConnInfo(roadAndS, incoming, outgoing);
+            if (incoming.contact != odr::RoadLink::ContactPoint_None)
+            {
+                incomingEndpoints.push_back(incoming);
+            }
+            if (outgoing.contact != odr::RoadLink::ContactPoint_None)
+            {
+                outgoingEndpoints.push_back(outgoing);
+            }
+
             auto roadPtr = roadAndS.road.lock();
             odr::Road* road = &roadPtr->generated;
-            double meetAt = roadAndS.contact == odr::RoadLink::ContactPoint_Start ? 0 : road->length;
-            LaneProfile config = roadPtr->generated.rr_profile;
-            odr::LaneSection meetSection = meetAt == 0 ?
-                road->s_to_lanesection.begin()->second : road->s_to_lanesection.rbegin()->second;
-
-            if (meetAt == 0)
+            if (roadAndS.contact == odr::RoadLink::ContactPoint_Start)
             {
                 road->predecessor = odr::RoadLink(junctionID, odr::RoadLink::Type_Junction);
-                LanePlan rightEntrance = config.RightEntrance();
-                if (rightEntrance.laneCount != 0)
-                {
-                    double offset = to_odr_unit(rightEntrance.offsetx2);
-                    odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
-                    odr::Vec2D origin = { origin3[0], origin3[1] };
-                    odr::Vec2D forward = odr::normalize(road->ref_line.get_grad_xy(meetAt));
-                    outgoingEndpoints.push_back(RoadEndpoint
-                        {
-                            road,
-                            odr::RoadLink::ContactPoint_Start,
-                            -1,
-                            origin,
-                            forward,
-                            static_cast<uint8_t>(rightEntrance.laneCount)
-                        });
-                }
-                LanePlan leftExit = config.LeftExit();
-                if (leftExit.laneCount != 0)
-                {
-                    double offset = to_odr_unit(leftExit.offsetx2);
-                    odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
-                    odr::Vec2D origin = { origin3[0], origin3[1] };
-                    odr::Vec2D forward = odr::normalize(odr::negate(road->ref_line.get_grad_xy(meetAt)));
-                    incomingEndpoints.push_back(RoadEndpoint
-                        {
-                            road,
-                            odr::RoadLink::ContactPoint_Start,
-                            1,
-                            origin,
-                            forward,
-                            static_cast<uint8_t>(leftExit.laneCount)
-                        });
-                }
             }
             else
             {
                 road->successor = odr::RoadLink(junctionID, odr::RoadLink::Type_Junction);
-                LanePlan rightExit = config.RightExit();
-                if (rightExit.laneCount != 0)
-                {
-                    double offset = to_odr_unit(rightExit.offsetx2);
-                    odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
-                    odr::Vec2D origin = { origin3[0], origin3[1] };
-                    odr::Vec2D forward = odr::normalize(road->ref_line.get_grad_xy(meetAt));
-                    incomingEndpoints.push_back(RoadEndpoint
-                        {
-                            road,
-                            odr::RoadLink::ContactPoint_End,
-                            -1,
-                            origin,
-                            forward,
-                            static_cast<uint8_t>(rightExit.laneCount)
-                        });
-                }
-                LanePlan leftEntrance = config.LeftEntrance();
-                if (leftEntrance.laneCount != 0)
-                {
-                    double offset = to_odr_unit(leftEntrance.offsetx2);
-                    odr::Vec3D origin3 = road->get_xyz(meetAt, offset, 0);
-                    odr::Vec2D origin = { origin3[0], origin3[1] };
-                    odr::Vec2D forward = odr::normalize(odr::negate(road->ref_line.get_grad_xy(road->length)));
-                    outgoingEndpoints.push_back(RoadEndpoint
-                        {
-                            road,
-                            odr::RoadLink::ContactPoint_End,
-                            1,
-                            origin,
-                            forward,
-                            static_cast<uint8_t>(leftEntrance.laneCount)
-                        });
-                }
             }
         }
 

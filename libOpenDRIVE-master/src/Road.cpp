@@ -138,6 +138,30 @@ Vec3D Road::get_xyz(const double s, const double t, const double h, Vec3D* _e_s,
     return xyz;
 }
 
+Vec2D Road::get_boundary_xy(int side, double s) const
+{ 
+    auto laneSection = get_lanesection(s);
+    double t = lane_offset.get(s);
+    if (side < 0) 
+    {
+        auto rightMost = laneSection.id_to_lane.begin();
+        if (rightMost->first < 0) 
+        {
+            t = rightMost->second.outer_border.get(s);
+        }
+    }
+    else
+    {
+        auto leftMost = laneSection.id_to_lane.rbegin();
+        if (leftMost->first > 0) 
+        {
+            t = leftMost->second.outer_border.get(s);
+        }
+    }
+    auto xyz = get_xyz(s, t, 0);
+    return Vec2D { xyz[0], xyz[1] };
+}
+
 Vec3D Road::get_surface_pt(double s, const double t, Vec3D* vn) const
 {
     CHECK_AND_REPAIR(s >= 0, "s < 0", s = 0);
@@ -336,6 +360,36 @@ std::pair<Line3D, Line3D> Road::get_road_border_line(const double s_start, const
 
     return std::make_pair(left, right);
 }
+
+std::pair<Line3D, Line3D> Road::get_road_boundary(const double eps) const 
+{ 
+    const auto& firstSection = s_to_lanesection.begin()->second;
+    Line3D      left, right;
+    if (!firstSection.get_sorted_driving_lanes(1).empty()) 
+    {
+        // Has left side
+        left = get_side_border_line(1, 0, length, true, eps);
+        std::reverse(left.begin(), left.end());
+    }
+    else
+    {
+        left = get_side_border_line(-1, 0, length, false, eps); 
+    }
+
+    if (!firstSection.get_sorted_driving_lanes(-1).empty()) 
+    {
+        // Has right side
+        right = get_side_border_line(-1, 0, length, true, eps);
+    }
+    else
+    {
+        right = get_side_border_line(1, 0, length, false, eps);
+        std::reverse(right.begin(), right.end());
+    }
+
+    return std::make_pair(left, right);
+}
+
 Line3D Road::get_lane_marking_line(
     const Lane& lane,
     const double s_start,

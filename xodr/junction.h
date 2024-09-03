@@ -2,6 +2,7 @@
 
 #include "OpenDriveMap.h"
 #include "road.h"
+
 #include <map>
 #include <vector>
 #include <functional>
@@ -11,6 +12,9 @@ namespace RoadRunnerTest { class Validation; }
 
 namespace RoadRunner
 {
+    class ChangeTracker;
+    class JunctionGraphics;
+
     // public
     class ConnectionInfo
     {
@@ -102,6 +106,8 @@ namespace RoadRunner
         {
             return road->id < rhs.road->id || road->id == rhs.road->id && contact < rhs.contact;
         }
+
+        static void FromConnInfo(const ConnectionInfo&, RoadEndpoint& incoming, RoadEndpoint& outgoing);
     };
 
     enum TurningSemantics {Turn_No, Turn_U, Turn_Left, Turn_Right};
@@ -150,6 +156,7 @@ namespace RoadRunner
     class AbstractJunction : public std::enable_shared_from_this<AbstractJunction>
     {
         friend class RoadRunnerTest::Validation;
+        friend class ChangeTracker;
     public:
         AbstractJunction();
 
@@ -169,9 +176,9 @@ namespace RoadRunner
 
         virtual void CheckForDegeneration() = 0; /*If only 2 roads left, check if they can be joined*/
 
-        std::string ID() const { return generated.id; }
+        virtual void GenerateGraphics() = 0;
 
-        std::set< std::shared_ptr<Road>> StillConnectedRoads() const;
+        std::string ID() const { return generated.id; }
 
         void FillConnectionInfo(ConnectionInfo&) const;
 
@@ -179,18 +186,25 @@ namespace RoadRunner
 
         virtual std::string Log() const;
 
-        odr::Junction generated;
-
         int generationError = 0;
 #ifndef G_TEST
     protected:
 #endif
         std::set<ConnectionInfo> formedFrom;
+
+        odr::Junction generated;
+
+    protected:
+#ifndef G_TEST
+        std::unique_ptr<JunctionGraphics> junctionGraphics;
+#endif
     };
 
     // TODO: inherit same class as Road to manage ID
     class Junction: public AbstractJunction
     {
+        friend class RoadRunnerTest::Validation;
+        friend class ChangeTracker;
     public:
         Junction();
 
@@ -203,7 +217,13 @@ namespace RoadRunner
 
         virtual void CheckForDegeneration() override;
 
+        virtual void GenerateGraphics() override;
+
+    protected:
         std::vector<std::shared_ptr<Road>> connectingRoads;
+
+    private:
+        odr::Line2D CalcBoundary() const;
     };
 
     class DirectJunction : public AbstractJunction
@@ -218,14 +238,27 @@ namespace RoadRunner
         virtual void AttachNoRegenerate(ConnectionInfo) override;
 
         virtual void CheckForDegeneration() override;
-
+#ifndef G_TEST
+        virtual void GenerateGraphics() override;
+#endif
         virtual std::string Log() const override;
 
     private:
         std::optional<ConnectionInfo> InterfaceProvider() const;
 
+        std::vector<odr::Vec2D> CalcCavity() const;
+
         odr::Vec2D interfaceDir; // Vector pointing into the interface provider
 
         static odr::Vec2D calcInterfaceDir(const ConnectionInfo&);
+
+        /*right side: relative to interface provider
+        * outS1 / outS2 is relative to zero-point at interface. If no overlap, return road length.
+        * Return: true if intersection found
+        */
+        static bool bordersIntersect(odr::RoadLink::ContactPoint interfaceProviderContact,
+            ConnectionInfo infoA, int sideA,
+            ConnectionInfo infoB, int sideB,
+            double& outS1, double& outS2, odr::Vec2D& outPos);
     };
 }

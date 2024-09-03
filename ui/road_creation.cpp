@@ -566,7 +566,7 @@ void RoadCreationSession::GeneratePainterPath(const std::unique_ptr<odr::RoadGeo
 	const int Division = 30;
 	centerPath.clear();
 	boundaryPath.clear();
-	if (geo != nullptr)
+	if (geo != nullptr && geo->length > 1e-2)
 	{
 		auto flexLen = geo->length;
 			

@@ -4,6 +4,7 @@
 #include "id_generator.h"
 #include "constants.h"
 #include "world.h"
+#include "road_graphics.h"
 
 namespace RoadRunner
 {
@@ -129,20 +130,6 @@ namespace RoadRunner
             formedFrom.clear();
             // Junction will then be destroyed
         }
-    }
-
-    std::set<std::shared_ptr<Road>> AbstractJunction::StillConnectedRoads() const
-    {
-        std::set<std::shared_ptr<Road>> rtn;
-        for (auto connected : formedFrom)
-        {
-            auto sharedPtr = connected.road.lock();
-            if (sharedPtr != nullptr)
-            {
-                rtn.insert(sharedPtr);
-            }
-        }
-        return rtn;
     }
 
     void AbstractJunction::AttachNoRegenerate(ConnectionInfo conn)
@@ -282,6 +269,8 @@ namespace RoadRunner
                 generationError |= Junction_ConnectionInvalidShape;
             }
         }
+
+        GenerateGraphics();
 #endif
 
         IDGenerator::ForJunction()->NotifyChange(ID());
@@ -321,6 +310,7 @@ namespace RoadRunner
         }
 
         // JoinRoads is guaranteed to succeed
+        clearLinkage(ID(), roadA->ID());
         if (contactA == odr::RoadLink::ContactPoint_Start)
         {
             roadA->predecessorJunction.reset();
@@ -346,7 +336,13 @@ namespace RoadRunner
         // Destruct self
         formedFrom.clear();
     }
-
+#ifndef G_TEST
+    void Junction::GenerateGraphics()
+    {
+        junctionGraphics = std::make_unique<JunctionGraphics>(CalcBoundary(), false);
+        junctionGraphics->setZValue(Elevation() + 0.01);
+    }
+#endif
     DirectJunction::DirectJunction(ConnectionInfo aInterfaceProvider) : AbstractJunction()
     {
         formedFrom.insert(aInterfaceProvider);
@@ -483,6 +479,9 @@ namespace RoadRunner
 
             generated.id_to_connection.emplace(conn.id, conn);
         }
+#ifndef G_TEST
+        GenerateGraphics();
+#endif
 
         IDGenerator::ForJunction()->NotifyChange(ID());
 
@@ -578,6 +577,13 @@ namespace RoadRunner
         // Destruct self
         formedFrom.clear();
     }
+#ifndef G_TEST
+    void DirectJunction::GenerateGraphics()
+    {
+        junctionGraphics = std::make_unique<JunctionGraphics>(CalcCavity(), true);
+        junctionGraphics->setZValue(Elevation() + 0.01);
+    }
+#endif
 
     odr::Vec2D DirectJunction::calcInterfaceDir(const ConnectionInfo& aInterfaceProvider)
     {

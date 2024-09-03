@@ -74,6 +74,11 @@ namespace RoadRunner
             }
         }
 
+        for (auto& idAndjunc : id2RRJunction)
+        {
+            idAndjunc.second->GenerateGraphics();
+        }
+
         while (!redoStack.empty())
         {
             redoStack.pop();
@@ -311,17 +316,21 @@ namespace RoadRunner
                     commonJunctionPtr->connectingRoads.clear();
                 }
 
-                for (auto road: junctionPtr->StillConnectedRoads())
+                for (auto connected : junctionPtr->formedFrom)
                 {
-                    if (road->successorJunction.get() == junctionPtr)
+                    auto road = connected.road.lock();
+                    if (road != nullptr)
                     {
-                        junctionPtr->DetachNoRegenerate(road);
-                        roadAffected.insert(road);
-                    }
-                    if (road->predecessorJunction.get() == junctionPtr)
-                    {
-                        junctionPtr->DetachNoRegenerate(road);
-                        roadAffected.insert(road);
+                        if (road->successorJunction.get() == junctionPtr)
+                        {
+                            junctionPtr->DetachNoRegenerate(road);
+                            roadAffected.insert(road);
+                        }
+                        if (road->predecessorJunction.get() == junctionPtr)
+                        {
+                            junctionPtr->DetachNoRegenerate(road);
+                            roadAffected.insert(road);
+                        }
                     }
                 }
             }
@@ -388,6 +397,11 @@ namespace RoadRunner
                 auto juncPtr = static_cast<RoadRunner::AbstractJunction*>(IDGenerator::ForJunction()->GetByID(odrRoad.predecessor.id));
                 juncPtr->AttachNoRegenerate(RoadRunner::ConnectionInfo(rrRoad, odr::RoadLink::ContactPoint_Start));
             }
+        }
+
+        for (auto junc : junctionRestored)
+        {
+            junc->GenerateGraphics();
         }
 
         PostChangeActions();

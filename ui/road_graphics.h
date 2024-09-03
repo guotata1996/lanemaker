@@ -8,10 +8,11 @@ namespace RoadRunner
 {
     namespace
     {
-        QPolygonF LineToPoly(const odr::Line3D& line)
+        template <class T>
+        QPolygonF LineToPoly(const std::vector<T>& line)
         {
             QPolygonF rtn;
-            for (const odr::Vec3D& p : line)
+            for (const T& p : line)
             {
                 rtn.append(QPointF(p[0], p[1]));
             }
@@ -79,5 +80,13 @@ namespace RoadRunner
         bool isMedian;
 
         const int laneID, laneIDReversed;
+    };
+
+    class JunctionGraphics : public QGraphicsPathItem
+    {
+    public:
+        JunctionGraphics(const odr::Line2D& boundary, bool isolated);
+
+        ~JunctionGraphics();
     };
 }
