@@ -171,7 +171,7 @@ namespace RoadRunner
     }
 
 
-    std::vector<odr::Vec2D> DirectJunction::CalcCavity() const
+    std::vector<odr::Line2D> DirectJunction::CalcCavity() const
     {
         auto interfaceProvider = InterfaceProvider();
         auto interfaceProvideRoad = interfaceProvider->road.lock();
@@ -252,19 +252,17 @@ namespace RoadRunner
                         // Compute min intersect S2 between A's right & B's left (up to min(lenA, lenB))
                         // If S1 < S2, A on right of B
                         double sLA, sRB, sRA, sLB;
-                        odr::Vec2D iPosaLbR, iPosaRbL;
-                        bool aLbR = bordersIntersect(interfaceProvider->contact, infoA, 1, infoB, -1, sLA, sRB, iPosaLbR);
-                        bool aRbL = bordersIntersect(interfaceProvider->contact, infoA, -1, infoB, 1, sRA, sLB, iPosaRbL);
+                        bool aLbR = bordersIntersect(interfaceProvider->contact, infoA, 1, infoB, -1, sLA, sRB);
+                        bool aRbL = bordersIntersect(interfaceProvider->contact, infoA, -1, infoB, 1, sRA, sLB);
                         if (!aLbR && !aRbL)
                         {
                             spdlog::error("Overlap zone between roads {} & {} can't be determined", 
                                 infoA.road.lock()->ID(), infoB.road.lock()->ID());
                         }
-                        auto iPos = aLbR ? iPosaLbR : iPosaRbL;
-                        //intersectPositions.push_back(iPos);
 
-                        if (sRA < sLA /*A is to the left to B*/)
+                        if ((infoA.contact == odr::RoadLink::ContactPoint_Start) == (sRA < sLA))
                         {
+                            /*A is to the left to B*/
                             std::swap(strictlySortedLinkedRoad[a], strictlySortedLinkedRoad[b]);
                         }
                     }
@@ -279,53 +277,80 @@ namespace RoadRunner
         }
 
         int interfaceSign = interfaceProvider->contact == odr::RoadLink::ContactPoint_End ? 1 : -1;
-        std::vector<odr::Vec2D> intersectPositions;
+        std::vector<odr::Line2D> cavityPolygons;
+        const double vertexStep = 0.1;
         for (int i = 0; i < strictlySortedLinkedRoad.size() - 1; ++i)
         {
             auto infoA = linkedIDToInfo.at(strictlySortedLinkedRoad[i]);
             auto infoB = linkedIDToInfo.at(strictlySortedLinkedRoad[i + 1]);
+            auto roadA = infoA.road.lock();
+            auto roadB = infoB.road.lock();
             auto rangeA = linkedRoadToLaneRange.at(strictlySortedLinkedRoad[i]);
             auto rangeB = linkedRoadToLaneRange.at(strictlySortedLinkedRoad[i + 1]);
             auto maxA = rangeA.first;
             auto minB = rangeB.second;
+
+            double iSA, iSB;
+            bool cavityFound = false;
             if (minB == maxA)
             {
-                double iSA, iSB;
-                odr::Vec2D iPos;
-                if (bordersIntersect(interfaceProvider->contact, infoA, 1, 
-                    infoB, (-1), iSA, iSB, iPos))
-                {
-                    intersectPositions.push_back(iPos);
-                }
+                cavityFound = bordersIntersect(interfaceProvider->contact, infoA, 1,
+                    infoB, -1, iSA, iSB);
             }
             else
             {
                 // I point right at the interface
-                auto aNearB = infoA.road.lock()->generated.get_boundary_xy(
+                auto aNearB = roadA->generated.get_boundary_xy(
                     interfaceSign * (infoA.contact == odr::RoadLink::ContactPoint_Start ? 1 : -1),
                     infoA.contact == odr::RoadLink::ContactPoint_Start ? 0 : infoA.road.lock()->Length());
-                auto bNearA = infoB.road.lock()->generated.get_boundary_xy(
+                auto bNearA = roadB->generated.get_boundary_xy(
                     interfaceSign * (infoB.contact == odr::RoadLink::ContactPoint_Start ? -1 : 1),
                     infoB.contact == odr::RoadLink::ContactPoint_Start ? 0 : infoB.road.lock()->Length());
                 if (odr::euclDistance(aNearB, bNearA) < 0.01)
                 {
-                    intersectPositions.push_back(aNearB);
+                    cavityFound = true;
+                    iSA = infoA.contact == odr::RoadLink::ContactPoint_Start ? 0 : roadA->Length();
+                    iSB = infoB.contact == odr::RoadLink::ContactPoint_Start ? 0 : roadB->Length();
                 }
             }
+
+            if (cavityFound)
+            {
+                int aSide = interfaceProvider->contact == infoA.contact ? -1 : 1;
+                int bSide = interfaceProvider->contact == infoB.contact ? 1 : -1;
+                int aStepDir = infoA.contact == odr::RoadLink::ContactPoint_Start ? 1 : -1;
+                int bStepDir = infoB.contact == odr::RoadLink::ContactPoint_Start ? 1 : -1;
+
+                odr::Line2D aSideLine, bSideLine;
+                while (0 <= iSA && iSA <= roadA->Length()
+                    && 0 <= iSB && iSB <= roadB->Length())
+                {
+                    auto vA = roadA->generated.get_boundary_xy(aSide, iSA);
+                    auto vB = roadB->generated.get_boundary_xy(bSide, iSB);
+                    aSideLine.push_back(vA);
+                    bSideLine.push_back(vB);
+                    if (odr::euclDistance(vA, vB) > LaneWidth)
+                    {
+                        break;
+                    }
+                    iSA += aStepDir * vertexStep;
+                    iSB += bStepDir * vertexStep;
+                }
+
+                aSideLine.insert(aSideLine.end(), bSideLine.rbegin(), bSideLine.rend());
+                cavityPolygons.push_back(aSideLine);
+            }
         }
-        return intersectPositions;
+        return cavityPolygons;
     }
 
     bool DirectJunction::bordersIntersect(odr::RoadLink::ContactPoint interfaceProviderContact,
         ConnectionInfo infoA, int sideA,
         ConnectionInfo infoB, int sideB,
-        double& outSA, double& outSB, odr::Vec2D& outPos)
+        double& outSA, double& outSB)
     {
-        int interfaceSign = 1;
         int aSide = interfaceProviderContact == infoA.contact ? -sideA : sideA;
         int bSide = interfaceProviderContact == infoB.contact ? -sideB : sideB;
-        aSide *= interfaceSign;
-        bSide *= interfaceSign;
 
         auto roadA = infoA.road.lock();
         auto lenA = roadA->Length();
@@ -340,27 +365,27 @@ namespace RoadRunner
         auto roadB = infoB.road.lock();
         auto lenB = roadB->Length();
 
-        outSA = 0;
-        outSB = 0;
+        double deltaA = 0;
+        double deltaB = 0;
         bool aStep = true, bStep = true;
         double projXA, projYA, projXB, projYB;
         odr::Vec2D posOnA, posOnB;
 
         std::optional<bool> aSmallA;
         
-        while (outSA < lenA && outSB < lenB)
+        while (deltaA < lenA && deltaB < lenB)
         {
             if (aStep)
             {
-                double sA = infoA.contact == odr::RoadLink::ContactPoint_Start ? outSA : lenA - outSA;
-                posOnA = roadA->generated.get_boundary_xy(aSide, sA);
+                outSA = infoA.contact == odr::RoadLink::ContactPoint_Start ? deltaA : lenA - deltaA;
+                posOnA = roadA->generated.get_boundary_xy(aSide, outSA);
                 projYA = odr::dot(posOnA, commonY);
                 projXA = odr::dot(posOnA, commonX);
             }
             if (bStep)
             {
-                double sB = infoB.contact == odr::RoadLink::ContactPoint_Start ? outSB : lenB - outSB;
-                posOnB = roadB->generated.get_boundary_xy(bSide, sB);
+                outSB = infoB.contact == odr::RoadLink::ContactPoint_Start ? deltaB : lenB - deltaB;
+                posOnB = roadB->generated.get_boundary_xy(bSide, outSB);
                 projYB = odr::dot(posOnB, commonY);
                 projXB = odr::dot(posOnB, commonX);
             }
@@ -371,7 +396,6 @@ namespace RoadRunner
                 if (aSmallA.value() != nowASmallX)
                 {
                     // X flipped! we are done
-                    outPos = odr::mut(0.5, odr::add(posOnA, posOnB));
                     return true;
                 }
             }
@@ -385,18 +409,16 @@ namespace RoadRunner
             {
                 aStep = true;
                 bStep = false;
-                outSA += 0.1;
+                deltaA += 0.1;
             }
             else
             {
                 aStep = false;
                 bStep = true;
-                outSB += 0.1;
+                deltaB += 0.1;
             }
         }
 
-        outSA = lenA;
-        outSB = lenB;
         return false;
     }
 };

@@ -339,7 +339,9 @@ namespace RoadRunner
 #ifndef G_TEST
     void Junction::GenerateGraphics()
     {
-        junctionGraphics = std::make_unique<JunctionGraphics>(CalcBoundary(), false);
+        auto boundary = CalcBoundary();
+        std::vector<odr::Line2D> boundaries = { boundary };
+        junctionGraphics = std::make_unique<JunctionGraphics>(boundaries);
         junctionGraphics->setZValue(Elevation() + 0.01);
     }
 #endif
@@ -580,7 +582,7 @@ namespace RoadRunner
 #ifndef G_TEST
     void DirectJunction::GenerateGraphics()
     {
-        junctionGraphics = std::make_unique<JunctionGraphics>(CalcCavity(), true);
+        junctionGraphics = std::make_unique<JunctionGraphics>(CalcCavity());
         junctionGraphics->setZValue(Elevation() + 0.01);
     }
 #endif

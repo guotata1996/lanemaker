@@ -267,22 +267,17 @@ namespace RoadRunner
         return parentSection->sBegin < parentSection->sEnd ? laneID : laneIDReversed;
     }
 
-    JunctionGraphics::JunctionGraphics(const std::vector<odr::Vec2D>& boundary, bool isolated)
+    JunctionGraphics::JunctionGraphics(const std::vector<odr::Line2D>& boundary)
     {
         QPainterPath path;
-        if (isolated)
-        {
-            for (auto point : boundary)
-            {
-                path.addEllipse(QPointF(point[0], point[1]), 1, 1);
-            }
-        }
-        else
+
+        for (const auto& line : boundary)
         {
             setPen(Qt::NoPen);
             setBrush(QBrush(Qt::gray, Qt::SolidPattern));
-            path.addPolygon(LineToPoly(boundary));
+            path.addPolygon(LineToPoly(line));
         }
+        
         setPath(path);
         g_scene->addItem(this);
     }

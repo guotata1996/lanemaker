@@ -246,19 +246,18 @@ namespace RoadRunner
     private:
         std::optional<ConnectionInfo> InterfaceProvider() const;
 
-        std::vector<odr::Vec2D> CalcCavity() const;
+        std::vector<odr::Line2D> CalcCavity() const;
 
         odr::Vec2D interfaceDir; // Vector pointing into the interface provider
 
         static odr::Vec2D calcInterfaceDir(const ConnectionInfo&);
 
         /*right side: relative to interface provider
-        * outS1 / outS2 is relative to zero-point at interface. If no overlap, return road length.
         * Return: true if intersection found
         */
         static bool bordersIntersect(odr::RoadLink::ContactPoint interfaceProviderContact,
             ConnectionInfo infoA, int sideA,
             ConnectionInfo infoB, int sideB,
-            double& outS1, double& outS2, odr::Vec2D& outPos);
+            double& outS1, double& outS2);
     };
 }

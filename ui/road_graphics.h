@@ -85,7 +85,7 @@ namespace RoadRunner
     class JunctionGraphics : public QGraphicsPathItem
     {
     public:
-        JunctionGraphics(const odr::Line2D& boundary, bool isolated);
+        JunctionGraphics(const std::vector<odr::Line2D>& boundary);
 
         ~JunctionGraphics();
     };
