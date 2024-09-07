@@ -266,16 +266,55 @@ namespace RoadRunner
         auto parentSection = dynamic_cast<RoadRunner::SectionGraphics*>(parentItem());
         return parentSection->sBegin < parentSection->sEnd ? laneID : laneIDReversed;
     }
+    
+    JunctionGraphics::JunctionGraphics(const odr::Line2D& boundary)
+    {
+        QPainterPath path;
+        setPen(Qt::NoPen);
+        setBrush(QBrush(Qt::gray, Qt::SolidPattern));
+        path.addPolygon(LineToPoly(boundary));
+        setPath(path);
+        g_scene->addItem(this);
+    }
 
-    JunctionGraphics::JunctionGraphics(const std::vector<odr::Line2D>& boundary)
+    JunctionGraphics::JunctionGraphics(const std::vector<std::pair<odr::Line2D, odr::Line2D>>& boundary)
     {
         QPainterPath path;
 
-        for (const auto& line : boundary)
+        setPen(Qt::NoPen);
+        setBrush(QBrush(Qt::darkGray, Qt::SolidPattern));
+
+        const int ZebraLineDensity = 25;
+        QPen stripPen(Qt::lightGray);
+        stripPen.setJoinStyle(Qt::MiterJoin);
+        stripPen.setCapStyle(Qt::FlatCap);
+
+        for (const auto& dualSides : boundary)
         {
-            setPen(Qt::NoPen);
-            setBrush(QBrush(Qt::gray, Qt::SolidPattern));
-            path.addPolygon(LineToPoly(line));
+            odr::Line2D singleBoundary = dualSides.first;
+            auto pOrigin = singleBoundary.front();
+            auto p1 = singleBoundary.back();
+            auto p2 = dualSides.second.back();
+            auto pM = StripMidPoint(pOrigin, p1, p2);
+            singleBoundary.push_back(pM);
+
+            singleBoundary.insert(singleBoundary.end(), dualSides.second.rbegin(), dualSides.second.rend());
+            path.addPolygon(LineToPoly(singleBoundary));
+
+            for (int i = 0; i != dualSides.first.size(); ++i)
+            {
+                if (i % ZebraLineDensity != 0) continue;
+
+                auto p1 = dualSides.first.at(i);
+                auto p2 = dualSides.second.at(i);
+                if (odr::euclDistance(p1, p2) < 0.5) continue;
+                pM = StripMidPoint(pOrigin, p1, p2);
+
+                QPolygonF singleStrip({ QPointF(p1[0], p1[1]), QPointF(pM[0], pM[1]), QPointF(p2[0], p2[1]), QPointF(pM[0], pM[1]) });
+                auto line = new QGraphicsPolygonItem(singleStrip, this);
+                line->setBrush(Qt::NoBrush);
+                line->setPen(stripPen);
+            }
         }
         
         setPath(path);
@@ -285,6 +324,19 @@ namespace RoadRunner
     JunctionGraphics::~JunctionGraphics()
     {
         g_scene->removeItem(this);
+    }
+
+    odr::Vec2D JunctionGraphics::StripMidPoint(const odr::Vec2D& pOrigin, const odr::Vec2D& p1, const odr::Vec2D& p2)
+    {
+        auto pM = odr::mut(0.5, odr::add(p1, p2));
+        auto p1p2 = odr::sub(p2, p1);
+        auto pMOffset = odr::mut(0.2, odr::Vec2D{ -p1p2[1], p1p2[0] });
+        auto p0p1 = odr::sub(p1, pOrigin);
+        if (odr::dot(pMOffset, p0p1) > 0)
+        {
+            pMOffset = odr::negate(pMOffset);
+        }
+        return odr::add(pM, pMOffset);
     }
 }
 

@@ -171,7 +171,7 @@ namespace RoadRunner
     }
 
 
-    std::vector<odr::Line2D> DirectJunction::CalcCavity() const
+    std::vector<std::pair<odr::Line2D, odr::Line2D>> DirectJunction::CalcCavity() const
     {
         auto interfaceProvider = InterfaceProvider();
         auto interfaceProvideRoad = interfaceProvider->road.lock();
@@ -223,7 +223,6 @@ namespace RoadRunner
             if (roadsAtRank == 1)
             {
                 // No need to discriminate
-                // ROADRUNNERTODO: still need cavity polygon
                 strictlySortedLinkedRoad.push_back(sortedLinkedRoad[i].second);
             }
             else
@@ -238,13 +237,10 @@ namespace RoadRunner
                 }
 
                 // Second, sort pairwise
-                // ROADRUNNERTODO: convert to std::sort
-                for (int a = discriminateBegin; a < discriminateEnd - 1; ++a)
-                {
-                    for (int b = a + 1; b < discriminateEnd; ++b)
+                std::sort(strictlySortedLinkedRoad.begin() + discriminateBegin, 
+                    strictlySortedLinkedRoad.begin() + discriminateEnd,
+                    [&linkedIDToInfo, &interfaceProvider](int aID, int bID)
                     {
-                        int aID = sortedLinkedRoad[a].second;
-                        int bID = sortedLinkedRoad[b].second;
                         auto infoA = linkedIDToInfo.at(aID);
                         auto infoB = linkedIDToInfo.at(bID);
 
@@ -256,17 +252,17 @@ namespace RoadRunner
                         bool aRbL = bordersIntersect(interfaceProvider->contact, infoA, -1, infoB, 1, sRA, sLB);
                         if (!aLbR && !aRbL)
                         {
-                            spdlog::error("Overlap zone between roads {} & {} can't be determined", 
+                            spdlog::error("Overlap zone between roads {} & {} can't be determined",
                                 infoA.road.lock()->ID(), infoB.road.lock()->ID());
                         }
 
                         if ((infoA.contact == odr::RoadLink::ContactPoint_Start) == (sRA < sLA))
                         {
                             /*A is to the left to B*/
-                            std::swap(strictlySortedLinkedRoad[a], strictlySortedLinkedRoad[b]);
+                            return false;
                         }
-                    }
-                }
+                        return true;
+                    });
             }
             i += roadsAtRank;
         }
@@ -277,7 +273,7 @@ namespace RoadRunner
         }
 
         int interfaceSign = interfaceProvider->contact == odr::RoadLink::ContactPoint_End ? 1 : -1;
-        std::vector<odr::Line2D> cavityPolygons;
+        std::vector<std::pair<odr::Line2D, odr::Line2D>> cavityPolygons;
         const double vertexStep = 0.1;
         for (int i = 0; i < strictlySortedLinkedRoad.size() - 1; ++i)
         {
@@ -337,8 +333,7 @@ namespace RoadRunner
                     iSB += bStepDir * vertexStep;
                 }
 
-                aSideLine.insert(aSideLine.end(), bSideLine.rbegin(), bSideLine.rend());
-                cavityPolygons.push_back(aSideLine);
+                cavityPolygons.push_back(std::make_pair(aSideLine, bSideLine));
             }
         }
         return cavityPolygons;

@@ -246,7 +246,7 @@ namespace RoadRunner
     private:
         std::optional<ConnectionInfo> InterfaceProvider() const;
 
-        std::vector<odr::Line2D> CalcCavity() const;
+        std::vector<std::pair<odr::Line2D, odr::Line2D>> CalcCavity() const;
 
         odr::Vec2D interfaceDir; // Vector pointing into the interface provider
 

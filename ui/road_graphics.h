@@ -85,8 +85,13 @@ namespace RoadRunner
     class JunctionGraphics : public QGraphicsPathItem
     {
     public:
-        JunctionGraphics(const std::vector<odr::Line2D>& boundary);
+        JunctionGraphics(const odr::Line2D& normalBoundary);
+
+        JunctionGraphics(const std::vector<std::pair<odr::Line2D, odr::Line2D>>& directCavities);
 
         ~JunctionGraphics();
+
+    private:
+        odr::Vec2D StripMidPoint(const odr::Vec2D& pOrigin, const odr::Vec2D& p1, const odr::Vec2D& p2);
     };
 }
