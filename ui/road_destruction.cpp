@@ -77,7 +77,7 @@ bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
         if (fromS >= 0)
         {
             // Can preview
-            auto borders = target->generated.get_road_border_line(fromS, toS, 1);
+            auto borders = target->generated.get_both_dirs_poly(fromS, toS, 1);
             auto& leftBorder = borders.first;
             auto& rightBorder = borders.second;
             for (const odr::Vec3D& p : leftBorder)

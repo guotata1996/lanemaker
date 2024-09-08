@@ -87,30 +87,24 @@ namespace RoadRunner
             formedFromWithCoordinate.erase(formedFromWithCoordinate.begin() + rightMostIndex);
         }
         
-        // Discretize all connecting road boundaries to intersect with
-        // ROADRUNNERTODO: no need to include all connecting roads
+        // Discretize (roughly) all connecting road boundaries inside junction
         std::vector<Segment_2<Kernel>> allConnectingRoadBounds;
+        std::unordered_map<Segment_2<Kernel>, std::pair<int, odr::Road>> roughSegmentToOwner;
         for (const auto& connecting : connectingRoads)
         {
-            auto borders = connecting->generated.get_road_boundary(0.5);
-            
-            if (!borders.first.empty())
+            for (int side : {-1, 1})
             {
-                for (int i = 0; i < borders.first.size() - 1; ++i)
+                auto border = connecting->generated.get_road_boundary(side, 0.5);
+                if (!border.empty())
                 {
-                    CGAL::Point_2<Kernel> p1(borders.first[i][0], borders.first[i][1]);
-                    CGAL::Point_2<Kernel> p2(borders.first[i + 1][0], borders.first[i + 1][1]);
-                    allConnectingRoadBounds.push_back(Segment_2<Kernel>(p1, p2));
-                }
-            }
-
-            if (!borders.second.empty())
-            {
-                for (int i = 0; i < borders.second.size() - 1; ++i)
-                {
-                    CGAL::Point_2<Kernel> p1(borders.second[i][0], borders.second[i][1]);
-                    CGAL::Point_2<Kernel> p2(borders.second[i + 1][0], borders.second[i + 1][1]);
-                    allConnectingRoadBounds.push_back(Segment_2<Kernel>(p1, p2));
+                    for (int i = 0; i < border.size() - 1; ++i)
+                    {
+                        CGAL::Point_2<Kernel> p1(border[i][0], border[i][1]);
+                        CGAL::Point_2<Kernel> p2(border[i + 1][0], border[i + 1][1]);
+                        Segment_2<Kernel> segment(p1, p2);
+                        allConnectingRoadBounds.push_back(segment);
+                        roughSegmentToOwner.emplace(segment, std::make_pair(side, connecting->generated));
+                    }
                 }
             }
         }
@@ -118,15 +112,31 @@ namespace RoadRunner
         for (int i = 0; i != sortedConnInfo.size(); ++i)
         {
             const auto& info1 = sortedConnInfo[i].info;
-            auto contactSection1 = info1.road.lock()->generated.get_road_boundary(1); // ROADRUNNERTODO: slow
-            const auto& p13D = info1.contact == odr::RoadLink::ContactPoint_End ? contactSection1.second.back() :
-                contactSection1.first.front();
-            const odr::Vec2D p1 { p13D[0], p13D[1] };
+            auto road1 = info1.road.lock();
+
+            odr::Vec2D p1;
+            if (info1.contact == odr::RoadLink::ContactPoint_Start)
+            {
+                p1 = road1->generated.get_boundary_xy(1, 0);
+            }
+            else
+            {
+                p1 = road1->generated.get_boundary_xy(-1, road1->Length());
+            }
+
             const auto& info2 = sortedConnInfo[(i + 1) % sortedConnInfo.size()].info;
-            auto contactSection2 = info2.road.lock()->generated.get_road_boundary(1);
-            const auto& p23D = info2.contact == odr::RoadLink::ContactPoint_End ?
-                contactSection2.first.back() : contactSection2.second.front();
-            const odr::Vec2D p2{ p23D[0], p23D[1] };
+            auto road2 = info2.road.lock();
+
+            odr::Vec2D p2;
+            if (info2.contact == odr::RoadLink::ContactPoint_Start)
+            {
+                p2 = road2->generated.get_boundary_xy(-1, 0);
+            }
+            else
+            {
+                p2 = road2->generated.get_boundary_xy(1, road2->Length());
+            }
+
             result.push_back(p1);
 
             spdlog::trace("{},{} on road {} | {},{} on road {}", p1[0], p1[1], info1.road.lock()->ID(),
@@ -137,6 +147,60 @@ namespace RoadRunner
             const auto outwardsDir = odr::Vec2D{ dir[1], -dir[0] };
             const auto tan = Direction_2< Kernel>(outwardsDir[0], outwardsDir[1]);
             int nProbs = std::ceil(dist / 1.0);
+
+            std::set<std::string> fineConnectingRoadIDs;
+            std::vector<Segment_2<Kernel>> fineConnectingRoadBounds;
+
+            // Rough pass
+            for (int j = 0; j != nProbs; ++j)
+            {
+                auto ratio = static_cast<double>(j + 1) / (nProbs + 1);
+                auto probPos = odr::add(odr::mut(ratio, p2), odr::mut(1 - ratio, p1));
+                Point_2 <Kernel> probP(probPos[0], probPos[1]);
+                Line_2< Kernel > probLine(probP, tan);
+
+                double farthestDist = -DBL_MAX;
+                std::optional<std::pair<int, odr::Road>> furthestRoadAndSide; // road to fine-grain compute
+
+                for (const auto& roadBound : allConnectingRoadBounds)
+                {
+                    Object result = intersection(roadBound, probLine);
+                    if (const CGAL::Point_2<Kernel>* pm = object_cast<Point_2<Kernel>>(&result))
+                    {
+                        auto intersectingInfo = roughSegmentToOwner.at(roadBound);
+                        auto connectingRoadID = intersectingInfo.second.id;
+                        odr::Vec2D iPoint{ pm->x(), pm->y() };
+                        auto prob2I = odr::sub(iPoint, probPos);
+                        auto signedDistance = odr::dot(prob2I, outwardsDir);
+                        if (signedDistance > farthestDist)
+                        {
+                            furthestRoadAndSide.emplace(intersectingInfo);
+                            farthestDist = signedDistance;
+                        }
+                    }
+                }
+
+                if (furthestRoadAndSide.has_value())
+                {
+                    auto connectingRoadID = furthestRoadAndSide->second.id;
+                    if (fineConnectingRoadIDs.find(connectingRoadID) == fineConnectingRoadIDs.end()) 
+                    {
+                        fineConnectingRoadIDs.emplace(connectingRoadID);
+                        auto fineBorders = furthestRoadAndSide->second.get_road_boundary(furthestRoadAndSide->first, 0.1);
+                        if (!fineBorders.empty())
+                        {
+                            for (int i = 0; i < fineBorders.size() - 1; ++i)
+                            {
+                                CGAL::Point_2<Kernel> p1(fineBorders[i][0], fineBorders[i][1]);
+                                CGAL::Point_2<Kernel> p2(fineBorders[i + 1][0], fineBorders[i + 1][1]);
+                                fineConnectingRoadBounds.push_back(Segment_2<Kernel>(p1, p2));
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Fine pass
             for (int j = 0; j != nProbs; ++j)
             {
                 auto ratio = static_cast<double>(j + 1) / (nProbs + 1);
@@ -146,8 +210,7 @@ namespace RoadRunner
 
                 odr::Vec2D outmostPoint;
                 double farthestDist = -DBL_MAX;
-
-                for (const auto& roadBound : allConnectingRoadBounds)
+                for (const auto& roadBound : fineConnectingRoadBounds)
                 {
                     Object result = intersection(roadBound, probLine);
                     if (const CGAL::Point_2<Kernel>* pm = object_cast<Point_2<Kernel>>(&result))
@@ -164,6 +227,7 @@ namespace RoadRunner
                 }
                 result.push_back(outmostPoint);
             }
+        
             result.push_back(p2);
         }
         

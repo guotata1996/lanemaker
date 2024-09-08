@@ -105,9 +105,9 @@ public:
     /*Returned line follows traffic direction on side*/
     Line3D get_side_border_line(const int8_t side, const double s_start, const double s_end, const bool outer, const double eps) const;
     /*Returns: left-side boundary (if exist), right-side boundary (if exist)*/
-    std::pair<Line3D, Line3D> get_road_border_line(const double s_start, const double s_end, const double eps) const;
+    std::pair<Line3D, Line3D> get_both_dirs_poly(const double s_start, const double s_end, const double eps) const;
     /*Always returns left & right start at 0, end at length*/
-    std::pair<Line3D, Line3D> get_road_boundary(const double eps) const;
+    Line3D get_road_boundary(int side, const double eps) const;
     Line3D get_lane_marking_line(const Lane&  lane, const double s_start, const double s_end, 
         const bool inner_reference, const double t_from_reference, const double width, const double eps) const;
 

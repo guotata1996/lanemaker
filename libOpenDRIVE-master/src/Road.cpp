@@ -339,7 +339,7 @@ Line3D Road::get_side_border_line(const int8_t side, const double s_start, const
     return Line3D(rtn.begin(), rtn.end());
 }
 
-std::pair<Line3D, Line3D> Road::get_road_border_line(const double s_start, const double s_end, const double eps) const
+std::pair<Line3D, Line3D> Road::get_both_dirs_poly(const double s_start, const double s_end, const double eps) const
 {
     const auto& firstSection = s_to_lanesection.begin()->second;
     Line3D      left, right;
@@ -361,33 +361,25 @@ std::pair<Line3D, Line3D> Road::get_road_border_line(const double s_start, const
     return std::make_pair(left, right);
 }
 
-std::pair<Line3D, Line3D> Road::get_road_boundary(const double eps) const 
+Line3D Road::get_road_boundary(int side, const double eps) const
 { 
     const auto& firstSection = s_to_lanesection.begin()->second;
-    Line3D      left, right;
-    if (!firstSection.get_sorted_driving_lanes(1).empty()) 
+
+    if (!firstSection.get_sorted_driving_lanes(side).empty()) 
     {
-        // Has left side
-        left = get_side_border_line(1, 0, length, true, eps);
-        std::reverse(left.begin(), left.end());
+        // Has side
+        auto rtn = get_side_border_line(side, 0, length, true, eps);
+        if (side == 1)
+            std::reverse(rtn.begin(), rtn.end());
+        return rtn;
     }
     else
     {
-        left = get_side_border_line(-1, 0, length, false, eps); 
+        auto rtn = get_side_border_line(-side, 0, length, false, eps); 
+        if (-side == 1)
+            std::reverse(rtn.begin(), rtn.end());
+        return rtn;
     }
-
-    if (!firstSection.get_sorted_driving_lanes(-1).empty()) 
-    {
-        // Has right side
-        right = get_side_border_line(-1, 0, length, true, eps);
-    }
-    else
-    {
-        right = get_side_border_line(1, 0, length, false, eps);
-        std::reverse(right.begin(), right.end());
-    }
-
-    return std::make_pair(left, right);
 }
 
 Line3D Road::get_lane_marking_line(
