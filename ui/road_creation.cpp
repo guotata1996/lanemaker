@@ -233,6 +233,15 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 	cursorItem->EnableHighlight(snapLevel);
 	cursorItem->show();
 
+	RoadRunner::LanePlan currLeftPlan{ PreviewLeftOffsetX2(), g_createRoadOption->LeftResult().laneCount };
+	RoadRunner::LanePlan currRightPlan{ PreviewRightOffsetX2(), g_createRoadOption->RightResult().laneCount };
+	if (currLeftPlan != stagedLeftPlan || currRightPlan != stagedRightPlan)
+	{
+		UpdateStagedFromGeometries(true);
+		stagedLeftPlan = currLeftPlan;
+		stagedRightPlan = currRightPlan;
+	}
+
 	if (dirHandleEvt)
 	{
 		// Adjust end direction by rotary
@@ -296,11 +305,7 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 						{
 							std::move(flexGeo), flexRefLinePath, flexBoundaryPath
 						}); // Do stage
-					stagedRefLinePath.addPath(flexRefLinePath);
-					stagedRefLinePreview->setPath(stagedRefLinePath);
-					stagedBoundaryPath.addPath(flexBoundaryPath);
-					stagedBoundaryPreview->setPath(stagedBoundaryPath);
-					stagedBoundaryPreview->setZValue(g_createRoadElevationOption >= 0 ? 128 : -128);
+					UpdateStagedFromGeometries();
 				}
 				if (!joinAtEnd.expired())
 				{
@@ -613,12 +618,16 @@ void RoadCreationSession::GeneratePainterPath(const std::unique_ptr<odr::RoadGeo
 	}
 }
 
-void RoadCreationSession::UpdateStagedFromGeometries()
+void RoadCreationSession::UpdateStagedFromGeometries(bool lanePlanChanged)
 {
 	stagedRefLinePath.clear();
 	stagedBoundaryPath.clear();
-	for (const auto& staged : stagedGeometries)
+	for (auto& staged : stagedGeometries)
 	{
+		if (lanePlanChanged)
+		{
+			GeneratePainterPath(staged.geo, staged.refLinePreview, staged.boundaryPreview);
+		}
 		stagedRefLinePath.addPath(staged.refLinePreview);
 		stagedBoundaryPath.addPath(staged.boundaryPreview);
 	}

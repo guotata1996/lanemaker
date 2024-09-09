@@ -240,18 +240,22 @@ namespace RoadRunner
         auto interfaceProvider = InterfaceProvider();
         auto interfaceProvideRoad = interfaceProvider->road.lock();
 
-        std::map<int, ConnectionInfo> linkedIDToInfo;
+        typedef std::pair<int, odr::RoadLink::ContactPoint> roadID_Contact;
+        typedef std::pair<int, int> laneRange;
+        typedef int rank_t;
+
+        std::map<roadID_Contact, ConnectionInfo> linkedIDToInfo;
         for (auto info : formedFrom)
         {
             int id = std::stoi(info.road.lock()->ID());
-            linkedIDToInfo.emplace(id, info);
+            linkedIDToInfo.emplace(std::make_pair(id, info.contact), info);
         }
 
-        std::map<int, std::pair<int, int>> linkedRoadToLaneRange;
-        std::set<std::pair<int, int>> laneRanges;
+        std::map<roadID_Contact, laneRange> linkedRoadToLaneRange;
+        std::set<laneRange> laneRanges;
         for (auto id_conn : generated.id_to_connection)
         {
-            auto connectingRoad = std::stoi(id_conn.second.connecting_road);
+            auto connectingID = std::stoi(id_conn.second.connecting_road);
             int maxLinkedLane = INT_MIN; // left-most on interface provider
             int minLinkedLane = INT_MAX; // right-most on interface provider
             for (auto laneLink : id_conn.second.lane_links)
@@ -259,30 +263,32 @@ namespace RoadRunner
                 maxLinkedLane = std::max(maxLinkedLane, laneLink.from);
                 minLinkedLane = std::min(minLinkedLane, laneLink.from);
             }
-            auto range = std::make_pair(maxLinkedLane, minLinkedLane);
-            linkedRoadToLaneRange.emplace(connectingRoad, range);
+            roadID_Contact idAndContact = std::make_pair(connectingID, 
+                static_cast<odr::RoadLink::ContactPoint>(id_conn.second.contact_point));
+            laneRange range = std::make_pair(maxLinkedLane, minLinkedLane);
+            linkedRoadToLaneRange.emplace(idAndContact, range);
             laneRanges.emplace(range);
         }
 
-        std::vector<std::pair<int, int>> sortedLinkedRoad; // (rank, linked road ID)
+        std::vector<std::pair<rank_t, roadID_Contact>> sortedLinkedRoad; // (rank, linked road ID)
         
         for (auto id_range : linkedRoadToLaneRange)
         {
-            int rank = std::distance(laneRanges.begin(), laneRanges.find(id_range.second));
+            rank_t rank = std::distance(laneRanges.begin(), laneRanges.find(id_range.second));
             sortedLinkedRoad.emplace_back(std::make_pair(rank, id_range.first));
         }
         std::sort(sortedLinkedRoad.begin(), sortedLinkedRoad.end());
 
-        std::vector<int> numAtRank(laneRanges.size(), 0);
+        std::vector<rank_t> numAtRank(laneRanges.size(), 0);
         for (auto rank_road : sortedLinkedRoad)
         {
             numAtRank[rank_road.first]++;
         }
 
-        std::vector<int> strictlySortedLinkedRoad; // right to left
+        std::vector<roadID_Contact> strictlySortedLinkedRoad; // right to left
         for (int i = 0; i != sortedLinkedRoad.size();)
         {
-            int rank = sortedLinkedRoad[i].first;
+            rank_t rank = sortedLinkedRoad[i].first;
             int roadsAtRank = numAtRank[rank];
             if (roadsAtRank == 1)
             {
@@ -303,29 +309,23 @@ namespace RoadRunner
                 // Second, sort pairwise
                 std::sort(strictlySortedLinkedRoad.begin() + discriminateBegin, 
                     strictlySortedLinkedRoad.begin() + discriminateEnd,
-                    [&linkedIDToInfo, &interfaceProvider](int aID, int bID)
+                    [&linkedIDToInfo, &interfaceProvider](roadID_Contact aID, roadID_Contact bID)
                     {
                         auto infoA = linkedIDToInfo.at(aID);
                         auto infoB = linkedIDToInfo.at(bID);
-
                         // Compute min intersect S1 between A's left & B's right (up to min(lenA, lenB))
                         // Compute min intersect S2 between A's right & B's left (up to min(lenA, lenB))
                         // If S1 < S2, A on right of B
                         double sLA, sRB, sRA, sLB;
                         bool aLbR = bordersIntersect(interfaceProvider->contact, infoA, 1, infoB, -1, sLA, sRB);
                         bool aRbL = bordersIntersect(interfaceProvider->contact, infoA, -1, infoB, 1, sRA, sLB);
-                        if (!aLbR && !aRbL)
+                        if (aLbR == aRbL)
                         {
                             spdlog::error("Overlap zone between roads {} & {} can't be determined",
                                 infoA.road.lock()->ID(), infoB.road.lock()->ID());
                         }
-
-                        if ((infoA.contact == odr::RoadLink::ContactPoint_Start) == (sRA < sLA))
-                        {
-                            /*A is to the left to B*/
-                            return false;
-                        }
-                        return true;
+                        return aLbR;
+                        // return (infoA.contact == odr::RoadLink::ContactPoint_Start) != (sRA < sLA)
                     });
             }
             i += roadsAtRank;
@@ -333,7 +333,8 @@ namespace RoadRunner
 
         for (auto road : strictlySortedLinkedRoad)
         {
-            spdlog::trace("Sort result (relative to InterfaceProvider R->L): {}", road);
+            spdlog::trace("Sort result (relative to InterfaceProvider R->L): {} {}", road.first, 
+                road.second == odr::RoadLink::ContactPoint_Start ? "start" : "end");
         }
 
         int interfaceSign = interfaceProvider->contact == odr::RoadLink::ContactPoint_End ? 1 : -1;
@@ -387,14 +388,34 @@ namespace RoadRunner
                 {
                     auto vA = roadA->generated.get_boundary_xy(aSide, iSA);
                     auto vB = roadB->generated.get_boundary_xy(bSide, iSB);
-                    aSideLine.push_back(vA);
-                    bSideLine.push_back(vB);
                     if (odr::euclDistance(vA, vB) > LaneWidth)
                     {
                         break;
                     }
-                    iSA += aStepDir * vertexStep;
-                    iSB += bStepDir * vertexStep;
+
+                    auto fwdA = odr::mut(static_cast<double>(aStepDir), roadA->generated.ref_line.get_grad_xy(iSA));
+                    auto fwdB = odr::mut(static_cast<double>(bStepDir), roadB->generated.ref_line.get_grad_xy(iSB));
+                    auto angleA = std::abs(odr::angle(fwdA, odr::sub(vB, vA)));
+                    auto angleB = std::abs(odr::angle(fwdB, odr::sub(vA, vB)));
+                    auto AAhead = angleA - angleB;
+                    if (AAhead > M_PI / 8)
+                    {
+                        // A goes too far, need B to catch up
+                        iSB += bStepDir * vertexStep / 4;
+                    }
+                    else if (AAhead < -M_PI / 8)
+                    {
+                        // B goes too far, need A to catch up
+                        iSA += aStepDir * vertexStep / 4;
+                    }
+                    else
+                    {
+                        aSideLine.push_back(vA);
+                        bSideLine.push_back(vB);
+
+                        iSA += aStepDir * vertexStep;
+                        iSB += bStepDir * vertexStep;
+                    }
                 }
 
                 cavityPolygons.push_back(std::make_pair(aSideLine, bSideLine));

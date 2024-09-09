@@ -138,13 +138,14 @@ private:
     SnapResult SnapCursor(odr::Vec2D&);
 
     std::vector<StagedGeometry> stagedGeometries;
+    RoadRunner::LanePlan stagedLeftPlan, stagedRightPlan;
 
     std::optional<odr::Vec2D> startPos; // Can be on blank or extend from
 
     void GeneratePainterPath(const std::unique_ptr<odr::RoadGeometry>&,
         QPainterPath&, QPainterPath&);
 
-    void UpdateStagedFromGeometries();
+    void UpdateStagedFromGeometries(bool lanePlanChanged = false);
 
     std::unique_ptr<odr::RoadGeometry> flexGeo;
     QPainterPath flexRefLinePath;
