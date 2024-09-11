@@ -4,7 +4,10 @@
 #include "id_generator.h"
 #include "constants.h"
 #include "world.h"
-#include "road_graphics.h"
+
+#ifndef G_TEST
+    #include "road_graphics.h"
+#endif
 
 namespace RoadRunner
 {
@@ -582,7 +585,6 @@ namespace RoadRunner
     void DirectJunction::GenerateGraphics()
     {
         junctionGraphics = std::make_unique<JunctionGraphics>(CalcCavity());
-        junctionGraphics->setZValue(Elevation() - 0.01);
     }
 #endif
 

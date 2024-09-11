@@ -40,7 +40,7 @@ bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
     if (g_road != nullptr)
     {
         bool onSegBoundary;
-        auto snapped = g_road->generated.ref_line.get_xy(GetAdjustedS(&onSegBoundary));
+        auto snapped = g_road->generated.get_xy(GetAdjustedS(&onSegBoundary));
         cursorItem->setPos(snapped[0], snapped[1]);
         cursorItem->EnableHighlight(onSegBoundary ? 
             RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Line);

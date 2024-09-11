@@ -32,10 +32,10 @@ namespace RoadRunner
             return RoadJoin_DirNoOutlet;
         }
 
-        auto p1 = road1->RefLine().get_xy(road1->Length());
+        auto p1 = road1->generated.get_xy(road1->Length());
         auto f1 = road1->RefLine().get_grad_xy(road1->Length());
         auto h1 = std::atan2(f1[1], f1[0]);
-        auto p2 = road2->RefLine().get_xy(0);
+        auto p2 = road2->generated.get_xy(0);
         auto f2 = road2->RefLine().get_grad_xy(0);
         auto h2 = std::atan2(f2[1], f2[0]);
         bool hdgClose = std::abs(h1 - h2) < 1e-2 || std::abs(std::abs(h1 - h2) - M_PI * 2) < 1e-2;

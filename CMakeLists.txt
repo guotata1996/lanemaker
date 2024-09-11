@@ -68,7 +68,7 @@ add_executable(
   test/validation.cpp test/junction_validation.cpp test/road_validation.cpp
   xodr/road.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp
   xodr/junction.cpp xodr/junction_generation.cpp
-  xodr/id_generator.cpp
+  xodr/id_generator.cpp xodr/world.cpp
 )
 
 target_include_directories(RoadRunnerTest PRIVATE

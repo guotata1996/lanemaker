@@ -185,7 +185,7 @@ RoadGeometry* RefLine::get_geometry(const double s)
     return road_geometry;
 }
 
-Vec2D RefLine::get_xy(const double s, const double t) const 
+Vec3D RefLine::get_xyz(const double s, const double t) const
 {
     const RoadGeometry* geom = this->get_geometry(s);
 
@@ -198,14 +198,6 @@ Vec2D RefLine::get_xy(const double s, const double t) const
         right = mut(t, right);
         pt_xy = add(pt_xy, right);
     }
-    return pt_xy;
-}
-
-Vec3D RefLine::get_xyz(const double s, const double t) const
-{
-    const RoadGeometry* geom = this->get_geometry(s);
-
-    Vec2D pt_xy = get_xy(s, t);
 
     return Vec3D{pt_xy[0], pt_xy[1], this->elevation_profile.get(s)};
 }

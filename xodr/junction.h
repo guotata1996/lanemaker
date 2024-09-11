@@ -29,7 +29,7 @@ namespace RoadRunner
                 bool contactAtStart = contact == odr::RoadLink::ContactPoint_Start;
                 leftProfile = contactAtStart ? inRoad->generated.rr_profile.LeftExit() : inRoad->generated.rr_profile.LeftEntrance();
                 rightProfile = contactAtStart ? inRoad->generated.rr_profile.RightEntrance() : inRoad->generated.rr_profile.RightExit();
-                refLinePos = inRoad->RefLine().get_xy(contactAtStart ? 0 : inRoad->Length());
+                refLinePos = inRoad->generated.get_xy(contactAtStart ? 0 : inRoad->Length());
                 refLineHdg = inRoad->RefLine().get_hdg(contactAtStart ? 0 : inRoad->Length());
             }
         }
@@ -175,8 +175,9 @@ namespace RoadRunner
         void DetachNoRegenerate(std::shared_ptr<Road>);
 
         virtual void CheckForDegeneration() = 0; /*If only 2 roads left, check if they can be joined*/
-
+#ifndef G_TEST
         virtual void GenerateGraphics() = 0;
+#endif
 
         std::string ID() const { return generated.id; }
 
@@ -216,8 +217,9 @@ namespace RoadRunner
         virtual int CreateFrom(const std::vector<ConnectionInfo>&) override;
 
         virtual void CheckForDegeneration() override;
-
+#ifndef G_TEST
         virtual void GenerateGraphics() override;
+#endif
 
     protected:
         std::vector<std::shared_ptr<Road>> connectingRoads;

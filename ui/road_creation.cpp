@@ -121,7 +121,7 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point
 		}
 		else
 		{
-			localStartPos = extendFromStart.lock()->RefLine().get_xy(extendFromStartS);
+			localStartPos = startPos.value();
 			localStartDir = ExtendFromDir();
 		}
 		
@@ -178,7 +178,7 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapFirstPointToExisting(odr
 	if (!extendFromStart.expired())
 	{
 		// only snap to ends
-		point = g_road->generated.ref_line.get_xy(snapS);
+		point = g_road->generated.get_xy(snapS);
 		onExisting = true;
 	}
 	return onExisting ? RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Nothing;
@@ -210,7 +210,7 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapLastPointToExisting(odr:
 	}
 	if (!joinAtEnd.expired())
 	{
-		point = g_road->generated.ref_line.get_xy(snapS);
+		point = g_road->generated.get_xy(snapS);
 		onExisting = true;
 		joinAtEndS = snapS;
 	}

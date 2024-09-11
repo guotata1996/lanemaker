@@ -317,7 +317,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(od
                     rOffsetX2 = rightProfile.offsetx2;
                     lOffsetX2 = leftProfile.offsetx2;
                 }
-                point = g_road->generated.ref_line.get_xy(g_roadS);
+                point = g_road->generated.get_xy(g_roadS);
 
                 extendFromStart = g_road;
                 if (g_roadS == 0) g_dir = -g_dir;
@@ -387,7 +387,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(od
 
         if (startFullyMatch)
         {
-            point = g_road->generated.ref_line.get_xy(g_roadS);
+            point = g_road->generated.get_xy(g_roadS);
             if (g_roadS == 0)
             {
                 rOffsetX2 = -leftProfile.offsetx2;
@@ -528,7 +528,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
                 if (endFullyMatch)
                 {
                     // Make sure ref line connects
-                    point = g_road->generated.ref_line.get_xy(g_roadS);
+                    point = g_road->generated.get_xy(g_roadS);
                 }
                 else
                 {
@@ -545,7 +545,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
                         }
                     }
 
-                    point = g_road->generated.ref_line.get_xy(g_roadS, RoadRunner::LaneWidth * refLineShift / 2);
+                    point = g_road->generated.get_xy(g_roadS, RoadRunner::LaneWidth * refLineShift / 2);
                 }
             }
         }
@@ -617,7 +617,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
         if (endFullyMatch)
         {
             // Make sure ref line connects
-            point = g_road->generated.ref_line.get_xy(g_roadS);
+            point = g_road->generated.get_xy(g_roadS);
             joinAtEnd = g_road;
         }
         else
@@ -636,8 +636,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
                 {
                     double middleDist = static_cast<double>((int)searchInner + (int)searchOuter - 1) / 2;
                     double t = (baseOffset + endSide * middleDist) * RoadRunner::LaneWidth;
-                    auto p = g_road->generated.ref_line.get_xy(g_roadS, t);
-
+                    auto p = g_road->generated.get_xy(g_roadS, t);
                     QVector2D medianPos(p[0], p[1]);
                     float matchError = medianPos.distanceToPoint(QVector2D(point[0], point[1]));
                     if (matchError < bestError)
@@ -651,6 +650,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
 
             if (bestError < 1e9)
             {
+                //spdlog::info("Skip {} on {} @ {}", bestSkip, g_road->ID(), g_roadS);
                 point[0] = bestSnapPos.x();
                 point[1] = bestSnapPos.y();
                 joinAtEnd = g_road;
@@ -679,7 +679,7 @@ odr::Vec2D LanesCreationSession::ExtendFromDir() const
     {
         return RoadCreationSession::ExtendFromDir();
     }
-    auto grad = extendFromStart.lock()->RefLine().get_grad_xy(extendFromStartS);
+    auto grad = odr::normalize(extendFromStart.lock()->RefLine().get_grad_xy(extendFromStartS));
     return startSide > 0 ? odr::negate(grad) : grad;
 }
 
@@ -689,7 +689,7 @@ odr::Vec2D LanesCreationSession::JoinAtEndDir() const
     {
         return RoadCreationSession::JoinAtEndDir();
     }
-    auto grad = joinAtEnd.lock()->RefLine().get_grad_xy(joinAtEndS);
+    auto grad = odr::normalize(joinAtEnd.lock()->RefLine().get_grad_xy(joinAtEndS));
     return endSide > 0 ? odr::negate(grad) : grad;
 }
 

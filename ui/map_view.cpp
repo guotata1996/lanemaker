@@ -481,9 +481,9 @@ void MapView::SnapCursor(const QPoint& viewPos)
     {
         std::sort(indirectOver.begin(), indirectOver.end(),
             [this, viewPosVec](const auto& a, const auto& b) {
-                odr::Vec2D p1 = a.first->GetRoad()->RefLine().get_xy(a.second);
+                odr::Vec2D p1 = a.first->GetRoad()->generated.get_xy(a.second);
                 QVector2D q1(mapFromScene(p1[0], p1[1]));
-                odr::Vec2D p2 = b.first->GetRoad()->RefLine().get_xy(b.second);
+                odr::Vec2D p2 = b.first->GetRoad()->generated.get_xy(b.second);
                 QVector2D q2(mapFromScene(p1[0], p2[1]));
                 return q1.distanceToPoint(viewPosVec) < q2.distanceToPoint(viewPosVec);
             });

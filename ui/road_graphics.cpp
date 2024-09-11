@@ -284,10 +284,8 @@ namespace RoadRunner
         setPen(Qt::NoPen);
         setBrush(QBrush(Qt::darkGray, Qt::SolidPattern));
 
-        const int ZebraLineDensity = 25;
-        QPen stripPen(Qt::lightGray);
-        stripPen.setJoinStyle(Qt::MiterJoin);
-        stripPen.setCapStyle(Qt::FlatCap);
+        const int ZebraLineWidth = 8;
+        const int ZebraLineSkip = 16;
 
         for (const auto& dualSides : boundary)
         {
@@ -301,19 +299,23 @@ namespace RoadRunner
             singleBoundary.insert(singleBoundary.end(), dualSides.second.rbegin(), dualSides.second.rend());
             path.addPolygon(LineToPoly(singleBoundary));
 
-            for (int i = 0; i != dualSides.first.size(); ++i)
+            for (int i = 0; i < dualSides.first.size() - ZebraLineWidth; i += ZebraLineWidth + ZebraLineSkip)
             {
-                if (i % ZebraLineDensity != 0) continue;
-
                 auto p1 = dualSides.first.at(i);
                 auto p2 = dualSides.second.at(i);
                 if (odr::euclDistance(p1, p2) < 0.5) continue;
-                pM = StripMidPoint(pOrigin, p1, p2);
+                auto pM1 = StripMidPoint(pOrigin, p1, p2);
 
-                QPolygonF singleStrip({ QPointF(p1[0], p1[1]), QPointF(pM[0], pM[1]), QPointF(p2[0], p2[1]), QPointF(pM[0], pM[1]) });
+                auto p3 = dualSides.first.at(i + ZebraLineWidth);
+                auto p4 = dualSides.second.at(i + ZebraLineWidth);
+                if (odr::euclDistance(p3, p4) < 0.5) continue;
+                auto pM2 = StripMidPoint(pOrigin, p3, p4);
+
+                QPolygonF singleStrip({ QPointF(p1[0], p1[1]), QPointF(pM1[0], pM1[1]), QPointF(p2[0], p2[1]), 
+                    QPointF(p4[0], p4[1]), QPointF(pM2[0], pM2[1]), QPointF(p3[0], p3[1]) });
                 auto line = new QGraphicsPolygonItem(singleStrip, this);
-                line->setBrush(Qt::NoBrush);
-                line->setPen(stripPen);
+                line->setBrush(QBrush(Qt::lightGray));
+                line->setPen(Qt::NoPen);
             }
         }
         

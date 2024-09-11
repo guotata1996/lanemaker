@@ -143,7 +143,7 @@ namespace RoadRunnerTest
         for (int i = 0; i <= Subdivision; ++i)
         {
             double s = static_cast<double>(i) / Subdivision * r1->Length();
-            originalSToPos.emplace(s, r1->generated.ref_line.get_xy(s));
+            originalSToPos.emplace(s, r1->generated.get_xy(s));
             auto grad = r1->generated.ref_line.get_grad_xy(s);
             originalSToHdg.emplace(s, std::atan2(grad[1], grad[0]));
         }
@@ -157,7 +157,7 @@ namespace RoadRunnerTest
             
             if (expectedHdg >= M_PI) expectedHdg -= 2 * M_PI;
             double sOnReverse = r1->Length() - s;
-            odr::Vec2D realPos = r1->generated.ref_line.get_xy(sOnReverse);
+            odr::Vec2D realPos = r1->generated.get_xy(sOnReverse);
             auto realGrad = r1->generated.ref_line.get_grad_xy(sOnReverse);
             double realHdg = std::atan2(realGrad[1], realGrad[0]);
             double pd = odr::euclDistance(expectedPos, realPos);
@@ -176,7 +176,7 @@ namespace RoadRunnerTest
         for (int i = 0; i <= Subdivision; ++i)
         {
             double s = static_cast<double>(i) / Subdivision * r1->Length();
-            originalSToPos.emplace(s, r1->generated.ref_line.get_xy(s));
+            originalSToPos.emplace(s, r1->generated.get_xy(s));
             auto grad = r1->generated.ref_line.get_grad_xy(s);
             originalSToHdg.emplace(s, std::atan2(grad[1], grad[0]));
         }
@@ -195,13 +195,13 @@ namespace RoadRunnerTest
             int rIndex;
             if (s < r1->Length())
             {
-                realPos = r1->generated.ref_line.get_xy(s);
+                realPos = r1->generated.get_xy(s);
                 realGrad = r1->generated.ref_line.get_grad_xy(s);
                 rIndex = 1;
             }
             else
             {
-                realPos = r2->generated.ref_line.get_xy(s - r1->Length());
+                realPos = r2->generated.get_xy(s - r1->Length());
                 realGrad = r2->generated.ref_line.get_grad_xy(s - r1->Length());
                 rIndex = 2;
             }
