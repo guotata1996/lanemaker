@@ -63,6 +63,9 @@ namespace RoadRunner
 
         double SnapToSegmentBoundary(double key, double limit, bool* outSuccess = nullptr);
 
+        void HideBorderMarkingForDJ(odr::RoadLink::ContactPoint, int side, double untilS);
+        void EnableBorderMarking(odr::RoadLink::ContactPoint, int side);
+
 #ifndef G_TEST
         // Expensive, but safe
         void GenerateAllSectionGraphics();
@@ -100,8 +103,6 @@ namespace RoadRunner
         std::shared_ptr<AbstractJunction> successorJunction, predecessorJunction;
 
     private:
-        void PlaceOdrRoadMarkings();
-
         // Prevent formation of too-short segment
         bool SnapToSegmentBoundary(type_s& key, type_s limit = 10);
 

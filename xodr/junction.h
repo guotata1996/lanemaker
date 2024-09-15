@@ -236,7 +236,7 @@ namespace RoadRunner
         DirectJunction(const odr::Junction& serialized);
 
         virtual int CreateFrom(const std::vector<ConnectionInfo>&) override;
-
+         
         virtual void AttachNoRegenerate(ConnectionInfo) override;
 
         virtual void CheckForDegeneration() override;
@@ -248,7 +248,7 @@ namespace RoadRunner
     private:
         std::optional<ConnectionInfo> InterfaceProvider() const;
 
-        std::vector<std::pair<odr::Line2D, odr::Line2D>> CalcCavity() const;
+        std::vector<std::pair<odr::Line2D, odr::Line2D>> CalcCavity();
 
         odr::Vec2D interfaceDir; // Vector pointing into the interface provider
 

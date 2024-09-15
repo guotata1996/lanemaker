@@ -81,51 +81,63 @@ namespace RoadRunner
                 auto laneSegmentItem = new LaneGraphics(poly, outerBorder, innerBorder,
                     laneID, laneIDWhenReversed, lane.type, this);
                 allLaneGraphics.push_back(laneSegmentItem);
+            }
+        }
 
-                for (const auto& markingGroup : lane.roadmark_groups)
+        for (const auto& id2Lane : laneSection.id_to_lane)
+        {
+            const auto& lane = id2Lane.second;
+            for (auto groupIt = lane.roadmark_groups.begin(); groupIt != lane.roadmark_groups.end(); ++groupIt)
+            {
+                auto nextGroupIt = groupIt;
+                nextGroupIt++;
+                double groupsBegin = std::max(sMin, laneSection.s0 + groupIt->s_offset);
+                double groupsEnd = nextGroupIt == lane.roadmark_groups.end() ? sMax : std::min(sMax, laneSection.s0 + nextGroupIt->s_offset);
+                
+                if (groupsBegin >= groupsEnd)
                 {
-                    for (const auto& marking : markingGroup.roadmark_lines)
-                    {
-                        std::vector<odr::Line3D> lines;
-                        std::vector<std::string> colors;
-                        bool refInner = std::abs(marking.t_offset) < RoadRunner::LaneWidth / 2;
-                        double refOffset = marking.t_offset;
-                        if (!refInner)
-                        {
-                            refOffset += lane.id < 0 ? RoadRunner::LaneWidth : -RoadRunner::LaneWidth;
-                        }
-                        if (markingGroup.type == "solid")
-                        {
-                            lines.push_back(gen.get_lane_marking_line(lane, sMin, sMax, refInner, refOffset, marking.width, 0.1f));
-                            colors.push_back(markingGroup.color);
-                        }
-                        else if (markingGroup.type == "broken")
-                        {
-                            int nMarkingsPast = std::floor(sMin / (BrokenGap + BrokenLength));
-                            double nextMarkingBegin = nMarkingsPast * (BrokenGap + BrokenLength);
-                            for (double s = nextMarkingBegin; s <= sEnd; s += BrokenGap + BrokenLength)
-                            {
-                                double sBeginInSegment = std::max(s, sMin);
-                                double sEndInSegment = std::min(s + BrokenLength, sEnd);
-                                if (sEndInSegment > sBeginInSegment + 0.1f)
-                                {
-                                    odr::Line3D markingLine = gen.get_lane_marking_line(lane, 
-                                        sBeginInSegment, sEndInSegment, refInner, refOffset, marking.width, 0.1f);
-                                    lines.push_back(markingLine);
-                                    colors.push_back(markingGroup.color);
-                                }
-                            }
-                        }
+                    // road marking group doesn't belong to this segment grapghics
+                    continue;
+                }
 
-                        for (int i = 0; i != lines.size(); ++i)
+                std::vector<odr::Line3D> lines;
+                std::vector<std::string> colors;
+
+                if (groupIt->type == "solid" || groupIt->type == "curb")
+                {
+                    lines.push_back(gen.get_lane_marking_line(lane, groupsBegin, groupsEnd, groupIt->width, 0.1f));
+                    colors.push_back(groupIt->color);
+                }
+                else if (groupIt->type == "broken")
+                {
+                    int nMarkingsPast = std::floor(groupsBegin / (BrokenGap + BrokenLength));
+                    double nextMarkingBegin = nMarkingsPast * (BrokenGap + BrokenLength);
+                    for (double s = nextMarkingBegin; s <= groupsEnd; s += BrokenGap + BrokenLength)
+                    {
+                        double sBeginInSegment = std::max(s, groupsBegin);
+                        double sEndInSegment = std::min(s + BrokenLength, groupsEnd);
+                        if (sEndInSegment > sBeginInSegment + 0.1f)
                         {
-                            QPolygonF markingPoly = LineToPoly(lines[i]);
-                            auto markingItem = new QGraphicsPolygonItem(markingPoly, this);
-                            markingItem->setPen(Qt::NoPen);
-                            Qt::GlobalColor color = colors[i] == "yellow" ? Qt::yellow : Qt::white;
-                            markingItem->setBrush(QBrush(color, Qt::SolidPattern));
+                            odr::Line3D markingLine = gen.get_lane_marking_line(lane,
+                                sBeginInSegment, sEndInSegment, groupIt->width, 0.1f);
+                            lines.push_back(markingLine);
+                            colors.push_back(groupIt->color);
                         }
                     }
+                }
+                else
+                {
+                    continue;
+                }
+
+                for (int i = 0; i != lines.size(); ++i)
+                {
+                    QPolygonF markingPoly = LineToPoly(lines[i]);
+                    auto markingItem = new QGraphicsPolygonItem(markingPoly, this);
+                    markingItem->setPen(Qt::NoPen);
+                    Qt::GlobalColor color = colors[i] == "yellow" ? Qt::yellow : 
+                        (colors[i] == "white" ? Qt::white : Qt::lightGray);
+                    markingItem->setBrush(QBrush(color, Qt::SolidPattern));
                 }
             }
         }

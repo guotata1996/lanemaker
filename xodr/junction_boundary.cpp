@@ -235,7 +235,7 @@ namespace RoadRunner
     }
 
 
-    std::vector<std::pair<odr::Line2D, odr::Line2D>> DirectJunction::CalcCavity() const
+    std::vector<std::pair<odr::Line2D, odr::Line2D>> DirectJunction::CalcCavity()
     {
         auto interfaceProvider = InterfaceProvider();
         auto interfaceProvideRoad = interfaceProvider->road.lock();
@@ -353,6 +353,8 @@ namespace RoadRunner
 
             double iSA, iSB;
             bool cavityFound = false;
+            int aSide = interfaceProvider->contact == infoA.contact ? -1 : 1;
+            int bSide = interfaceProvider->contact == infoB.contact ? 1 : -1;
             if (minB == maxA)
             {
                 cavityFound = bordersIntersect(interfaceProvider->contact, infoA, 1,
@@ -377,8 +379,9 @@ namespace RoadRunner
 
             if (cavityFound)
             {
-                int aSide = interfaceProvider->contact == infoA.contact ? -1 : 1;
-                int bSide = interfaceProvider->contact == infoB.contact ? 1 : -1;
+                roadA->HideBorderMarkingForDJ(infoA.contact, aSide, iSA);
+                roadB->HideBorderMarkingForDJ(infoB.contact, bSide, iSB);
+
                 int aStepDir = infoA.contact == odr::RoadLink::ContactPoint_Start ? 1 : -1;
                 int bStepDir = infoB.contact == odr::RoadLink::ContactPoint_Start ? 1 : -1;
 
@@ -420,6 +423,28 @@ namespace RoadRunner
 
                 cavityPolygons.push_back(std::make_pair(aSideLine, bSideLine));
             }
+            else
+            {
+                roadA->EnableBorderMarking(infoA.contact, aSide);
+                roadB->EnableBorderMarking(infoB.contact, bSide);
+            }
+        }
+        
+        // Enable border marking on global boundaries
+        {
+            auto outmostA = strictlySortedLinkedRoad.front();
+            auto infoA = linkedIDToInfo.at(outmostA);
+            auto roadA = infoA.road.lock();
+            int aSide = interfaceProvider->contact == infoA.contact ? 1 : -1;
+            roadA->EnableBorderMarking(infoA.contact, aSide);
+        }
+
+        {
+            auto outmostB = strictlySortedLinkedRoad.back();
+            auto infoB = linkedIDToInfo.at(outmostB);
+            auto roadB = infoB.road.lock();
+            int bSide = interfaceProvider->contact == infoB.contact ? -1 : 1;
+            roadB->EnableBorderMarking(infoB.contact, bSide);
         }
         return cavityPolygons;
     }

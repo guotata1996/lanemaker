@@ -109,8 +109,7 @@ public:
     std::pair<Line3D, Line3D> get_both_dirs_poly(const double s_start, const double s_end, const double eps) const;
     /*Always returns left & right start at 0, end at length*/
     Line3D get_road_boundary(int side, const double eps) const;
-    Line3D get_lane_marking_line(const Lane&  lane, const double s_start, const double s_end, 
-        const bool inner_reference, const double t_from_reference, const double width, const double eps) const;
+    Line3D get_lane_marking_line(const Lane& lane, const double s_start, const double s_end, const double width, const double eps) const;
 
     Mesh3D get_lane_mesh(
         const Lane& lane, const double s_start, const double s_end, const double eps, std::vector<uint32_t>* outline_indices = nullptr) const;
@@ -125,6 +124,10 @@ public:
     std::set<double> approximate_lane_border_linear(const Lane& lane, const double eps, const bool outer = true) const;
 
     void DeriveLaneBorders();
+
+    void PlaceMarkings();
+    bool HideBorderMarkingForDJ(odr::RoadLink::ContactPoint, int side, double untilS);
+    double EnableBorderMarking(odr::RoadLink::ContactPoint, int side); // Returns untilS that need to be updated
 
     double      length = 0;
     std::string id = "";
@@ -147,6 +150,8 @@ public:
     std::map<std::string, RoadObject> id_to_object;
     std::map<std::string, RoadSignal> id_to_signal;
     RoadRunner::LaneProfile           rr_profile;
+
+    std::map<std::pair<odr::RoadLink::ContactPoint, int>, double> boundaryHide;
 };
 
 } // namespace odr

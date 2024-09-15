@@ -560,6 +560,8 @@ namespace RoadRunner
                 lane.predecessor = 0;
                 lastSection.id_to_lane.find(lane.id)->second = lane;
             }
+            affectedRoad.EnableBorderMarking(odr::RoadLink::ContactPoint_End, 0);
+            affectedRoad.EnableBorderMarking(odr::RoadLink::ContactPoint_End, 1);
         }
         if (affectedRoad.predecessor.type == odr::RoadLink::Type_Junction &&
             affectedRoad.predecessor.id == junctionID)
@@ -579,6 +581,8 @@ namespace RoadRunner
                 lane.successor = 0;
                 firstSection.id_to_lane.find(lane.id)->second = lane;
             }
+            affectedRoad.EnableBorderMarking(odr::RoadLink::ContactPoint_End, 0);
+            affectedRoad.EnableBorderMarking(odr::RoadLink::ContactPoint_End, 1);
         }
     }
 }

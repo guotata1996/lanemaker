@@ -392,8 +392,6 @@ Line3D Road::get_lane_marking_line(
     const Lane& lane,
     const double s_start,
     const double s_end,
-    const bool inner_reference,
-    const double t_from_ref,
     const double width,
     const double eps) const
 {
@@ -402,16 +400,14 @@ Line3D Road::get_lane_marking_line(
 
     for (const double& s : s_vals)
     {
-        const double tRef = inner_reference ? lane.inner_border.get(s) : lane.outer_border.get(s);
-        const double t1 = tRef + t_from_ref + width / 2;
-        rtn.push_back(this->get_surface_pt(s, t1));
+        const double tRef = lane.outer_border.get(s);
+        rtn.push_back(this->get_surface_pt(s, tRef + width / 2));
     }
 
     for (auto it = s_vals.crbegin(); it != s_vals.crend(); ++it) 
     {
-        const double tRef = inner_reference ? lane.inner_border.get(*it) : lane.outer_border.get(*it);
-        const double t2 = tRef + t_from_ref - width / 2;
-        rtn.push_back(this->get_surface_pt(*it, t2));
+        const double tRef = lane.outer_border.get(*it);
+        rtn.push_back(this->get_surface_pt(*it, tRef - width / 2));
     }
     return rtn;
 }
@@ -780,6 +776,126 @@ void Road::DeriveLaneBorders()
             id_lane.second.outer_border = id_lane.second.outer_border.add(lane_offset);
         }
     }
+}
+
+void Road::PlaceMarkings()
+{
+    const double MarkingWidth = 0.2f;
+
+    for (auto sAndSection = s_to_lanesection.begin(); sAndSection != s_to_lanesection.end(); ++sAndSection)
+    {
+        double sectionS0 = sAndSection->first;
+        auto&  section = sAndSection->second;
+        auto   next = sAndSection;
+        next++;
+        double sectionSEnd = next == s_to_lanesection.end() ? length : next->first;
+        double sectionLength = sectionSEnd - sectionS0;
+
+        for (auto& idAndLane : section.id_to_lane) 
+        {
+            idAndLane.second.roadmark_groups.clear();
+        }
+
+        // TODO: center becomes boundary when single-dir
+        // odr::RoadMarkGroup mainGroupCenter(id, sectionS0, 0, MarkingWidth, 0, 0, "solid", "", "yellow", "standard", "none");
+        // section.id_to_lane.at(0).roadmark_groups.emplace(std::move(mainGroupCenter));
+        auto biDirectional = section.id_to_lane.begin()->first < 0 && section.id_to_lane.rbegin()->first > 0;
+
+        for (int side : {-1, 0, 1})
+        {
+            auto lanesOnSide = side == 0 ? 
+                std::vector<odr::Lane>{section.id_to_lane.at(0)}
+              : section.get_sorted_driving_lanes(side);
+            auto boundarySide = side;
+            if (side == 0) 
+            {
+                if (section.id_to_lane.begin()->first == 0) 
+                {
+                    boundarySide = -1;
+                }
+                else
+                {
+                    boundarySide = 1;
+                }
+            }
+
+            for (auto lane : lanesOnSide)
+            {
+                bool isBoundary = side == 0 ? !biDirectional : 
+                    lane.id == lanesOnSide.back().id;
+
+                double sOffset = 0;
+                double sUntil = sectionLength;
+                if (isBoundary) 
+                {
+                    auto keySince = std::make_pair(odr::RoadLink::ContactPoint_Start, boundarySide);
+                    auto keyTill = std::make_pair(odr::RoadLink::ContactPoint_End, boundarySide);
+
+                    double showSince = boundaryHide.find(keySince) == boundaryHide.end() ? 0 : boundaryHide.at(keySince);
+                    double showTill = boundaryHide.find(keyTill) == boundaryHide.end() ? length : boundaryHide.at(keyTill);
+
+                    sOffset = std::max(showSince - sectionS0, 0.0);                            // local
+                    sUntil = std::min(showTill - sectionS0, sectionLength); // local
+                    if (sOffset >= sUntil) 
+                    {
+                        continue;
+                    }
+                }
+
+                std::string _type = isBoundary ? "curb" : (side == 0 ? "solid" : "broken");
+                std::string _color = side == 0 ? "yellow" : (isBoundary ? "gray" : "white");
+                odr::RoadMarkGroup mainGroup(
+                    id, sectionS0, lane.id, MarkingWidth, 0, sOffset, 
+                    _type, "", _color, "standard", "none");
+                lane.roadmark_groups.emplace(std::move(mainGroup));
+
+                if (isBoundary && sUntil < sectionLength - 1e-3) 
+                {
+                    odr::RoadMarkGroup nullGroup(id, sectionS0, lane.id, 0, 0, sUntil, 
+                        "none", "", "", "", "none");
+                    lane.roadmark_groups.emplace(std::move(nullGroup));
+                }
+                
+                section.id_to_lane.at(lane.id) = lane;
+            }
+        }
+    }
+}
+
+double Road::EnableBorderMarking(odr::RoadLink::ContactPoint c, int side)
+{
+    double s = c == odr::RoadLink::ContactPoint_Start ? 0 : length;
+    double currUntil = s;
+    auto   key = std::make_pair(c, side);
+    if (boundaryHide.find(key) != boundaryHide.end()) 
+    {
+        currUntil = boundaryHide.at(key);
+    }
+    if (s != currUntil) 
+    {
+        boundaryHide[key] = s;
+        PlaceMarkings();
+    }
+    
+    return currUntil;
+}
+
+bool Road::HideBorderMarkingForDJ(odr::RoadLink::ContactPoint c, int side, double untilS) 
+{
+    auto key = std::make_pair(c, side);
+    double currUntil = c == odr::RoadLink::ContactPoint_Start ? 0 : length;
+    if (boundaryHide.find(key) != boundaryHide.end())
+    {
+        currUntil = boundaryHide.at(key);
+    }
+
+    if (untilS != currUntil) 
+    {
+        boundaryHide[key] = untilS;
+        PlaceMarkings();
+        return true;
+    }
+    return false;
 }
 
 } // namespace odr
