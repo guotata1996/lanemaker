@@ -110,14 +110,6 @@ namespace RoadRunner
             std::max(0.0, linkBaseD - 3 * MaxTransition),
             std::min(road2BaseD + 3 * MaxTransition, road1->Length()));
 #endif
-        
-        // TODO: So weird why this part needs to be moved out of destructor
-        if (road2->predecessorJunction != nullptr)
-        {
-            road2->predecessorJunction->NotifyPotentialChange();
-            road2->predecessorJunction.reset();
-        }
-        road2.reset();
         return RoadJoin_Success;
     }
 

@@ -174,7 +174,9 @@ namespace RoadRunner
         virtual void AttachNoRegenerate(ConnectionInfo);
         void DetachNoRegenerate(std::shared_ptr<Road>);
 
-        virtual void CheckForDegeneration() = 0; /*If only 2 roads left, check if they can be joined*/
+        virtual bool CanDegerate() const; /*If only 2 roads left, check if they can be joined*/
+        void Degenerate();
+
 #ifndef G_TEST
         virtual void GenerateGraphics() = 0;
 #endif
@@ -216,7 +218,7 @@ namespace RoadRunner
 
         virtual int CreateFrom(const std::vector<ConnectionInfo>&) override;
 
-        virtual void CheckForDegeneration() override;
+        virtual bool CanDegerate() const override;
 #ifndef G_TEST
         virtual void GenerateGraphics() override;
 #endif
@@ -239,7 +241,7 @@ namespace RoadRunner
          
         virtual void AttachNoRegenerate(ConnectionInfo) override;
 
-        virtual void CheckForDegeneration() override;
+        virtual bool CanDegerate() const override;
 #ifndef G_TEST
         virtual void GenerateGraphics() override;
 #endif
