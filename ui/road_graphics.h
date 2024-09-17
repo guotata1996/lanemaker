@@ -1,5 +1,6 @@
 #pragma once
 #include <qgraphicsitem.h>
+#include <qbrush.h>
 
 #include "road.h"
 #include <map>
@@ -75,7 +76,6 @@ namespace RoadRunner
         /*0, 0.05, ..., 0.95, 1*/
         std::vector<double> subdivisionPortion;
 
-        const QColor NormalColor;
         const QColor HighlightColor;
         bool isMedian;
 
@@ -91,7 +91,16 @@ namespace RoadRunner
 
         ~JunctionGraphics();
 
+    protected:
+        void hoverEnterEvent(QGraphicsSceneHoverEvent* evt) override;
+
+        void hoverLeaveEvent(QGraphicsSceneHoverEvent* evt) override;
+
     private:
         odr::Vec2D StripMidPoint(const odr::Vec2D& pOrigin, const odr::Vec2D& p1, const odr::Vec2D& p2);
+
+        double junctionElevation = 0;
+
+        const QBrush DefaultBrush = QBrush(Qt::darkGray, Qt::SolidPattern);
     };
 }

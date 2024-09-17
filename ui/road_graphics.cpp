@@ -190,7 +190,6 @@ namespace RoadRunner
         std::string laneType,
         QGraphicsItem* parent) :
         QGraphicsPolygonItem(poly, parent),
-        NormalColor(134, 132, 130),
         HighlightColor(189, 187, 185),
         laneID(laneID), laneIDReversed(laneIDRev),
         isMedian(laneType == "median")
@@ -270,7 +269,7 @@ namespace RoadRunner
 
     void LaneGraphics::EnableHighlight(bool enabled)
     {
-        setBrush(QBrush(isMedian ? Qt::yellow : (enabled ? HighlightColor : NormalColor), Qt::SolidPattern));
+        setBrush(QBrush(isMedian ? Qt::yellow : (enabled ? HighlightColor : Qt::darkGray), Qt::SolidPattern));
     }
 
     int LaneGraphics::LaneID() const
@@ -283,10 +282,11 @@ namespace RoadRunner
     {
         QPainterPath path;
         setPen(Qt::NoPen);
-        setBrush(QBrush(Qt::gray, Qt::SolidPattern));
+        setBrush(DefaultBrush);
         path.addPolygon(LineToPoly(boundary));
         setPath(path);
         g_scene->addItem(this);
+        setAcceptHoverEvents(true);
     }
 
     JunctionGraphics::JunctionGraphics(const std::vector<std::pair<odr::Line2D, odr::Line2D>>& boundary)
@@ -294,7 +294,7 @@ namespace RoadRunner
         QPainterPath path;
 
         setPen(Qt::NoPen);
-        setBrush(QBrush(Qt::darkGray, Qt::SolidPattern));
+        setBrush(DefaultBrush);
 
         const int ZebraLineWidth = 8;
         const int ZebraLineSkip = 16;
@@ -338,6 +338,19 @@ namespace RoadRunner
     JunctionGraphics::~JunctionGraphics()
     {
         g_scene->removeItem(this);
+    }
+
+    void JunctionGraphics::hoverEnterEvent(QGraphicsSceneHoverEvent* evt)
+    {
+        setBrush(Qt::NoBrush);
+        junctionElevation = zValue();
+        setZValue(128.1); // higher than highlighted linked road to properly receive hoverLeaveEvent
+    }
+
+    void JunctionGraphics::hoverLeaveEvent(QGraphicsSceneHoverEvent* evt)
+    {
+        setBrush(DefaultBrush);
+        setZValue(junctionElevation);
     }
 
     odr::Vec2D JunctionGraphics::StripMidPoint(const odr::Vec2D& pOrigin, const odr::Vec2D& p1, const odr::Vec2D& p2)

@@ -870,10 +870,7 @@ double Road::EnableBorderMarking(odr::RoadLink::ContactPoint c, int side)
     if (boundaryHide.find(key) != boundaryHide.end()) 
     {
         currUntil = boundaryHide.at(key);
-    }
-    if (s != currUntil) 
-    {
-        boundaryHide[key] = s;
+        boundaryHide.erase(key);
         PlaceMarkings();
     }
     

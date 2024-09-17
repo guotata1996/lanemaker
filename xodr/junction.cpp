@@ -368,7 +368,7 @@ namespace RoadRunner
     {
         auto boundary = CalcBoundary();
         junctionGraphics = std::make_unique<JunctionGraphics>(boundary);
-        junctionGraphics->setZValue(Elevation() - 0.01);
+        junctionGraphics->setZValue(Elevation() + 0.01);
     }
 #endif
     DirectJunction::DirectJunction(ConnectionInfo aInterfaceProvider) : AbstractJunction()
@@ -598,6 +598,7 @@ namespace RoadRunner
     void DirectJunction::GenerateGraphics()
     {
         junctionGraphics = std::make_unique<JunctionGraphics>(CalcCavity());
+        junctionGraphics->setZValue(Elevation());
     }
 #endif
 
