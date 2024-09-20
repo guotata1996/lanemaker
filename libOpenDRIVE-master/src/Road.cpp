@@ -796,9 +796,6 @@ void Road::PlaceMarkings()
             idAndLane.second.roadmark_groups.clear();
         }
 
-        // TODO: center becomes boundary when single-dir
-        // odr::RoadMarkGroup mainGroupCenter(id, sectionS0, 0, MarkingWidth, 0, 0, "solid", "", "yellow", "standard", "none");
-        // section.id_to_lane.at(0).roadmark_groups.emplace(std::move(mainGroupCenter));
         auto biDirectional = section.id_to_lane.begin()->first < 0 && section.id_to_lane.rbegin()->first > 0;
 
         for (int side : {-1, 0, 1})
@@ -893,6 +890,35 @@ bool Road::HideBorderMarkingForDJ(odr::RoadLink::ContactPoint c, int side, doubl
         return true;
     }
     return false;
+}
+
+void Road::ToggleStopLine(odr::RoadLink::ContactPoint contact, bool enable)
+{
+    if (contact == odr::RoadLink::ContactPoint_End && !rr_profile.HasSide(-1)
+        || contact == odr::RoadLink::ContactPoint_Start && !rr_profile.HasSide(1)) 
+    {
+        // Stop line can only be placed at left/right exit
+        return;
+    }
+    std::string objID = std::to_string(static_cast<int>(contact));
+    if (enable) 
+    {
+        double     s0 = contact == odr::RoadLink::ContactPoint_Start ? 0.2 : length - 0.2;
+        RoadObject stopLine(id, objID, s0, 0, 0, 0, 0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, "roadMark", "stopLine", "", "", false);
+        auto it = id_to_object.find(objID);
+        if (it == id_to_object.end()) 
+        {
+            id_to_object.emplace(objID, stopLine);
+        }
+        else
+        {
+            it->second = stopLine;
+        }
+    }
+    else
+    {
+        id_to_object.erase(objID);
+    }
 }
 
 } // namespace odr

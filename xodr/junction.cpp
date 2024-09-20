@@ -79,7 +79,7 @@ namespace RoadRunner
             else if (detail._type == detail.Type_Reverse && subject == recordedRoad)
             {
                 needReGen = true;
-
+                subject->ToggleStopLine(record.contact, false);
                 auto newContact = record.contact == odr::RoadLink::ContactPoint_Start ?
                     odr::RoadLink::ContactPoint_End : odr::RoadLink::ContactPoint_Start;
                 auto updatedInfo = ConnectionInfo(recordedRoad, newContact, record.skipProviderLanes);
@@ -90,6 +90,7 @@ namespace RoadRunner
             {
                 subject->generated.successor = odr::RoadLink();
                 subject->successorJunction.reset();
+                subject->ToggleStopLine(odr::RoadLink::ContactPoint_End, false);
             }
             else
             {
@@ -127,6 +128,8 @@ namespace RoadRunner
             {
                 assert(false);
             }
+
+            onlyRoad->ToggleStopLine(updatedInfoList.begin()->contact, false);
 
             clearLinkage(ID(), onlyRoad->ID());
             IDGenerator::ForRoad()->NotifyChange(onlyRoad->ID());
@@ -198,6 +201,7 @@ namespace RoadRunner
         {
             roadA->successorJunction.reset();
         }
+        roadA->ToggleStopLine(contactA, false);
         if (contactB == odr::RoadLink::ContactPoint_Start)
         {
             roadB->predecessorJunction.reset();
@@ -206,6 +210,7 @@ namespace RoadRunner
         {
             roadB->successorJunction.reset();
         }
+        roadB->ToggleStopLine(contactB, false);
         World::Instance()->allRoads.erase(roadB);
         auto joinResult = Road::JoinRoads(roadA, contactA, roadB, contactB);
         if (joinResult != RoadJoin_Success)
@@ -289,6 +294,7 @@ namespace RoadRunner
             {
                 roadPtr->successorJunction = shared_from_this();
             }
+            roadPtr->ToggleStopLine(info.contact, true);
         });
 
         generated.id_to_connection.clear();

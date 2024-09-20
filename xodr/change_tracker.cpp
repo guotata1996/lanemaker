@@ -315,8 +315,8 @@ namespace RoadRunner
                 {
                     commonJunctionPtr->connectingRoads.clear();
                 }
-
-                for (auto connected : junctionPtr->formedFrom)
+                auto formedFrom = junctionPtr->formedFrom;
+                for (auto connected : formedFrom)
                 {
                     auto road = connected.road.lock();
                     if (road != nullptr)

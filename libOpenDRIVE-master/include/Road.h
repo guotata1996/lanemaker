@@ -129,6 +129,8 @@ public:
     bool HideBorderMarkingForDJ(odr::RoadLink::ContactPoint, int side, double untilS);
     double EnableBorderMarking(odr::RoadLink::ContactPoint, int side); // Returns untilS that need to be updated
 
+    void ToggleStopLine(odr::RoadLink::ContactPoint, bool enable);
+
     double      length = 0;
     std::string id = "";
     std::string junction = "";
@@ -147,10 +149,11 @@ public:
     std::map<double, LaneSection>     s_to_lanesection;
     std::map<double, std::string>     s_to_type;
     std::map<double, SpeedRecord>     s_to_speed;
-    std::map<std::string, RoadObject> id_to_object;
+    std::map<std::string, RoadObject> id_to_object; // "1","2" used for pred/succ stop lines
     std::map<std::string, RoadSignal> id_to_signal;
     RoadRunner::LaneProfile           rr_profile;
 
+    // Properties will be filled out as while junctions are generated
     std::map<std::pair<odr::RoadLink::ContactPoint, int>, double> boundaryHide;
 };
 

@@ -1,6 +1,8 @@
 #include "validation.h"
 
 #include "road.h"
+#include "junction.h"
+
 #include "test_const.h"
 
 #ifdef G_TEST
@@ -20,6 +22,7 @@ namespace RoadRunnerTest
         VerifySingleRoadLinkage(road);
         VerifyProfileIntegrity(road);
         VerifySingleRoadElevation(road.ref_line.elevation_profile);
+        VerifyRoadMarking(road);
     }
 
     void Validation::VerifyLaneWidthinBound(const odr::Road& road)
@@ -350,6 +353,52 @@ namespace RoadRunnerTest
             if (next == eProfile.s0_to_poly.end()) break;
             auto s = next->first;
             ExpectNearOrAssert(it->second.get(s), next->second.get(s), epsilon);
+        }
+    }
+
+    void Validation::VerifyRoadMarking(const odr::Road& road)
+    {
+        {
+            bool successorIsCommon = false;
+            auto successorStopLineObjectIt = road.id_to_object.find(std::to_string(odr::RoadLink::ContactPoint_End));
+            if (road.successor.type == odr::RoadLink::Type_Junction)
+            {
+                auto nextJunc = static_cast<RoadRunner::AbstractJunction*>(IDGenerator::ForJunction()->GetByID(road.successor.id));
+                if (nextJunc->generated.type == odr::JunctionType::Common)
+                {
+                    successorIsCommon = true;
+                }
+            }
+            if (successorIsCommon)
+            {
+                ExpectOrAssert(successorStopLineObjectIt != road.id_to_object.end());
+                ExpectNearOrAssert(successorStopLineObjectIt->second.s0, road.length, 1);
+            }
+            else
+            {
+                ExpectOrAssert(successorStopLineObjectIt == road.id_to_object.end());
+            }
+        }
+        {
+            bool predecessorIsCommon = false;
+            auto predecessorStopLineObjectIt = road.id_to_object.find(std::to_string(odr::RoadLink::ContactPoint_Start));
+            if (road.predecessor.type == odr::RoadLink::Type_Junction)
+            {
+                auto predJunc = static_cast<RoadRunner::AbstractJunction*>(IDGenerator::ForJunction()->GetByID(road.predecessor.id));
+                if (predJunc->generated.type == odr::JunctionType::Common)
+                {
+                    predecessorIsCommon = true;
+                }
+            }
+            if (predecessorIsCommon)
+            {
+                ExpectOrAssert(predecessorStopLineObjectIt != road.id_to_object.end());
+                ExpectNearOrAssert(predecessorStopLineObjectIt->second.s0, 0, 1);
+            }
+            else
+            {
+                ExpectOrAssert(predecessorStopLineObjectIt == road.id_to_object.end());
+            }
         }
     }
 }

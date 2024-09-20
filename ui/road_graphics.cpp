@@ -142,6 +142,44 @@ namespace RoadRunner
             }
         }
 
+        // For first & last draw stop lines if needed
+        std::vector<std::tuple<double, double, int>> stopLines;
+        if (sMin == 0)
+        {
+            auto objID = std::to_string(odr::RoadLink::ContactPoint_Start);
+            auto objIt = gen.id_to_object.find(objID);
+            if (objIt != gen.id_to_object.end())
+            {
+                auto s = objIt->second.s0;
+                auto w = objIt->second.width;
+                stopLines.push_back(std::make_tuple(s - w/2, s + w/2, 1));
+            }
+        }
+        if (sMax == gen.length)
+        {
+            auto objID = std::to_string(odr::RoadLink::ContactPoint_End);
+            auto objIt = gen.id_to_object.find(objID);
+            if (objIt != gen.id_to_object.end())
+            {
+                auto s = objIt->second.s0;
+                auto w = objIt->second.width;
+                stopLines.push_back(std::make_tuple(s - w / 2, s + w / 2, -1));
+            }
+        }
+        for (const auto& stopLine : stopLines)
+        {
+            auto s1 = std::get<0>(stopLine);
+            auto s2 = std::get<1>(stopLine);
+            auto polys = gen.get_both_dirs_poly(s1, s2, 0.1);
+            auto side = std::get<2>(stopLine);
+            auto poly = side == 1 ? polys.first : polys.second;
+            QPolygonF markingPoly = LineToPoly(poly);
+            auto markingItem = new QGraphicsPolygonItem(markingPoly, this);
+            markingItem->setPen(Qt::NoPen);
+            Qt::GlobalColor color = Qt::white;
+            markingItem->setBrush(QBrush(color, Qt::SolidPattern));
+        }
+
         refLineHint = new QGraphicsPathItem(this);
         refLineHint->hide();
         UpdateRefLineHint();

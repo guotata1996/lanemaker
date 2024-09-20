@@ -450,6 +450,8 @@ bool RoadCreationSession::Complete()
 		auto joinPointElevation = toExtend->RefLine().elevation_profile.get(extendFromStartS);
 		RoadRunner::CubicSplineGenerator::OverwriteSection(
 			newRoad->RefLine().elevation_profile, newRoad->Length(), 0, 0, joinPointElevation);
+		newPartBegin += toExtend->Length();
+		newPartEnd += toExtend->Length();
 		int joinResult = RoadRunner::Road::JoinRoads(toExtend,
 			extendFromStartS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End,
 			newRoad, odr::RoadLink::ContactPoint_Start);
@@ -482,8 +484,6 @@ bool RoadCreationSession::Complete()
 			return false;
 		default:
 			// Okay
-			newPartBegin += toExtend->Length();
-			newPartEnd += toExtend->Length();
 			standaloneRoad = false;
 			newRoad = toExtend;
 			break;

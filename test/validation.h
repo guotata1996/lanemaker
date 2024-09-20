@@ -45,6 +45,8 @@ namespace RoadRunnerTest
 
         static void VerifyDirectJunction(const RoadRunner::DirectJunction* junction);
 
+        static void VerifyRoadMarking(const odr::Road& road);
+
         // Only checks edges-on-record; doesn't recognize dead ends
         static void VerifyRoutingGraph();
     };

@@ -63,6 +63,10 @@ namespace RoadRunner
 
         double SnapToSegmentBoundary(double key, double limit, bool* outSuccess = nullptr);
 
+        // Special markings for normal junction
+        void ToggleStopLine(odr::RoadLink::ContactPoint, bool enable);
+
+        // Special markings for direct junction
         void HideBorderMarkingForDJ(odr::RoadLink::ContactPoint, int side, double untilS);
         void EnableBorderMarking(odr::RoadLink::ContactPoint, int side);
 

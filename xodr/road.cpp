@@ -153,6 +153,19 @@ namespace RoadRunner
         return to_odr_unit(modifiedKey_s);
     }
 
+    void Road::ToggleStopLine(odr::RoadLink::ContactPoint c, bool enable)
+    {
+        generated.ToggleStopLine(c, enable);
+        if (c == odr::RoadLink::ContactPoint_Start)
+        {
+            GenerateOrUpdateSectionGraphicsBetween(0, 1.0);
+        }
+        else
+        {
+            GenerateOrUpdateSectionGraphicsBetween(Length() - 1, Length());
+        }
+    }
+
     void Road::HideBorderMarkingForDJ(odr::RoadLink::ContactPoint c, int side, double untilS)
     {
         if (c == odr::RoadLink::ContactPoint_Start && untilS == 0
