@@ -57,10 +57,17 @@ namespace RoadRunner
             }
 
             bool canCreateJunction = true; // If not, this collision will end up as an overlap
-            double sBegin1 = overlap->sBegin1 - JunctionExtaTrim;
-            double sEnd1 = overlap->sEnd1 + JunctionExtaTrim;
-            double sBegin2 = overlap->sBegin2 - JunctionExtaTrim;
-            double sEnd2 = overlap->sEnd2 + JunctionExtaTrim;
+            double trimBegin1 = std::max(JunctionTrimMin, std::min(JunctionTrimMax, overlap->sBegin1 - RoadMinLength));
+            double sBegin1 = overlap->sBegin1 - trimBegin1;
+
+            double trimEnd1 = std::max(JunctionTrimMin, std::min(JunctionTrimMax, newRoad->Length() - overlap->sEnd1 - RoadMinLength));
+            double sEnd1 = overlap->sEnd1 + trimEnd1;
+
+            double trimBegin2 = std::max(JunctionTrimMin, std::min(JunctionTrimMax, overlap->sBegin2 - RoadMinLength));
+            double sBegin2 = overlap->sBegin2 - trimBegin2;
+
+            double trimEnd2 = std::max(JunctionTrimMin, std::min(JunctionTrimMax, road2->Length() - overlap->sEnd2 - RoadMinLength));
+            double sEnd2 = overlap->sEnd2 + trimEnd2;
 
             if (sBegin1 < RoadMinLength)
             {
@@ -120,16 +127,14 @@ namespace RoadRunner
                     || sBegin2 == 0 && sEnd2 == road2->Length())
                 {
                     spdlog::warn("Road is too short! Cannot create Junction with Road{} @{}", road2->ID(), sEnd1);
-                    newPartBegin = sEnd1 + RoadMinLength;
-                    continue;
+                    return false;
                 }
             }
 
             if (!canCreateJunction)
             {
-                spdlog::warn("Existing junction is too close! Cannot create Junction with Road{} @{}", road2->ID(), sEnd1);
-                newPartBegin = sEnd1 + RoadMinLength;
-                continue;
+                spdlog::warn("Existing junction is too close! Please switch to bridge/tunnel mode.");
+                return false;
             }
 
             // Can create junction
@@ -241,6 +246,7 @@ namespace RoadRunner
                 auto errorCode = junction->CreateFrom(junctionInfo);
                 if (errorCode != RoadRunner::Junction_NoError)
                 {
+                    spdlog::warn("Junction generation reports error code {}", errorCode);
                     return false;
                 }
             }

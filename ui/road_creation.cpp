@@ -462,10 +462,10 @@ bool RoadCreationSession::Complete()
 			return false;
 		case RoadRunner::RoadJoin_DirNoOutlet:
 			{
-				if (newRoad->Length() > RoadRunner::JunctionExtaTrim)
+				if (newRoad->Length() > RoadRunner::JunctionTrimMax)
 				{
 					// Make a junction instead of extending if direction mismatch
-					newRoad = RoadRunner::Road::SplitRoad(newRoad, RoadRunner::JunctionExtaTrim);
+					newRoad = RoadRunner::Road::SplitRoad(newRoad, RoadRunner::JunctionTrimMax);
 					std::vector<RoadRunner::ConnectionInfo> junctionInfo =
 					{
 						RoadRunner::ConnectionInfo{toExtend, odr::RoadLink::ContactPoint_End},
@@ -509,10 +509,10 @@ bool RoadCreationSession::Complete()
 			spdlog::warn("Self-loop is not supported!");
 			return false;
 		case RoadRunner::RoadJoin_DirNoOutlet:
-			if (newRoad->Length() > RoadRunner::JunctionExtaTrim)
+			if (newRoad->Length() > RoadRunner::JunctionTrimMin)
 			{
 				// Make a junction instead of extending if direction mismatch
-				RoadRunner::Road::SplitRoad(newRoad, newRoad->Length() - RoadRunner::JunctionExtaTrim);
+				RoadRunner::Road::SplitRoad(newRoad, newRoad->Length() - RoadRunner::JunctionTrimMin);
 				std::vector<RoadRunner::ConnectionInfo> junctionInfo =
 				{
 					RoadRunner::ConnectionInfo{toJoin, odr::RoadLink::ContactPoint_Start},
