@@ -34,6 +34,7 @@ namespace RoadRunnerTest
         for (auto road : World::Instance()->allRoads)
         {
             VerifySingleRoad(road->generated);
+            VerifySingleRoadGraphics(*road.get());
         }
 
         VerifyRoutingGraph();

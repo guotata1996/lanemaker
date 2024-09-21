@@ -321,11 +321,15 @@ namespace RoadRunner
                         bool aRbL = bordersIntersect(interfaceProvider->contact, infoA, -1, infoB, 1, sRA, sLB);
                         if (aLbR == aRbL)
                         {
-                            spdlog::error("Overlap zone between roads {} & {} can't be determined",
+                            if (aLbR)
+                            {
+                                return (infoA.contact == odr::RoadLink::ContactPoint_Start) != (sRA < sLA);
+                            }
+                            spdlog::error("Overlap zone between roads {} & {} can't be determined. Neither boundary pair intersects.",
                                 infoA.road.lock()->ID(), infoB.road.lock()->ID());
+                            return false; // weak ordering
                         }
                         return aLbR;
-                        // return (infoA.contact == odr::RoadLink::ContactPoint_Start) != (sRA < sLA)
                     });
             }
             i += roadsAtRank;

@@ -4,6 +4,7 @@
 
 namespace odr { class Road; class CubicSpline; }
 namespace RoadRunner {
+    class Road;
     class AbstractJunction;
     class Junction;
     class DirectJunction;
@@ -24,6 +25,8 @@ namespace RoadRunnerTest
         static bool CompareFiles(const std::string& p1, const std::string& p2);
 
         static void VerifySingleRoadElevation(const odr::CubicSpline&);
+
+        static void VerifySingleRoadGraphics(const RoadRunner::Road& road);
     private:
 #ifndef G_TEST
         static void RoadIDSetMatch();

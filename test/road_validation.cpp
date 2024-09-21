@@ -7,6 +7,8 @@
 
 #ifdef G_TEST
     #include <gtest/gtest.h>
+#else
+    #include "road_graphics.h"
 #endif
 
 using namespace odr;
@@ -354,6 +356,27 @@ namespace RoadRunnerTest
             auto s = next->first;
             ExpectNearOrAssert(it->second.get(s), next->second.get(s), epsilon);
         }
+    }
+
+    void Validation::VerifySingleRoadGraphics(const RoadRunner::Road& road)
+    {
+        std::vector<double> sMins;
+        std::vector<double> sMaxs;
+        for (const auto& s_graphics : road.s_to_section_graphics)
+        {
+            auto sBegin = s_graphics.second->sBegin;
+            auto sEnd = s_graphics.second->sEnd;
+            sMins.push_back(std::min(sBegin, sEnd));
+            sMaxs.push_back(std::max(sBegin, sEnd));
+        }
+
+        // Make sure section graphics are ordered from 0 till length
+        for (int i = 0; i < sMins.size() -1; ++i)
+        {
+            ExpectNearOrAssert(sMaxs[i], sMins[i + 1], epsilon);
+        }
+        ExpectNearOrAssert(sMins.front(), 0, epsilon);
+        ExpectNearOrAssert(sMaxs.back(), road.Length(), epsilon);
     }
 
     void Validation::VerifyRoadMarking(const odr::Road& road)

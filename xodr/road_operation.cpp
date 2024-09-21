@@ -126,34 +126,26 @@ namespace RoadRunner
         roadAsPrev->generated.rr_profile = profile1;
         roadAsPrev->Generate(false);
 
-        if (roadAsPrev->successorJunction != nullptr)
-        {
-            auto successorJunction = roadAsPrev->successorJunction;
-            successorJunction->FillConnectionInfo(succJunctionInfo);
-            successorJunction->NotifyPotentialChange(ChangeInConnecting
-                { roadAsPrev, RoadRunner::ChangeInConnecting::Type_DetachAtEnd_Temp });
-            successorJunction->Attach(RoadRunner::ConnectionInfo{ 
-                part2, odr::RoadLink::ContactPoint_End, succJunctionInfo.skipProviderLanes });
-        }
 #ifndef G_TEST       
         // Move to part2
         auto sm1_it = roadAsPrev->s_to_section_graphics.lower_bound(s);
         std::set<double> sMovedFromPart1;
-        for (auto it = sm1_it; it != roadAsPrev->s_to_section_graphics.end(); ++it)
-        {
-            auto graphics = std::move(it->second);
-            graphics->road = part2;
-            graphics->sBegin -= s;
-            graphics->sEnd -= s;
-            part2->s_to_section_graphics.emplace(it->first - s, std::move(graphics));
-            sMovedFromPart1.insert(it->first);
-        }
+
         if (sm1_it == roadAsPrev->s_to_section_graphics.end())
         {
             part2->GenerateAllSectionGraphics();
         }
         else
         {
+            for (auto it = sm1_it; it != roadAsPrev->s_to_section_graphics.end(); ++it)
+            {
+                auto graphics = std::move(it->second);
+                graphics->road = part2;
+                graphics->sBegin -= s;
+                graphics->sEnd -= s;
+                part2->s_to_section_graphics.emplace(it->first - s, std::move(graphics));
+                sMovedFromPart1.insert(it->first);
+            }
             // Update part2 near split
             double part2CreateLength = std::max(3 * MaxTransition, sm1_it->first - s);
             part2->GenerateOrUpdateSectionGraphicsBetween(0, std::min(part2CreateLength, part2->Length()));
@@ -164,8 +156,21 @@ namespace RoadRunner
         {
             roadAsPrev->s_to_section_graphics.erase(sMoved);
         }
-        roadAsPrev->GenerateOrUpdateSectionGraphicsBetween(std::max(s - 3 * MaxTransition, 0.0), s);
 #endif       
+
+        if (roadAsPrev->successorJunction != nullptr)
+        {
+            auto successorJunction = roadAsPrev->successorJunction;
+            successorJunction->FillConnectionInfo(succJunctionInfo);
+            successorJunction->NotifyPotentialChange(ChangeInConnecting
+                { roadAsPrev, RoadRunner::ChangeInConnecting::Type_DetachAtEnd_Temp });
+            successorJunction->Attach(RoadRunner::ConnectionInfo{
+                part2, odr::RoadLink::ContactPoint_End, succJunctionInfo.skipProviderLanes });
+        }
+
+#ifndef G_TEST  
+        roadAsPrev->GenerateOrUpdateSectionGraphicsBetween(std::max(s - 3 * MaxTransition, 0.0), s);
+#endif
         return part2;
     }
 

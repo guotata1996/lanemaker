@@ -10,6 +10,8 @@
 #include "id_generator.h"
 #include "road_profile.h"
 
+namespace RoadRunnerTest { class Validation; }
+
 namespace RoadRunner
 {
     class AbstractJunction;
@@ -18,6 +20,7 @@ namespace RoadRunner
 
     class Road: public std::enable_shared_from_this<Road>
     {
+        friend class RoadRunnerTest::Validation;
     public:
         Road(const LaneProfile& p, std::unique_ptr<odr::RoadGeometry> l);
 
