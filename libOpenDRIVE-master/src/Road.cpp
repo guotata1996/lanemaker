@@ -904,7 +904,7 @@ void Road::ToggleStopLine(odr::RoadLink::ContactPoint contact, bool enable)
     if (enable) 
     {
         double     s0 = contact == odr::RoadLink::ContactPoint_Start ? 0.2 : length - 0.2;
-        RoadObject stopLine(id, objID, s0, 0, 0, 0, 0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, "roadMark", "stopLine", "", "", false);
+        RoadObject stopLine(id, objID, s0, 0, 0, 0, 0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, "roadMark", "", "", "stopping-line", false);
         auto it = id_to_object.find(objID);
         if (it == id_to_object.end()) 
         {
@@ -918,6 +918,51 @@ void Road::ToggleStopLine(odr::RoadLink::ContactPoint contact, bool enable)
     else
     {
         id_to_object.erase(objID);
+    }
+}
+
+void Road::UpdateArrowMarkings(odr::RoadLink::ContactPoint contact, std::map<int, uint8_t> laneToArrow) 
+{ 
+    const int ArrowIDOffset = 100;
+    // Clear out all markings on this side
+    int side = contact == odr::RoadLink::ContactPoint_Start ? 1 : -1;
+    for (int unsignedLaneID = 1; unsignedLaneID <= 20; ++unsignedLaneID) 
+    {
+        id_to_object.erase(std::to_string(ArrowIDOffset + side * unsignedLaneID));
+    }
+
+    double s0;
+    const auto endSection = contact == odr::RoadLink::ContactPoint_Start ? 
+        s_to_lanesection.begin()->second : s_to_lanesection.rbegin()->second;
+    auto endSectionLength = get_lanesection_length(endSection);
+
+    if (contact == odr::RoadLink::ContactPoint_Start) 
+    {
+        s0 = std::min(length / 2, 10.0);
+        s0 = std::min(s0, endSectionLength);
+    }
+    else
+    {
+        s0 = std::max(length / 2, length - 10.0);
+        s0 = std::max(s0, length - endSectionLength);
+    }
+    
+    for (const auto& lane : endSection.get_sorted_driving_lanes(side)) 
+    {
+        auto arrowSpec = laneToArrow.find(lane.id);
+        if (arrowSpec == laneToArrow.end() || arrowSpec->second == 0)
+        {
+            // no marking
+            continue;
+        }
+        double outer_t = lane.outer_border.get(s0);
+        double inner_t = lane.inner_border.get(s0);
+        double t0 = (outer_t + inner_t) / 2;
+
+        auto objID = std::to_string(ArrowIDOffset + lane.id);
+        RoadObject arrow(id, objID, s0, t0, 0, 0, 0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, "roadMark", std::to_string(arrowSpec->second), "", "arrow", false);
+        assert(id_to_object.find(objID) == id_to_object.end());
+        id_to_object.emplace(objID, arrow);
     }
 }
 

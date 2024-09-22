@@ -136,8 +136,14 @@ bool RoadModificationSession::Complete()
             }
         }
 
+        UpdateEndMarkings();
         return true;
     }
 
-    return target->ModifyProfile(sBegin, sEnd, g_createRoadOption->LeftResult(), g_createRoadOption->RightResult());
+    bool success = target->ModifyProfile(sBegin, sEnd, g_createRoadOption->LeftResult(), g_createRoadOption->RightResult());
+    if (success)
+    {
+        UpdateEndMarkings();
+    }
+    return success;
 }

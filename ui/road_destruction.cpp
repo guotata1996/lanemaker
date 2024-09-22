@@ -187,5 +187,6 @@ bool RoadDestroySession::Complete()
         succJunction->Degenerate();
     }
 
+    UpdateEndMarkings();
     return true;
 }

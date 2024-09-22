@@ -67,11 +67,8 @@ namespace RoadRunner
         double SnapToSegmentBoundary(double key, double limit, bool* outSuccess = nullptr);
 
         // Special markings for normal junction
-        void ToggleStopLine(odr::RoadLink::ContactPoint, bool enable);
+        void UpdateArrowGraphics(odr::RoadLink::ContactPoint c, std::map<int, uint8_t> laneToArrow, bool stopLine);
 
-        // Special markings for direct junction
-        void HideBorderMarkingForDJ(odr::RoadLink::ContactPoint, int side, double untilS);
-        void EnableBorderMarking(odr::RoadLink::ContactPoint, int side);
 
 #ifndef G_TEST
         // Expensive, but safe
@@ -80,6 +77,10 @@ namespace RoadRunner
         // Preferred
         // Sections containing s1/s2 will be updated
         void GenerateOrUpdateSectionGraphicsBetween(double s1, double s2);
+
+        // Special markings for direct junction
+        void HideBorderMarkingForDJ(odr::RoadLink::ContactPoint, int side, double untilS);
+        void EnableBorderMarking(odr::RoadLink::ContactPoint, int side);
 
         struct RoadsOverlap
         {

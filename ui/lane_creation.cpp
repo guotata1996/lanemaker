@@ -224,15 +224,21 @@ bool LanesCreationSession::Complete()
         world->allRoads.insert(newRoad);
     }
 
+    bool success;
     if (g_createRoadElevationOption == 0)
     {
-        return RoadRunner::TryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd,
+        success = RoadRunner::TryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd,
             overlapAtStart, overlapAtStartS, overlapAtEnd, overlapAtEndS);
     }
     else
     {
-        return RoadRunner::TryCreateBridgeAndTunnel(std::move(newRoad), newPartBegin, newPartEnd);
+        success = RoadRunner::TryCreateBridgeAndTunnel(std::move(newRoad), newPartBegin, newPartEnd);
     }
+    if (success)
+    {
+        UpdateEndMarkings();
+    }
+    return success;
 }
 
 LanesCreationSession::~LanesCreationSession()

@@ -61,6 +61,8 @@ protected:
     static bool IsElevationConsistWithExtend();
     static bool IsProfileChangePoint(const std::shared_ptr<RoadRunner::Road>&, double s);
 
+    static void UpdateEndMarkings();
+
     QGraphicsView* view;
     QGraphicsScene* scene;
     World* world;

@@ -130,6 +130,7 @@ public:
     double EnableBorderMarking(odr::RoadLink::ContactPoint, int side); // Returns untilS that need to be updated
 
     void ToggleStopLine(odr::RoadLink::ContactPoint, bool enable);
+    void UpdateArrowMarkings(odr::RoadLink::ContactPoint, std::map<int, uint8_t> laneToArrow);
 
     double      length = 0;
     std::string id = "";

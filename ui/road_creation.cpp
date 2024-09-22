@@ -542,16 +542,21 @@ bool RoadCreationSession::Complete()
 		world->allRoads.insert(newRoad);
 	}
 	
+	bool success;
 	if (g_createRoadElevationOption == 0)
 	{
-		return TryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd, 
+		success = TryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd,
 			overlapAtStart, overlapAtStartS, overlapAtEnd, overlapAtEndS);
 	}
 	else
 	{
-		return TryCreateBridgeAndTunnel(std::move(newRoad), newPartBegin, newPartEnd);
+		success = TryCreateBridgeAndTunnel(std::move(newRoad), newPartBegin, newPartEnd);
 	}
-	return true;
+	if (success)
+	{
+		UpdateEndMarkings();
+	}
+	return success;
 }
 
 RoadCreationSession::~RoadCreationSession()

@@ -153,16 +153,33 @@ namespace RoadRunner
         return to_odr_unit(modifiedKey_s);
     }
 
-    void Road::ToggleStopLine(odr::RoadLink::ContactPoint c, bool enable)
+    void Road::UpdateArrowGraphics(odr::RoadLink::ContactPoint c, std::map<int, uint8_t> laneToArrow, bool stopLine)
     {
-        generated.ToggleStopLine(c, enable);
-        if (c == odr::RoadLink::ContactPoint_Start)
+        MultiSegment dueUpdateS;
+        for (auto id_obj : generated.id_to_object)
         {
-            GenerateOrUpdateSectionGraphicsBetween(0, 1.0);
+            if (id_obj.second.type == "roadMark" && 
+                (id_obj.second.subtype == "arrow" || id_obj.second.subtype == "stopping-line"))
+            {
+                dueUpdateS.Insert(id_obj.second.s0 - 0.5, id_obj.second.s0 + 0.5);
+            }
         }
-        else
+
+        generated.ToggleStopLine(c, stopLine);
+        generated.UpdateArrowMarkings(c, laneToArrow);
+
+        for (auto id_obj : generated.id_to_object)
         {
-            GenerateOrUpdateSectionGraphicsBetween(Length() - 1, Length());
+            if (id_obj.second.type == "roadMark" && 
+                (id_obj.second.subtype == "arrow" || id_obj.second.subtype == "stopping-line"))
+            {
+                dueUpdateS.Insert(id_obj.second.s0 - 0.5, id_obj.second.s0 + 0.5);
+            }
+        }
+
+        for (auto segment : dueUpdateS.Merge())
+        {
+            GenerateOrUpdateSectionGraphicsBetween(segment.first, segment.second);
         }
     }
 

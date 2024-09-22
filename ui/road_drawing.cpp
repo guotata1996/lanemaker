@@ -165,4 +165,56 @@ void RoadDrawingSession::CustomCursorItem::paint(QPainter* painter, const QStyle
     QGraphicsEllipseItem::paint(painter, option, widget);
 }
 
+void RoadDrawingSession::UpdateEndMarkings()
+{
+    for (auto id_obj : IDGenerator::ForRoad()->PeekChanges())
+    {
+        auto road = static_cast<RoadRunner::Road*>(id_obj.second);
+        if (road != nullptr)
+        {
+            for (odr::RoadLink::ContactPoint c : {odr::RoadLink::ContactPoint_Start, odr::RoadLink::ContactPoint_End})
+            {
+                bool needStopLine = false;
+                std::map<int, uint8_t> laneToArrow;
+                if (c == odr::RoadLink::ContactPoint_End)
+                {
+                    if (road->successorJunction != nullptr)
+                    {
+                        if (dynamic_cast<RoadRunner::Junction*>(road->successorJunction.get()) != nullptr)
+                        {
+                            needStopLine = true;
+                            // TODO: turning arrows
+                        }
+                    }
+                    else
+                    {
+                        for (auto lane : road->generated.s_to_lanesection.rbegin()->second.get_sorted_driving_lanes(-1))
+                        {
+                            laneToArrow.emplace(lane.id, odr::ArrowDeadEnd);
+                        }
+                    }
+                }
+                else
+                {
+                    if (road->predecessorJunction != nullptr)
+                    {
+                        if (dynamic_cast<RoadRunner::Junction*>(road->predecessorJunction.get()) != nullptr)
+                        {
+                            needStopLine = true;
+                            // TODO: turning arrows
+                        }
+                    }
+                    else
+                    {
+                        for (auto lane : road->generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(1))
+                        {
+                            laneToArrow.emplace(lane.id, odr::ArrowDeadEnd);
+                        }
+                    }
+                }
+                road->UpdateArrowGraphics(c, laneToArrow, needStopLine);
+            }
+        }
+    }
+}
 double RoadDrawingSession::CustomCursorItem::InitialRadius = 2;

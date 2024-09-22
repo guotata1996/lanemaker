@@ -25,6 +25,7 @@ public:
     void TakeID(std::string id, void* object); // Maintain ID from serialized
     void* GetByID(std::string id);
 
+    inline std::map<size_t, void*> PeekChanges() { return changeList; }
     std::map<size_t, void*> ConsumeChanges();
     void ClearChangeList();
     

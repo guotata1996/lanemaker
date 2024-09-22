@@ -103,4 +103,10 @@ namespace RoadRunner
 
         const QBrush DefaultBrush = QBrush(Qt::darkGray, Qt::SolidPattern);
     };
+
+    class ArrowGraphics : public QGraphicsPathItem
+    {
+    public:
+        ArrowGraphics(int arrowType, QGraphicsItem* parent);
+    };
 }

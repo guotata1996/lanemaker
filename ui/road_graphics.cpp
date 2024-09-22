@@ -5,6 +5,7 @@
 #include <QGraphicsSceneMouseEvent>
 #include <qgraphicsscene.h>
 #include <qvector2d.h>
+#include <math.h>
 
 #include "spdlog/spdlog.h"
 #include "stats.h"
@@ -142,42 +143,50 @@ namespace RoadRunner
             }
         }
 
-        // For first & last draw stop lines if needed
-        std::vector<std::tuple<double, double, int>> stopLines;
-        if (sMin == 0)
+        // Draw road objects if needed
+        for (const auto& id_object : gen.id_to_object)
         {
-            auto objID = std::to_string(odr::RoadLink::ContactPoint_Start);
-            auto objIt = gen.id_to_object.find(objID);
-            if (objIt != gen.id_to_object.end())
+            if (sMin <= id_object.second.s0 && id_object.second.s0 < sMax)
             {
-                auto s = objIt->second.s0;
-                auto w = objIt->second.width;
-                stopLines.push_back(std::make_tuple(s - w/2, s + w/2, 1));
+                if (id_object.second.type == "roadMark")
+                {
+                    QAbstractGraphicsShapeItem* markingItem;
+                    if (id_object.second.subtype == "stopping-line")
+                    {
+                        auto s = id_object.second.s0;
+                        auto w = id_object.second.width;
+                        auto s1 = s - w / 2;
+                        auto s2 = s + w / 2;
+                        auto polys = gen.get_both_dirs_poly(s1, s2, 0.1);
+                        auto poly = id_object.first == std::to_string(odr::RoadLink::ContactPoint_Start) ? polys.first : polys.second;
+                        QPolygonF markingPoly = LineToPoly(poly);
+                        markingItem = new QGraphicsPolygonItem(markingPoly, this);
+                        markingItem->setPen(Qt::NoPen);
+                        Qt::GlobalColor color = Qt::white;
+                        markingItem->setBrush(QBrush(color, Qt::SolidPattern));
+                    }
+                    else if (id_object.second.subtype == "arrow")
+                    {
+                        auto sMid = (sMin + sMax) / 2;  // arrow always placed at mid at current section
+                        auto pt = gen.get_surface_pt(sMid, id_object.second.t0);
+                        auto hdg = gen.ref_line.get_hdg(sMid);
+                        int arrowType = std::stoi(id_object.second.name);
+                        markingItem = new ArrowGraphics(arrowType, this);
+                        QTransform arrowTransform;
+                        arrowTransform.translate(pt[0], pt[1]);
+                        arrowTransform.rotate(180 / M_PI * hdg);
+                        markingItem->setTransform(arrowTransform);
+                    }
+                    else
+                    {
+                        spdlog::warn("roadMark subtype {} isn't supported!", id_object.second.subtype);
+                        continue;
+                    }
+                    markingItem->setPen(Qt::NoPen);
+                    Qt::GlobalColor color = Qt::white;
+                    markingItem->setBrush(QBrush(color, Qt::SolidPattern));
+                }
             }
-        }
-        if (sMax == gen.length)
-        {
-            auto objID = std::to_string(odr::RoadLink::ContactPoint_End);
-            auto objIt = gen.id_to_object.find(objID);
-            if (objIt != gen.id_to_object.end())
-            {
-                auto s = objIt->second.s0;
-                auto w = objIt->second.width;
-                stopLines.push_back(std::make_tuple(s - w / 2, s + w / 2, -1));
-            }
-        }
-        for (const auto& stopLine : stopLines)
-        {
-            auto s1 = std::get<0>(stopLine);
-            auto s2 = std::get<1>(stopLine);
-            auto polys = gen.get_both_dirs_poly(s1, s2, 0.1);
-            auto side = std::get<2>(stopLine);
-            auto poly = side == 1 ? polys.first : polys.second;
-            QPolygonF markingPoly = LineToPoly(poly);
-            auto markingItem = new QGraphicsPolygonItem(markingPoly, this);
-            markingItem->setPen(Qt::NoPen);
-            Qt::GlobalColor color = Qt::white;
-            markingItem->setBrush(QBrush(color, Qt::SolidPattern));
         }
 
         refLineHint = new QGraphicsPathItem(this);
@@ -407,6 +416,31 @@ namespace RoadRunner
             pMOffset = odr::negate(pMOffset);
         }
         return odr::add(pM, pMOffset);
+    }
+
+    ArrowGraphics::ArrowGraphics(int markingType, QGraphicsItem* parent):
+        QGraphicsPathItem(parent)
+    {
+        QPainterPath path;
+        if ((markingType & odr::ArrowDeadEnd) != 0)
+        {
+            QPolygonF shape;
+            shape << QPointF(0.4, 0);
+            shape << QPointF(1.2, 0.8);
+            shape << QPointF(0.8, 1.2);
+            shape << QPointF(0, 0.4);
+            shape << QPointF(-0.8, 1.2);
+            shape << QPointF(-1.2, 0.8);
+            shape << QPointF(-0.4, 0);
+            shape << QPointF(-1.2, -0.8);
+            shape << QPointF(-0.8, -1.2);
+            shape << QPointF(0, -0.4);
+            shape << QPointF(0.8, -1.2);
+            shape << QPointF(1.2, -0.8);
+            shape << QPointF(0.4, 0);
+            path.addPolygon(shape);
+        }
+        setPath(path);
     }
 }
 
