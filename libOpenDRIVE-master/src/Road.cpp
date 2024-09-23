@@ -796,9 +796,19 @@ void Road::PlaceMarkings()
             idAndLane.second.roadmark_groups.clear();
         }
 
+
+        std::vector<int> sidesToPlaceMarkings = {-1, 1};
+        bool hasMedian = section.id_to_lane.find(1) != section.id_to_lane.end() 
+            && section.id_to_lane.at(1).type == "median"
+            && section.id_to_lane.at(1).lane_width.get_max(sectionS0, sectionSEnd) > 1e-3;
+        if (!hasMedian) {
+
+            sidesToPlaceMarkings.push_back(0);
+        }
+
         auto biDirectional = section.id_to_lane.begin()->first < 0 && section.id_to_lane.rbegin()->first > 0;
 
-        for (int side : {-1, 0, 1})
+        for (int side : sidesToPlaceMarkings)
         {
             auto lanesOnSide = side == 0 ? 
                 std::vector<odr::Lane>{section.id_to_lane.at(0)}

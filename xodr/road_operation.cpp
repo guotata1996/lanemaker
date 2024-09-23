@@ -83,6 +83,18 @@ namespace RoadRunner
         road1->RefLine().elevation_profile.join(linkBaseD, road2->RefLine().elevation_profile);
         road1->Generate();
 
+#ifndef G_TEST
+        // Move road2's grapghics to road1 to reduce regeneration
+        for (auto& s_graphics : road2->s_to_section_graphics)
+        {
+            auto graphics = std::move(s_graphics.second);
+            graphics->road = road1;
+            graphics->sBegin += road2BaseD;
+            graphics->sEnd += road2BaseD;
+            road1->s_to_section_graphics.emplace(road2BaseD + s_graphics.first, std::move(graphics));
+        }
+#endif
+
         if (road2->successorJunction != nullptr)
         {
             auto successorJunction = road2->successorJunction;
@@ -95,15 +107,6 @@ namespace RoadRunner
         }
 
 #ifndef G_TEST
-        // Move road2's grapghics to road1 to reduce regeneration
-        for (auto& s_graphics : road2->s_to_section_graphics)
-        {
-            auto graphics = std::move(s_graphics.second);
-            graphics->road = road1;
-            graphics->sBegin += road2BaseD;
-            graphics->sEnd += road2BaseD;
-            road1->s_to_section_graphics.emplace(road2BaseD + s_graphics.first, std::move(graphics));
-        }
 
         // Update transition part, up to max transition length
         road1->GenerateOrUpdateSectionGraphicsBetween(
