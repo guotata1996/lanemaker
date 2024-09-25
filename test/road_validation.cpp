@@ -392,7 +392,7 @@ namespace RoadRunnerTest
                     successorIsCommon = true;
                 }
             }
-            if (successorIsCommon)
+            if (successorIsCommon && road.rr_profile.HasSide(-1))
             {
                 ExpectOrAssert(successorStopLineObjectIt != road.id_to_object.end());
                 ExpectNearOrAssert(successorStopLineObjectIt->second.s0, road.length, 1);
@@ -413,7 +413,7 @@ namespace RoadRunnerTest
                     predecessorIsCommon = true;
                 }
             }
-            if (predecessorIsCommon)
+            if (predecessorIsCommon && road.rr_profile.HasSide(1))
             {
                 ExpectOrAssert(predecessorStopLineObjectIt != road.id_to_object.end());
                 ExpectNearOrAssert(predecessorStopLineObjectIt->second.s0, 0, 1);

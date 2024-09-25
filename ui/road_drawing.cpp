@@ -167,54 +167,82 @@ void RoadDrawingSession::CustomCursorItem::paint(QPainter* painter, const QStyle
 
 void RoadDrawingSession::UpdateEndMarkings()
 {
+    std::set<std::pair< RoadRunner::Road*, odr::RoadLink::ContactPoint>> dueUpdate;
+    for (auto id_obj : IDGenerator::ForJunction()->PeekChanges())
+    {
+        auto junction = static_cast<RoadRunner::AbstractJunction*>(id_obj.second);
+        if (junction != nullptr)
+        {
+            auto connected = junction->GetConnected();
+            dueUpdate.insert(connected.begin(), connected.end());
+        }
+    }
     for (auto id_obj : IDGenerator::ForRoad()->PeekChanges())
     {
         auto road = static_cast<RoadRunner::Road*>(id_obj.second);
         if (road != nullptr)
         {
-            for (odr::RoadLink::ContactPoint c : {odr::RoadLink::ContactPoint_Start, odr::RoadLink::ContactPoint_End})
+            dueUpdate.insert(std::make_pair(road, odr::RoadLink::ContactPoint_Start));
+            dueUpdate.insert(std::make_pair(road, odr::RoadLink::ContactPoint_End));
+        }
+    }
+
+    for (auto road_contact : dueUpdate)
+    {
+        auto road = road_contact.first;
+        bool needStopLine = false;
+        std::map<int, uint8_t> laneToArrow;
+        if (road->generated.junction == "-1")
+        {
+            // Nothing is needed for connecting road
+            if (road_contact.second == odr::RoadLink::ContactPoint_End)
             {
-                bool needStopLine = false;
-                std::map<int, uint8_t> laneToArrow;
-                if (c == odr::RoadLink::ContactPoint_End)
+                if (road->successorJunction != nullptr)
                 {
-                    if (road->successorJunction != nullptr)
+                    auto successorJunction = dynamic_cast<RoadRunner::Junction*>(road->successorJunction.get());
+                    if (successorJunction != nullptr)
                     {
-                        if (dynamic_cast<RoadRunner::Junction*>(road->successorJunction.get()) != nullptr)
-                        {
-                            needStopLine = true;
-                            // TODO: turning arrows
-                        }
-                    }
-                    else
-                    {
+                        needStopLine = true;
                         for (auto lane : road->generated.s_to_lanesection.rbegin()->second.get_sorted_driving_lanes(-1))
                         {
-                            laneToArrow.emplace(lane.id, odr::ArrowDeadEnd);
+                            auto turnSemantics = successorJunction->GetTurningSemanticsForIncoming(road->ID(), lane.id);
+                            laneToArrow.emplace(lane.id, turnSemantics);
                         }
                     }
                 }
                 else
                 {
-                    if (road->predecessorJunction != nullptr)
+                    for (auto lane : road->generated.s_to_lanesection.rbegin()->second.get_sorted_driving_lanes(-1))
                     {
-                        if (dynamic_cast<RoadRunner::Junction*>(road->predecessorJunction.get()) != nullptr)
-                        {
-                            needStopLine = true;
-                            // TODO: turning arrows
-                        }
+                        laneToArrow.emplace(lane.id, RoadRunner::DeadEnd);
                     }
-                    else
+                }
+            }
+            else
+            {
+                if (road->predecessorJunction != nullptr)
+                {
+                    auto predecessorJunction = dynamic_cast<RoadRunner::Junction*>(road->predecessorJunction.get());
+                    if (predecessorJunction != nullptr)
                     {
+                        needStopLine = true;
                         for (auto lane : road->generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(1))
                         {
-                            laneToArrow.emplace(lane.id, odr::ArrowDeadEnd);
+                            auto turnSemantics = predecessorJunction->GetTurningSemanticsForIncoming(road->ID(), lane.id);
+                            laneToArrow.emplace(lane.id, turnSemantics);
                         }
                     }
                 }
-                road->UpdateArrowGraphics(c, laneToArrow, needStopLine);
+                else
+                {
+                    for (auto lane : road->generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(1))
+                    {
+                        laneToArrow.emplace(lane.id, RoadRunner::DeadEnd);
+                    }
+                }
             }
         }
+        road->UpdateArrowGraphics(road_contact.second, laneToArrow, needStopLine);
     }
 }
 double RoadDrawingSession::CustomCursorItem::InitialRadius = 2;

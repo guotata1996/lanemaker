@@ -1,7 +1,6 @@
 #include "road_graphics.h"
 #include "mainwindow.h"
 
-
 #include <QGraphicsSceneMouseEvent>
 #include <qgraphicsscene.h>
 #include <qvector2d.h>
@@ -9,6 +8,7 @@
 
 #include "spdlog/spdlog.h"
 #include "stats.h"
+#include "junction.h"
 
 extern QGraphicsScene* g_scene;
 
@@ -174,7 +174,7 @@ namespace RoadRunner
                         markingItem = new ArrowGraphics(arrowType, this);
                         QTransform arrowTransform;
                         arrowTransform.translate(pt[0], pt[1]);
-                        arrowTransform.rotate(180 / M_PI * hdg);
+                        arrowTransform.rotate(180 / M_PI * id_object.second.hdg);
                         markingItem->setTransform(arrowTransform);
                     }
                     else
@@ -422,22 +422,55 @@ namespace RoadRunner
         QGraphicsPathItem(parent)
     {
         QPainterPath path;
-        if ((markingType & odr::ArrowDeadEnd) != 0)
+        path.setFillRule(Qt::WindingFill);
+        if ((markingType & DeadEnd) != 0)
+        {
+            QPolygonF stem, cross1, cross2;
+            stem << QPointF(-2, 0.2) << QPointF(1, 0.2) << QPointF(1, -0.2) << QPointF(-2, -0.2);
+            path.addPolygon(stem);
+            cross1 << QPointF(0.4, 1) << QPointF(0.6, 1) << QPointF(1.6, -1) << QPointF(1.4, -1);
+            path.addPolygon(cross1);
+            cross2 << QPointF(1.4, 1) << QPointF(1.6, 1) << QPointF(0.6, -1) << QPointF(0.4, -1);
+            path.addPolygon(cross2);
+        }
+        if ((markingType & Turn_No) != 0)
         {
             QPolygonF shape;
-            shape << QPointF(0.4, 0);
-            shape << QPointF(1.2, 0.8);
-            shape << QPointF(0.8, 1.2);
-            shape << QPointF(0, 0.4);
-            shape << QPointF(-0.8, 1.2);
-            shape << QPointF(-1.2, 0.8);
-            shape << QPointF(-0.4, 0);
-            shape << QPointF(-1.2, -0.8);
-            shape << QPointF(-0.8, -1.2);
-            shape << QPointF(0, -0.4);
-            shape << QPointF(0.8, -1.2);
-            shape << QPointF(1.2, -0.8);
-            shape << QPointF(0.4, 0);
+            shape << QPointF(-2, 0.2);
+            shape << QPointF(1, 0.2);
+            shape << QPointF(1, 0.5);
+            shape << QPointF(2, 0);
+            shape << QPointF(1, -0.5);
+            shape << QPointF(1, -0.2);
+            shape << QPointF(-2, -0.2);
+            path.addPolygon(shape);
+        }
+        if ((markingType & Turn_Left) != 0)
+        {
+            QPolygonF shape;
+            shape << QPointF(-2, 0.2);
+            shape << QPointF(-0.8, 0.2);
+            shape << QPointF(-0.2, 0.8);
+            shape << QPointF(-0.4, 1);
+            shape << QPointF(0.2, 1);
+            shape << QPointF(0.2, 0.4);
+            shape << QPointF(0, 0.6);
+            shape << QPointF(-0.8, -0.2);
+            shape << QPointF(-2, -0.2);
+            path.addPolygon(shape);
+        }
+        if ((markingType & Turn_Right) != 0)
+        {
+            QPolygonF shape;
+            shape << QPointF(-2, 0.2);
+            shape << QPointF(-0.8, 0.2);
+            shape << QPointF(0, -0.6);
+            shape << QPointF(0.2, -0.4);
+            shape << QPointF(0.2, -1);
+            shape << QPointF(-0.4, -1);
+            shape << QPointF(-0.2, -0.8);
+            shape << QPointF(-0.8, -0.2);
+            shape << QPointF(-2, -0.2);
             path.addPolygon(shape);
         }
         setPath(path);

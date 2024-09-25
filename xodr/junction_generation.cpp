@@ -390,17 +390,17 @@ namespace RoadRunner
         for (int semanticsFactor = 5; semanticsFactor >= 0; --semanticsFactor)
         {
             double factor01 = (double)semanticsFactor / 5;
-            double semanticsWeight[4]{
-                idealSemanticsWeight[0] * factor01 + 1.0 * (1 - factor01),
-                idealSemanticsWeight[1] * factor01 + 1.0 * (1 - factor01),
-                idealSemanticsWeight[2] * factor01 + 1.0 * (1 - factor01),
-                idealSemanticsWeight[3] * factor01 + 1.0 * (1 - factor01),
+            std::map<TurningSemantics, double> semanticsWeight{
+                {TurningSemantics::Turn_No, idealSemanticsWeight[0] * factor01 + 1.0 * (1 - factor01)},
+                {TurningSemantics::Turn_U, idealSemanticsWeight[1] * factor01 + 1.0 * (1 - factor01)},
+                {TurningSemantics::Turn_Left, idealSemanticsWeight[2] * factor01 + 1.0 * (1 - factor01)},
+                {TurningSemantics::Turn_Right, idealSemanticsWeight[3] * factor01 + 1.0 * (1 - factor01)},
             };
             // Raw distribution by semantic_weight * inflated_nLanes
             std::vector<double> weights(outgoings.size());
             std::transform(outgoings.begin(), outgoings.end(), weights.begin(),
                 [&semanticsWeight](const TurningGroup& p) {
-                    return p.toTotalLanes * semanticsWeight[(int)p.direction]; });
+                    return p.toTotalLanes * semanticsWeight.at(p.direction); });
             // Turn weight into normalized cumulative
             double init = 0;
             double sumWeight = std::accumulate(weights.begin(), weights.end(), init);

@@ -110,7 +110,7 @@ namespace RoadRunner
         static void FromConnInfo(const ConnectionInfo&, RoadEndpoint& incoming, RoadEndpoint& outgoing);
     };
 
-    enum TurningSemantics {Turn_No, Turn_U, Turn_Left, Turn_Right};
+    enum TurningSemantics {Turn_No = 1, Turn_U = 2, Turn_Left = 4, Turn_Right = 8, DeadEnd = 16};
 
     // A group of neighboring lanes going from road A to B
     struct TurningGroup
@@ -177,6 +177,8 @@ namespace RoadRunner
         virtual bool CanDegerate() const; /*If only 2 roads left, check if they can be joined*/
         void Degenerate();
 
+        std::set<std::pair<Road*, odr::RoadLink::ContactPoint>> GetConnected() const;
+
 #ifndef G_TEST
         virtual void GenerateGraphics() = 0;
 #endif
@@ -222,6 +224,7 @@ namespace RoadRunner
 #ifndef G_TEST
         virtual void GenerateGraphics() override;
 #endif
+        uint8_t GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const;
 
     protected:
         std::vector<std::shared_ptr<Road>> connectingRoads;

@@ -8,6 +8,8 @@
 #include <vector>
 #include <QPainterPath>
 
+#include <map>
+
 
 class RoadDrawingSession
 {

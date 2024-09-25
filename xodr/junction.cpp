@@ -79,7 +79,6 @@ namespace RoadRunner
             else if (detail._type == detail.Type_Reverse && subject == recordedRoad)
             {
                 needReGen = true;
-                //subject->ToggleStopLine(record.contact, false);
                 auto newContact = record.contact == odr::RoadLink::ContactPoint_Start ?
                     odr::RoadLink::ContactPoint_End : odr::RoadLink::ContactPoint_Start;
                 auto updatedInfo = ConnectionInfo(recordedRoad, newContact, record.skipProviderLanes);
@@ -90,7 +89,6 @@ namespace RoadRunner
             {
                 subject->generated.successor = odr::RoadLink();
                 subject->successorJunction.reset();
-                //subject->ToggleStopLine(odr::RoadLink::ContactPoint_End, false);
             }
             else
             {
@@ -128,8 +126,6 @@ namespace RoadRunner
             {
                 assert(false);
             }
-
-            //onlyRoad->ToggleStopLine(updatedInfoList.begin()->contact, false);
 
             clearLinkage(ID(), onlyRoad->ID());
             IDGenerator::ForRoad()->NotifyChange(onlyRoad->ID());
@@ -201,7 +197,6 @@ namespace RoadRunner
         {
             roadA->successorJunction.reset();
         }
-        //roadA->ToggleStopLine(contactA, false);
         if (contactB == odr::RoadLink::ContactPoint_Start)
         {
             roadB->predecessorJunction.reset();
@@ -210,7 +205,6 @@ namespace RoadRunner
         {
             roadB->successorJunction.reset();
         }
-        //roadB->ToggleStopLine(contactB, false);
         World::Instance()->allRoads.erase(roadB);
         auto joinResult = Road::JoinRoads(roadA, contactA, roadB, contactB);
         if (joinResult != RoadJoin_Success)
@@ -219,6 +213,16 @@ namespace RoadRunner
         }
         // Destruct self
         formedFrom.clear();
+    }
+
+    std::set<std::pair<Road*, odr::RoadLink::ContactPoint>> AbstractJunction::GetConnected() const
+    {
+        std::set<std::pair<Road*, odr::RoadLink::ContactPoint>> rtn;
+        for (auto info : formedFrom)
+        {
+            rtn.emplace(std::make_pair(info.road.lock().get(), info.contact));
+        }
+        return rtn;
     }
 
     std::string AbstractJunction::Log() const
@@ -294,7 +298,6 @@ namespace RoadRunner
             {
                 roadPtr->successorJunction = shared_from_this();
             }
-            //roadPtr->ToggleStopLine(info.contact, true);
         });
 
         generated.id_to_connection.clear();
@@ -377,6 +380,46 @@ namespace RoadRunner
         junctionGraphics->setZValue(Elevation() + 0.01);
     }
 #endif
+
+    uint8_t Junction::GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const
+    {
+        uint8_t rtn = 0;
+        for (auto id_conn : generated.id_to_connection)
+        {
+            if (id_conn.second.incoming_road == incomingRoad)
+            {
+                for (auto ll : id_conn.second.lane_links)
+                {
+                    if (ll.from == incomingLane)
+                    {
+                        auto connRoadID = id_conn.second.connecting_road;
+                        auto connectingRoad = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(connRoadID));
+                        auto startGrad = connectingRoad->generated.ref_line.get_grad_xy(0);
+                        auto endGrad = connectingRoad->generated.ref_line.get_grad_xy(connectingRoad->Length());
+                        auto turnAngle = odr::angle(startGrad, endGrad);
+                        if (std::abs(turnAngle) > M_PI - 0.1)
+                        {
+                            rtn |= TurningSemantics::Turn_U;
+                        }
+                        else if (turnAngle > M_PI_4)
+                        {
+                            rtn |= TurningSemantics::Turn_Left;
+                        }
+                        else if (turnAngle < -M_PI_4)
+                        {
+                            rtn |= TurningSemantics::Turn_Right;
+                        }
+                        else
+                        {
+                            rtn |= TurningSemantics::Turn_No;
+                        }
+                    }
+                }
+            }
+        }
+        return rtn;
+    }
+
     DirectJunction::DirectJunction(ConnectionInfo aInterfaceProvider) : AbstractJunction()
     {
         formedFrom.insert(aInterfaceProvider);

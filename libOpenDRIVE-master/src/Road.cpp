@@ -970,7 +970,12 @@ void Road::UpdateArrowMarkings(odr::RoadLink::ContactPoint contact, std::map<int
         double t0 = (outer_t + inner_t) / 2;
 
         auto objID = std::to_string(ArrowIDOffset + lane.id);
-        RoadObject arrow(id, objID, s0, t0, 0, 0, 0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, "roadMark", std::to_string(arrowSpec->second), "", "arrow", false);
+        double     hdg = ref_line.get_hdg(s0);
+        if (lane.id > 0)
+        {
+            hdg += 3.1416;
+        }
+        RoadObject arrow(id, objID, s0, t0, 0, 0, 0, 2.0, 0.0, 0.0, hdg, 0.0, 0.0, "roadMark", std::to_string(arrowSpec->second), "", "arrow", false);
         assert(id_to_object.find(objID) == id_to_object.end());
         id_to_object.emplace(objID, arrow);
     }
