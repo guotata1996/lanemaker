@@ -241,11 +241,6 @@ bool LanesCreationSession::Complete()
     return success;
 }
 
-LanesCreationSession::~LanesCreationSession()
-{
-    SetHighlightTo(nullptr);
-}
-
 // lane editing cannot happen to 
 // 1) connecting roads
 // 2) at normal junction interface

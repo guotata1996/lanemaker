@@ -172,8 +172,6 @@ public:
 
     virtual bool Complete() override;
 
-    virtual ~LanesCreationSession() override;
-
 protected:
     virtual SnapResult SnapFirstPointToExisting(odr::Vec2D&) override;
     virtual SnapResult SnapLastPointToExisting(odr::Vec2D&) override;

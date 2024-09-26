@@ -30,7 +30,6 @@ RoadDestroySession::~RoadDestroySession()
     scene->removeItem(cursorItem);
     scene->removeItem(hintItemLeft);
     scene->removeItem(hintItemRight);
-    SetHighlightTo(nullptr);
 }
 
 bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)

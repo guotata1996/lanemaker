@@ -29,7 +29,7 @@ namespace RoadRunner
             else
             {
                 pos = outgoing.origin;
-                hdgInto = odr::negate(incoming.forward);
+                hdgInto = odr::negate(outgoing.forward);
             }
         }
 

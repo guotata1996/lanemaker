@@ -567,7 +567,6 @@ RoadCreationSession::~RoadCreationSession()
 	scene->removeItem(flexBoundaryPreview);
 	scene->removeItem(cursorItem);
 	scene->removeItem(directionHandle);
-	SetHighlightTo(nullptr);
 }
 
 void RoadCreationSession::GeneratePainterPath(const std::unique_ptr<odr::RoadGeometry>& geo,

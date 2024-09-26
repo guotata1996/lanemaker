@@ -182,6 +182,7 @@ void RoadDrawingSession::UpdateEndMarkings()
         auto road = static_cast<RoadRunner::Road*>(id_obj.second);
         if (road != nullptr)
         {
+            road->EnableHighlight(false);
             dueUpdate.insert(std::make_pair(road, odr::RoadLink::ContactPoint_Start));
             dueUpdate.insert(std::make_pair(road, odr::RoadLink::ContactPoint_End));
         }
@@ -202,7 +203,7 @@ void RoadDrawingSession::UpdateEndMarkings()
                     auto successorJunction = dynamic_cast<RoadRunner::Junction*>(road->successorJunction.get());
                     if (successorJunction != nullptr)
                     {
-                        needStopLine = true;
+                        needStopLine = road->generated.rr_profile.HasSide(-1);
                         for (auto lane : road->generated.s_to_lanesection.rbegin()->second.get_sorted_driving_lanes(-1))
                         {
                             auto turnSemantics = successorJunction->GetTurningSemanticsForIncoming(road->ID(), lane.id);
@@ -225,7 +226,7 @@ void RoadDrawingSession::UpdateEndMarkings()
                     auto predecessorJunction = dynamic_cast<RoadRunner::Junction*>(road->predecessorJunction.get());
                     if (predecessorJunction != nullptr)
                     {
-                        needStopLine = true;
+                        needStopLine = road->generated.rr_profile.HasSide(1);
                         for (auto lane : road->generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(1))
                         {
                             auto turnSemantics = predecessorJunction->GetTurningSemanticsForIncoming(road->ID(), lane.id);

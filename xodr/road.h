@@ -125,7 +125,7 @@ namespace RoadRunner
         // When updates road, remove RoadSectionGraphics then add new
         std::map<double, std::unique_ptr<SectionGraphics>> s_to_section_graphics;
 
-        bool highlighted = false;
+        std::optional<bool> highlighted;
 #endif
     };
 

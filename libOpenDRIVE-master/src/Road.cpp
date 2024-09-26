@@ -904,12 +904,6 @@ bool Road::HideBorderMarkingForDJ(odr::RoadLink::ContactPoint c, int side, doubl
 
 void Road::ToggleStopLine(odr::RoadLink::ContactPoint contact, bool enable)
 {
-    if (contact == odr::RoadLink::ContactPoint_End && !rr_profile.HasSide(-1)
-        || contact == odr::RoadLink::ContactPoint_Start && !rr_profile.HasSide(1)) 
-    {
-        // Stop line can only be placed at left/right exit
-        return;
-    }
     std::string objID = std::to_string(static_cast<int>(contact));
     if (enable) 
     {
