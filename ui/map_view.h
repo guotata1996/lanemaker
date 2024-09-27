@@ -19,6 +19,8 @@ public:
 
     void SetEditMode(RoadRunner::EditMode aMode);
 
+    void SetBackground(const QPixmap&);
+
     void PostEditActions();
 
     void ResetSceneRect();
@@ -66,6 +68,8 @@ private:
     RoadRunner::EditMode editMode = RoadRunner::Mode_None;
 
     bool showingScale = false;
+
+    QGraphicsItem* backgroundItem = nullptr;
 
     QTransform lastTransform;
 

@@ -54,6 +54,11 @@ MapView::MapView(MainWidget* v, QGraphicsScene* scene) :
 void MapView::ResetSceneRect()
 {
     setSceneRect(-ViewPadding, -ViewPadding, 2 * ViewPadding, 2 * ViewPadding);
+    if (backgroundItem != nullptr)
+    {
+        scene()->removeItem(backgroundItem);
+        backgroundItem = nullptr;
+    }
 }
 
 double MapView::Zoom() const
@@ -127,6 +132,19 @@ void MapView::SetEditMode(RoadRunner::EditMode aMode)
     default:
         break;
     }
+}
+
+void MapView::SetBackground(const QPixmap& image)
+{
+    if (backgroundItem != nullptr)
+    {
+        scene()->removeItem(backgroundItem);
+    }
+    backgroundItem = new QGraphicsPixmapItem(image);
+    QTransform flipY;
+    flipY.scale(1, -1);
+    backgroundItem->setTransform(flipY);
+    scene()->addItem(backgroundItem);
 }
 
 void MapView::OnMousePress(const RoadRunner::MouseAction& evt)

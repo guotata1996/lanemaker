@@ -1172,6 +1172,35 @@ void OpenDriveMap::export_file(const std::string& fpath) const
                 // Missing user data
             }
         }
+
+        // road objects
+        if (!road.id_to_object.empty())
+        {
+            auto objects_node = road_node.append_child("objects");
+            for (const auto& id_object : road.id_to_object)
+            {
+                auto road_object = id_object.second;
+                auto object_node = objects_node.append_child("object");
+                object_node.append_attribute("id").set_value(id_object.first.c_str());
+                object_node.append_attribute("dynamic").set_value(road_object.is_dynamic);
+                object_node.append_attribute("s").set_value(road_object.s0);
+                object_node.append_attribute("t").set_value(road_object.t0);
+                object_node.append_attribute("zOffset").set_value(road_object.z0);
+                object_node.append_attribute("length").set_value(road_object.length);
+                object_node.append_attribute("validLength").set_value(road_object.valid_length);
+                object_node.append_attribute("width").set_value(road_object.width);
+                object_node.append_attribute("radius").set_value(road_object.radius);
+                object_node.append_attribute("height").set_value(road_object.height);
+                object_node.append_attribute("hdg").set_value(road_object.hdg);
+                object_node.append_attribute("pitch").set_value(road_object.pitch);
+                object_node.append_attribute("roll").set_value(road_object.roll);
+                object_node.append_attribute("type").set_value(road_object.type.c_str());
+                object_node.append_attribute("name").set_value(road_object.name.c_str());
+                object_node.append_attribute("orientation").set_value(road_object.hdg);
+                object_node.append_attribute("subtype").set_value(road_object.subtype.c_str());
+                // currently no repeat or outline child
+            }
+        }
         
         pugi::xml_node customProfile = road_node.append_child("roadRunnerProfile");
         if (!road.rr_profile.leftPlans.empty()) 

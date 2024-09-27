@@ -7,6 +7,7 @@ class QLabel;
 class QSlider;
 class QToolButton;
 class QButtonGroup;
+class QPixmap;
 QT_END_NAMESPACE
 
 class MapView;
@@ -24,6 +25,8 @@ public:
     void PostEditActions();
 
     void SetHovering(QString);
+
+    void SetBackgroundImage(const QPixmap& image);
 
     void Painted();
 

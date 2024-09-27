@@ -360,6 +360,11 @@ void MainWidget::SetHovering(QString a)
     emit HoveringChanged(a);
 }
 
+void MainWidget::SetBackgroundImage(const QPixmap& image)
+{
+    mapView->SetBackground(image);
+}
+
 void MainWidget::Painted()
 {
     auto t = QDateTime::currentMSecsSinceEpoch();
