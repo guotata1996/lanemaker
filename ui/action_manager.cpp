@@ -75,6 +75,7 @@ namespace RoadRunner
         ChangeModeAction serialized{ modeChange };
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
         Save();
+        currEditMode = modeChange;
     }
 
     void ActionManager::Replay(const ChangeModeAction& action)
@@ -99,13 +100,12 @@ namespace RoadRunner
 
     void ActionManager::Record(QMouseEvent* evt)
     {
-        FlushBufferedViewportChange();
         MouseAction serialized(evt);
 
         if (evt->type() == QEvent::Type::MouseMove)
         {
             bool recordNow = false;
-            if (serialized.button == Qt::LeftButton)
+            if (serialized.button == Qt::LeftButton && currEditMode != EditMode::Mode_None)
             {
                 recordNow = true;
             }
@@ -131,6 +131,7 @@ namespace RoadRunner
 
             if (recordNow)
             {
+                FlushBufferedViewportChange();
                 history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
                 lastRecordedMouseMove.emplace(serialized);
                 lastUnrecordedMouseMove.reset();
@@ -142,6 +143,7 @@ namespace RoadRunner
         }
         else
         {
+            FlushBufferedViewportChange();
             FlushUnrecordedMouseMove();
             history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
             Save();
@@ -309,6 +311,7 @@ namespace RoadRunner
         lastRecordedMouseMove.reset();
         lastUnrecordedMouseMove.reset();
         latestViewportChange.reset();
+        currEditMode = EditMode::Mode_None;
     }
 
     void ActionManager::FlushBufferedViewportChange()

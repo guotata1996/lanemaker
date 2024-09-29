@@ -66,6 +66,7 @@ namespace RoadRunner
 
         std::string loadedXodr;
         std::vector<UserAction> history;
+        EditMode currEditMode;
 
         static ActionManager* instance;
 
@@ -78,6 +79,6 @@ namespace RoadRunner
 
         QTime startTime;
 
-        const int MouseMoveRecordThreshold = 50;
+        const int MouseMoveRecordThreshold = 100;
     };
 }

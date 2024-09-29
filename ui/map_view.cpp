@@ -88,10 +88,18 @@ void MapView::hideScale()
 void MapView::wheelEvent(QWheelEvent* e)
 {
     if (e->modifiers() & Qt::ControlModifier) {
+        auto target_viewport_pos = e->pos();
+        auto target_scene_pos = mapToScene(target_viewport_pos);
         if (e->angleDelta().y() > 0)
             parentContainer->zoomInBy(6);
         else
             parentContainer->zoomOutBy(6);
+        centerOn(target_scene_pos);
+        QPointF delta_viewport_pos = target_viewport_pos - QPointF(viewport()->width() / 2.0,
+            viewport()->height() / 2.0);
+        QPointF viewport_center = mapFromScene(target_scene_pos) - delta_viewport_pos;
+        centerOn(mapToScene(viewport_center.toPoint()));
+
         e->accept();
     }
     else {
@@ -147,6 +155,8 @@ void MapView::SetBackground(const QPixmap& image)
     backgroundItem->setTransform(trans);
     backgroundItem->setZValue(-999);
     scene()->addItem(backgroundItem);
+
+    AdjustSceneRect();
 }
 
 void MapView::OnMousePress(const RoadRunner::MouseAction& evt)
@@ -392,19 +402,7 @@ void MapView::PostEditActions()
     g_RotatingSize = 0;
     g_PointerRoad.reset();
 
-    // Adjust scene rect
-    QRectF original(0, 0, 0, 0);
-    for (auto item : scene()->items())
-    {
-        if (dynamic_cast<RoadRunner::LaneGraphics*>(item) != nullptr)
-        {
-            original = original.united(item->sceneBoundingRect());
-        }
-    }
-
-    QRectF paded(original.left() - ViewPadding, original.top() - ViewPadding,
-        original.width() + 2 * ViewPadding, original.height() + 2 * ViewPadding);
-    setSceneRect(paded);
+    AdjustSceneRect();
 }
 
 void MapView::confirmEdit()
@@ -547,4 +545,29 @@ void MapView::SnapCursor(const QPoint& viewPos)
     }
 
     parentContainer->SetHovering(cursorInfo + PointerRoadInfo());
+}
+
+void MapView::AdjustSceneRect()
+{
+    QRectF original(0, 0, 0, 0);
+
+    if (backgroundItem != nullptr)
+    {
+        original = backgroundItem->sceneBoundingRect();
+    }
+    else
+    {
+
+        for (auto item : scene()->items())
+        {
+            if (dynamic_cast<RoadRunner::LaneGraphics*>(item) != nullptr)
+            {
+                original = original.united(item->sceneBoundingRect());
+            }
+        }
+    }
+
+    QRectF paded(original.left() - ViewPadding, original.top() - ViewPadding,
+        original.width() + 2 * ViewPadding, original.height() + 2 * ViewPadding);
+    setSceneRect(paded);
 }
