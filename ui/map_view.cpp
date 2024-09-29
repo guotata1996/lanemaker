@@ -141,9 +141,11 @@ void MapView::SetBackground(const QPixmap& image)
         scene()->removeItem(backgroundItem);
     }
     backgroundItem = new QGraphicsPixmapItem(image);
-    QTransform flipY;
-    flipY.scale(1, -1);
-    backgroundItem->setTransform(flipY);
+    QTransform trans;
+    trans.scale(1, -1);
+    trans.translate(-image.width() / 2, -image.height() / 2);
+    backgroundItem->setTransform(trans);
+    backgroundItem->setZValue(-999);
     scene()->addItem(backgroundItem);
 }
 

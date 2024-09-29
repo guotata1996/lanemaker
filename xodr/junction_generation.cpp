@@ -514,6 +514,24 @@ namespace RoadRunner
 
     void assignOutgoingLanes(std::vector<TurningGroup>& incomingLanes)
     {
+        uint8_t lanesUsedByLTurn = 0, lanesUsedByRTurn = 0, lanesRequestedByStraight = 0;
+        for (TurningGroup& group : incomingLanes)
+        {
+            switch (group.direction)
+            {
+            case TurningSemantics::Turn_U:
+            case TurningSemantics::Turn_Left:
+                lanesUsedByLTurn = std::max(lanesUsedByLTurn, group.nLanes);
+                break;
+            case TurningSemantics::Turn_No:
+                lanesRequestedByStraight = std::max(lanesRequestedByStraight, group.nLanes);
+                break;
+            case TurningSemantics::Turn_Right:
+                lanesUsedByRTurn = std::max(lanesUsedByRTurn, group.nLanes);
+                break;
+            }
+        }
+
         for (TurningGroup& group : incomingLanes)
         {
             switch (group.direction)
@@ -523,8 +541,18 @@ namespace RoadRunner
                 group.toLaneIDBase = 0;
                 break;
             case TurningSemantics::Turn_No:
-                // TODO: make those as straight as possible
-                group.toLaneIDBase = 0;
+                if (lanesUsedByLTurn + lanesUsedByRTurn + group.nLanes <= group.toTotalLanes)
+                {
+                    group.toLaneIDBase = lanesUsedByLTurn;
+                }
+                else if (lanesUsedByLTurn + group.nLanes >= group.toTotalLanes)
+                {
+                    group.toLaneIDBase = group.toTotalLanes - group.nLanes;
+                }
+                else
+                {
+                    group.toLaneIDBase = 0;
+                }
                 break;
             case TurningSemantics::Turn_Right:
                 group.toLaneIDBase = group.toTotalLanes - group.nLanes;
