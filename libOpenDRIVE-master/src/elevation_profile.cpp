@@ -1,5 +1,4 @@
 #include "road_profile.h"
-#include <iostream>
 #include <cassert>
 
 namespace RoadRunner

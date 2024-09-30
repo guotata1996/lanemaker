@@ -471,6 +471,10 @@ namespace RoadRunner
 
                 for (const auto& myCollidingInterval : myCollidingIntervals.Merge())
                 {
+                    if (myCollidingInterval.first < sBegin || myCollidingInterval.second > sEnd)
+                    {
+                        continue;
+                    }
                     auto overlap = RoadsOverlap(
                         myCollidingInterval.first, myCollidingInterval.second,
                         colliding.first, sBeginOnOther , sEndOnOther );
