@@ -473,6 +473,21 @@ namespace RoadRunner
             shape << QPointF(-2, -0.2);
             path.addPolygon(shape);
         }
+        if ((markingType & Turn_U) != 0 && 
+            (markingType & Turn_No) == 0 && (markingType & Turn_Right) == 0)
+        {
+            path.moveTo(QPointF(-1.4, -0.2));
+            path.arcTo(QRectF(-1.6, 0.2, 0.4, 0.4), 90, -180);
+            path.arcTo(QRectF(-2, -0.2, 1.2, 1.2), -90, 180);
+            path.closeSubpath();
+            QPolygonF truck;
+            truck << QPointF(-2, 0.2) << QPointF(-1.4, 0.2) << QPointF(-1.4, -0.2) << QPointF(-2, -0.2);
+            path.addPolygon(truck);
+            path.moveTo(-1.4, 0.4);
+            path.lineTo(-1.4, 1.2);
+            path.lineTo(-1.7, 0.8);
+            path.closeSubpath();
+        }
         setPath(path);
     }
 }

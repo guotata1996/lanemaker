@@ -381,9 +381,10 @@ namespace RoadRunner
     }
 #endif
 
-    uint8_t Junction::GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const
+    uint8_t AbstractJunction::GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const
     {
         uint8_t rtn = 0;
+        bool isDeadEnd = true;
         for (auto id_conn : generated.id_to_connection)
         {
             if (id_conn.second.incoming_road == incomingRoad)
@@ -413,11 +414,12 @@ namespace RoadRunner
                         {
                             rtn |= TurningSemantics::Turn_No;
                         }
+                        isDeadEnd = false;
                     }
                 }
             }
         }
-        return rtn;
+        return isDeadEnd ? TurningSemantics::DeadEnd : rtn;
     }
 
     DirectJunction::DirectJunction(ConnectionInfo aInterfaceProvider) : AbstractJunction()

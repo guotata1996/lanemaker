@@ -200,15 +200,16 @@ void RoadDrawingSession::UpdateEndMarkings()
             {
                 if (road->successorJunction != nullptr)
                 {
-                    auto successorJunction = dynamic_cast<RoadRunner::Junction*>(road->successorJunction.get());
-                    if (successorJunction != nullptr)
+                    bool isCommon = dynamic_cast<RoadRunner::Junction*>(road->successorJunction.get()) != nullptr;
+                    if (isCommon)
                     {
                         needStopLine = road->generated.rr_profile.HasSide(-1);
-                        for (auto lane : road->generated.s_to_lanesection.rbegin()->second.get_sorted_driving_lanes(-1))
-                        {
-                            auto turnSemantics = successorJunction->GetTurningSemanticsForIncoming(road->ID(), lane.id);
-                            laneToArrow.emplace(lane.id, turnSemantics);
-                        }
+                    }
+
+                    for (auto lane : road->generated.s_to_lanesection.rbegin()->second.get_sorted_driving_lanes(-1))
+                    {
+                        auto turnSemantics = road->successorJunction->GetTurningSemanticsForIncoming(road->ID(), lane.id);
+                        laneToArrow.emplace(lane.id, isCommon ? turnSemantics : (turnSemantics == RoadRunner::DeadEnd ? RoadRunner::DeadEnd : 0));
                     }
                 }
                 else
@@ -223,15 +224,16 @@ void RoadDrawingSession::UpdateEndMarkings()
             {
                 if (road->predecessorJunction != nullptr)
                 {
-                    auto predecessorJunction = dynamic_cast<RoadRunner::Junction*>(road->predecessorJunction.get());
-                    if (predecessorJunction != nullptr)
+                    bool isCommon = dynamic_cast<RoadRunner::Junction*>(road->predecessorJunction.get()) != nullptr;
+                    if (isCommon)
                     {
                         needStopLine = road->generated.rr_profile.HasSide(1);
-                        for (auto lane : road->generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(1))
-                        {
-                            auto turnSemantics = predecessorJunction->GetTurningSemanticsForIncoming(road->ID(), lane.id);
-                            laneToArrow.emplace(lane.id, turnSemantics);
-                        }
+                    }
+
+                    for (auto lane : road->generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(1))
+                    {
+                        auto turnSemantics = road->predecessorJunction->GetTurningSemanticsForIncoming(road->ID(), lane.id);
+                        laneToArrow.emplace(lane.id, isCommon ? turnSemantics : (turnSemantics == RoadRunner::DeadEnd ? RoadRunner::DeadEnd : 0));
                     }
                 }
                 else

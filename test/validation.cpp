@@ -159,8 +159,8 @@ namespace RoadRunnerTest
                 auto toLaneStartS = toLane.lane_id < 0 ? toLane.lanesection_s0
                 : toRoad.get_lanesection_length(toSection) + toLane.lanesection_s0;
 
-                EnsureEndsMeet(&fromRoad, fromLaneEndS, fromLane.lane_id,
-                    &toRoad, toLaneStartS, toLane.lane_id);
+                EnsureEndsMeet(&fromRoad, fromLaneEndS, fromSection.id_to_lane.at(fromLane.lane_id),
+                    &toRoad, toLaneStartS, toSection.id_to_lane.at(toLane.lane_id));
             }
         }
 
@@ -179,8 +179,8 @@ namespace RoadRunnerTest
                 auto fromLaneEndS = fromLane.lane_id < 0 ? fromLane.lanesection_s0 + fromRoad.get_lanesection_length(fromSection)
                     : fromLane.lanesection_s0;
 
-                EnsureEndsMeet(&fromRoad, fromLaneEndS, fromLane.lane_id,
-                    &toRoad, toLaneStartS, toLane.lane_id);
+                EnsureEndsMeet(&fromRoad, fromLaneEndS, fromSection.id_to_lane.at(fromLane.lane_id),
+                    &toRoad, toLaneStartS, toSection.id_to_lane.at(toLane.lane_id));
             }
         }
     }

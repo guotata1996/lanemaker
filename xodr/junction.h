@@ -191,6 +191,8 @@ namespace RoadRunner
 
         virtual std::string Log() const;
 
+        uint8_t GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const;
+
         int generationError = 0;
 #ifndef G_TEST
     protected:
@@ -224,8 +226,6 @@ namespace RoadRunner
 #ifndef G_TEST
         virtual void GenerateGraphics() override;
 #endif
-        uint8_t GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const;
-
     protected:
         std::vector<std::shared_ptr<Road>> connectingRoads;
 

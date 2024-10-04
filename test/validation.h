@@ -2,7 +2,9 @@
 
 #include <string>
 
-namespace odr { class Road; class CubicSpline; }
+namespace odr {
+    class Road; class CubicSpline; class Lane;
+}
 namespace RoadRunner {
     class Road;
     class AbstractJunction;
@@ -35,6 +37,9 @@ namespace RoadRunnerTest
 
         static void VerifyRoadJunctionPtr();
 #endif
+        static void EnsureEndsMeet(const odr::Road* road1, double s1, odr::Lane lane1,
+            const odr::Road* road2, double s2, odr::Lane lane2);
+
         static void EnsureEndsMeet(const odr::Road* road1, double s1, int lane1,
             const odr::Road* road2, double s2, int lane2);
 

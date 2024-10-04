@@ -152,11 +152,9 @@ namespace RoadRunnerTest
         }
     }
 
-    void Validation::EnsureEndsMeet(const odr::Road* road1, double s1, int lane1,
-        const odr::Road* road2, double s2, int lane2)
+    void Validation::EnsureEndsMeet(const odr::Road* road1, double s1, odr::Lane l1,
+        const odr::Road* road2, double s2, odr::Lane l2)
     {
-        odr::Lane l1 = road1->get_lanesection(s1).id_to_lane.at(lane1);
-        odr::Lane l2 = road2->get_lanesection(s2).id_to_lane.at(lane2);
         double t1_out = l1.outer_border.get(s1);
         double t2_out = l2.outer_border.get(s2);
         odr::Vec3D p1_out = road1->get_xyz(s1, t1_out, 0);  // Note: This returns global pos. reflane.get_xy returns local pos.
@@ -185,6 +183,14 @@ namespace RoadRunnerTest
         auto angle_out = std::abs(odr::angle(h1_out, h2_out));
         auto angle_opp_out = std::abs(odr::angle(h1_out, odr::negate(h2_out)));
         ExpectOrAssert(angle_out < epsilon || angle_opp_out < epsilon);
+    }
+
+    void Validation::EnsureEndsMeet(const odr::Road* road1, double s1, int lane1,
+        const odr::Road* road2, double s2, int lane2)
+    {
+        odr::Lane l1 = road1->get_lanesection(s1).id_to_lane.at(lane1);
+        odr::Lane l2 = road2->get_lanesection(s2).id_to_lane.at(lane2);
+        EnsureEndsMeet(road1, s1, l1, road2, s2, l2);
     }
 
     void Validation::VerifyDirectJunction(const RoadRunner::DirectJunction* junction)
