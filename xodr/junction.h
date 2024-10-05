@@ -191,7 +191,7 @@ namespace RoadRunner
 
         virtual std::string Log() const;
 
-        uint8_t GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const;
+        virtual uint8_t GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const = 0;
 
         int generationError = 0;
 #ifndef G_TEST
@@ -223,6 +223,9 @@ namespace RoadRunner
         virtual int CreateFrom(const std::vector<ConnectionInfo>&) override;
 
         virtual bool CanDegerate() const override;
+
+        virtual uint8_t GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const override;
+
 #ifndef G_TEST
         virtual void GenerateGraphics() override;
 #endif
@@ -245,6 +248,8 @@ namespace RoadRunner
         virtual void AttachNoRegenerate(ConnectionInfo) override;
 
         virtual bool CanDegerate() const override;
+
+        virtual uint8_t GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const override;
 #ifndef G_TEST
         virtual void GenerateGraphics() override;
 #endif

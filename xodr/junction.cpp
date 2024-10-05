@@ -381,10 +381,9 @@ namespace RoadRunner
     }
 #endif
 
-    uint8_t AbstractJunction::GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const
+    uint8_t Junction::GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const
     {
         uint8_t rtn = 0;
-        bool isDeadEnd = true;
         for (auto id_conn : generated.id_to_connection)
         {
             if (id_conn.second.incoming_road == incomingRoad)
@@ -414,12 +413,11 @@ namespace RoadRunner
                         {
                             rtn |= TurningSemantics::Turn_No;
                         }
-                        isDeadEnd = false;
                     }
                 }
             }
         }
-        return isDeadEnd ? TurningSemantics::DeadEnd : rtn;
+        return rtn;
     }
 
     DirectJunction::DirectJunction(ConnectionInfo aInterfaceProvider) : AbstractJunction()
@@ -545,7 +543,7 @@ namespace RoadRunner
             }
             
             // Link lanes from Linked to Provider (merge)
-            if (linkedRoad->generated.rr_profile.HasSide(-1) ||      // bi-dir
+            if (linkedRoad->generated.rr_profile.HasSide(1) ||      // bi-dir
                 linkedContact == odr::RoadLink::ContactPoint_End)   // or single-dir lane merge
             {
                 auto lanesOnLinked = sectionLinked.get_sorted_driving_lanes(linkedContact == odr::RoadLink::ContactPoint_End ? -1 : 1);
@@ -645,6 +643,35 @@ namespace RoadRunner
 
         return true;
     }
+    uint8_t DirectJunction::GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const
+    {
+        uint8_t rtn = RoadRunner::DeadEnd;
+        for (auto id_conn : generated.id_to_connection)
+        {
+            if (id_conn.second.incoming_road == incomingRoad)
+            {
+                for (auto ll : id_conn.second.lane_links)
+                {
+                    if (ll.from == incomingLane)
+                    {
+                        rtn = 0;
+                    }
+                }
+            }
+            if (id_conn.second.connecting_road == incomingRoad)
+            {
+                for (auto ll : id_conn.second.lane_links)
+                {
+                    if (ll.to == incomingLane)
+                    {
+                        rtn = 0;
+                    }
+                }
+            }
+        }
+        return rtn;
+    }
+
 #ifndef G_TEST
     void DirectJunction::GenerateGraphics()
     {

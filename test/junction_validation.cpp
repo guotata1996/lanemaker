@@ -22,6 +22,13 @@ namespace RoadRunnerTest
     }
 #endif
 
+        // Non-dummy linkage info
+        ExpectGTOrAssert(junction->generated.id_to_connection.size(), 0);
+        for (auto id_conn : junction->generated.id_to_connection)
+        {
+            ExpectGTOrAssert(id_conn.second.lane_links.size(), 0);
+        }
+
         auto commonJunction = dynamic_cast<RoadRunner::Junction*>(junction);
         if (commonJunction != nullptr)
         {

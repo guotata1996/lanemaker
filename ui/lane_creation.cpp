@@ -599,7 +599,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
                 // No offset change: can enter from right
                 searchRanges.push_back(std::make_pair(prevProfile.laneCount, nextProfile.laneCount));
             }
-            if (!g_roadProfile.HasSide(-startSide))
+            if (!g_roadProfile.HasSide(-endSide))
             {
                 // Single-way: can enter from left
                 auto delta = nextProfile.offsetx2 - prevProfile.offsetx2;
