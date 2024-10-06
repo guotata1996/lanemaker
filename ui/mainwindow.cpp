@@ -379,8 +379,9 @@ void MainWindow::keyPressEvent(QKeyEvent* e)
 
 void MainWindow::testReplay()
 {
+    auto recordPath = RoadRunner::ActionManager::Instance()->AutosavePath();
     if (g_preference.alwaysVerify
-        && std::filesystem::exists(RoadRunner::ActionManager::Instance()->AutosavePath()))
+        && std::filesystem::exists(recordPath))
     {
         g_preference.alwaysVerify = false; // No verification during replay
         auto saveFolder = RoadRunner::DefaultSaveFolder();
@@ -392,7 +393,7 @@ void MainWindow::testReplay()
 
         quitReplayComplete = false;
         connect(replayWindow.get(), &ReplayWindow::DoneReplay, this, &MainWindow::onReplayDone);
-        replayWindow->LoadHistory(RoadRunner::ActionManager::Instance()->AutosavePath(), true);
+        replayWindow->LoadHistory(recordPath, true);
         replayWindow->exec();
 
         if (quitReplayComplete)
@@ -404,8 +405,7 @@ void MainWindow::testReplay()
             if (!RoadRunnerTest::Validation::CompareFiles(originalPathStr, replayPathStr))
             {
                 RoadRunner::ActionManager::Instance()->MarkException();
-                spdlog::error("Replay result is different from original map! Check {} for details.",
-                    RoadRunner::ActionManager::Instance()->AutosavePath());
+                spdlog::error("Replay result is different from original map! Check {} for details.", recordPath);
             }
             else
             {
@@ -425,7 +425,7 @@ void MainWindow::testReplay()
     
     if (RoadRunner::ActionManager::Instance()->CleanAutoSave())
     {
-        std::remove(RoadRunner::ActionManager::Instance()->AutosavePath().c_str());
+        std::remove(recordPath.c_str());
     }
 }
 
@@ -433,4 +433,37 @@ void MainWindow::onReplayDone(bool completed)
 {
     quitReplayComplete = completed;
     replayWindow->close();
+}
+
+void MainWindow::runReplay(std::string replay)
+{
+    if (!std::filesystem::exists(replay))
+    {
+        spdlog::warn("Unable to run speficied replay(s): File does not exist");
+        return;
+    }
+    // Always run verify during replay
+    g_preference.alwaysVerify = true;
+    connect(replayWindow.get(), &ReplayWindow::DoneReplay, this, &MainWindow::onReplayDone);
+
+    if (std::filesystem::is_regular_file(replay) && std::filesystem::path(replay).extension() == ".dat")
+    {
+        spdlog::info(">> Running {}", replay);
+        replayWindow->LoadHistory(replay, true);
+        replayWindow->exec();
+    }
+    else if (std::filesystem::is_directory(replay))
+    {
+        for (std::filesystem::recursive_directory_iterator i(replay), end; i != end; ++i)
+        {
+            auto path = i->path();
+            if (std::filesystem::is_regular_file(path) && std::filesystem::path(path).extension() == ".dat")
+            {
+                spdlog::info(">> Running {}", path.string());
+                replayWindow->LoadHistory(path.string(), true);
+                replayWindow->exec();
+                reset();
+            }
+        }
+    }
 }

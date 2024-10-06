@@ -20,6 +20,8 @@ public:
 
     void resizeDontRecord(int w, int h);
 
+    void runReplay(std::string replay);
+
 protected:
     void resizeEvent(QResizeEvent*) override;
 
