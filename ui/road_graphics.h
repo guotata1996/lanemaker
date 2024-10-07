@@ -63,6 +63,8 @@ namespace RoadRunner
             int laneID, int laneIDRev, std::string laneType,
             QGraphicsItem* parent);
 
+        void paint(QPainter* painter, const QStyleOptionGraphicsItem* item, QWidget* widget) override;
+
         std::weak_ptr<Road> SnapCursor(QPointF p, double& outS);
 
         std::shared_ptr<Road> GetRoad() const;
@@ -72,6 +74,8 @@ namespace RoadRunner
         void EnableHighlight(bool enabled);
 
     private:
+        QPolygonF lowLODPoly;
+
         std::vector<QPolygonF> subdivisionPolys;
         /*0, 0.05, ..., 0.95, 1*/
         std::vector<double> subdivisionPortion;
@@ -80,6 +84,16 @@ namespace RoadRunner
         bool isMedian;
 
         const int laneID, laneIDReversed;
+    };
+
+    class MarkingGraphics : public QGraphicsPolygonItem
+    {
+    public:
+        MarkingGraphics(const QPolygonF& polygon, QGraphicsItem* parent = nullptr);
+
+        void paint(QPainter* painter, const QStyleOptionGraphicsItem* item, QWidget* widget) override;
+    private:
+        QPolygonF lowLODPoly;
     };
 
     class JunctionGraphics : public QGraphicsPathItem

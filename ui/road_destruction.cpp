@@ -76,7 +76,7 @@ bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
         if (fromS >= 0)
         {
             // Can preview
-            auto borders = target->generated.get_both_dirs_poly(fromS, toS, 1);
+            auto borders = target->generated.get_both_dirs_poly(fromS, toS, 0.25);
             auto& leftBorder = borders.first;
             auto& rightBorder = borders.second;
             for (const odr::Vec3D& p : leftBorder)
@@ -119,7 +119,6 @@ bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
                 {
                     s2 = std::make_unique<double>(*s2 > *s1 ? target->Length() : 0);
                 }
-                
             }
         }
     }

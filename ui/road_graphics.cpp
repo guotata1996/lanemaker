@@ -4,6 +4,8 @@
 #include <QGraphicsSceneMouseEvent>
 #include <qgraphicsscene.h>
 #include <qvector2d.h>
+#include <QPainter>
+#include <QStyleOptionGraphicsItem>
 #include <math.h>
 
 #include "spdlog/spdlog.h"
@@ -84,7 +86,9 @@ namespace RoadRunner
                 allLaneGraphics.push_back(laneSegmentItem);
             }
         }
-
+        
+        // Draw road markings
+        
         for (const auto& id2Lane : laneSection.id_to_lane)
         {
             const auto& lane = id2Lane.second;
@@ -134,7 +138,7 @@ namespace RoadRunner
                 for (int i = 0; i != lines.size(); ++i)
                 {
                     QPolygonF markingPoly = LineToPoly(lines[i]);
-                    auto markingItem = new QGraphicsPolygonItem(markingPoly, this);
+                    auto markingItem = new MarkingGraphics(markingPoly, this);
                     markingItem->setPen(Qt::NoPen);
                     Qt::GlobalColor color = colors[i] == "yellow" ? Qt::yellow : 
                         (colors[i] == "white" ? Qt::white : Qt::lightGray);
@@ -271,7 +275,28 @@ namespace RoadRunner
         {
             subdivisionPortion[i] /= outerCumLength;
         }
+
+        odr::Line3D lowPolyV = { outerBorder.front(), outerBorder.back(), innerBorder.back(), innerBorder.front() };
+        lowLODPoly = LineToPoly(lowPolyV);
+
         Stats::Instance("LaneGraphics Created")->Increment();
+    }
+
+    void LaneGraphics::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+    {
+        const qreal lod = option->levelOfDetailFromTransform(painter->worldTransform());
+        if (lod > 2)
+        {
+            QGraphicsPolygonItem::paint(painter, option, widget);
+        }
+        else
+        {
+            painter->save();
+            painter->setPen(pen());
+            painter->setBrush(brush());
+            painter->drawPolygon(lowLODPoly);
+            painter->restore();
+        }
     }
 
     std::weak_ptr<Road> LaneGraphics::SnapCursor(QPointF scenePos, double& outS)
@@ -323,6 +348,33 @@ namespace RoadRunner
     {
         auto parentSection = dynamic_cast<RoadRunner::SectionGraphics*>(parentItem());
         return parentSection->sBegin < parentSection->sEnd ? laneID : laneIDReversed;
+    }
+
+    MarkingGraphics::MarkingGraphics(const QPolygonF& polygon, QGraphicsItem* parent) :
+        QGraphicsPolygonItem(polygon, parent)
+    {
+        lowLODPoly << polygon.front();
+        lowLODPoly << polygon.at(polygon.size() / 2 - 1);
+        lowLODPoly << polygon.at(polygon.size() / 2);
+        lowLODPoly << polygon.back();
+
+    };
+
+    void MarkingGraphics::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+    {
+        const qreal lod = option->levelOfDetailFromTransform(painter->worldTransform());
+        if (lod > 4)
+        {
+            QGraphicsPolygonItem::paint(painter, option, widget);
+        }
+        else
+        {
+            painter->save();
+            painter->setPen(pen());
+            painter->setBrush(brush());
+            painter->drawPolygon(lowLODPoly);
+            painter->restore();
+        }
     }
     
     JunctionGraphics::JunctionGraphics(const odr::Line2D& boundary)
