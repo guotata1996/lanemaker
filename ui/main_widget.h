@@ -37,6 +37,8 @@ public:
     void SetModeFromReplay(int mode);
     void SetElevationFromReplay(int8_t elevationSetting);
 
+    void wheelEvent(QWheelEvent*) override;
+
 signals:
     void HoveringChanged(QString);
 

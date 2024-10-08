@@ -44,7 +44,7 @@ bool RoadCreationSession::DirectionHandle::Update(const RoadRunner::MouseAction&
 		double newRotation = std::atan2(localPos.y(), localPos.x()) * 180 / M_PI + deltaRotation;
 		setRotation(newRotation);
 	}
-	return dragging;
+	return dragging || contains(localPos);
 }
 
 bool RoadCreationSession::DirectionHandle::contains(const QPointF& point) const
@@ -260,9 +260,9 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 			toRefit.geo = std::move(adjustedFit);
 
 			UpdateStagedFromGeometries();
-			flexBoundaryPreview->hide();
-			flexRefLinePreview->hide();
 		}
+		flexBoundaryPreview->hide();
+		flexRefLinePreview->hide();
 	}
 	else
 	{

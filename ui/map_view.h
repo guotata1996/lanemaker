@@ -2,6 +2,7 @@
 
 #include <QGraphicsView>
 #include <qevent.h>
+#include <optional>
 
 #include "road_profile.h"
 #include "action_defs.h"
@@ -72,6 +73,8 @@ private:
     QGraphicsItem* backgroundItem = nullptr;
 
     QTransform lastTransform;
+
+    std::optional<QPoint> prevDragMousePos;
 
     void handleException(std::exception);
 

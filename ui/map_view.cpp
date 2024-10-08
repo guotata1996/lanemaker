@@ -102,9 +102,6 @@ void MapView::wheelEvent(QWheelEvent* e)
 
         e->accept();
     }
-    else {
-        QGraphicsView::wheelEvent(e);
-    }
 }
 #endif
 
@@ -168,6 +165,11 @@ void MapView::OnMousePress(const RoadRunner::MouseAction& evt)
             confirmEdit();
         }
     }
+    if (evt.button == Qt::MiddleButton)
+    {
+        auto screenPos = mapFromScene(evt.sceneX, evt.sceneY);
+        prevDragMousePos.emplace(screenPos);
+    }
 }
 
 void MapView::mousePressEvent(QMouseEvent* evt)
@@ -216,6 +218,15 @@ void MapView::OnMouseMove(const RoadRunner::MouseAction& evt)
     {
         drawingSession->Update(evt);
     }
+    if (evt.button == Qt::MiddleButton)
+    {
+        auto screenPos = mapFromScene(evt.sceneX, evt.sceneY);
+        auto offset = prevDragMousePos.value() - screenPos;
+        verticalScrollBar()->setValue(verticalScrollBar()->value() + offset.y());
+        horizontalScrollBar()->setValue(horizontalScrollBar()->value() + offset.x());
+
+        prevDragMousePos.emplace(screenPos);
+    }
 }
 
 void MapView::mouseMoveEvent(QMouseEvent* evt)
@@ -238,6 +249,11 @@ void MapView::OnMouseRelease(const RoadRunner::MouseAction& evt)
     if (editMode != RoadRunner::Mode_None)
     {
         drawingSession->Update(evt);
+    }
+
+    if (evt.button == Qt::MiddleButton)
+    {
+        prevDragMousePos.reset();
     }
 }
 

@@ -454,3 +454,29 @@ void MainWidget::SetElevationFromReplay(int8_t elevationSetting)
         assert(false);
     }
 }
+
+void MainWidget::wheelEvent(QWheelEvent* e)
+{
+    if (e->angleDelta().y() > 0)
+    {
+        if (g_createRoadElevationOption == -1)
+        {
+            createFlat->click();
+        }
+        else if (g_createRoadElevationOption == 0)
+        {
+            createAbove->click();
+        }
+    }
+    else
+    {
+        if (g_createRoadElevationOption == 1)
+        {
+            createFlat->click();
+        }
+        else if (g_createRoadElevationOption == 0)
+        {
+            createBelow->click();
+        }
+    }
+}
