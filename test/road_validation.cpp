@@ -358,6 +358,7 @@ namespace RoadRunnerTest
         }
     }
 
+#ifndef G_TEST
     void Validation::VerifySingleRoadGraphics(const RoadRunner::Road& road)
     {
         std::vector<double> sMins;
@@ -378,6 +379,7 @@ namespace RoadRunnerTest
         ExpectNearOrAssert(sMins.front(), 0, epsilon);
         ExpectNearOrAssert(sMaxs.back(), road.Length(), epsilon);
     }
+#endif
 
     void Validation::VerifyRoadMarking(const odr::Road& road)
     {

@@ -155,6 +155,7 @@ namespace RoadRunner
 
     void Road::UpdateArrowGraphics(odr::RoadLink::ContactPoint c, std::map<int, uint8_t> laneToArrow, bool stopLine)
     {
+#ifndef G_TEST
         MultiSegment dueUpdateS;
         for (auto id_obj : generated.id_to_object)
         {
@@ -164,10 +165,12 @@ namespace RoadRunner
                 dueUpdateS.Insert(id_obj.second.s0 - 0.5, id_obj.second.s0 + 0.5);
             }
         }
+#endif
 
         generated.ToggleStopLine(c, stopLine);
         generated.UpdateArrowMarkings(c, laneToArrow);
 
+#ifndef G_TEST
         for (auto id_obj : generated.id_to_object)
         {
             if (id_obj.second.type == "roadMark" && 
@@ -181,8 +184,10 @@ namespace RoadRunner
         {
             GenerateOrUpdateSectionGraphicsBetween(segment.first, segment.second);
         }
+#endif // !G_TEST
     }
 
+#ifndef G_TEST
     void Road::HideBorderMarkingForDJ(odr::RoadLink::ContactPoint c, int side, double untilS)
     {
         if (c == odr::RoadLink::ContactPoint_Start && untilS == 0
@@ -223,7 +228,6 @@ namespace RoadRunner
         }
     }
 
-#ifndef G_TEST
     void Road::GenerateAllSectionGraphics()
     {
         GenerateSectionGraphicsBetween(0, Length());

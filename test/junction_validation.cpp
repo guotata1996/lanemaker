@@ -168,7 +168,7 @@ namespace RoadRunnerTest
         odr::Vec3D p2_out = road2->get_xyz(s2, t2_out, 0);
 #ifdef G_TEST
         EXPECT_LT(odr::euclDistance(p1_out, p2_out), epsilon)
-            << road1->id << " " << lane1 << " outer border doesn't meet " << road2->id << " " << lane2
+            << road1->id << " " << l1.id << " outer border doesn't meet " << road2->id << " " << l2.id
             << "(" << p1_out[0] << " , " << p1_out[1] << ") vs (" << p2_out[0] << " , " << p2_out[1] << ")";
 #else
         ExpectOrAssert(odr::euclDistance(p1_out, p2_out) < epsilon);
@@ -180,7 +180,7 @@ namespace RoadRunnerTest
         odr::Vec3D p2_in = road2->get_xyz(s2, t2_in, 0);
 #ifdef G_TEST
         EXPECT_LT(odr::euclDistance(p1_in, p2_in), epsilon)
-            << road1->id << " " << lane1 << " inner border doesn't meet " << road2->id << " " << lane2;
+            << road1->id << " " << l1.id << " inner border doesn't meet " << road2->id << " " << l2.id;
 #else
         ExpectOrAssert(odr::euclDistance(p1_in, p2_in) < epsilon);
 #endif

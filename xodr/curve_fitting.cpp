@@ -1,4 +1,3 @@
-#pragma once
 #include "curve_fitting.h"
 
 #include <map>

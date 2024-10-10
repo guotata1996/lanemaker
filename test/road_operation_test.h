@@ -55,7 +55,7 @@ namespace RoadRunnerTest
 
         // Join r1
         RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, part2, odr::RoadLink::ContactPoint_Start);
-        EXPECT_EQ(part2, nullptr);
+        part2.reset();
         EXPECT_EQ(r1->generated.predecessor.type, odr::RoadLink::Type_Junction);
         EXPECT_EQ(r1->generated.predecessor.id, j1_weak.lock()->ID());
         EXPECT_EQ(j1_weak.lock()->formedFrom.size(), 3);

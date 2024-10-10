@@ -19,6 +19,8 @@ namespace RoadRunnerTest
     public:
 #ifndef G_TEST
         static void ValidateMap();
+
+        static void VerifySingleRoadGraphics(const RoadRunner::Road& road);
 #endif
         static void VerifySingleRoad(const odr::Road& road);
 
@@ -28,7 +30,6 @@ namespace RoadRunnerTest
 
         static void VerifySingleRoadElevation(const odr::CubicSpline&);
 
-        static void VerifySingleRoadGraphics(const RoadRunner::Road& road);
     private:
 #ifndef G_TEST
         static void RoadIDSetMatch();

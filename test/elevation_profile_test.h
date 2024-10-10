@@ -10,6 +10,7 @@ using SplineGen = RoadRunner::CubicSplineGenerator;
 namespace RoadRunnerTest
 {
 	// Not clear why this needs to be re-defined
+#ifdef WIN32
 	void Validation::VerifySingleRoadElevation(const odr::CubicSpline& eProfile)
 	{
 		for (auto it = eProfile.s0_to_poly.begin(); it != eProfile.s0_to_poly.end(); ++it)
@@ -21,6 +22,7 @@ namespace RoadRunnerTest
 			ExpectNearOrAssert(it->second.get(s), next->second.get(s), epsilon);
 		}
 	}
+#endif // WIN32
 
 	TEST(ElevationProfile, SampleUsage)
 	{
