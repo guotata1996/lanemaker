@@ -56,10 +56,11 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     createAbove->setIconSize(iconSize);
     createAbove->setToolTip(tr("Above existing"));
     createAbove->setCheckable(true);
-    connect(createAbove, &QToolButton::toggled, [](bool checked) {
+    connect(createAbove, &QToolButton::toggled, [this](bool checked) {
         if (checked)
         {
             g_createRoadElevationOption = 1;
+            createRoadOption->update();
             RoadRunner::ActionManager::Instance()->Record(g_createRoadElevationOption);
         }
     });
@@ -69,10 +70,11 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     createFlat->setIconSize(iconSize);
     createFlat->setToolTip(tr("Form junction"));
     createFlat->setCheckable(true);
-    connect(createFlat, &QToolButton::toggled, [](bool checked) {
+    connect(createFlat, &QToolButton::toggled, [this](bool checked) {
         if (checked)
         {
             g_createRoadElevationOption = 0;
+            createRoadOption->update();
             RoadRunner::ActionManager::Instance()->Record(g_createRoadElevationOption);
         }
     });
@@ -82,10 +84,11 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     createBelow->setIconSize(iconSize);
     createBelow->setToolTip(tr("Below existing"));
     createBelow->setCheckable(true);
-    connect(createBelow, &QToolButton::toggled, [](bool checked) {
+    connect(createBelow, &QToolButton::toggled, [this](bool checked) {
         if (checked)
         {
             g_createRoadElevationOption = -1;
+            createRoadOption->update();
             RoadRunner::ActionManager::Instance()->Record(g_createRoadElevationOption);
         }});
 
@@ -131,35 +134,36 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     resetButton->setEnabled(false);
 
     // Label layout
+    QSize largeIconSize = iconSize * 1.75;
     QHBoxLayout* labelLayout = new QHBoxLayout;
     createModeButton = new QToolButton;
     createModeButton->setToolTip(tr("Road Mode"));
     createModeButton->setIcon(QPixmap(":/icons/road_mode.png"));
-    createModeButton->setIconSize(iconSize);
+    createModeButton->setIconSize(largeIconSize);
     createModeButton->setCheckable(true);
     createModeButton->setChecked(false);
     createLaneModeButton = new QToolButton;
     createLaneModeButton->setToolTip(tr("Lane Mode"));
     createLaneModeButton->setIcon(QPixmap(":/icons/lane_mode.png"));
-    createLaneModeButton->setIconSize(iconSize);
+    createLaneModeButton->setIconSize(largeIconSize);
     createLaneModeButton->setCheckable(true);
     createLaneModeButton->setChecked(false);
     destroyModeButton = new QToolButton;
     destroyModeButton->setToolTip(tr("Destroy Mode"));
     destroyModeButton->setIcon(QPixmap(":/icons/destroy_mode.png"));
-    destroyModeButton->setIconSize(iconSize);
+    destroyModeButton->setIconSize(largeIconSize);
     destroyModeButton->setCheckable(true);
     destroyModeButton->setChecked(false);
     modifyModeButton = new QToolButton;
     modifyModeButton->setToolTip(tr("Modify Mode"));
     modifyModeButton->setIcon(QPixmap(":/icons/modify_mode.PNG"));
-    modifyModeButton->setIconSize(iconSize);
+    modifyModeButton->setIconSize(largeIconSize);
     modifyModeButton->setCheckable(true);
     modifyModeButton->setChecked(false);
     dragModeButton = new QToolButton;
     dragModeButton->setToolTip(tr("Drag Mode"));
     dragModeButton->setIcon(QPixmap(":/icons/view_mode.png"));
-    dragModeButton->setIconSize(iconSize);
+    dragModeButton->setIconSize(largeIconSize);
     dragModeButton->setCheckable(true);
     dragModeButton->setChecked(false);
 
@@ -177,8 +181,7 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     createRoadOption->setSizePolicy(sp_retain);
     createRoadOption->hide();
     g_createRoadOption = createRoadOption;
-    labelLayout->addSpacing(50);
-    labelLayout->addWidget(new QLabel(tr("Edit Mode")));
+    labelLayout->addSpacing(100);
     labelLayout->addWidget(createModeButton);
     labelLayout->addWidget(createLaneModeButton);
     labelLayout->addWidget(modifyModeButton);

@@ -27,5 +27,7 @@
         <file>icons/flat.png</file>
         <file>icons/tunnel.png</file>
         <file>icons/dir_cursor.png</file>
+        <file>icons/minus.png</file>
+        <file>icons/add.png</file>
     </qresource>
 </RCC>

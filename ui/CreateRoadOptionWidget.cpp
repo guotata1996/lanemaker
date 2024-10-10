@@ -1,7 +1,7 @@
 #include "CreateRoadOptionWidget.h"
 #include "action_manager.h"
 
-#include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <qevent.h>
 #include <qpainter.h>
 
@@ -9,17 +9,27 @@
 #include <sstream>
 
 SectionProfileConfigWidget* g_createRoadOption;
+extern int8_t g_createRoadElevationOption;
 
 CreateRoadOptionWidget::CreateRoadOptionWidget():
     rightLogo(":/icons/car_leaving.png"),
     leftLogo(":/icons/car_coming.png")
 {
+    setMinimumWidth(400);
+    setMinimumHeight(50);
     Reset();
 }
 
 void CreateRoadOptionWidget::Reset()
 {
     SetOption(RoadRunner::LanePlan{ 1, 1 }, RoadRunner::LanePlan{ -1, 1 });
+}
+
+void CreateRoadOptionWidget::SetMode(bool aRodeMode)
+{
+    roadMode = aRodeMode;
+    changedExternally = true;
+    update();
 }
 
 void CreateRoadOptionWidget::showEvent(QShowEvent* event)
@@ -42,7 +52,7 @@ void CreateRoadOptionWidget::SetOption(const RoadRunner::LanePlan& l, const Road
         activeRightSetting.offsetx2 = activeLeftSetting.offsetx2;
     }
     changedExternally = true;
-    update();
+    repaint();
 }
 
 void CreateRoadOptionWidget::resizeEvent(QResizeEvent* event)
@@ -82,10 +92,13 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
         painter.drawLine(TickX, YCenter - TickHeight / 2, TickX, YCenter + TickHeight / 2);
     }
 
-    lOuterResult = XCenter - static_cast<float>(activeLeftSetting.offsetx2 + activeLeftSetting.laneCount * 2) * TickInterval;
-    lInnerResult = XCenter - static_cast<float>(activeLeftSetting.offsetx2) * TickInterval;
-    rOuterResult = XCenter + static_cast<float>(-activeRightSetting.offsetx2 + activeRightSetting.laneCount * 2) * TickInterval; 
-    rInnerResult = XCenter + static_cast<float>(-activeRightSetting.offsetx2) * TickInterval;
+    auto lOffsetx2 = roadMode ? activeLeftSetting.offsetx2 : 0;
+    auto rOffsetx2 = roadMode ? activeRightSetting.offsetx2 : 0;
+
+    lOuterResult = XCenter - static_cast<float>(lOffsetx2 + activeLeftSetting.laneCount * 2) * TickInterval;
+    lInnerResult = XCenter - static_cast<float>(lOffsetx2) * TickInterval;
+    rOuterResult = XCenter + static_cast<float>(-rOffsetx2 + activeRightSetting.laneCount * 2) * TickInterval;
+    rInnerResult = XCenter + static_cast<float>(-rOffsetx2) * TickInterval;
 
     if (changedExternally)
     {
@@ -97,27 +110,30 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
     }
 
     // Draw result
-    colorPen.setWidth(5);
+    const int yOffsetForElevation = -g_createRoadElevationOption * TickHeight / 2;
+
+    colorPen.setWidth(3);
     colorPen.setColor(Qt::red);
     painter.setPen(colorPen);
-    painter.drawLine(lOuterResult, YCenter, lInnerResult, YCenter);
+    painter.drawLine(lOuterResult, YCenter + yOffsetForElevation, lInnerResult, YCenter + yOffsetForElevation);
     for (int i = 0; i != activeLeftSetting.laneCount; ++i)
     {
         int logoCenter = lInnerResult - (i * 2 + 1) * TickInterval;
-        QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight, TickHeight, TickHeight);
+        QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight + yOffsetForElevation, TickHeight, TickHeight);
         painter.drawImage(rect, leftLogo);
     }
     
     colorPen.setColor(Qt::green);
     painter.setPen(colorPen);
-    painter.drawLine(rOuterResult, YCenter, rInnerResult, YCenter);
+    painter.drawLine(rOuterResult, YCenter + yOffsetForElevation, rInnerResult, YCenter + yOffsetForElevation);
     for (int i = 0; i != activeRightSetting.laneCount; ++i)
     {
         int logoCenter = rInnerResult + (i * 2 + 1) * TickInterval;
-        QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight, TickHeight, TickHeight);
+        QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight + yOffsetForElevation, TickHeight, TickHeight);
         painter.drawImage(rect, rightLogo);
     }
 
+    colorPen.setWidth(5);
     colorPen.setColor(Qt::black);
     painter.setPen(colorPen);
 
@@ -127,6 +143,9 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
     // Draw Handles
     for (int i = 0; i != handleX.size(); ++i)
     {
+        if ((i == 0 || i == 1) && handleX[0] == handleX[1]) continue;
+        if ((i == 2 || i == 3) && handleX[2] == handleX[3]) continue;
+
         auto handle = handleX[i];
         colorPen.setColor(dragIndex.empty() ||
             std::find(dragIndex.begin(), dragIndex.end(), i) == dragIndex.end() ?
@@ -138,20 +157,14 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
 
 void CreateRoadOptionWidget::mousePressEvent(QMouseEvent* evt)
 {
+    if (!roadMode)
+    {
+        // Only adjustable through button in lane mode
+        return;
+    }
+
     if (std::abs(evt->y() - YCenter) < TickInterval / 2 && evt->button() == Qt::MouseButton::LeftButton)
     {
-        for (int i = 0; i != handleX.size(); ++i)
-        {
-            if (std::abs(evt->x() - handleX[i]) < TickInterval / 2)
-            {
-                dragIndex.push_back(i);
-                handleOrigin.push_back(handleX[i]);
-                dragOrigin = evt->x();
-                update();
-                return;
-            }
-        }
-
         if (lOuterResult < evt->x() && evt->x() < lInnerResult)
         {
             std::sort(handleX.begin(), handleX.end());
@@ -160,6 +173,7 @@ void CreateRoadOptionWidget::mousePressEvent(QMouseEvent* evt)
             handleOrigin.push_back(handleX[0]);
             handleOrigin.push_back(handleX[1]);
             dragOrigin = evt->x();
+            dragLimit = std::abs(handleX[1] - handleX[2]);
             update();
             return;
         }
@@ -171,6 +185,8 @@ void CreateRoadOptionWidget::mousePressEvent(QMouseEvent* evt)
             handleOrigin.push_back(handleX[2]);
             handleOrigin.push_back(handleX[3]);
             dragOrigin = evt->x();
+            dragLimit = std::abs(handleX[1] - handleX[2]);
+
             update();
             return;
         }
@@ -181,7 +197,18 @@ void CreateRoadOptionWidget::mouseMoveEvent(QMouseEvent* evt)
 {
     if (dragIndex.empty()) return;
 
+    bool draggingLeft = dragIndex[0] == 0;
     int dragDelta = evt->localPos().x() - dragOrigin;
+    if (draggingLeft && handleX[2] != handleX[3])
+    {
+        dragDelta = std::min(dragDelta, dragLimit);
+    }
+    else if (!draggingLeft & handleX[0] != handleX[1])
+    {
+        dragDelta = std::max(dragDelta, -dragLimit);
+    }
+    if (dragDelta == 0) return;
+
     for (int i = 0; i != dragIndex.size(); ++i)
     {
         int dragX = handleOrigin[i] + dragDelta;
@@ -192,15 +219,11 @@ void CreateRoadOptionWidget::mouseMoveEvent(QMouseEvent* evt)
         handleX[dragIndex[i]] = dragX;
     }
 
+    activeLeftSetting.offsetx2 = std::round(static_cast<float>(XCenter - handleX[1]) / TickInterval);
+    activeLeftSetting.laneCount = std::floor(static_cast<int>(std::round(static_cast<float>(handleX[1] - handleX[0]) / TickInterval)) / 2);
 
-    decltype(handleX) handleXCopy(handleX);
-    std::sort(handleXCopy.begin(), handleXCopy.end());
-
-    activeLeftSetting.offsetx2 = std::round(static_cast<float>(XCenter - handleXCopy[1]) / TickInterval);
-    activeLeftSetting.laneCount = std::floor(static_cast<int>(std::round(static_cast<float>(handleXCopy[1] - handleXCopy[0]) / TickInterval)) / 2);
-
-    activeRightSetting.offsetx2 = std::round(static_cast<float>(XCenter - handleXCopy[2]) / TickInterval);
-    activeRightSetting.laneCount = std::floor(static_cast<int>(std::round(static_cast<float>(handleXCopy[3] - handleXCopy[2]) / TickInterval)) / 2);
+    activeRightSetting.offsetx2 = std::round(static_cast<float>(XCenter - handleX[2]) / TickInterval);
+    activeRightSetting.laneCount = std::floor(static_cast<int>(std::round(static_cast<float>(handleX[3] - handleX[2]) / TickInterval)) / 2);
 
     update();
 }
@@ -218,122 +241,115 @@ void CreateRoadOptionWidget::mouseReleaseEvent(QMouseEvent* evt)
     }
 }
 
-CreateLaneOptionWidget::CreateLaneOptionWidget()
-{
-    auto mainLayout = new QHBoxLayout;
-    leftSlider = new QSlider(Qt::Horizontal);
-    leftSlider->setRange(0, 5);
-    leftSlider->setInvertedAppearance(true);
-    leftSlider->setTickPosition(QSlider::TicksBelow);
-    rightSlider = new QSlider(Qt::Horizontal);
-    rightSlider->setRange(1, 5);
-    rightSlider->setTickPosition(QSlider::TicksBelow);
-    resultLabel = new QLabel("0|1");
-    setMinimumSize(350, 50);
-
-    auto leftLogo = new QLabel;
-    leftLogo->setPixmap(QPixmap(":/icons/car_coming.png").scaledToWidth(20));
-    auto rightLogo = new QLabel;
-    rightLogo->setPixmap(QPixmap(":/icons/car_leaving.png").scaledToWidth(20));
-    mainLayout->addWidget(leftSlider);
-    mainLayout->addWidget(leftLogo);
-    mainLayout->addWidget(resultLabel);
-    mainLayout->addWidget(rightLogo);
-    mainLayout->addWidget(rightSlider);
-    setLayout(mainLayout);
-    Reset();
-
-    connect(leftSlider, &QSlider::valueChanged, this, &CreateLaneOptionWidget::updateLabel);
-    connect(rightSlider, &QSlider::valueChanged, this, &CreateLaneOptionWidget::updateLabel);
-}
-
-void CreateLaneOptionWidget::Reset()
-{
-    SetOption(RoadRunner::LanePlan{ 0, 0 }, RoadRunner::LanePlan{ 0, 1 });
-}
-
-RoadRunner::LanePlan CreateLaneOptionWidget::LeftResult() const
-{
-    return RoadRunner::LanePlan{ 0, static_cast<RoadRunner::type_t>(leftSlider->value()) };
-}
-
-RoadRunner::LanePlan CreateLaneOptionWidget::RightResult() const
-{
-    return RoadRunner::LanePlan{ 0, static_cast<RoadRunner::type_t>(rightSlider->value()) };
-}
-
-void CreateLaneOptionWidget::showEvent(QShowEvent* event)
-{
-    emit OptionChangedByUser(LeftResult(), RightResult());
-    QWidget::showEvent(event);
-}
-
-void CreateLaneOptionWidget::SetOption(const RoadRunner::LanePlan& l, const RoadRunner::LanePlan& r)
-{
-    const QSignalBlocker blocker(this);
-    leftSlider->setValue(l.laneCount);
-    rightSlider->setValue(r.laneCount);
-}
-
-void CreateLaneOptionWidget::updateLabel()
-{
-    std::stringstream ss;
-    ss << "" << leftSlider->value() << "|" << rightSlider->value();
-    resultLabel->setText(QString::fromStdString(ss.str()));
-
-    emit OptionChangedByUser(LeftResult(), RightResult());
-}
-
 SectionProfileConfigWidget::SectionProfileConfigWidget():
-    roadMode(new CreateRoadOptionWidget),
-    laneMode(new CreateLaneOptionWidget)
+    visual(new CreateRoadOptionWidget),
+    leftMinus(new QToolButton), leftPlus(new QToolButton),
+    rightMinus(new QToolButton), rightPlus(new QToolButton),
+    incLogo(":/icons/add.png"), decLogo(":/icons/minus.png")
 {
-    addWidget(roadMode);
-    addWidget(laneMode);
-    setMaximumHeight(40);
+    setMinimumWidth(550); 
+    setMaximumWidth(850);
+    QHBoxLayout* layout = new QHBoxLayout(this);
+    
+    int size = style()->pixelMetric(QStyle::PM_ToolBarIconSize);
+    QSize iconSize(size, size);
+    leftMinus->setIcon(decLogo);
+    leftMinus->setIconSize(iconSize);
+    leftPlus->setIcon(incLogo);
+    leftPlus->setIconSize(iconSize);
+    rightMinus->setIcon(decLogo);
+    rightMinus->setIconSize(iconSize);
+    rightPlus->setIcon(incLogo);
+    rightPlus->setIconSize(iconSize);
+    layout->addWidget(leftMinus);
+    layout->addWidget(leftPlus);
+    layout->addWidget(visual);
+    visual->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+    layout->addWidget(rightMinus);
+    layout->addWidget(rightPlus);
 
-    connect(roadMode, &CreateRoadOptionWidget::OptionChangedByUser, 
-        this, &SectionProfileConfigWidget::OptionChangedOnPage);
-    connect(laneMode, &CreateLaneOptionWidget::OptionChangedByUser,
-        this, &SectionProfileConfigWidget::OptionChangedOnPage);
+    connect(leftMinus, &QAbstractButton::clicked, [this]()
+        {
+            auto lPlan = LeftResult();
+            const auto rPlan = RightResult();
+            if (lPlan.laneCount > 1 || lPlan.laneCount == 1 && rPlan.laneCount != 0)
+            {
+                lPlan.laneCount--;
+                SetOption(lPlan, RightResult());
+            }
+        });
+    
+    connect(leftPlus, &QAbstractButton::clicked, [this]()
+        {
+            auto lPlan = LeftResult();
+            const auto rPlan = RightResult();
+            if (lPlan.laneCount < 4)
+            {
+                if (lPlan.laneCount == 0)
+                    lPlan.offsetx2 = std::max(lPlan.offsetx2, rPlan.offsetx2);
+                lPlan.laneCount++;
+                SetOption(lPlan, RightResult());
+            }
+        });
+    connect(rightMinus, &QAbstractButton::clicked, [this]()
+        {
+            auto rPlan = RightResult();
+            const auto lPlan = LeftResult();
+            if (rPlan.laneCount > 1 || rPlan.laneCount == 1 && lPlan.laneCount != 0)
+            {
+                rPlan.laneCount--;
+                SetOption(LeftResult(), rPlan);
+            }
+        });
+    connect(rightPlus, &QAbstractButton::clicked, [this]()
+        {
+            auto rPlan = RightResult();
+            const auto lPlan = LeftResult();
+            if (rPlan.laneCount < 4)
+            {
+                if (rPlan.laneCount == 0)
+                    rPlan.offsetx2 = std::min(rPlan.offsetx2, lPlan.offsetx2);
+                rPlan.laneCount++;
+                SetOption(LeftResult(), rPlan);
+            }
+        });
+    
+    setLayout(layout);
 }
 
 void SectionProfileConfigWidget::Reset()
 {
-    roadMode->Reset();
-    laneMode->Reset();
+    visual->Reset();
 }
 
 void SectionProfileConfigWidget::OptionChangedOnPage(RoadRunner::LanePlan left, RoadRunner::LanePlan right)
 {
-    if (leftProfileSetting != left || rightProfileSetting != right)
-    {
-        RoadRunner::ActionManager::Instance()->Record(left, right);
-    }
-    leftProfileSetting = left;
-    rightProfileSetting = right;
+    RoadRunner::ActionManager::Instance()->Record(left, right);
 }
 
 void SectionProfileConfigWidget::SetOption(const RoadRunner::LanePlan& l, const RoadRunner::LanePlan& r)
 {
-    roadMode->SetOption(l, r);
-    laneMode->SetOption(l, r);
+    if (LeftResult() == l && RightResult() == r)
+    {
+        return;
+    }
+    visual->SetOption(l, r);
     OptionChangedOnPage(l, r);
 }
 
 QSize SectionProfileConfigWidget::sizeHint() const
 {
-    return QSize(500, 20);
+    return QSize(500, 60);
 }
 
 void SectionProfileConfigWidget::GotoRoadMode()
 {
     show();
-    setCurrentIndex(0);
+    visual->SetMode(true);
 }
 
 void SectionProfileConfigWidget::GotoLaneMode()
 {
     show();
-    setCurrentIndex(1);
+    visual->SetMode(false);
 }
