@@ -403,7 +403,7 @@ namespace RoadRunner
             odr::Line2D singleBoundary = dualSides.first;
             if (singleBoundary.empty())
             {
-                spdlog::error("Empty single boundary passed into JunctionGraphics");
+                spdlog::trace("Empty single boundary passed into JunctionGraphics");
                 continue;
             }
             auto pOrigin = singleBoundary.front();
