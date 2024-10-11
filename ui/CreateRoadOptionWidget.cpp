@@ -28,6 +28,10 @@ void CreateRoadOptionWidget::Reset()
 void CreateRoadOptionWidget::SetMode(bool aRodeMode)
 {
     roadMode = aRodeMode;
+    if (!roadMode)
+    {
+        activeRightSetting.laneCount = std::max((int8_t)1, activeRightSetting.laneCount);
+    }
     changedExternally = true;
     update();
 }
@@ -137,9 +141,6 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
     colorPen.setColor(Qt::black);
     painter.setPen(colorPen);
 
-    painter.drawText(TickInterval / 2, YCenter, QString::fromStdString(std::to_string(activeLeftSetting.laneCount)));
-    painter.drawText(XRight + TickInterval / 2, YCenter, QString::fromStdString(std::to_string(activeRightSetting.laneCount)));
-
     // Draw Handles
     for (int i = 0; i != handleX.size(); ++i)
     {
@@ -163,7 +164,7 @@ void CreateRoadOptionWidget::mousePressEvent(QMouseEvent* evt)
         return;
     }
 
-    if (std::abs(evt->y() - YCenter) < TickInterval / 2 && evt->button() == Qt::MouseButton::LeftButton)
+    if (evt->button() == Qt::MouseButton::LeftButton)
     {
         if (lOuterResult < evt->x() && evt->x() < lInnerResult)
         {
@@ -268,6 +269,7 @@ SectionProfileConfigWidget::SectionProfileConfigWidget():
     layout->addWidget(rightMinus);
     layout->addWidget(rightPlus);
 
+    connect(visual, &CreateRoadOptionWidget::OptionChangedByUser, this, &SectionProfileConfigWidget::OnOptionChange);
     connect(leftMinus, &QAbstractButton::clicked, [this]()
         {
             auto lPlan = LeftResult();
@@ -322,7 +324,7 @@ void SectionProfileConfigWidget::Reset()
     visual->Reset();
 }
 
-void SectionProfileConfigWidget::OptionChangedOnPage(RoadRunner::LanePlan left, RoadRunner::LanePlan right)
+void SectionProfileConfigWidget::OnOptionChange(RoadRunner::LanePlan left, RoadRunner::LanePlan right)
 {
     RoadRunner::ActionManager::Instance()->Record(left, right);
 }
@@ -334,7 +336,7 @@ void SectionProfileConfigWidget::SetOption(const RoadRunner::LanePlan& l, const 
         return;
     }
     visual->SetOption(l, r);
-    OptionChangedOnPage(l, r);
+    OnOptionChange(l, r);
 }
 
 QSize SectionProfileConfigWidget::sizeHint() const

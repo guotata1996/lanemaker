@@ -192,7 +192,7 @@ void ReplayWindow::FillHistoryTable()
 			desc = QString("ChangeProfile Lane:%1 Offset:%2 | Lane:%3 Offset:%4")
 				.arg(action.detail.changeProfile.leftProfile.laneCount)
 				.arg(action.detail.changeProfile.leftProfile.offsetx2)
-				.arg(action.detail.changeProfile.rightProfile.offsetx2)
+				.arg(action.detail.changeProfile.rightProfile.laneCount)
 				.arg(action.detail.changeProfile.rightProfile.offsetx2);
 			icon = QIcon(QPixmap(":/icons/car_coming.png"));
 			break;

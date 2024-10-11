@@ -77,8 +77,8 @@ public:
 
     virtual QSize sizeHint() const override;
 
-public slots:
-    void OptionChangedOnPage(RoadRunner::LanePlan left, RoadRunner::LanePlan right);
+private slots:
+    void OnOptionChange(RoadRunner::LanePlan left, RoadRunner::LanePlan right);
 
 private:
     CreateRoadOptionWidget* visual;

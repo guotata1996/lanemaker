@@ -87,7 +87,7 @@ void MapView::hideScale()
 #if QT_CONFIG(wheelevent)
 void MapView::wheelEvent(QWheelEvent* e)
 {
-    if (e->modifiers() & Qt::ControlModifier) {
+    if (!(e->modifiers() & Qt::ControlModifier)) {
         auto target_viewport_pos = e->pos();
         auto target_scene_pos = mapToScene(target_viewport_pos);
         if (e->angleDelta().y() > 0)

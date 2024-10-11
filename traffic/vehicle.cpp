@@ -103,7 +103,8 @@ bool Vehicle::Step(double dt, const odr::OpenDriveMap& odrMap, const odr::Routin
 
     graphics->setPos(QPointF(pos3[0], pos3[1]));
     graphics->setRotation(angle);
-    graphics->setZValue(roadElevation + 2.5);
+    auto surfaceZ = road.ref_line.elevation_profile.get_max(sOnRefLine + currKey.lanesection_s0 - 2.3, sOnRefLine + currKey.lanesection_s0 + 2.3);
+    graphics->setZValue(surfaceZ + 0.01);
     graphics->show();
     return true;
 }

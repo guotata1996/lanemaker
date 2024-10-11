@@ -1,7 +1,7 @@
 # Dev setup
 
 ## Prerequisites
-Supported OS: Windows 10/11 | Ubuntu 24.04 LTS
+Supported OS: Windows 10/11 | Ubuntu 22.04 LTS
 - CMake (Latest)
 - qt5 (`vcpkg install qt5` | `sudo apt install qtbase5-dev`)
 - spdlog (`vcpkg install spdlog` | `sudo apt install libspdlog-dev`)

@@ -12,6 +12,6 @@ namespace RoadRunner
     const double SnapRadiusPx = 20;        
     
     /*Space for connecting road curvature*/
-    const double JunctionTrimMax = 10;
+    const double JunctionTrimMax = 6;
     const double JunctionTrimMin = 2;
 }

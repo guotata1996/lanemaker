@@ -460,26 +460,29 @@ void MainWidget::SetElevationFromReplay(int8_t elevationSetting)
 
 void MainWidget::wheelEvent(QWheelEvent* e)
 {
-    if (e->angleDelta().y() > 0)
+    if (e->modifiers() & Qt::ControlModifier)
     {
-        if (g_createRoadElevationOption == -1)
+        if (e->angleDelta().y() > 0)
         {
-            createFlat->click();
+            if (g_createRoadElevationOption == -1)
+            {
+                createFlat->click();
+            }
+            else if (g_createRoadElevationOption == 0)
+            {
+                createAbove->click();
+            }
         }
-        else if (g_createRoadElevationOption == 0)
+        else
         {
-            createAbove->click();
-        }
-    }
-    else
-    {
-        if (g_createRoadElevationOption == 1)
-        {
-            createFlat->click();
-        }
-        else if (g_createRoadElevationOption == 0)
-        {
-            createBelow->click();
+            if (g_createRoadElevationOption == 1)
+            {
+                createFlat->click();
+            }
+            else if (g_createRoadElevationOption == 0)
+            {
+                createBelow->click();
+            }
         }
     }
 }
