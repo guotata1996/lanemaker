@@ -1,8 +1,9 @@
 #include "vehicle.h"
 #include "OpenDriveMap.h"
+#include "constants.h"
+
 #include <qgraphicsscene.h>
 #include <math.h>
-
 #include "spdlog/spdlog.h"
 
 extern QGraphicsScene* g_scene;
@@ -59,6 +60,7 @@ bool Vehicle::Step(double dt, const odr::OpenDriveMap& odrMap, const odr::Routin
     {
         checkedForLaneChange = true;
         tOffset = 0;
+        odr::LaneKey newKey = currKey;
         // Change lane if current Lane ends within LaneChangeDistance
         const auto& section = odrMap.id_to_road.at(currKey.road_id).get_lanesection(currKey.lanesection_s0);
         auto neighborLanes = section.get_sorted_driving_lanes(currKey.lane_id > 0 ? 1 : -1);
@@ -70,12 +72,15 @@ bool Vehicle::Step(double dt, const odr::OpenDriveMap& odrMap, const odr::Routin
                 double sOnRefLine = currKey.lane_id > 0 ? currLaneLength - s : s;
                 double tBase = section.id_to_lane.at(currKey.lane_id).outer_border.get(sOnRefLine + currKey.lanesection_s0);
                 double tTarget = section.id_to_lane.at(neighbor.id).outer_border.get(sOnRefLine + currKey.lanesection_s0);
-                tOffset = tBase - tTarget;
-
-                currKey = neighbor.key;
-                break;
+                double tempTOffset = tBase - tTarget;
+                if (tOffset == 0 || std::abs(tempTOffset) < std::abs(tOffset))
+                {
+                    tOffset = tempTOffset;
+                    newKey = neighbor.key;
+                }
             }
         }
+        currKey = newKey;
     }
     
     // Update transform
@@ -103,7 +108,9 @@ bool Vehicle::Step(double dt, const odr::OpenDriveMap& odrMap, const odr::Routin
 
     graphics->setPos(QPointF(pos3[0], pos3[1]));
     graphics->setRotation(angle);
-    auto surfaceZ = road.ref_line.elevation_profile.get_max(sOnRefLine + currKey.lanesection_s0 - 2.3, sOnRefLine + currKey.lanesection_s0 + 2.3);
+    auto surfaceZ = road.ref_line.elevation_profile.get_max(
+        sOnRefLine + currKey.lanesection_s0 - RoadRunner::GraphicsDivision, 
+        sOnRefLine + currKey.lanesection_s0 + RoadRunner::GraphicsDivision);
     graphics->setZValue(surfaceZ + 0.01);
     graphics->show();
     return true;

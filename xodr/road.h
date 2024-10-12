@@ -117,9 +117,6 @@ namespace RoadRunner
 #ifndef G_TEST
         void GenerateSectionGraphicsBetween(double s1, double s2);
 
-        // Determines resolution for collision detection
-        const double GraphicsDivision = 5;
-
         const double NeglectableLength = 0.01f;
 
         // When updates road, remove RoadSectionGraphics then add new

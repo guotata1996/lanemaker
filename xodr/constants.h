@@ -14,4 +14,7 @@ namespace RoadRunner
     /*Space for connecting road curvature*/
     const double JunctionTrimMax = 6;
     const double JunctionTrimMin = 2;
+
+    // Determines resolution for collision detection
+    const double GraphicsDivision = 5;
 }
