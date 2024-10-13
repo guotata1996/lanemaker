@@ -52,6 +52,8 @@ private:
 
     bool recordResize = true;
 
+    std::string loadedFileName;
+
 public slots:
     void ReplaySingleStep();
 

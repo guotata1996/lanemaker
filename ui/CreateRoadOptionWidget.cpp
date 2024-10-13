@@ -114,34 +114,39 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
     }
 
     // Draw result
-    const int yOffsetForElevation = -g_createRoadElevationOption * TickHeight / 2;
-
     colorPen.setWidth(3);
-    colorPen.setColor(Qt::red);
-    painter.setPen(colorPen);
-    painter.drawLine(lOuterResult, YCenter + yOffsetForElevation, lInnerResult, YCenter + yOffsetForElevation);
-    for (int i = 0; i != activeLeftSetting.laneCount; ++i)
+    const int yOffsetForElevation = -g_createRoadElevationOption * TickHeight / 2;
+    if (activeLeftSetting.laneCount != 0)
     {
-        int logoCenter = lInnerResult - (i * 2 + 1) * TickInterval;
-        QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight + yOffsetForElevation, TickHeight, TickHeight);
-        painter.drawImage(rect, leftLogo);
+        colorPen.setColor(Qt::red);
+        painter.setPen(colorPen);
+        painter.drawLine(lOuterResult, YCenter + yOffsetForElevation, lInnerResult, YCenter + yOffsetForElevation);
+        for (int i = 0; i != activeLeftSetting.laneCount; ++i)
+        {
+            int logoCenter = lInnerResult - (i * 2 + 1) * TickInterval;
+            QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight + yOffsetForElevation, TickHeight, TickHeight);
+            painter.drawImage(rect, leftLogo);
+        }
     }
     
-    colorPen.setColor(Qt::green);
-    painter.setPen(colorPen);
-    painter.drawLine(rOuterResult, YCenter + yOffsetForElevation, rInnerResult, YCenter + yOffsetForElevation);
-    for (int i = 0; i != activeRightSetting.laneCount; ++i)
+    if (activeRightSetting.laneCount != 0)
     {
-        int logoCenter = rInnerResult + (i * 2 + 1) * TickInterval;
-        QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight + yOffsetForElevation, TickHeight, TickHeight);
-        painter.drawImage(rect, rightLogo);
+        colorPen.setColor(Qt::green);
+        painter.setPen(colorPen);
+        painter.drawLine(rOuterResult, YCenter + yOffsetForElevation, rInnerResult, YCenter + yOffsetForElevation);
+        for (int i = 0; i != activeRightSetting.laneCount; ++i)
+        {
+            int logoCenter = rInnerResult + (i * 2 + 1) * TickInterval;
+            QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight + yOffsetForElevation, TickHeight, TickHeight);
+            painter.drawImage(rect, rightLogo);
+        }
     }
 
+    // Draw Handles
     colorPen.setWidth(5);
     colorPen.setColor(Qt::black);
     painter.setPen(colorPen);
 
-    // Draw Handles
     for (int i = 0; i != handleX.size(); ++i)
     {
         if ((i == 0 || i == 1) && handleX[0] == handleX[1]) continue;
@@ -288,7 +293,7 @@ SectionProfileConfigWidget::SectionProfileConfigWidget():
             if (lPlan.laneCount < 4)
             {
                 if (lPlan.laneCount == 0)
-                    lPlan.offsetx2 = std::max(lPlan.offsetx2, rPlan.offsetx2);
+                    lPlan.offsetx2 = std::max((int8_t)0, rPlan.offsetx2);
                 lPlan.laneCount++;
                 SetOption(lPlan, RightResult());
             }
@@ -310,7 +315,7 @@ SectionProfileConfigWidget::SectionProfileConfigWidget():
             if (rPlan.laneCount < 4)
             {
                 if (rPlan.laneCount == 0)
-                    rPlan.offsetx2 = std::min(rPlan.offsetx2, lPlan.offsetx2);
+                    rPlan.offsetx2 = std::min((int8_t)0, lPlan.offsetx2);
                 rPlan.laneCount++;
                 SetOption(LeftResult(), rPlan);
             }

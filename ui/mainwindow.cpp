@@ -165,6 +165,7 @@ void MainWindow::reset()
     RoadRunner::ActionManager::Instance()->Reset();
     assert(mainWidget->view()->scene()->items().isEmpty());
     resizeDontRecord(PreferredSize().width(), PreferredSize().height());
+    loadedFileName.clear();
 
     spdlog::set_level(prevLevel);
 }
@@ -178,10 +179,11 @@ void MainWindow::resizeDontRecord(int w, int h)
 
 void MainWindow::saveToFile()
 {
+    auto saveLoc = loadedFileName.empty() ? RoadRunner::DefaultSaveFolder().string() : loadedFileName;
     QString s = QFileDialog::getSaveFileName(
         this,
         "Choose save location",
-        RoadRunner::DefaultSaveFolder().string().c_str(),
+        saveLoc.c_str(),
         "OpenDrive (*.xodr)", nullptr
 #ifdef __linux__
         ,QFileDialog::DontUseNativeDialog
@@ -208,14 +210,14 @@ void MainWindow::loadFromFile()
     if (s.size() != 0)
     {
         reset();
-        auto loc = s.toStdString();
+        loadedFileName = s.toStdString();
 
-        bool supported = RoadRunner::ChangeTracker::Instance()->Load(loc);
+        bool supported = RoadRunner::ChangeTracker::Instance()->Load(loadedFileName);
         if (!supported)
         {
             spdlog::error("xodr map needs to contain custom LaneProfile!");
         }
-        std::ifstream ifs(loc);
+        std::ifstream ifs(loadedFileName);
         std::stringstream buffer;
         buffer << ifs.rdbuf();
         RoadRunner::ActionManager::Instance()->Record(buffer.str());
