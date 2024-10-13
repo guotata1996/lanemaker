@@ -22,7 +22,7 @@ public:
     /*return false to abort change*/
     virtual bool Complete() = 0;
 
-    virtual ~RoadDrawingSession() {}
+    virtual ~RoadDrawingSession();
 
     void SetHighlightTo(std::shared_ptr<RoadRunner::Road>);
 

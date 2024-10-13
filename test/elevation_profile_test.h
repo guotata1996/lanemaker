@@ -3,7 +3,8 @@
 #include "randomization_utils.h"
 #include "Geometries/CubicSpline.h"
 #include "validation.h"
-#include "test_const.h"
+#include "test_macros.h"
+#include "constants.h"
 
 using SplineGen = RoadRunner::CubicSplineGenerator;
 
@@ -19,7 +20,7 @@ namespace RoadRunnerTest
 			next++;
 			if (next == eProfile.s0_to_poly.end()) break;
 			auto s = next->first;
-			ExpectNearOrAssert(it->second.get(s), next->second.get(s), epsilon);
+			ExpectNearOrAssert(it->second.get(s), next->second.get(s), RoadRunner::epsilon);
 		}
 	}
 #endif // WIN32
@@ -30,11 +31,11 @@ namespace RoadRunnerTest
 		SplineGen::OverwriteSection(ePeofile, 100.0, 10.0, 40.0, 4.1);
 		SplineGen::OverwriteSection(ePeofile, 100.0, 20.0, 40.0, 7.9);
 		Validation::VerifySingleRoadElevation(ePeofile);
-		EXPECT_NEAR(ePeofile.get(0), 0, epsilon);
-		EXPECT_NEAR(ePeofile.get(10), 4.1, epsilon);
-		EXPECT_NEAR(ePeofile.get(20), 7.9, epsilon);
-		EXPECT_NEAR(ePeofile.get(40), 7.9, epsilon);
-		EXPECT_NEAR(ePeofile.get(100), 0, epsilon);
+		EXPECT_NEAR(ePeofile.get(0), 0, RoadRunner::epsilon);
+		EXPECT_NEAR(ePeofile.get(10), 4.1, RoadRunner::epsilon);
+		EXPECT_NEAR(ePeofile.get(20), 7.9, RoadRunner::epsilon);
+		EXPECT_NEAR(ePeofile.get(40), 7.9, RoadRunner::epsilon);
+		EXPECT_NEAR(ePeofile.get(100), 0, RoadRunner::epsilon);
 	}
 
 	struct RandElevationParam
@@ -68,7 +69,7 @@ namespace RoadRunnerTest
 		for (int i = 0; i <= Length; ++i)
 		{
 			auto valFromRev = eProfile.get(Length - i);
-			ExpectNearOrAssert(probeValues[i], valFromRev, epsilon);
+			ExpectNearOrAssert(probeValues[i], valFromRev, RoadRunner::epsilon);
 		}
 		eProfile.reverse(Length);
 
@@ -78,12 +79,12 @@ namespace RoadRunnerTest
 		for (int i = 0; i <= splitPoint; ++i)
 		{
 			auto valFromFirst = eProfile.get(i);
-			ExpectNearOrAssert(probeValues[i], valFromFirst, epsilon);
+			ExpectNearOrAssert(probeValues[i], valFromFirst, RoadRunner::epsilon);
 		}
 		for (int i = splitPoint; i <= Length; ++i)
 		{
 			auto valFromSecond = second.get(i - splitPoint);
-			ExpectNearOrAssert(probeValues[i], valFromSecond, epsilon);
+			ExpectNearOrAssert(probeValues[i], valFromSecond, RoadRunner::epsilon);
 		}
 
 		// Test join
@@ -91,7 +92,7 @@ namespace RoadRunnerTest
 		for (int i = 0; i <= Length; ++i)
 		{
 			auto valFromJoin = eProfile.get(i);
-			ExpectNearOrAssert(probeValues[i], valFromJoin, epsilon);
+			ExpectNearOrAssert(probeValues[i], valFromJoin, RoadRunner::epsilon);
 		}
 	}
 

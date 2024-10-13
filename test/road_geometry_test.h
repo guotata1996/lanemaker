@@ -7,7 +7,7 @@
 #include "curve_fitting.h"
 
 #include "spdlog/spdlog.h"
-#include "test_const.h"
+#include "test_macros.h"
 
 extern const std::map<int, std::pair<int, int>> posAngleCombo;
 
@@ -45,8 +45,8 @@ namespace RoadRunnerTest
                 auto g2 = rev->get_grad(probeSRev);
                 double pd = odr::euclDistance(p1, p2);
                 double gd = odr::euclDistance(g1, odr::negate(g2));
-                EXPECT_LT(pd, epsilon_integral_result);
-                EXPECT_LT(gd, epsilon_integral_result);
+                EXPECT_LT(pd, RoadRunner::epsilon);
+                EXPECT_LT(gd, RoadRunner::epsilon);
             }
         }
     }
@@ -73,8 +73,8 @@ namespace RoadRunnerTest
                     auto g2 = clone->get_grad(checkSOnClone);
                     auto h2 = std::atan2(g2[1], g2[0]);
                     double pd = odr::euclDistance(p1, p2);
-                    EXPECT_LT(pd, epsilon_integral_result);
-                    EXPECT_NEAR(h1, h2, epsilon_integral_result);
+                    EXPECT_LT(pd, RoadRunner::epsilon);
+                    EXPECT_NEAR(h1, h2, RoadRunner::epsilon);
                 }
             }
         }
@@ -102,8 +102,8 @@ namespace RoadRunnerTest
                     auto g2 = clone->get_grad(checkSOnClone);
                     auto h2 = std::atan2(g2[1], g2[0]);
                     double pd = odr::euclDistance(p1, p2);
-                    EXPECT_LT(pd, epsilon_integral_result);
-                    EXPECT_NEAR(h1, h2, epsilon_integral_result);
+                    EXPECT_LT(pd, RoadRunner::epsilon);
+                    EXPECT_NEAR(h1, h2, RoadRunner::epsilon);
                 }
             }
         }
@@ -161,8 +161,8 @@ namespace RoadRunnerTest
             auto realGrad = r1->generated.ref_line.get_grad_xy(sOnReverse);
             double realHdg = std::atan2(realGrad[1], realGrad[0]);
             double pd = odr::euclDistance(expectedPos, realPos);
-            EXPECT_LT(pd, epsilon_integral_result) << " Eval error at " << s;
-            EXPECT_NEAR(expectedHdg, realHdg, epsilon_integral_result) << " Eval error at " << s;
+            EXPECT_LT(pd, RoadRunner::epsilon) << " Eval error at " << s;
+            EXPECT_NEAR(expectedHdg, realHdg, RoadRunner::epsilon) << " Eval error at " << s;
         }
     }
 
@@ -208,8 +208,8 @@ namespace RoadRunnerTest
             double realHdg = std::atan2(realGrad[1], realGrad[0]);
 
             double pd = odr::euclDistance(expectedPos, realPos);
-            EXPECT_LT(pd, epsilon_integral_result) << " Eval error at " << s << " From r" << rIndex << " :" << r1->Length();
-            EXPECT_NEAR(expectedHdg, realHdg, epsilon_integral_result) << " Eval error at " << s;
+            EXPECT_LT(pd, RoadRunner::epsilon) << " Eval error at " << s << " From r" << rIndex << " :" << r1->Length();
+            EXPECT_NEAR(expectedHdg, realHdg, RoadRunner::epsilon) << " Eval error at " << s;
         }
 
         VerifyReverseMatch(r1);

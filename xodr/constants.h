@@ -17,4 +17,7 @@ namespace RoadRunner
 
     // Determines resolution for collision detection
     const double GraphicsDivision = 5;
+
+    // allowed gap between roads, in meters
+    const double epsilon = 1e-2;
 }

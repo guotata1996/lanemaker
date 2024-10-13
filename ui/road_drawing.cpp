@@ -30,6 +30,11 @@ RoadDrawingSession::RoadDrawingSession(QGraphicsView* aView) :
     cursorItem->hide(); // Hide until we receive mouse position
 }
 
+RoadDrawingSession::~RoadDrawingSession()
+{
+    SetHighlightTo(nullptr);
+}
+
 bool RoadDrawingSession::Update(const RoadRunner::MouseAction& evt)
 {
     if (evt.button == Qt::RightButton)

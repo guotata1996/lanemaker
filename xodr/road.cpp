@@ -246,7 +246,7 @@ namespace RoadRunner
             double startS = std::max(s1, sIt->first);
             double endS = std::min(s2, endLocal);
 
-            if (endS - startS < 0.1f)
+            if (endS - startS < epsilon)
             {
                 continue;
             }

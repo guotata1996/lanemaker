@@ -2,7 +2,8 @@
 
 #include "junction.h"
 
-#include "test_const.h"
+#include "test_macros.h"
+#include "constants.h"
 
 #ifdef G_TEST
 #include <gtest/gtest.h>
@@ -167,11 +168,11 @@ namespace RoadRunnerTest
         odr::Vec3D p1_out = road1->get_xyz(s1, t1_out, 0);  // Note: This returns global pos. reflane.get_xy returns local pos.
         odr::Vec3D p2_out = road2->get_xyz(s2, t2_out, 0);
 #ifdef G_TEST
-        EXPECT_LT(odr::euclDistance(p1_out, p2_out), epsilon)
+        EXPECT_LT(odr::euclDistance(p1_out, p2_out), RoadRunner::epsilon)
             << road1->id << " " << l1.id << " outer border doesn't meet " << road2->id << " " << l2.id
             << "(" << p1_out[0] << " , " << p1_out[1] << ") vs (" << p2_out[0] << " , " << p2_out[1] << ")";
 #else
-        ExpectOrAssert(odr::euclDistance(p1_out, p2_out) < epsilon);
+        ExpectOrAssert(odr::euclDistance(p1_out, p2_out) < RoadRunner::epsilon);
 #endif
 
         double t1_in = l1.inner_border.get(s1);
@@ -179,17 +180,17 @@ namespace RoadRunnerTest
         odr::Vec3D p1_in = road1->get_xyz(s1, t1_in, 0);
         odr::Vec3D p2_in = road2->get_xyz(s2, t2_in, 0);
 #ifdef G_TEST
-        EXPECT_LT(odr::euclDistance(p1_in, p2_in), epsilon)
+        EXPECT_LT(odr::euclDistance(p1_in, p2_in), RoadRunner::epsilon)
             << road1->id << " " << l1.id << " inner border doesn't meet " << road2->id << " " << l2.id;
 #else
-        ExpectOrAssert(odr::euclDistance(p1_in, p2_in) < epsilon);
+        ExpectOrAssert(odr::euclDistance(p1_in, p2_in) < RoadRunner::epsilon);
 #endif
 
         auto h1_out = road1->ref_line.get_grad_xy(s1);
         auto h2_out = road2->ref_line.get_grad_xy(s2);
         auto angle_out = std::abs(odr::angle(h1_out, h2_out));
         auto angle_opp_out = std::abs(odr::angle(h1_out, odr::negate(h2_out)));
-        ExpectOrAssert(angle_out < epsilon || angle_opp_out < epsilon);
+        ExpectOrAssert(angle_out < RoadRunner::epsilon || angle_opp_out < RoadRunner::epsilon);
     }
 
     void Validation::EnsureEndsMeet(const odr::Road* road1, double s1, int lane1,

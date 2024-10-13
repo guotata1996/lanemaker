@@ -112,6 +112,7 @@ namespace RoadRunner
         road1->GenerateOrUpdateSectionGraphicsBetween(
             std::max(0.0, linkBaseD - 3 * MaxTransition),
             std::min(road2BaseD + 3 * MaxTransition, road1->Length()));
+        road1->EnableHighlight(false);
 #endif
         return RoadJoin_Success;
     }
@@ -173,6 +174,7 @@ namespace RoadRunner
 
 #ifndef G_TEST  
         roadAsPrev->GenerateOrUpdateSectionGraphicsBetween(std::max(s - 3 * MaxTransition, 0.0), s);
+        part2->EnableHighlight(false);
 #endif
         return part2;
     }

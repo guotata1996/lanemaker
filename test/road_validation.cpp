@@ -3,7 +3,8 @@
 #include "road.h"
 #include "junction.h"
 
-#include "test_const.h"
+#include "test_macros.h"
+#include "constants.h"
 
 #ifdef G_TEST
     #include <gtest/gtest.h>
