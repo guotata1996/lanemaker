@@ -50,40 +50,60 @@ void VehicleManager::End()
 void VehicleManager::Spawn()
 {
     auto& latestMap = RoadRunner::ChangeTracker::Instance()->odrMap;
-    std::vector<odr::LaneKey> allLanes;
-    std::vector<double> allWeights;
-    const double MinLengthRequired = 10;
+    auto& latestRoutingGraph = latestMap.get_routing_graph();
 
-    for (auto id_road : latestMap.id_to_road)
+    auto setRoutes = latestMap.get_routes();
+    if (!setRoutes.empty())
     {
-        if (id_road.second.junction != "-1") continue;
-        for (auto id_section : id_road.second.s_to_lanesection)
+        for (const auto& start_end : setRoutes)
         {
-            double length = id_road.second.get_lanesection_length(id_section.first);
-            if (length < MinLengthRequired) continue;
-
-            for (auto id_lane : id_section.second.id_to_lane)
-            {
-                odr::Lane lane = id_lane.second;
-                if (lane.type != "driving") continue;
-                allLanes.push_back(lane.key);
-                allWeights.push_back(length - MinLengthRequired);
-            }
+            auto startKey = std::get<0>(start_end);
+            auto startS = std::get<1>(start_end);
+            auto endKey = std::get<2>(start_end);
+            auto endS = std::get<3>(start_end);
+            allVehicles.emplace_back(startKey, startS, endKey, endS);
         }
     }
+    else
+    {
+        // Randonly spawn if no route found
+        /*
+        std::vector<odr::LaneKey> allLanes;
+        std::vector<double> allWeights;
+        const double MinLengthRequired = 10;
 
-    if (allLanes.empty())
-    {
-        spdlog::warn("No roads to spawn on! Try creating longer roads.");
-        return;
-    }
-    
-    double totalLength = std::accumulate(allWeights.begin(), allWeights.end(), 0);
-    int num = std::ceil(totalLength / 100);
-    for (int i = 0; i != num; ++i)
-    {
-        auto selectedIndex = RandomSelect(allWeights);
-        allVehicles.emplace_back(allLanes[selectedIndex], rand01() * allWeights[selectedIndex]);
+        for (auto id_road : latestMap.id_to_road)
+        {
+            if (id_road.second.junction != "-1") continue;
+            for (auto id_section : id_road.second.s_to_lanesection)
+            {
+                double length = id_road.second.get_lanesection_length(id_section.first);
+                if (length < MinLengthRequired) continue;
+
+                for (auto id_lane : id_section.second.id_to_lane)
+                {
+                    odr::Lane lane = id_lane.second;
+                    if (lane.type != "driving") continue;
+                    allLanes.push_back(lane.key);
+                    allWeights.push_back(length - MinLengthRequired);
+                }
+            }
+        }
+
+        if (allLanes.empty())
+        {
+            spdlog::warn("No roads to spawn on! Try creating longer roads.");
+            return;
+        }
+
+        double totalLength = std::accumulate(allWeights.begin(), allWeights.end(), 0);
+        int num = std::ceil(totalLength / 100);
+        for (int i = 0; i != num; ++i)
+        {
+            auto selectedIndex = RandomSelect(allWeights);
+            allVehicles.emplace_back(allLanes[selectedIndex], rand01() * allWeights[selectedIndex]);
+        }
+        */
     }
 }
 

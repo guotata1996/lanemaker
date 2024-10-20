@@ -75,6 +75,7 @@ class RoutingGraph
 public:
     RoutingGraph() = default;
     void add_edge(const RoutingGraphEdge& edge);
+    void add_parallel(std::vector<LaneKey> neighbors);
 
     std::vector<LaneKey> get_lane_successors(const LaneKey& lane_key) const;
     std::vector<LaneKey> get_lane_predecessors(const LaneKey& lane_key) const;
@@ -83,6 +84,7 @@ public:
     std::unordered_set<RoutingGraphEdge>                             edges;
     std::unordered_map<LaneKey, std::unordered_set<WeightedLaneKey>> lane_key_to_successors;
     std::unordered_map<LaneKey, std::unordered_set<WeightedLaneKey>> lane_key_to_predecessors;
+    std::unordered_map<LaneKey, std::unordered_set<WeightedLaneKey>> lane_key_to_neighbors;
 };
 
 } // namespace odr

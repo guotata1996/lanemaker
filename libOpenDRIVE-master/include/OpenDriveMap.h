@@ -51,6 +51,7 @@ public:
 
     RoadNetworkMesh get_road_network_mesh(const double eps) const;
     RoutingGraph    get_routing_graph() const;
+    std::vector<std::tuple<LaneKey, double, LaneKey, double>> get_routes() const;
 
     void export_file(const std::string& fpath) const; 
 

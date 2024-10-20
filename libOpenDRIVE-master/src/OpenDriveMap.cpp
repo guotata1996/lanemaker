@@ -906,11 +906,11 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
 
                     if (id_lane.first < 0)
                     {
-                        routing_graph.add_edge(RoutingGraphEdge(from, to /*, lane_length*/));
+                        routing_graph.add_edge(RoutingGraphEdge(from, to, lane_length));
                     }
                     else
                     {
-                        routing_graph.add_edge(RoutingGraphEdge(to, from /*, lane_length*/));
+                        routing_graph.add_edge(RoutingGraphEdge(to, from, lane_length));
                     }
                 }
             }
@@ -961,17 +961,120 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
                 const double  lane_length = incoming_road.get_lanesection_length(incoming_lanesec);
                 if (is_succ_junc && from_lane.id < 0 || is_pred_junc && from_lane.id > 0) 
                 {
-                    routing_graph.add_edge(RoutingGraphEdge(from, to /*, lane_length*/));
+                    routing_graph.add_edge(RoutingGraphEdge(from, to, lane_length));
                 }
                 else
                 {
-                    routing_graph.add_edge(RoutingGraphEdge(to, from /*, lane_length*/));
+                    routing_graph.add_edge(RoutingGraphEdge(to, from, lane_length));
+                }
+            }
+        }
+    }
+
+    /* lane changes*/
+    for (const auto& id_road : this->id_to_road)
+    {
+        const Road& road = id_road.second;
+        for (auto s_lanesec_iter = road.s_to_lanesection.begin(); s_lanesec_iter != road.s_to_lanesection.end(); s_lanesec_iter++)
+        {
+            for (int side : { -1,1 })
+            {
+                auto parallels = s_lanesec_iter->second.get_sorted_driving_lanes(side);
+                if (parallels.size() > 1)
+                {
+                    std::vector<LaneKey> laneKeys;
+                    for (int i = 0; i != parallels.size(); ++i)
+                    {
+                        laneKeys.emplace_back(LaneKey(road.id, s_lanesec_iter->second.s0, parallels[i].id));
+                    }
+                    routing_graph.add_parallel(laneKeys);
                 }
             }
         }
     }
 
     return routing_graph;
+}
+
+std::vector<std::tuple<LaneKey, double, LaneKey, double>> OpenDriveMap::get_routes() const
+{
+    std::vector<std::tuple<LaneKey, double, LaneKey, double>> rtn;
+
+    // Find lane for each route start/end
+    std::map<std::string, std::pair<LaneKey, double>> global_id_to_start, global_id_to_end;
+    for (const auto& id_road : this->id_to_road)
+    {
+        const Road& road = id_road.second;
+        for (const auto& id_object : road.id_to_object)
+        {
+            if (id_object.second.type == "route start" || id_object.second.type == "route end")
+            {
+                auto roadObj = id_object.second;
+
+                auto objRoad = roadObj.road_id;
+                auto objLaneSection = id_to_road.at(objRoad).get_lanesection(roadObj.s0);
+                auto possibleLeftLanes = objLaneSection.get_sorted_driving_lanes(1);
+                auto possibleLanes = objLaneSection.get_sorted_driving_lanes(-1);
+
+                possibleLanes.insert(possibleLanes.end(), possibleLeftLanes.begin(), possibleLeftLanes.end());
+                bool laneFound = false;
+                for (const auto& lane : possibleLanes)
+                {
+                    auto innerT = lane.inner_border.get(roadObj.s0);
+                    auto outerT = lane.outer_border.get(roadObj.s0);
+                    if (innerT < roadObj.t0 && roadObj.t0 < outerT || outerT < roadObj.t0 && roadObj.t0 < innerT)
+                    {
+                        laneFound = true;
+                        LaneKey laneKey(objRoad, objLaneSection.s0, lane.id);
+                        std::pair<LaneKey, double> value = std::make_pair(laneKey, roadObj.s0);
+                        if (id_object.second.type == "route start")
+                        {
+                            global_id_to_start.emplace(id_object.first, value);
+                        }
+                        else
+                        {
+                            global_id_to_end.emplace(id_object.first, value);
+                        }
+                        break;
+                    }
+                }
+                if (!laneFound)
+                {
+                    std::cout << "[Warning] Lane of route start/end " << id_object.first << " not found\n";
+                }
+            }
+        }
+    }
+
+    // Pair start and end
+    for (const auto& id_road : this->id_to_road)
+    {
+        const Road& road = id_road.second;
+        for (const auto& id_object : road.id_to_object)
+        {
+            if (id_object.second.type == "route start")
+            {
+                auto startInfo = global_id_to_start.find(id_object.first);
+                if (startInfo == global_id_to_start.end())
+                {
+                    continue;
+                }
+
+                auto endID = id_object.second.name;
+                auto endInfo = global_id_to_end.find(endID);
+                if (endInfo == global_id_to_end.end())
+                {
+                    std::cout << "[Warning] Route end " << endID << " not found\n";
+                    continue;
+                }
+                
+                rtn.emplace_back(std::make_tuple(startInfo->second.first, startInfo->second.second, 
+                    endInfo->second.first, endInfo->second.second));
+            }
+        }
+    }
+
+    return rtn;
 }
 
 void OpenDriveMap::export_file(const std::string& fpath) const

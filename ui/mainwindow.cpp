@@ -193,6 +193,10 @@ void MainWindow::saveToFile()
     {
         auto loc = s.toStdString();
         RoadRunner::ChangeTracker::Instance()->Save(loc);
+        if (loadedFileName.empty())
+        {
+            loadedFileName = loc;
+        }
     }
 }
 

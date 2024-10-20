@@ -5,7 +5,8 @@ class Vehicle
 {
 public:
     /*Initiate graphics*/
-    Vehicle(odr::LaneKey initialLane, double initialLocalS);
+    Vehicle(odr::LaneKey initialLane, double initialLocalS,
+        odr::LaneKey destLane, double destS);
 
     /*Clean graphics*/
     void Clear();
@@ -14,18 +15,22 @@ public:
     bool Step(double dt, const odr::OpenDriveMap& map, const odr::RoutingGraph& graph);
 
 private:
-    void updateCurrKeyLength(const odr::OpenDriveMap& map);
+    void updateNavigation(const odr::OpenDriveMap& map, const odr::RoutingGraph& routingGraph);
 
-    odr::LaneKey currKey;
-    double currLaneLength; // 0-- invalid
     double s; // inside current lane section
+    double currLaneLength;
     double odoMeter;
     
-    bool checkedForLaneChange;
     double tOffset; // non-zero when lane change starts; gradually decreases to zero
+    double laneChangeDueS;
 
-    const double DefaultVelocity = 10;
-    const double LaneChangeDistance = 30;
+    std::vector<odr::LaneKey> navigation;
+
+    const double DefaultVelocity = 15;
+    const double MaxSwitchLaneDistance = 50;
+
+    const odr::LaneKey DestLane;
+    const double DestS;
 
     QGraphicsRectItem* graphics;
 };

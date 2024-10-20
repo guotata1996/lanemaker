@@ -23,16 +23,35 @@ void RoutingGraph::add_edge(const RoutingGraphEdge& edge)
     this->lane_key_to_predecessors[edge.to].insert(WeightedLaneKey(edge.from, edge.weight));
 }
 
+void RoutingGraph::add_parallel(std::vector<LaneKey> neighbors) 
+{ 
+    for (int i = 0; i != neighbors.size(); ++i)
+    {
+        for (int j = 0; j != neighbors.size(); ++j)
+        {
+            if (i == j)
+                continue;
+
+            this->lane_key_to_neighbors[neighbors[i]].insert(WeightedLaneKey(neighbors[j], 1.0));
+            this->lane_key_to_neighbors[neighbors[j]].insert(WeightedLaneKey(neighbors[i], 1.0));
+        }
+    }
+}
+
 std::vector<LaneKey> RoutingGraph::get_lane_successors(const LaneKey& lane_key) const
 {
-    std::unordered_set<WeightedLaneKey> res = try_get_val(this->lane_key_to_successors, lane_key, std::unordered_set<WeightedLaneKey>{});
+    std::unordered_set<WeightedLaneKey> res = this->lane_key_to_successors.find(lane_key) == this->lane_key_to_successors.end() 
+        ? std::unordered_set<WeightedLaneKey>{} 
+        : this->lane_key_to_successors.at(lane_key);
     std::vector<LaneKey>                successor_lane_keys(res.begin(), res.end());
     return successor_lane_keys;
 }
 
 std::vector<LaneKey> RoutingGraph::get_lane_predecessors(const LaneKey& lane_key) const
 {
-    std::unordered_set<WeightedLaneKey> res = try_get_val(this->lane_key_to_predecessors, lane_key, std::unordered_set<WeightedLaneKey>{});
+    std::unordered_set<WeightedLaneKey> res = this->lane_key_to_predecessors.find(lane_key) == this->lane_key_to_predecessors.end()
+        ? std::unordered_set<WeightedLaneKey>{}
+        : this->lane_key_to_predecessors.at(lane_key);
     std::vector<LaneKey>                predecessor_lane_keys(res.begin(), res.end());
     return predecessor_lane_keys;
 }
@@ -40,7 +59,7 @@ std::vector<LaneKey> RoutingGraph::get_lane_predecessors(const LaneKey& lane_key
 std::vector<LaneKey> RoutingGraph::shortest_path(const LaneKey& from, const LaneKey& to) const
 {
     std::vector<LaneKey> path;
-    if (this->lane_key_to_successors.count(from) == 0)
+    if (this->lane_key_to_successors.count(from) + this->lane_key_to_neighbors.count(from) == 0)
         return path;
 
     std::unordered_set<LaneKey> vertices;
@@ -49,10 +68,14 @@ std::vector<LaneKey> RoutingGraph::shortest_path(const LaneKey& from, const Lane
         vertices.insert(lane_key_successors.first);
         vertices.insert(lane_key_successors.second.begin(), lane_key_successors.second.end());
     }
+    for (const auto& lane_key_neighbors : this->lane_key_to_neighbors)
+    {
+        vertices.insert(lane_key_neighbors.first);
+        vertices.insert(lane_key_neighbors.second.begin(), lane_key_neighbors.second.end());
+    }
 
     if (vertices.count(to) == 0)
         return path;
-
     std::vector<LaneKey>                 nodes;
     std::unordered_map<LaneKey, double>  weights;
     std::unordered_map<LaneKey, LaneKey> previous;
@@ -81,17 +104,31 @@ std::vector<LaneKey> RoutingGraph::shortest_path(const LaneKey& from, const Lane
                 path.push_back(smallest);
                 smallest = previous.at(smallest);
             }
-            break;
+            path.push_back(from);
+            std::reverse(path.begin(), path.end());
+            return path;
         }
 
         if (weights.at(smallest) == std::numeric_limits<double>::max())
+        {
             break;
+        }
 
         auto smallest_succ_iter = this->lane_key_to_successors.find(smallest);
-        if (smallest_succ_iter == this->lane_key_to_successors.end())
-            continue;
+        decltype(smallest_succ_iter->second) combinedSuccessor;
 
-        for (const auto& successor : smallest_succ_iter->second)
+        if (smallest_succ_iter != this->lane_key_to_successors.end())
+        {
+            combinedSuccessor.insert(smallest_succ_iter->second.begin(), smallest_succ_iter->second.end());
+        }
+        
+        smallest_succ_iter = lane_key_to_neighbors.find(smallest);
+        if (smallest_succ_iter != lane_key_to_neighbors.end())
+        {
+            combinedSuccessor.insert(smallest_succ_iter->second.begin(), smallest_succ_iter->second.end());
+        }
+        
+        for (const auto& successor : combinedSuccessor)
         {
             const double alt = weights.at(smallest) + successor.weight;
             if (alt < weights.at(successor))
@@ -103,8 +140,6 @@ std::vector<LaneKey> RoutingGraph::shortest_path(const LaneKey& from, const Lane
         }
     }
 
-    path.push_back(from);
-    std::reverse(path.begin(), path.end());
     return path;
 }
 
