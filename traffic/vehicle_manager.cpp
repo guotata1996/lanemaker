@@ -23,7 +23,8 @@ size_t RandomSelect(const std::vector<double>& probs)
     return index;
 }
 
-VehicleManager::VehicleManager(QObject* parent): QObject(parent)
+VehicleManager::VehicleManager(QObject* parent): QObject(parent),
+    idGen(IDGenerator::ForVehicle())
 {
     timer = new QTimer(this);
     timer->setInterval(FPS);
@@ -42,7 +43,7 @@ void VehicleManager::End()
     timer->stop();
     for (auto v : allVehicles)
     {
-        v.Clear();
+        v.second->Clear();
     }
     allVehicles.clear();
 }
@@ -61,7 +62,8 @@ void VehicleManager::Spawn()
             auto startS = std::get<1>(start_end);
             auto endKey = std::get<2>(start_end);
             auto endS = std::get<3>(start_end);
-            allVehicles.emplace_back(startKey, startS, endKey, endS);
+            auto vehicle = std::make_shared<Vehicle>(startKey, startS, endKey, endS);
+            allVehicles.emplace(vehicle->ID, vehicle);
         }
     }
     else
@@ -109,19 +111,30 @@ void VehicleManager::Spawn()
 
 void VehicleManager::step()
 {
-    auto i = allVehicles.begin();
-    while (i != allVehicles.end())
+    vehiclesOnLane.clear();
+    for (const auto& id_v : allVehicles)
     {
-        bool isActive = (*i).Step(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->odrMap, routingGraph);
-        if (!isActive)
+        for (const auto& laneKey : id_v.second->OccupyingLanes())
         {
-            (*i).Clear();
-            allVehicles.erase(i++);
-        }
-        else
-        {
-            ++i;
+            vehiclesOnLane[laneKey].emplace(id_v.second->CurrS(), id_v.second);
         }
     }
-}
 
+    std::set<std::string> inactives;
+    for (auto& id_v: allVehicles)
+    {
+        auto vehicle = id_v.second;
+        bool isActive = vehicle->Step(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->odrMap, 
+            routingGraph, vehiclesOnLane);
+        if (!isActive)
+        {
+            inactives.emplace(id_v.first);
+        }
+    }
+
+    for (auto id : inactives)
+    {
+        allVehicles.at(id)->Clear();
+        allVehicles.erase(id);
+    }
+}

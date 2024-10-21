@@ -16,6 +16,7 @@ public:
     IDGenerator& operator=(const IDGenerator&) = delete;
     static IDGenerator* ForJunction();
     static IDGenerator* ForRoad();
+    static IDGenerator* ForVehicle();
     static void Reset();
 
     size_t size() const;
@@ -35,6 +36,7 @@ private:
 
     static IDGenerator* _junction;
     static IDGenerator* _road;
+    static IDGenerator* _vehicle;
 
     std::string type;
     std::vector<bool> assigned;

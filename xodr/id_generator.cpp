@@ -4,6 +4,7 @@
 
 IDGenerator* IDGenerator::_junction = nullptr;
 IDGenerator* IDGenerator::_road = nullptr;
+IDGenerator* IDGenerator::_vehicle = nullptr;
 
 IDGenerator::IDGenerator(std::string aType): type(aType)
 {
@@ -28,10 +29,20 @@ IDGenerator* IDGenerator::ForRoad()
     return _road;
 }
 
+IDGenerator* IDGenerator::ForVehicle()
+{
+    if (_vehicle == nullptr)
+    {
+        _vehicle = new IDGenerator("Vehicle");
+    }
+    return _vehicle;
+}
+
 void IDGenerator::Reset()
 {
     IDGenerator::ForRoad()->reset();
     IDGenerator::ForJunction()->reset();
+    IDGenerator::ForVehicle()->reset();
 }
 
 size_t IDGenerator::size() const
