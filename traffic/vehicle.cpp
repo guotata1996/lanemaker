@@ -10,9 +10,9 @@
 extern QGraphicsScene* g_scene;
 
 Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS,
-    odr::LaneKey destLane, double destS) :
+    odr::LaneKey destLane, double destS, double maxV) :
     s(initialLocalS), firstStep(true),
-    currLaneLength(0), tOffset(0), laneChangeDueS(0),
+    currLaneLength(0), tOffset(0), laneChangeDueS(0), velocity(0), MaxV(maxV),
     ID(IDGenerator::ForVehicle()->GenerateID(this)), DestLane(destLane), DestS(destS)
 {
     navigation = { initialLane };
@@ -54,7 +54,8 @@ bool Vehicle::Step(double dt, const odr::OpenDriveMap& odrMap, const odr::Routin
         firstStep = false;
     }
 
-    auto leader = GetLeader(odrMap, vehiclesOnLane);
+    double leaderDistance;
+    auto leader = GetLeader(odrMap, vehiclesOnLane, leaderDistance);
     if (leader != nullptr)
     {
         auto myTip = TipPos();
@@ -66,13 +67,14 @@ bool Vehicle::Step(double dt, const odr::OpenDriveMap& odrMap, const odr::Routin
     {
         leaderVisual->hide();
     }
+    velocity = vFromGibbs(dt, leader, leaderDistance);
 
     double laneChangeRate = 0;
     if (s < laneChangeDueS)
     {
         double remainingS = laneChangeDueS - s;
         laneChangeRate = tOffset / remainingS * 1.5;
-        tOffset -= laneChangeRate * dt * DefaultVelocity;
+        tOffset -= laneChangeRate * dt * velocity;
         if (std::abs(tOffset) < 0.3)
         {
             // mark lane change as complete
@@ -80,7 +82,7 @@ bool Vehicle::Step(double dt, const odr::OpenDriveMap& odrMap, const odr::Routin
         }
     }
 
-    s += dt * DefaultVelocity;
+    s += dt * velocity;
 
     if (std::equal_to<odr::LaneKey>{}(navigation.front(), DestLane) &&
         s < DestS != DestLane.lane_id < 0)
@@ -107,7 +109,7 @@ bool Vehicle::Step(double dt, const odr::OpenDriveMap& odrMap, const odr::Routin
             return false;
         }
         // TODO: Complete consecutive lane changes in time
-        laneChangeDueS = std::min(currLaneLength / 2, MaxSwitchLaneDistance);
+        laneChangeDueS = std::min((currLaneLength + s) / 2, MaxSwitchLaneDistance + s);
     }
     else
     {
@@ -189,7 +191,7 @@ double Vehicle::CurrS() const
 
 std::shared_ptr<Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
     const std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane,
-    double lookforward) const
+    double& outDistance, double lookforward) const
 {
     // curr lane:
     // if lane changing, consider leader on both lanes
@@ -228,24 +230,65 @@ std::shared_ptr<Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
     }
 
     if (rtn != nullptr)
+    {
+        outDistance = rtn->s - s;
         return rtn;
+    }
+        
 
     // lanes ahead navigation
-    double goingForwardS = currLaneLength;
+    outDistance = currLaneLength - s;
     for (int i = 1; i < navigation.size(); ++i)
     {
-        if (goingForwardS > lookforward)
+        if (outDistance > lookforward)
         {
             return rtn;
         }
-        auto& orderedOnLane = vehiclesOnLane.at(navigation[i]);
-        if (orderedOnLane.begin() != orderedOnLane.end())
+        if (vehiclesOnLane.find(navigation[i]) != vehiclesOnLane.end())
         {
-            return orderedOnLane.begin()->second;
+            auto& orderedOnLane = vehiclesOnLane.at(navigation[i]);
+            if (orderedOnLane.begin() != orderedOnLane.end())
+            {
+                outDistance += orderedOnLane.begin()->second->s;
+                return orderedOnLane.begin()->second;
+            }
         }
-        goingForwardS += map.id_to_road.at(navigation[i].road_id).get_lanesection_length(navigation[i].lanesection_s0);
+
+        outDistance += map.id_to_road.at(navigation[i].road_id).get_lanesection_length(navigation[i].lanesection_s0);
     }
     return rtn;
+}
+
+double Vehicle::vFromGibbs(double dt, std::shared_ptr<Vehicle> leader, double distance) const
+{
+    // Gipps model
+    const double tau = 1.5; // reaction time
+    const double a = 3; // max acc
+    const double b = -8;  // max dcc
+    const double s0 = 4;  // static gap
+    const double li = 4.6;
+
+    double vOut = velocity + 2.5 * a * dt * (1 - velocity / MaxV) *
+        std::sqrt(0.025 + velocity / MaxV);
+
+    if (leader != nullptr)
+    {
+        double underSqr = std::pow(b * dt, 2) - b *
+            (-velocity * tau - std::pow(leader->velocity, 2) / b - 2 * li - s0 + 2 * distance);
+        if (underSqr < 0)
+        {
+            // gonna collide, hard stop
+            vOut = 0;
+        }
+        else
+        {
+            double vFollow = -b * dt + std::sqrt(underSqr);
+            vOut = std::min(vOut, vFollow);
+        }
+    }
+
+    assert(vOut >= 0);
+    return vOut;
 }
 
 void Vehicle::updateNavigation(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph)

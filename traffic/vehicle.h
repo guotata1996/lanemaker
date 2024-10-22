@@ -8,7 +8,7 @@ class Vehicle
 public:
     /*Initiate graphics*/
     Vehicle(odr::LaneKey initialLane, double initialLocalS,
-        odr::LaneKey destLane, double destS);
+        odr::LaneKey destLane, double destS, double maxV = 20);
 
     /*Clean graphics*/
     void Clear();
@@ -24,7 +24,9 @@ public:
 
     std::shared_ptr<Vehicle> GetLeader(const odr::OpenDriveMap& map,
         const std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane,
-        double lookforward = 50) const;
+        double& outDistance, double lookforward = 50) const;
+
+    double vFromGibbs(double dt, std::shared_ptr<Vehicle> leader, double distance) const;
 
     const std::string ID;
 
@@ -41,14 +43,15 @@ private:
     std::vector<odr::LaneKey> navigation;
     std::optional<odr::LaneKey> lcFrom;  // active during a lane change
 
-    const double DefaultVelocity = 15;
     const double MaxSwitchLaneDistance = 50;
 
     const odr::LaneKey DestLane;
     const double DestS;
+    const double MaxV;
 
     odr::Vec3D position;
     double heading;
+    double velocity;
     QGraphicsRectItem* graphics;
     QGraphicsLineItem* leaderVisual;
 };
