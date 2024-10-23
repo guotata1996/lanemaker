@@ -62,8 +62,17 @@ void VehicleManager::Spawn()
             auto startS = std::get<1>(start_end);
             auto endKey = std::get<2>(start_end);
             auto endS = std::get<3>(start_end);
-            auto vehicle = std::make_shared<Vehicle>(startKey, startS, endKey, endS);
-            allVehicles.emplace(vehicle->ID, vehicle);
+            auto vehicle = std::make_shared<Vehicle>(startKey, startS, endKey, endS, 
+                allVehicles.size() % 2 == 1 ? 12 : 20);
+            if (vehicle->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->odrMap,
+                routingGraph))
+            {
+                allVehicles.emplace(vehicle->ID, vehicle);
+            }
+            else
+            {
+                spdlog::info("Vehicle spanw failed");
+            }
         }
     }
     else
@@ -116,6 +125,7 @@ void VehicleManager::step()
     {
         for (const auto& laneKey : id_v.second->OccupyingLanes())
         {
+            // TODO: conflicting s
             vehiclesOnLane[laneKey].emplace(id_v.second->CurrS(), id_v.second);
         }
     }
@@ -124,17 +134,30 @@ void VehicleManager::step()
     for (auto& id_v: allVehicles)
     {
         auto vehicle = id_v.second;
-        bool isActive = vehicle->Step(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->odrMap, 
-            routingGraph, vehiclesOnLane);
+        bool isActive = vehicle->PlanStep(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->odrMap, 
+            vehiclesOnLane);
         if (!isActive)
         {
             inactives.emplace(id_v.first);
         }
     }
 
-    for (auto id : inactives)
+    for (auto& id_v : allVehicles)
     {
-        allVehicles.at(id)->Clear();
-        allVehicles.erase(id);
+        auto id = id_v.first;
+        if (inactives.find(id) == inactives.end())
+        {
+            id_v.second->MakeStep(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->odrMap);
+        }
+        else
+        {
+            // reassign goal
+            if (!allVehicles.at(id)->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->odrMap,
+                routingGraph))
+            {
+                allVehicles.at(id)->Clear();
+                allVehicles.erase(id);
+            }
+        }
     }
 }
