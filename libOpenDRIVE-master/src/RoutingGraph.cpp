@@ -25,16 +25,11 @@ void RoutingGraph::add_edge(const RoutingGraphEdge& edge)
 
 void RoutingGraph::add_parallel(std::vector<LaneKey> neighbors) 
 { 
-    for (int i = 0; i != neighbors.size(); ++i)
+    for (int i = 0; i < neighbors.size() - 1; ++i)
     {
-        for (int j = 0; j != neighbors.size(); ++j)
-        {
-            if (i == j)
-                continue;
-
-            this->lane_key_to_neighbors[neighbors[i]].insert(WeightedLaneKey(neighbors[j], 1.0));
-            this->lane_key_to_neighbors[neighbors[j]].insert(WeightedLaneKey(neighbors[i], 1.0));
-        }
+        int j = i + 1;
+        this->lane_key_to_neighbors[neighbors[i]].insert(WeightedLaneKey(neighbors[j], 1.0));
+        this->lane_key_to_neighbors[neighbors[j]].insert(WeightedLaneKey(neighbors[i], 1.0));
     }
 }
 

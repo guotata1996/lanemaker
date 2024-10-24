@@ -77,11 +77,13 @@ void VehicleManager::Spawn()
     }
     else
     {
-        srand(11);
+        int seed = 31614; // rand();
+        srand(seed);
+        spdlog::info("Spawn seed = {}", seed);
         // Randonly spawn if no route found
         std::vector<odr::LaneKey> allLanes;
         std::vector<double> allWeights;
-        const double MinLengthRequired = 10;
+        const double MinLengthRequired = 10; // TODO: this should depend on number of lanes to limit lane change rate
 
         for (auto id_road : latestMap.id_to_road)
         {
@@ -116,11 +118,13 @@ void VehicleManager::Spawn()
 
             auto startKey = allLanes[startIndex];
             auto endKey = allLanes[endIndex];
-            auto startS = rand01() * allWeights[startIndex];
-            auto endS = rand01() * allWeights[endIndex];
+            // At least MinLengthRequired / 2 from both ends
+            auto startS = rand01() * allWeights[startIndex] + MinLengthRequired / 2;
+            auto endS = rand01() * allWeights[endIndex] + MinLengthRequired / 2;
+
             if (startKey.road_id == endKey.road_id && startKey.lanesection_s0 == endKey.lanesection_s0
                 && startKey.lane_id != endKey.lane_id && startKey.lane_id * endKey.lane_id > 0
-                && std::abs(startS - endS) < 5)
+                && std::abs(startS - endS) < MinLengthRequired / 2)
             {
                 // Reject abrupt lane change req.
                 i--;
@@ -133,10 +137,6 @@ void VehicleManager::Spawn()
                 routingGraph))
             {
                 allVehicles.emplace(vehicle->ID, vehicle);
-            }
-            else
-            {
-                spdlog::info("Routing fails");
             }
         }
     }

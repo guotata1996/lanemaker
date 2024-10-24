@@ -8,10 +8,11 @@
 #include "id_generator.h"
 
 extern QGraphicsScene* g_scene;
+const std::string NowDebugging = "181";
 
 Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey destLane, double destS, double maxV) :
     AS(initialLocalS), ALane(initialLane), BS(destS), BLane(destLane),
-    currLaneLength(0), tOffset(0), laneChangeDueS(0), velocity(0), MaxV(maxV), firstStep(true),
+    currLaneLength(0), tOffset(0), laneChangeDueS(0), velocity(0), MaxV(maxV), step(0),
     ID(IDGenerator::ForVehicle()->GenerateID(this)), goalIndex(false)
 {
     graphics = new QGraphicsRectItem(QRectF(-2.3, -0.9, 4.6, 1.8));
@@ -30,16 +31,23 @@ bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGr
 {
     goalIndex = !goalIndex;
     updateNavigation(odrMap, routingGraph);
-    if (ID == "12")
-        spdlog::info("GotoNextG");
     s = sourceS();
-    tOffset = 0;
     laneChangeDueS = 0;
 
     const auto currKey = sourceLane();
     const auto& road = odrMap.id_to_road.at(currKey.road_id);
     const auto& section = road.get_lanesection(currKey.lanesection_s0);
     currLaneLength = road.get_lanesection_length(section);
+
+    if (ID == NowDebugging)
+    {
+        spdlog::info("==== begin navigation ====");
+        for (auto n : navigation)
+        {
+            spdlog::info(n.to_string());
+        }
+        spdlog::info("====  end  navigation ====");
+    }
 
     return !navigation.empty();
 }
@@ -71,9 +79,9 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
     }
     new_velocity = vFromGibbs(dt, leader, leaderDistance);
     new_s = s + dt * new_velocity;
-
+    
     if (std::equal_to<odr::LaneKey>{}(navigation.front(), destLane()) &&
-        s < destS() && new_s >= destS())
+        s <= destS() && new_s > destS())
     {
         // Past destination s
         assert(recordV == velocity && recordS == s);
@@ -82,7 +90,9 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
 
     if (navigation.size() >= 2 &&
         navigation[0].road_id == navigation[1].road_id &&
-        std::abs(navigation[0].lane_id - navigation[1].lane_id) == 1)
+        navigation[0].lanesection_s0 == navigation[1].lanesection_s0 &&
+        std::abs(navigation[0].lane_id - navigation[1].lane_id) == 1 &&
+        !lcFrom.has_value())
     {
         // Next move is lane switch
         auto currKey = navigation.front();
@@ -90,18 +100,48 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
         const auto& section = odrMap.id_to_road.at(currKey.road_id).get_lanesection(currKey.lanesection_s0);
         double tBase = section.id_to_lane.at(currKey.lane_id).outer_border.get(sOnRefLine + currKey.lanesection_s0);
         double tTarget = section.id_to_lane.at(navigation[1].lane_id).outer_border.get(sOnRefLine + currKey.lanesection_s0);
-        tOffset = tBase - tTarget;
+        tOffset += tBase - tTarget;
+        if (ID == NowDebugging)
+        {
+            spdlog::info("  Switching lane from {} to {} brings tOffset to {}", currKey.to_string(), navigation[1].to_string(), tOffset);
+        }
         lcFrom.emplace(navigation.front());
         navigation.erase(navigation.begin());
         assert(!navigation.empty());
 
-        // TODO: Complete consecutive lane changes in time
-        laneChangeDueS = std::min((currLaneLength + s) / 2, MaxSwitchLaneDistance + s);
+        if (std::equal_to<odr::LaneKey>{}(navigation.front(), destLane()) &&
+            s <= destS() && new_s > destS())
+        {
+            // Past destination s
+            assert(recordV == velocity && recordS == s);
+            return false;
+        }
+
+        int consecutiveLC = 1;
+        for (auto next : navigation)
+        {
+            if (next.road_id == lcFrom->road_id &&
+                next.lanesection_s0 == lcFrom->lanesection_s0 &&
+                (next.lane_id > 0) == (lcFrom->lane_id > 0))
+            {
+                consecutiveLC++;
+            }
+            else
+            {
+                break;
+            }
+        }
+        if (ID == NowDebugging && consecutiveLC > 1)
+        {
+            spdlog::info("Consecutive LC: {}", consecutiveLC);
+        }
+        laneChangeDueS = std::min(s + (currLaneLength - s) / consecutiveLC, MaxSwitchLaneDistance + s);
     }
     else
     {
         if (new_s > currLaneLength)
         {
+            auto erasedNavigation = navigation.front();
             navigation.erase(navigation.begin());
             assert(!navigation.empty());
 
@@ -218,7 +258,7 @@ double Vehicle::vFromGibbs(double dt, std::shared_ptr<Vehicle> leader, double di
         if (underSqr < 0)
         {
             // gonna collide, hard stop
-            vOut = 0;
+            vOut = distance < li ? 0 : std::max(leader->velocity + b * dt, 0.0);
         }
         else
         {
@@ -241,7 +281,7 @@ void Vehicle::updateNavigation(const odr::OpenDriveMap& odrMap, const odr::Routi
     {
         if (sourceS() < destS())
         {
-            navigation = { Dest };
+            navigation = { Source, Dest };
         }
         else
         {
@@ -267,6 +307,11 @@ void Vehicle::updateNavigation(const odr::OpenDriveMap& odrMap, const odr::Routi
     {
         spdlog::info("No route find form {} @{} to {} @{}", Source.to_string(), s, 
             Dest.to_string(), destS());
+    }
+
+    if (ID == NowDebugging)
+    {
+        spdlog::info("  Update nav: {}", navigation.size());
     }
 }
 
@@ -304,25 +349,16 @@ void Vehicle::MakeStep(double dt, const odr::OpenDriveMap& map)
     double tCenter = (tInner + tOuter) / 2;
 
     auto newPos = road.get_xyz(sOnRefLine + currKey.lanesection_s0, tCenter + tOffset, 0);
-    if (firstStep)
+    if (ID == NowDebugging)
     {
-        firstStep = false;
+        spdlog::info("[{}] Lane {} s={} tOffset={} t={} | G= {} @{} Nav:{}", step, currKey.to_string(), s, tOffset, tCenter + tOffset,
+            destLane().to_string(), destS(), navigation.size());
     }
-    else
+    if (step != 0)
     {
-        if (ID == "12")
-        {
-            if (odr::euclDistance(position, newPos) < MaxV * dt * 2)
-            {
-                spdlog::info("PASS");
-            }
-            else
-            {
-                spdlog::info("Fail");
-            }
-        }
-        //assert(odr::euclDistance(position, newPos) < MaxV * dt * 2);
+        assert(odr::euclDistance(position, newPos) < MaxV * dt * 3);
     }
+    step++;
     position = newPos;
 
     double gradFromLane = section.id_to_lane.at(currKey.lane_id).outer_border.get_grad(sOnRefLine + currKey.lanesection_s0);
