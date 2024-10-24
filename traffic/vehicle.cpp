@@ -11,7 +11,7 @@ extern QGraphicsScene* g_scene;
 
 Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey destLane, double destS, double maxV) :
     AS(initialLocalS), ALane(initialLane), BS(destS), BLane(destLane),
-    currLaneLength(0), tOffset(0), laneChangeDueS(0), velocity(0), MaxV(maxV),
+    currLaneLength(0), tOffset(0), laneChangeDueS(0), velocity(0), MaxV(maxV), firstStep(true),
     ID(IDGenerator::ForVehicle()->GenerateID(this)), goalIndex(false)
 {
     graphics = new QGraphicsRectItem(QRectF(-2.3, -0.9, 4.6, 1.8));
@@ -29,8 +29,12 @@ Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey de
 bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph)
 {
     goalIndex = !goalIndex;
-    s = sourceS();
     updateNavigation(odrMap, routingGraph);
+    if (ID == "12")
+        spdlog::info("GotoNextG");
+    s = sourceS();
+    tOffset = 0;
+    laneChangeDueS = 0;
 
     const auto currKey = sourceLane();
     const auto& road = odrMap.id_to_road.at(currKey.road_id);
@@ -69,7 +73,7 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
     new_s = s + dt * new_velocity;
 
     if (std::equal_to<odr::LaneKey>{}(navigation.front(), destLane()) &&
-        s < destS() && s + dt * new_velocity >= destS())
+        s < destS() && new_s >= destS())
     {
         // Past destination s
         assert(recordV == velocity && recordS == s);
@@ -89,11 +93,8 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
         tOffset = tBase - tTarget;
         lcFrom.emplace(navigation.front());
         navigation.erase(navigation.begin());
-        if (navigation.empty())
-        {
-            assert(recordV == velocity && recordS == s);
-            return false;
-        }
+        assert(!navigation.empty());
+
         // TODO: Complete consecutive lane changes in time
         laneChangeDueS = std::min((currLaneLength + s) / 2, MaxSwitchLaneDistance + s);
     }
@@ -102,12 +103,9 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
         if (new_s > currLaneLength)
         {
             navigation.erase(navigation.begin());
-            if (navigation.empty())
-            {
-                assert(recordV == velocity && recordS == s);
-                return false;
-            }
-            new_s -= currLaneLength;
+            assert(!navigation.empty());
+
+            new_s = 0;
 
             const auto currKey = navigation.front();
             const auto& road = odrMap.id_to_road.at(currKey.road_id);
@@ -160,25 +158,6 @@ std::shared_ptr<Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
         auto it = orderedOnLane.upper_bound(s);
         for (; it != orderedOnLane.end(); ++it)
         {
-            if (it->second->ID == ID)
-            {
-                continue;
-            }
-            rtn = it->second;
-            break;
-        }
-    }
-
-    if (lcFrom.has_value())
-    {
-        auto& orderedOnLane = vehiclesOnLane.at(lcFrom.value());
-        auto it = orderedOnLane.upper_bound(s);
-        for (; it != orderedOnLane.end(); ++it)
-        {
-            if (it->second->ID == ID)
-            {
-                continue;
-            }
             if (rtn == nullptr || it->second->s < rtn->s)
             {
                 rtn = it->second;
@@ -255,12 +234,14 @@ double Vehicle::vFromGibbs(double dt, std::shared_ptr<Vehicle> leader, double di
 void Vehicle::updateNavigation(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph)
 {
     const auto Source = sourceLane();
+    const auto Dest = destLane();
 
-    if (std::equal_to<odr::LaneKey>{}(Source, destLane()))
+    if (Source.road_id == Dest.road_id && Source.lanesection_s0 == Dest.lanesection_s0
+        && Source.lane_id * Dest.lane_id > 0)
     {
-        if (s < destS())
+        if (sourceS() < destS())
         {
-            navigation = { destLane()};
+            navigation = { Dest };
         }
         else
         {
@@ -268,7 +249,7 @@ void Vehicle::updateNavigation(const odr::OpenDriveMap& odrMap, const odr::Routi
             
             for (auto second : routingGraph.get_lane_successors(Source))
             {
-                navigation = routingGraph.shortest_path(second, destLane());
+                navigation = routingGraph.shortest_path(second, Dest);
                 if (!navigation.empty())
                 {
                     navigation.insert(navigation.begin(), Source);
@@ -279,13 +260,13 @@ void Vehicle::updateNavigation(const odr::OpenDriveMap& odrMap, const odr::Routi
     }
     else
     {
-        navigation = routingGraph.shortest_path(Source, destLane());
+        navigation = routingGraph.shortest_path(Source, Dest);
     }
 
     if (navigation.empty())
     {
         spdlog::info("No route find form {} @{} to {} @{}", Source.to_string(), s, 
-            destLane().to_string(), destS());
+            Dest.to_string(), destS());
     }
 }
 
@@ -322,7 +303,27 @@ void Vehicle::MakeStep(double dt, const odr::OpenDriveMap& map)
     double tOuter = section.id_to_lane.at(currKey.lane_id).outer_border.get(sOnRefLine + currKey.lanesection_s0);
     double tCenter = (tInner + tOuter) / 2;
 
-    position = road.get_xyz(sOnRefLine + currKey.lanesection_s0, tCenter + tOffset, 0);
+    auto newPos = road.get_xyz(sOnRefLine + currKey.lanesection_s0, tCenter + tOffset, 0);
+    if (firstStep)
+    {
+        firstStep = false;
+    }
+    else
+    {
+        if (ID == "12")
+        {
+            if (odr::euclDistance(position, newPos) < MaxV * dt * 2)
+            {
+                spdlog::info("PASS");
+            }
+            else
+            {
+                spdlog::info("Fail");
+            }
+        }
+        //assert(odr::euclDistance(position, newPos) < MaxV * dt * 2);
+    }
+    position = newPos;
 
     double gradFromLane = section.id_to_lane.at(currKey.lane_id).outer_border.get_grad(sOnRefLine + currKey.lanesection_s0);
     double angleFromLane = 180 / M_PI * std::atan2(gradFromLane, 1);

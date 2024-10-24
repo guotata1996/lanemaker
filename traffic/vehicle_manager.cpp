@@ -71,14 +71,14 @@ void VehicleManager::Spawn()
             }
             else
             {
-                spdlog::info("Vehicle spanw failed");
+                spdlog::info("Routing fails");
             }
         }
     }
     else
     {
+        srand(11);
         // Randonly spawn if no route found
-        /*
         std::vector<odr::LaneKey> allLanes;
         std::vector<double> allWeights;
         const double MinLengthRequired = 10;
@@ -108,13 +108,37 @@ void VehicleManager::Spawn()
         }
 
         double totalLength = std::accumulate(allWeights.begin(), allWeights.end(), 0);
-        int num = std::ceil(totalLength / 100);
-        for (int i = 0; i != num; ++i)
+        int nPair = std::ceil(totalLength / 50);
+        for (int i = 0; i != nPair; ++i)
         {
-            auto selectedIndex = RandomSelect(allWeights);
-            allVehicles.emplace_back(allLanes[selectedIndex], rand01() * allWeights[selectedIndex]);
+            auto startIndex = RandomSelect(allWeights);
+            auto endIndex = RandomSelect(allWeights);
+
+            auto startKey = allLanes[startIndex];
+            auto endKey = allLanes[endIndex];
+            auto startS = rand01() * allWeights[startIndex];
+            auto endS = rand01() * allWeights[endIndex];
+            if (startKey.road_id == endKey.road_id && startKey.lanesection_s0 == endKey.lanesection_s0
+                && startKey.lane_id != endKey.lane_id && startKey.lane_id * endKey.lane_id > 0
+                && std::abs(startS - endS) < 5)
+            {
+                // Reject abrupt lane change req.
+                i--;
+                continue;
+            }
+            auto maxV = 10 + rand01() * 10;
+            auto vehicle = std::make_shared<Vehicle>(startKey, startS, endKey, endS, maxV);
+
+            if (vehicle->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->odrMap,
+                routingGraph))
+            {
+                allVehicles.emplace(vehicle->ID, vehicle);
+            }
+            else
+            {
+                spdlog::info("Routing fails");
+            }
         }
-        */
     }
 }
 

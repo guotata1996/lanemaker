@@ -56,6 +56,7 @@ private:
     const double AS, BS;
 
     bool goalIndex;
+    bool firstStep;
     odr::LaneKey sourceLane() const;
     odr::LaneKey destLane() const;
     double sourceS() const;
