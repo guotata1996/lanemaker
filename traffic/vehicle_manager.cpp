@@ -77,7 +77,7 @@ void VehicleManager::Spawn()
     }
     else
     {
-        int seed = 31614; // rand();
+        int seed = rand();
         srand(seed);
         spdlog::info("Spawn seed = {}", seed);
         // Randonly spawn if no route found

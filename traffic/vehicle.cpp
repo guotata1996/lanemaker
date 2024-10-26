@@ -8,7 +8,7 @@
 #include "id_generator.h"
 
 extern QGraphicsScene* g_scene;
-const std::string NowDebugging = "181";
+const std::string NowDebugging = "";
 
 Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey destLane, double destS, double maxV) :
     AS(initialLocalS), ALane(initialLane), BS(destS), BLane(destLane),
@@ -29,6 +29,7 @@ Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey de
 
 bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph)
 {
+    assert(std::abs(tOffset) < LCCompleteThreshold);
     goalIndex = !goalIndex;
     updateNavigation(odrMap, routingGraph);
     s = sourceS();
@@ -135,12 +136,17 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
         {
             spdlog::info("Consecutive LC: {}", consecutiveLC);
         }
-        laneChangeDueS = std::min(s + (currLaneLength - s) / consecutiveLC, MaxSwitchLaneDistance + s);
+        auto lastLaneChangeDueS = navigation.front().road_id == destLane().road_id &&
+            navigation.front().lanesection_s0 == destLane().lanesection_s0 &&
+            navigation.front().lane_id > 0 == destLane().lane_id > 0 ? destS() : currLaneLength;
+
+        laneChangeDueS = std::min(s + (lastLaneChangeDueS - s) / consecutiveLC, MaxSwitchLaneDistance + s);
     }
     else
     {
         if (new_s > currLaneLength)
         {
+            assert(std::abs(tOffset) < LCCompleteThreshold);
             auto erasedNavigation = navigation.front();
             navigation.erase(navigation.begin());
             assert(!navigation.empty());
@@ -321,7 +327,7 @@ void Vehicle::MakeStep(double dt, const odr::OpenDriveMap& map)
     s = new_s;
 
     double laneChangeRate = 0;
-    if (s < laneChangeDueS - 0.1)
+    if (s < laneChangeDueS - 0.1 && lcFrom.has_value())
     {
         double remainingS = laneChangeDueS - s;
         laneChangeRate = tOffset / remainingS * 1.5;
@@ -331,7 +337,7 @@ void Vehicle::MakeStep(double dt, const odr::OpenDriveMap& map)
     {
         lcFrom.reset();
     }
-    if (std::abs(tOffset) < 0.3)
+    if (std::abs(tOffset) < LCCompleteThreshold)
     {
         // mark lane change as complete
         lcFrom.reset();
@@ -354,16 +360,13 @@ void Vehicle::MakeStep(double dt, const odr::OpenDriveMap& map)
         spdlog::info("[{}] Lane {} s={} tOffset={} t={} | G= {} @{} Nav:{}", step, currKey.to_string(), s, tOffset, tCenter + tOffset,
             destLane().to_string(), destS(), navigation.size());
     }
-    if (step != 0)
-    {
-        assert(odr::euclDistance(position, newPos) < MaxV * dt * 3);
-    }
+
     step++;
     position = newPos;
 
     double gradFromLane = section.id_to_lane.at(currKey.lane_id).outer_border.get_grad(sOnRefLine + currKey.lanesection_s0);
     double angleFromLane = 180 / M_PI * std::atan2(gradFromLane, 1);
-    auto angleFromlaneChange = 180 / M_PI * std::atan2(-laneChangeRate, 1);
+    auto angleFromlaneChange = 180 / M_PI * std::atan2(-laneChangeRate * (reversedTraverse ? -1 : 1), 1);
 
     auto gradFromRefLine = road.ref_line.get_grad_xy(sOnRefLine + currKey.lanesection_s0);
     auto angleFromRefLine = 180 / M_PI * std::atan2(gradFromRefLine[1], gradFromRefLine[0]);

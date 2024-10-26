@@ -51,8 +51,8 @@ private:
     std::optional<odr::LaneKey> lcFrom;  // active during a lane change
 
     const double MaxSwitchLaneDistance = 50;
-
-    const odr::LaneKey ALane, BLane;;
+    const double LCCompleteThreshold = 0.2;
+    const odr::LaneKey ALane, BLane;
     const double AS, BS;
 
     bool goalIndex;
