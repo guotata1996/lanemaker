@@ -5,7 +5,7 @@
 
 #include "id_generator.h"
 
-class VehicleManager : QObject
+class VehicleManager : public QObject
 {
     Q_OBJECT
 public:
@@ -14,6 +14,8 @@ public:
     void Begin();
 
     void End();
+
+    void TogglePause();
 
 private slots:
     void step();

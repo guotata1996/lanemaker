@@ -1,26 +1,34 @@
 #include "vehicle.h"
 #include "OpenDriveMap.h"
 #include "constants.h"
+#include "id_generator.h"
 
 #include <qgraphicsscene.h>
 #include <math.h>
+#include <sstream>
 #include "spdlog/spdlog.h"
-#include "id_generator.h"
+
 
 extern QGraphicsScene* g_scene;
 const std::string NowDebugging = "";
+
+VehicleGraphics::VehicleGraphics(QRectF r, std::weak_ptr<Vehicle> v) : QGraphicsRectItem(r), vehicle(v) {};
 
 Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey destLane, double destS, double maxV) :
     AS(initialLocalS), ALane(initialLane), BS(destS), BLane(destLane),
     currLaneLength(0), tOffset(0), laneChangeDueS(0), velocity(0), MaxV(maxV), step(0),
     ID(IDGenerator::ForVehicle()->GenerateID(this)), goalIndex(false)
 {
-    graphics = new QGraphicsRectItem(QRectF(-2.3, -0.9, 4.6, 1.8));
+}
+
+void Vehicle::InitGraphics()
+{
+    graphics = new VehicleGraphics(QRectF(-2.3, -0.9, 4.6, 1.8), shared_from_this());
     graphics->setPen(Qt::NoPen);
     auto randColor = static_cast<Qt::GlobalColor>(rand() % static_cast<int>(Qt::GlobalColor::transparent));
     graphics->setBrush(QBrush(randColor, Qt::SolidPattern));
-    g_scene->addItem(graphics);
     graphics->hide();
+    g_scene->addItem(graphics);
 
     leaderVisual = new QGraphicsLineItem();
     g_scene->addItem(leaderVisual);
@@ -67,17 +75,17 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
 
     double leaderDistance;
     auto leader = GetLeader(odrMap, vehiclesOnLane, leaderDistance);
-    if (leader != nullptr)
-    {
-        auto myTip = TipPos();
-        auto leaderTail = leader->TailPos();
-        leaderVisual->setLine(myTip[0], myTip[1], leaderTail[0], leaderTail[1]);
-        leaderVisual->show();
-    }
-    else
-    {
-        leaderVisual->hide();
-    }
+    //if (leader != nullptr)
+    //{
+    //    auto myTip = TipPos();
+    //    auto leaderTail = leader->TailPos();
+    //    leaderVisual->setLine(myTip[0], myTip[1], leaderTail[0], leaderTail[1]);
+    //    leaderVisual->show();
+    //}
+    //else
+    //{
+    //    leaderVisual->hide();
+    //}
     new_velocity = vFromGibbs(dt, leader, leaderDistance);
     new_s = s + dt * new_velocity;
     
@@ -401,4 +409,13 @@ double Vehicle::sourceS() const
 double Vehicle::destS() const
 {
     return goalIndex ? BS : AS;
+}
+
+std::string Vehicle::Log()
+{
+    std::stringstream ss;
+    ss << "Vehicle ID=" << ID << "  s=" << s << "  v=" << velocity << '\n';
+    ss << "From " << sourceLane().to_string() << "@" << sourceS() <<
+        " To " << destLane().to_string() << "@" << destS() << '\n';
+    return ss.str();
 }

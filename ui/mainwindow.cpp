@@ -55,9 +55,6 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     auto undoAction = edit->addAction("Undo");
     auto redoAction = edit->addAction("Redo");
     auto verifyAction = edit->addAction("Verify Now");
-    toggleSimAction = edit->addAction("Toggle simulation");
-    toggleSimAction->setCheckable(true);
-    toggleSimAction->setChecked(false);
     menu->addMenu(edit);
 
     QMenu* replay = new QMenu("&Replay");
@@ -65,6 +62,15 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     auto debugReplayAction = replay->addAction("Debug");
     auto controlledReplayAction = replay->addAction("Watch");
     menu->addMenu(replay);
+
+    QMenu* simulation = new QMenu("&Simulation");
+    toggleSimAction = simulation->addAction("Toggle simulation");
+    toggleSimAction->setCheckable(true);
+    toggleSimAction->setChecked(false);
+    pauseResumeSimulation = simulation->addAction("Paused");
+    pauseResumeSimulation->setCheckable(true);
+    pauseResumeSimulation->setChecked(false);
+    menu->addMenu(simulation);
 
 #ifdef __linux__
     // In linux, this dialog completely blocks main mainwindow if spawned as child
@@ -113,7 +119,8 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(undoAction, &QAction::triggered, this, &MainWindow::undo);
     connect(redoAction, &QAction::triggered, this, &MainWindow::redo);
     connect(verifyAction, &QAction::triggered, this, &MainWindow::verifyMap);
-    connect(toggleSimAction, &QAction::triggered, this, &MainWindow::toggleSimulation);
+    connect(toggleSimAction, &QAction::toggled, this, &MainWindow::toggleSimulation);
+    connect(pauseResumeSimulation, &QAction::toggled, vehicleManager.get(), &VehicleManager::TogglePause);
     connect(saveReplayAction, &QAction::triggered, this, &MainWindow::saveActionHistory);
     connect(debugReplayAction, &QAction::triggered, this, &MainWindow::debugActionHistory);
     connect(controlledReplayAction, &QAction::triggered, this, &MainWindow::playActionHistory);
@@ -337,13 +344,16 @@ void MainWindow::openReplayWindow(bool playImmediate)
 
 void MainWindow::toggleSimulation(bool enable)
 {
+    pauseResumeSimulation->setChecked(false);
     if (enable)
     {
         vehicleManager->Begin();
+        pauseResumeSimulation->setEnabled(true);
     }
     else
     {
         vehicleManager->End();
+        pauseResumeSimulation->setEnabled(false);
     }
 }
 
@@ -379,6 +389,13 @@ void MainWindow::keyPressEvent(QKeyEvent* e)
     if (e->key() == Qt::Key_F1)
     {
         preferenceWindow->open();
+    }
+    else if (e->key() == Qt::Key_S)
+    {
+        if (pauseResumeSimulation->isEnabled())
+        {
+            pauseResumeSimulation->toggle();
+        }
     }
     QWidget::keyPressEvent(e);
 }

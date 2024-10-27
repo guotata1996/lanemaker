@@ -6,6 +6,7 @@
 #include "junction.h"
 #include "action_manager.h"
 #include "constants.h"
+#include "vehicle.h"
 
 #include <sstream>
 #include <iomanip> //std::setprecision
@@ -26,22 +27,31 @@ std::string topRoadID;
 MapView* g_mapView;
 extern RoadRunner::LanePlan leftProfileSetting, rightProfileSetting;
 
-QString PointerRoadInfo()
+std::weak_ptr<Vehicle> g_PointerVehicle;
+
+QString PointerObjectInfo()
 {
-    if (g_PointerRoad.expired())
-        return QString();
-
-    auto roadInfo = QString("Road %1 @%2 Lane %3")
-        .arg(g_PointerRoad.lock()->ID().c_str())
-        .arg(g_PointerRoadS, 6, 'f', 3)
-        .arg(g_PointerLane);
-
-    auto roadElevation = g_PointerRoad.lock()->generated.ref_line.elevation_profile.get(g_PointerRoadS);
-    if (roadElevation != 0)
+    if (!g_PointerVehicle.expired())
     {
-        roadInfo += QString(" Z %1").arg(roadElevation, 5, 'f', 2);
+        auto vehicleInfo = QString("Car %1").arg(g_PointerVehicle.lock()->ID.c_str());
+        return vehicleInfo;
     }
-    return roadInfo;
+
+    else if (!g_PointerRoad.expired())
+    {
+        auto roadInfo = QString("Road %1 @%2 Lane %3")
+            .arg(g_PointerRoad.lock()->ID().c_str())
+            .arg(g_PointerRoadS, 6, 'f', 3)
+            .arg(g_PointerLane);
+
+        auto roadElevation = g_PointerRoad.lock()->generated.ref_line.elevation_profile.get(g_PointerRoadS);
+        if (roadElevation != 0)
+        {
+            roadInfo += QString(" Z %1").arg(roadElevation, 5, 'f', 2);
+        }
+        return roadInfo;
+    }
+    return QString();
 }
 
 MapView::MapView(MainWidget* v, QGraphicsScene* scene) :
@@ -286,7 +296,12 @@ void MapView::OnKeyPress(const RoadRunner::KeyPressAction& evt)
     case Qt::Key_I:
     {
         auto g_road = g_PointerRoad.lock();
-        if (g_road != nullptr)
+        auto g_vehicle = g_PointerVehicle.lock();
+        if (g_vehicle != nullptr)
+        {
+            spdlog::info(g_vehicle->Log());
+        }
+        else if (g_road != nullptr)
         {
             std::stringstream ss;
             ss << "Road" << g_road->ID() << ": Length= " << std::setprecision(3) << g_road->Length();
@@ -333,7 +348,7 @@ void MapView::OnKeyPress(const RoadRunner::KeyPressAction& evt)
             {
                 drawingSession->SetHighlightTo(g_PointerRoad.lock());
             }
-            parentContainer->SetHovering(PointerRoadInfo());
+            parentContainer->SetHovering(PointerObjectInfo());
         }
         break;
     }
@@ -453,6 +468,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
     QVector2D viewPosVec(viewPos);
 
     rotatingRoads.clear();
+    g_PointerVehicle.reset();
 
     // Direct candidates
     decltype(rotatingRoads) directOver, indirectOver;
@@ -492,6 +508,13 @@ void MapView::SnapCursor(const QPoint& viewPos)
                     directOver.push_back(std::make_pair(laneGraphicsItem, s));
                 }
 
+                break;
+            }
+
+            auto vehicleGraphicsItem = dynamic_cast<VehicleGraphics*>(item);
+            if (vehicleGraphicsItem != nullptr)
+            {
+                g_PointerVehicle = vehicleGraphicsItem->vehicle;
                 break;
             }
             item = item->parentItem();
@@ -560,7 +583,7 @@ void MapView::SnapCursor(const QPoint& viewPos)
         topRoadID = rotatingRoads.front().first->GetRoad()->ID();
     }
 
-    parentContainer->SetHovering(cursorInfo + PointerRoadInfo());
+    parentContainer->SetHovering(cursorInfo + PointerObjectInfo());
 }
 
 void MapView::AdjustSceneRect()

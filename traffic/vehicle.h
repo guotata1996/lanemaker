@@ -3,11 +3,22 @@
 #include <qgraphicsitem.h>
 #include <optional>
 
-class Vehicle
+class Vehicle;
+class VehicleGraphics : public QGraphicsRectItem
+{
+public:
+    VehicleGraphics(QRectF r, std::weak_ptr<Vehicle>);
+
+    std::weak_ptr<Vehicle> vehicle;
+};
+
+class Vehicle: public std::enable_shared_from_this<Vehicle>
 {
 public:
     /*Initiate graphics*/
     Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey destLane, double destS, double maxV = 20);
+
+    void InitGraphics();
 
     bool GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph);
 
@@ -32,6 +43,8 @@ public:
         double& outDistance, double lookforward = 50) const;
 
     double vFromGibbs(double dt, std::shared_ptr<Vehicle> leader, double distance) const;
+
+    std::string Log();
 
     const std::string ID;
 
@@ -66,6 +79,6 @@ private:
     odr::Vec3D position;
     double heading;
     
-    QGraphicsRectItem* graphics;
+    VehicleGraphics* graphics;
     QGraphicsLineItem* leaderVisual;
 };

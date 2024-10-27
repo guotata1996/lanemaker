@@ -48,6 +48,18 @@ void VehicleManager::End()
     allVehicles.clear();
 }
 
+void VehicleManager::TogglePause()
+{
+    if (timer->isActive())
+    {
+        timer->stop();
+    }
+    else
+    {
+        timer->start();
+    }
+}
+
 void VehicleManager::Spawn()
 {
     auto& latestMap = RoadRunner::ChangeTracker::Instance()->odrMap;
@@ -67,6 +79,7 @@ void VehicleManager::Spawn()
             if (vehicle->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->odrMap,
                 routingGraph))
             {
+                vehicle->InitGraphics();
                 allVehicles.emplace(vehicle->ID, vehicle);
             }
             else
@@ -136,6 +149,7 @@ void VehicleManager::Spawn()
             if (vehicle->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->odrMap,
                 routingGraph))
             {
+                vehicle->InitGraphics();
                 allVehicles.emplace(vehicle->ID, vehicle);
             }
         }

@@ -47,6 +47,7 @@ private:
     std::unique_ptr<PreferenceWindow> preferenceWindow;
 
     QAction* toggleSimAction;
+    QAction* pauseResumeSimulation;
 
     bool quitReplayComplete;
 
