@@ -677,6 +677,61 @@ namespace RoadRunner
     {
         junctionGraphics = std::make_unique<JunctionGraphics>(CalcCavity());
         junctionGraphics->setZValue(Elevation());
+
+        for (auto info : formedFrom)
+        {
+            const auto& linkedRoad = info.road.lock();
+            const auto& lookupTable = linkedRoad->generated.boundaryHide;
+
+            for (odr::RoadLink::ContactPoint contact :
+                {odr::RoadLink::ContactPoint_Start, odr::RoadLink::ContactPoint_End})
+            {
+                for (int side : {-1, 1})
+                {
+                    auto keyLookup = std::make_pair(contact, side);
+                    double overlapLength = 0;
+                    if (lookupTable.find(keyLookup) != lookupTable.end())
+                    {
+                        overlapLength = contact == odr::RoadLink::ContactPoint_Start ? lookupTable.at(keyLookup) :
+                            std::abs(linkedRoad->Length() - lookupTable.at(keyLookup));
+                    }
+                    if (lookupTable.find(keyLookup) != lookupTable.end() && std::abs(overlapLength) > epsilon)
+                    {
+                        // Write hide boundary length to overlap zone
+                        for (auto& id_conn : generated.id_to_connection)
+                        {
+                            if (id_conn.second.connecting_road == linkedRoad->ID()
+                                    && id_conn.second.contact_point == contact)
+                            {
+                                std::set<int> lanesInvolved;
+                                
+                                for (auto it = id_conn.second.lane_links.begin(); it != id_conn.second.lane_links.end(); ++it)
+                                {
+                                    lanesInvolved.emplace(it->to);
+                                }
+                                int overlapLaneIt = side < 0 ? *lanesInvolved.begin() : *lanesInvolved.rbegin();
+
+                                // update lane_link xml
+                                decltype(id_conn.second.lane_links) updatedLaneLink;
+                                for (auto ll : id_conn.second.lane_links)
+                                {
+                                    if (ll.to == overlapLaneIt)
+                                    {
+                                        updatedLaneLink.emplace(odr::JunctionLaneLink(ll.from, ll.to, overlapLength));
+                                    }
+                                    else
+                                    {
+                                        updatedLaneLink.emplace(odr::JunctionLaneLink(ll.from, ll.to));
+                                    }
+                                }
+                                id_conn.second.lane_links = updatedLaneLink;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 #endif
 

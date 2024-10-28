@@ -149,7 +149,8 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
 
             for (pugi::xml_node lane_link_node : connection_node.children("laneLink"))
             {
-                JunctionLaneLink lane_link(lane_link_node.attribute("from").as_int(0), lane_link_node.attribute("to").as_int(0));
+                JunctionLaneLink lane_link(lane_link_node.attribute("from").as_int(0), 
+                    lane_link_node.attribute("to").as_int(0), lane_link_node.attribute("overlapZone").as_float(0));
                 junction_connection.lane_links.insert(lane_link);
             }
         }
@@ -1368,6 +1369,10 @@ void OpenDriveMap::export_file(const std::string& fpath) const
                 pugi::xml_node laneLink = connection.append_child("laneLink");
                 laneLink.append_attribute("from").set_value(ll.from);
                 laneLink.append_attribute("to").set_value(ll.to);
+                if (ll.overlapZone > 0)
+                {
+                    laneLink.append_attribute("overlapZone").set_value(ll.overlapZone);
+                }
             }
         }
     }

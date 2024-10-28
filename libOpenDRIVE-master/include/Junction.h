@@ -16,10 +16,11 @@ namespace odr
 
 struct JunctionLaneLink
 {
-    JunctionLaneLink(int from, int to);
+    JunctionLaneLink(int from, int to, double overlap=0);
 
     int from = 0;
     int to = 0;
+    double overlapZone = 0;
 };
 
 } // namespace odr
