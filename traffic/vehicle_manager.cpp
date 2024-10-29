@@ -34,6 +34,15 @@ VehicleManager::VehicleManager(QObject* parent): QObject(parent),
 void VehicleManager::Begin()
 {
     routingGraph = RoadRunner::ChangeTracker::Instance()->odrMap.get_routing_graph();
+    overlapZones = RoadRunner::ChangeTracker::Instance()->odrMap.get_overlap_zones();
+    for (auto self_overlaps : overlapZones)
+    {
+        spdlog::info("{} overlaps with:", self_overlaps.first.to_string());
+        for (auto overlap_and_len : self_overlaps.second)
+        {
+            spdlog::info("  {} {}", overlap_and_len.first.to_string(), overlap_and_len.second);
+        }
+    }
     Spawn();
     timer->start();
 }
@@ -173,13 +182,14 @@ void VehicleManager::step()
     {
         auto vehicle = id_v.second;
         bool isActive = vehicle->PlanStep(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->odrMap, 
-            vehiclesOnLane);
+            vehiclesOnLane, overlapZones);
         if (!isActive)
         {
             inactives.emplace(id_v.first);
         }
     }
 
+    std::vector<std::string> to_erase;
     for (auto& id_v : allVehicles)
     {
         auto id = id_v.first;
@@ -189,13 +199,18 @@ void VehicleManager::step()
         }
         else
         {
-            // reassign goal
+            // try reassign goal
             if (!allVehicles.at(id)->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->odrMap,
                 routingGraph))
             {
                 allVehicles.at(id)->Clear();
-                allVehicles.erase(id);
+                to_erase.push_back(id);
             }
         }
+    }
+
+    for (auto id : to_erase)
+    {
+        allVehicles.erase(id);
     }
 }

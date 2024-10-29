@@ -52,6 +52,8 @@ public:
     RoadNetworkMesh get_road_network_mesh(const double eps) const;
     RoutingGraph    get_routing_graph() const;
     std::vector<std::tuple<LaneKey, double, LaneKey, double>> get_routes() const;
+    std::map<LaneKey, std::vector<std::pair<LaneKey, double>>> get_overlap_zones() const;
+    double get_lanekey_length(LaneKey) const;
 
     void export_file(const std::string& fpath) const; 
 

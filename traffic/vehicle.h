@@ -29,7 +29,9 @@ public:
     * Only use others' last frame info, DO NOT use any of new_ info
     */
     bool PlanStep(double dt, const odr::OpenDriveMap& map,
-        const std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane);
+        const std::unordered_map<odr::LaneKey, 
+        std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane,
+        const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>& overlapZones);
     
     void MakeStep(double dt, const odr::OpenDriveMap& map);
 
@@ -40,6 +42,7 @@ public:
 
     std::shared_ptr<Vehicle> GetLeader(const odr::OpenDriveMap& map,
         const std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane,
+        const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>&,
         double& outDistance, double lookforward = 50) const;
 
     double vFromGibbs(double dt, std::shared_ptr<Vehicle> leader, double distance) const;

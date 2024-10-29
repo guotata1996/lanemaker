@@ -721,7 +721,7 @@ namespace RoadRunner
                                     }
                                     else
                                     {
-                                        updatedLaneLink.emplace(odr::JunctionLaneLink(ll.from, ll.to));
+                                        updatedLaneLink.emplace(odr::JunctionLaneLink(ll.from, ll.to, ll.overlapZone));
                                     }
                                 }
                                 id_conn.second.lane_links = updatedLaneLink;

@@ -1078,6 +1078,72 @@ std::vector<std::tuple<LaneKey, double, LaneKey, double>> OpenDriveMap::get_rout
     return rtn;
 }
 
+std::map<LaneKey, std::vector<std::pair<LaneKey, double>>> OpenDriveMap::get_overlap_zones() const
+{
+    std::map<LaneKey, std::vector<std::pair<LaneKey, double>>> rtn;
+    for (const auto& id_to_junction : this->id_to_junction)
+    {
+        if (id_to_junction.second.type == odr::JunctionType::Direct)
+        {
+            std::map<odr::LaneKey, std::vector<LaneKey>> incomingToLinked;
+            std::map<odr::LaneKey, double>               incomingToOverlap;
+            for (const auto& id_conn : id_to_junction.second.id_to_connection)
+            {
+                for (const auto& ll : id_conn.second.lane_links)
+                {
+                    if (ll.overlapZone != 0)
+                    {
+                        bool         merging = ((id_conn.second.contact_point == odr::JunctionConnection::ContactPoint_End) == (ll.to < 0));
+
+                        odr::LaneKey incoming(id_conn.second.incoming_road, 0, ll.from);
+                        if (merging)
+                        {
+                            incomingToOverlap[incoming] = std::min(-ll.overlapZone, incomingToOverlap[incoming]);
+                        }
+                        else
+                        {
+                            incomingToOverlap[incoming] = std::max(ll.overlapZone, incomingToOverlap[incoming]);
+                        }
+                        
+                        const auto& lane_sections = id_to_road.at(id_conn.second.connecting_road).s_to_lanesection;
+                        auto        lanesection_s =
+                            id_conn.second.contact_point == odr::JunctionConnection::ContactPoint_Start ? 0 : lane_sections.rbegin()->first;
+                        odr::LaneKey linked(id_conn.second.connecting_road, lanesection_s, ll.to);
+                        incomingToLinked[incoming].push_back(linked);
+                    }
+                }
+            }
+            if (!incomingToLinked.empty())
+            {
+                for (const auto& incoming_to_overlap : incomingToOverlap)
+                {
+                    double overlep_length = incoming_to_overlap.second;
+                    auto   all_overlaps = incomingToLinked.at(incoming_to_overlap.first);
+                    for (const auto& overlap_linked : all_overlaps)
+                    {
+                        for (const auto& overlap : all_overlaps)
+                        {
+                            if (!std::equal_to<LaneKey>{}(overlap, overlap_linked))
+                            {
+                                rtn[overlap_linked].push_back(std::make_pair(overlap, overlep_length));
+                            }
+                        }
+                        
+                    }
+                }
+            }
+        }
+    }
+    return rtn;
+}
+
+double OpenDriveMap::get_lanekey_length(LaneKey key) const
+{
+    const auto& road = id_to_road.at(key.road_id);
+    const auto& section = road.get_lanesection(key.lanesection_s0);
+    return road.get_lanesection_length(section);
+}
+
 void OpenDriveMap::export_file(const std::string& fpath) const
 {
     pugi::xml_document doc;

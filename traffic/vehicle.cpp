@@ -44,9 +44,7 @@ bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGr
     laneChangeDueS = 0;
 
     const auto currKey = sourceLane();
-    const auto& road = odrMap.id_to_road.at(currKey.road_id);
-    const auto& section = road.get_lanesection(currKey.lanesection_s0);
-    currLaneLength = road.get_lanesection_length(section);
+    currLaneLength = odrMap.get_lanekey_length(currKey);
 
     if (ID == NowDebugging)
     {
@@ -69,23 +67,25 @@ void Vehicle::Clear()
 }
 
 bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
-    const std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane)
+    const std::unordered_map<odr::LaneKey, 
+    std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane,
+    const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>& overlapZones)
 {
     double recordV = velocity, recordS = s;
 
     double leaderDistance;
-    auto leader = GetLeader(odrMap, vehiclesOnLane, leaderDistance);
-    //if (leader != nullptr)
-    //{
-    //    auto myTip = TipPos();
-    //    auto leaderTail = leader->TailPos();
-    //    leaderVisual->setLine(myTip[0], myTip[1], leaderTail[0], leaderTail[1]);
-    //    leaderVisual->show();
-    //}
-    //else
-    //{
-    //    leaderVisual->hide();
-    //}
+    auto leader = GetLeader(odrMap, vehiclesOnLane, overlapZones, leaderDistance);
+    if (leader != nullptr)
+    {
+        auto myTip = TipPos();
+        auto leaderTail = leader->TailPos();
+        leaderVisual->setLine(myTip[0], myTip[1], leaderTail[0], leaderTail[1]);
+        leaderVisual->show();
+    }
+    else
+    {
+        leaderVisual->hide();
+    }
     new_velocity = vFromGibbs(dt, leader, leaderDistance);
     new_s = s + dt * new_velocity;
     
@@ -201,6 +201,7 @@ double Vehicle::CurrS() const
 
 std::shared_ptr<Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
     const std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane,
+    const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>& overlapZones,
     double& outDistance, double lookforward) const
 {
     // curr lane:
@@ -208,26 +209,75 @@ std::shared_ptr<Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
     std::shared_ptr<Vehicle> rtn;
     for (auto laneKey : OccupyingLanes())
     {
+        if (vehiclesOnLane.find(laneKey) == vehiclesOnLane.end())
+        {
+            continue;
+        }
+
         auto& orderedOnLane = vehiclesOnLane.at(laneKey);
-        auto it = orderedOnLane.upper_bound(s);
-        for (; it != orderedOnLane.end(); ++it)
+        for (auto it = orderedOnLane.upper_bound(s); it != orderedOnLane.end(); ++it)
         {
             if (rtn == nullptr || it->second->s < rtn->s)
             {
                 rtn = it->second;
+                outDistance = rtn->s - s;
             }
             break;
         }
     }
 
+    // if curr lane has overlapZone, consider those on overlap lanes
+    const auto& directlyOn = navigation.front();
+    if (overlapZones.find(directlyOn) != overlapZones.end())
+    {
+        for (const auto& overlap_and_lane : overlapZones.at(directlyOn))
+        {
+            double overlapLength = overlap_and_lane.second;
+            if (overlapLength > 0 && s >= overlapLength ||
+                overlapLength < 0 && s <= currLaneLength + overlapLength)
+            {
+                continue;
+            }
+
+            auto overlapLane = overlap_and_lane.first;
+            if (vehiclesOnLane.find(overlapLane) == vehiclesOnLane.end())
+            {
+                continue;
+            }
+
+            double equalSOnOther = overlapLength > 0 ? s : map.get_lanekey_length(overlapLane) - (currLaneLength - s);
+            auto& orderedOnLane = vehiclesOnLane.at(overlapLane);
+
+            for (auto it = orderedOnLane.upper_bound(equalSOnOther); it != orderedOnLane.end(); ++it)
+            {
+                if (overlapLength > 0 && it->second->s > overlapLength)
+                {
+                    // ignore those outside overlapZone
+                    break;
+                }
+                double distBetween = overlapLength > 0 ? it->second->s - s :
+                    (currLaneLength - s) - (map.get_lanekey_length(overlapLane) - it->second->s);
+
+                if (rtn == nullptr || distBetween < outDistance)
+                {
+                    rtn = it->second;
+                    outDistance = distBetween;
+                }
+                break;
+            }
+        }
+        
+        
+    }
+
     if (rtn != nullptr)
     {
-        outDistance = rtn->s - s;
         assert(outDistance > 0);
         return outDistance < lookforward ? rtn : nullptr;
     }
 
     // lanes ahead navigation
+    // TODO: consider overlap zone
     outDistance = currLaneLength - s;
     assert(outDistance >= 0);
     for (int i = 1; i < navigation.size(); ++i)

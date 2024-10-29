@@ -29,6 +29,8 @@ private:
 
     odr::RoutingGraph routingGraph;
 
+    std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>> overlapZones;
+
     QTimer* timer;
 
     IDGenerator* idGen;
