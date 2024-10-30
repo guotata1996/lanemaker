@@ -48,6 +48,9 @@ namespace RoadRunnerTest
         std::set<std::string> connectingIDFromOdr, connectingIDFromRR;
         for (auto odrLink : junction->generated.id_to_connection)
         {
+            ExpectOrAssert(odrLink.second.contact_point != odr::JunctionConnection::ContactPoint_None);
+            ExpectOrAssert(odrLink.second.interface_provider_contact == odr::JunctionConnection::ContactPoint_None);
+
             connectingIDFromOdr.insert(odrLink.second.connecting_road);
             auto incomingRRRoad = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(odrLink.second.incoming_road));
             bool incomingContactEnd = incomingRRRoad->successorJunction == junction->shared_from_this();
@@ -205,6 +208,9 @@ namespace RoadRunnerTest
     {
         for (auto id2Conn : junction->generated.id_to_connection)
         {
+            ExpectOrAssert(id2Conn.second.contact_point != odr::JunctionConnection::ContactPoint_None);
+            ExpectOrAssert(id2Conn.second.interface_provider_contact != odr::JunctionConnection::ContactPoint_None);
+
             auto incoming = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(id2Conn.second.incoming_road));
             double sOnIncoming, sOnConnecting;
             ExpectOrAssert(incoming->predecessorJunction.get() == junction

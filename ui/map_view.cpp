@@ -315,6 +315,16 @@ void MapView::OnKeyPress(const RoadRunner::KeyPressAction& evt)
             {
                 ss << g_road->generated.rr_profile.ToString();
                 ss << g_road->RefLine().elevation_profile.ToString();
+                if (!g_road->generated.boundaryHide.empty())
+                {
+                    ss << "\n====Boundary Hide====\n";
+                    for (const auto& bh_length : g_road->generated.boundaryHide)
+                    {
+                        ss << "Boundary hide at" <<
+                            (bh_length.first.first == odr::RoadLink::ContactPoint_Start ? "start" : "end")
+                            << " side " << bh_length.first.second << " = " << bh_length.second << '\n';
+                    }
+                }
             }
 
             if (g_road->predecessorJunction != nullptr)

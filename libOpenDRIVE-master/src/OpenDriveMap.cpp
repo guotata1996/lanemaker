@@ -137,6 +137,18 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
             const JunctionConnection::ContactPoint junction_conn_contact_point =
                 (contact_point_str == "start") ? JunctionConnection::ContactPoint_Start : JunctionConnection::ContactPoint_End;
 
+            std::string interface_contact_point_str = connection_node.attribute("interfaceProviderContactPoint").as_string("");
+
+            JunctionConnection::ContactPoint junction_interface_contact_point = JunctionConnection::ContactPoint_None;
+            if (interface_contact_point_str == "start") 
+            {
+                junction_interface_contact_point = JunctionConnection::ContactPoint_Start;
+            }
+            if (interface_contact_point_str == "end") 
+            {
+                junction_interface_contact_point = JunctionConnection::ContactPoint_End;
+            }
+
             const std::string   junction_connection_id = connection_node.attribute("id").as_string("");
             JunctionConnection& junction_connection = junction.id_to_connection
                                                           .insert({junction_connection_id,
@@ -144,7 +156,8 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
                                                                                       connection_node.attribute("incomingRoad").as_string(""),
                                                                                       connection_node.attribute(_type == JunctionType::Common ? 
                                                                                           "connectingRoad" : "linkedRoad").as_string(""),
-                                                                                      junction_conn_contact_point)})
+                                                                                      junction_conn_contact_point,
+                                                                                      junction_interface_contact_point)})
                                                           .first->second;
 
             for (pugi::xml_node lane_link_node : connection_node.children("laneLink"))
@@ -936,10 +949,7 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
             const Road& incoming_road = incoming_road_iter->second;
             const Road& linked_road = linked_road_iter->second;
 
-            const bool is_succ_junc = incoming_road.successor.type == RoadLink::Type_Junction && incoming_road.successor.id == id_junc.first;
-            const bool is_pred_junc = incoming_road.predecessor.type == RoadLink::Type_Junction && incoming_road.predecessor.id == id_junc.first;
-            if (!is_succ_junc && !is_pred_junc)
-                continue;
+            const bool is_succ_junc = conn.interface_provider_contact == odr::JunctionConnection::ContactPoint_End;
 
             const LaneSection& incoming_lanesec =
                 is_succ_junc ? incoming_road.s_to_lanesection.rbegin()->second : incoming_road.s_to_lanesection.begin()->second;
@@ -960,7 +970,7 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
                 const LaneKey from(incoming_road.id, incoming_lanesec.s0, from_lane.id);
                 const LaneKey to(linked_road.id, linked_lanesec.s0, to_lane.id);
                 const double  lane_length = incoming_road.get_lanesection_length(incoming_lanesec);
-                if (is_succ_junc && from_lane.id < 0 || is_pred_junc && from_lane.id > 0) 
+                if (is_succ_junc && from_lane.id < 0 || !is_succ_junc && from_lane.id > 0) 
                 {
                     routing_graph.add_edge(RoutingGraphEdge(from, to, lane_length));
                 }
@@ -1428,8 +1438,24 @@ void OpenDriveMap::export_file(const std::string& fpath) const
             default:
                 break;
             }
-            if (contectPoint.size() > 0)
+            if (!contectPoint.empty())
                 connection.append_attribute("contactPoint").set_value(contectPoint.c_str());
+
+            std::string interfaceProviderContect;
+            switch (c.second.interface_provider_contact)
+            {
+            case odr::JunctionConnection::ContactPoint_Start:
+                interfaceProviderContect = "start";
+                break;
+            case odr::JunctionConnection::ContactPoint_End:
+                interfaceProviderContect = "end";
+                break;
+            default:
+                break;
+            }
+            if (!interfaceProviderContect.empty())
+                connection.append_attribute("interfaceProviderContactPoint").set_value(interfaceProviderContect.c_str());
+
             for (auto ll : c.second.lane_links) 
             {
                 pugi::xml_node laneLink = connection.append_child("laneLink");

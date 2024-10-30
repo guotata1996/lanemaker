@@ -341,8 +341,13 @@ namespace RoadRunner
                 road.second == odr::RoadLink::ContactPoint_Start ? "start" : "end");
         }
 
-        int interfaceSign = interfaceProvider->contact == odr::RoadLink::ContactPoint_End ? 1 : -1;
         std::vector<std::pair<odr::Line2D, odr::Line2D>> cavityPolygons;
+        if (strictlySortedLinkedRoad.empty())
+        {
+            return cavityPolygons;
+        }
+
+        int interfaceSign = interfaceProvider->contact == odr::RoadLink::ContactPoint_End ? 1 : -1;
         const double vertexStep = 0.1;
         for (int i = 0; i < strictlySortedLinkedRoad.size() - 1; ++i)
         {

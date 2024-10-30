@@ -519,13 +519,14 @@ namespace RoadRunner
         {
             auto linkedRoad = rampInfo.road.lock();
             auto linkedContact = rampInfo.contact;
-            if (linkedRoad == interfaceProviderRoad)
+            if (rampInfo == interfaceInfo)
             {
                 continue;
             }
             // Here we just let incomingRoad be interface provider; while linkedRoad be narrower ramp
             odr::JunctionConnection conn(std::to_string(junctionConnID++), interfaceProviderRoad->ID(), linkedRoad->ID(),
-                linkedContact == odr::RoadLink::ContactPoint_Start ? odr::JunctionConnection::ContactPoint_Start : odr::JunctionConnection::ContactPoint_End);
+                linkedContact == odr::RoadLink::ContactPoint_Start ? odr::JunctionConnection::ContactPoint_Start : odr::JunctionConnection::ContactPoint_End,
+                interfaceContact == odr::RoadLink::ContactPoint_Start ? odr::JunctionConnection::ContactPoint_Start : odr::JunctionConnection::ContactPoint_End);
 
             const auto& sectionLinked = linkedRoad->generated.get_lanesection(linkedContact == odr::RoadLink::ContactPoint_Start ? 0 : linkedRoad->Length());
             

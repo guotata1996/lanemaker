@@ -233,8 +233,7 @@ std::shared_ptr<Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
         for (const auto& overlap_and_lane : overlapZones.at(directlyOn))
         {
             double overlapLength = overlap_and_lane.second;
-            if (overlapLength > 0 && s >= overlapLength ||
-                overlapLength < 0 && s <= currLaneLength + overlapLength)
+            if (overlapLength > 0 && s >= overlapLength)
             {
                 continue;
             }
@@ -266,8 +265,6 @@ std::shared_ptr<Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
                 break;
             }
         }
-        
-        
     }
 
     if (rtn != nullptr)
