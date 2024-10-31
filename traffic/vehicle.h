@@ -40,9 +40,16 @@ public:
     odr::Vec3D TipPos() const;
     odr::Vec3D TailPos() const;
 
+    static std::shared_ptr<Vehicle> GetLeaderInOverlapZone(
+        odr::LaneKey lane, double s,
+        const odr::OpenDriveMap& map,
+        const std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane,
+        const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>& overlapZoneInfo,
+        double& outDistance, double lookforward = 50);
+
     std::shared_ptr<Vehicle> GetLeader(const odr::OpenDriveMap& map,
         const std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane,
-        const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>&,
+        const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>& overlapZoneInfo,
         double& outDistance, double lookforward = 50) const;
 
     double vFromGibbs(double dt, std::shared_ptr<Vehicle> leader, double distance) const;
