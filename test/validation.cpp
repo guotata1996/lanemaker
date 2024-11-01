@@ -43,7 +43,7 @@ namespace RoadRunnerTest
     // road IDs match among IDGenerator | world | odrMap
     void Validation::RoadIDSetMatch()
     {
-        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->odrMap;
+        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->Map();
         auto world = World::Instance();
 
         std::set<std::string> roadIDsFromSerialized;
@@ -79,7 +79,7 @@ namespace RoadRunnerTest
     // Junction IDs match between IDGenerator | odrMap
     void Validation::JunctionIDSetMatch()
     {
-        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->odrMap;
+        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->Map();
         std::set<std::string> junctionIDsFromSerialized;
         for (auto idAndJunction : serializedMap.id_to_junction)
         {
@@ -99,7 +99,7 @@ namespace RoadRunnerTest
 
     void Validation::VerifyRoadJunctionPtr()
     {
-        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->odrMap;
+        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->Map();
         for (const auto& idAndRoad : serializedMap.id_to_road)
         {
             auto roadPtr = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(idAndRoad.first));
@@ -142,7 +142,7 @@ namespace RoadRunnerTest
 
     void Validation::VerifyRoutingGraph()
     {
-        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->odrMap;
+        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->Map();
         const auto& routingGraph = serializedMap.get_routing_graph();
         for (auto& lane_successor : routingGraph.lane_key_to_successors)
         {

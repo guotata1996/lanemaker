@@ -474,4 +474,9 @@ namespace RoadRunner
 
         PostChangeActions();
     }
+
+    const odr::OpenDriveMap& ChangeTracker::Map()
+    {
+        return odrMap;
+    }
 }

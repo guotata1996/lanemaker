@@ -25,7 +25,12 @@ void Vehicle::InitGraphics()
 {
     graphics = new VehicleGraphics(QRectF(-2.3, -0.9, 4.6, 1.8), shared_from_this());
     graphics->setPen(Qt::NoPen);
-    auto randColor = static_cast<Qt::GlobalColor>(rand() % static_cast<int>(Qt::GlobalColor::transparent));
+    auto randColor = static_cast<Qt::GlobalColor>(rand() % static_cast<int>(Qt::GlobalColor::darkYellow));
+    if (randColor == Qt::GlobalColor::darkGray)
+    {
+        // Don't use same color as lane.
+        randColor = Qt::GlobalColor::darkYellow;
+    }
     graphics->setBrush(QBrush(randColor, Qt::SolidPattern));
     graphics->hide();
     g_scene->addItem(graphics);
@@ -33,6 +38,7 @@ void Vehicle::InitGraphics()
     routeVisual = new QGraphicsPathItem;
     routeVisual->setZValue(128);
     routeVisual->hide();
+    routeVisual->setPen(QPen(Qt::green));
     g_scene->addItem(routeVisual);
 
     leaderVisual = new QGraphicsLineItem();
@@ -61,34 +67,6 @@ bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGr
         spdlog::info("====  end  navigation ====");
     }
 
-    QPainterPath routeVisualPath;
-    odr::Vec3D p;
-    const int Resolution = 5;
-    for (int i = 0; i != navigation.size(); ++i)
-    {
-        double sBeginOnLane = i == 0 ? sourceS() : odrMap.get_lanekey_length(navigation[i]);
-        double sEndOnLane = i == navigation.size() - 1 ? destS() : odrMap.get_lanekey_length(navigation[i]);
-        assert(sBeginOnLane <= sEndOnLane);
-
-        int nDivisions = std::min(30, static_cast<int>(std::ceil((sEndOnLane - sBeginOnLane) / Resolution)));
-            
-        for (int d = 0; d <= nDivisions; ++i)
-        {
-            double sAlongKey = sBeginOnLane + (sEndOnLane - sBeginOnLane) / nDivisions * d;
-            p = odrMap.get_lanekey_center_pos(navigation[i], sAlongKey);
-            if (routeVisualPath.isEmpty())
-            {
-                routeVisualPath.lineTo(p[0], p[1]);
-            }
-            else
-            {
-                routeVisualPath.moveTo(p[0], p[1]);
-            }
-        }
-    }
-
-    routeVisual->setPath(routeVisualPath);
-
     return !navigation.empty();
 }
 
@@ -101,8 +79,30 @@ void Vehicle::Clear()
     IDGenerator::ForVehicle()->FreeID(ID);
 }
 
-void Vehicle::EnableRouteVisual(bool enabled)
+void Vehicle::EnableRouteVisual(bool enabled, const odr::OpenDriveMap& odrMap)
 {
+    if (enabled)
+    {
+        QPainterPath routeVisualPath;
+        for (int i = 0; i != navigation.size(); ++i)
+        {
+            double sBeginOnLane = i == 0 ? s : 0;
+            double sEndOnLane = i == navigation.size() - 1 ? destS() : odrMap.get_lanekey_length(navigation[i]);
+            assert(sBeginOnLane < sEndOnLane);
+
+            auto localLine = odrMap.id_to_road.at(navigation[i].road_id).get_lane_center_line(
+                navigation[i], sBeginOnLane, sEndOnLane, 1.0);
+
+            if (localLine.empty()) continue;
+            routeVisualPath.moveTo(localLine[0][0], localLine[0][1]);
+            for (int d = 1; d != localLine.size(); ++d)
+            {
+                routeVisualPath.lineTo(localLine[d][0], localLine[d][1]);
+            }
+        }
+        routeVisual->setPath(routeVisualPath);
+    }
+
     routeVisual->setVisible(enabled);
 }
 

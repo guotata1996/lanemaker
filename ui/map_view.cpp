@@ -478,6 +478,10 @@ void MapView::SnapCursor(const QPoint& viewPos)
     QVector2D viewPosVec(viewPos);
 
     rotatingRoads.clear();
+    if (!g_PointerVehicle.expired())
+    {
+        g_PointerVehicle.lock()->EnableRouteVisual(false, RoadRunner::ChangeTracker::Instance()->Map());
+    }
     g_PointerVehicle.reset();
 
     // Direct candidates
@@ -594,6 +598,10 @@ void MapView::SnapCursor(const QPoint& viewPos)
     }
 
     parentContainer->SetHovering(cursorInfo + PointerObjectInfo());
+    if (!g_PointerVehicle.expired())
+    {
+        g_PointerVehicle.lock()->EnableRouteVisual(true, RoadRunner::ChangeTracker::Instance()->Map());
+    }
 }
 
 void MapView::AdjustSceneRect()

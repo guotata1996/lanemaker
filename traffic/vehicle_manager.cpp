@@ -33,14 +33,14 @@ VehicleManager::VehicleManager(QObject* parent): QObject(parent),
 
 void VehicleManager::Begin()
 {
-    routingGraph = RoadRunner::ChangeTracker::Instance()->odrMap.get_routing_graph();
-    overlapZones = RoadRunner::ChangeTracker::Instance()->odrMap.get_overlap_zones();
+    routingGraph = RoadRunner::ChangeTracker::Instance()->Map().get_routing_graph();
+    overlapZones = RoadRunner::ChangeTracker::Instance()->Map().get_overlap_zones();
     for (auto self_overlaps : overlapZones)
     {
-        spdlog::info("{} overlaps with:", self_overlaps.first.to_string());
+        spdlog::trace("{} overlaps with:", self_overlaps.first.to_string());
         for (auto overlap_and_len : self_overlaps.second)
         {
-            spdlog::info("  {} {}", overlap_and_len.first.to_string(), overlap_and_len.second);
+            spdlog::trace("  {} {}", overlap_and_len.first.to_string(), overlap_and_len.second);
         }
     }
     Spawn();
@@ -71,7 +71,7 @@ void VehicleManager::TogglePause()
 
 void VehicleManager::Spawn()
 {
-    auto& latestMap = RoadRunner::ChangeTracker::Instance()->odrMap;
+    auto& latestMap = RoadRunner::ChangeTracker::Instance()->Map();
     auto& latestRoutingGraph = latestMap.get_routing_graph();
 
     auto setRoutes = latestMap.get_routes();
@@ -85,7 +85,7 @@ void VehicleManager::Spawn()
             auto endS = std::get<3>(start_end);
             auto vehicle = std::make_shared<Vehicle>(startKey, startS, endKey, endS, 
                 allVehicles.size() % 2 == 1 ? 12 : 20);
-            if (vehicle->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->odrMap,
+            if (vehicle->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->Map(),
                 routingGraph))
             {
                 vehicle->InitGraphics();
@@ -133,6 +133,7 @@ void VehicleManager::Spawn()
 
         double totalLength = std::accumulate(allWeights.begin(), allWeights.end(), 0);
         int nPair = std::ceil(totalLength / 50);
+        bool showProgress = nPair > 100;
         for (int i = 0; i != nPair; ++i)
         {
             auto startIndex = RandomSelect(allWeights);
@@ -155,7 +156,7 @@ void VehicleManager::Spawn()
             auto maxV = 10 + rand01() * 10;
             auto vehicle = std::make_shared<Vehicle>(startKey, startS, endKey, endS, maxV);
 
-            if (vehicle->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->odrMap,
+            if (vehicle->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->Map(),
                 routingGraph))
             {
                 vehicle->InitGraphics();
@@ -181,7 +182,7 @@ void VehicleManager::step()
     for (auto& id_v: allVehicles)
     {
         auto vehicle = id_v.second;
-        bool isActive = vehicle->PlanStep(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->odrMap, 
+        bool isActive = vehicle->PlanStep(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->Map(),
             vehiclesOnLane, overlapZones);
         if (!isActive)
         {
@@ -195,12 +196,12 @@ void VehicleManager::step()
         auto id = id_v.first;
         if (inactives.find(id) == inactives.end())
         {
-            id_v.second->MakeStep(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->odrMap);
+            id_v.second->MakeStep(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->Map());
         }
         else
         {
             // try reassign goal
-            if (!allVehicles.at(id)->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->odrMap,
+            if (!allVehicles.at(id)->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->Map(),
                 routingGraph))
             {
                 allVehicles.at(id)->Clear();

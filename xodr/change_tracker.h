@@ -13,8 +13,6 @@ namespace RoadRunner
 {
     class ChangeTracker
     {
-        friend class RoadRunnerTest::Validation;
-        friend class ::VehicleManager;
     public:
         ChangeTracker(ChangeTracker&) = delete;
         ChangeTracker& operator=(const ChangeTracker&) = delete;
@@ -30,6 +28,7 @@ namespace RoadRunner
         bool Load(std::string path);
         bool LoadStr(std::string path);
 
+        const odr::OpenDriveMap& Map();
     private:
         ChangeTracker() = default;
 

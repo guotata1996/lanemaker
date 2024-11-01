@@ -264,6 +264,36 @@ Line3D Road::get_lane_border_line(const Lane& lane, const double s_start, const 
     return border_line;
 }
 
+Line3D Road::get_lane_center_line(const LaneKey& laneKey, const double travelSBegin, const double travelSEnd, const double eps) const
+{ 
+    double lanesection_s0 = laneKey.lanesection_s0;
+    double sBeginOnRoad, sEndOnRoad;
+    if (laneKey.lane_id < 0)
+    {
+        sBeginOnRoad = laneKey.lanesection_s0 + travelSBegin;
+        sEndOnRoad = laneKey.lanesection_s0 + travelSEnd;
+    }
+    else
+    {
+        double lanesection_s1 = laneKey.lanesection_s0 + get_lanesection_length(laneKey.lanesection_s0);
+        sBeginOnRoad = lanesection_s1 - travelSEnd;
+        sEndOnRoad = lanesection_s1 - travelSBegin;
+    }
+
+    const auto lane = s_to_lanesection.at(laneKey.lanesection_s0).id_to_lane.at(laneKey.lane_id);
+
+    std::set<double> s_vals = this->approximate_lane_border_linear(lane, sBeginOnRoad, sEndOnRoad, eps, true);
+
+    Line3D center_line;
+    for (const double& s : s_vals)
+    {
+        const double tInner = lane.inner_border.get(s);
+        const double tOuter = lane.outer_border.get(s);
+        center_line.push_back(this->get_surface_pt(s, (tInner + tOuter) / 2));
+    }
+    return center_line;
+}
+
 void Road::get_lane_border_line(
     const Lane& lane, const double s_start, const double s_end, const double eps, Line3D& outerOut, Line3D& innerOut) const
 {

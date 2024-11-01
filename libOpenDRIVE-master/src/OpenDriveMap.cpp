@@ -1154,18 +1154,6 @@ double OpenDriveMap::get_lanekey_length(LaneKey key) const
     return road.get_lanesection_length(section);
 }
 
-odr::Vec3D OpenDriveMap::get_lanekey_center_pos(LaneKey key, double sAlongTravel) const 
-{
-    const auto& road = id_to_road.at(key.road_id);
-    const auto& section = road.get_lanesection(key.lanesection_s0);
-    double      sAlongRoad = key.lanesection_s0 + 
-        (key.lane_id < 0 ? sAlongTravel : get_lanekey_length(key) - sAlongTravel);
-    
-    double innerT = section.id_to_lane.at(key.lane_id).inner_border.get(sAlongRoad);
-    double outerT = section.id_to_lane.at(key.lane_id).outer_border.get(sAlongRoad);
-    return road.get_xyz(sAlongRoad, (innerT + outerT) / 2, 0);
-}
-
 void OpenDriveMap::export_file(const std::string& fpath) const
 {
     pugi::xml_document doc;

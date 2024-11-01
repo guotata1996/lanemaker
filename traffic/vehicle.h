@@ -25,7 +25,7 @@ public:
     /*Clean graphics*/
     void Clear();
 
-    void EnableRouteVisual(bool enabled);
+    void EnableRouteVisual(bool enabled, const odr::OpenDriveMap& odrMap);
 
     /*Return false if fail
     * Only use others' last frame info, DO NOT use any of new_ info

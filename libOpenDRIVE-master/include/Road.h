@@ -103,6 +103,7 @@ public:
     /*Ensure s match*/
     void   get_lane_border_line(const Lane& lane, const double s_start, const double s_end, const double eps, Line3D& outerOut, Line3D& innerOut) const;
     Line3D get_lane_border_line(const Lane& lane, const double eps, const bool outer = true) const;
+    Line3D get_lane_center_line(const LaneKey& lane, const double travelSBegin, const double travelSEnd, const double eps) const;
     /*Returned line follows traffic direction on side*/
     Line3D get_side_border_line(const int8_t side, const double s_start, const double s_end, const bool outer, const double eps) const;
     /*Returns: left-side boundary (if exist), right-side boundary (if exist)*/
