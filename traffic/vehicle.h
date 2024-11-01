@@ -25,6 +25,8 @@ public:
     /*Clean graphics*/
     void Clear();
 
+    void EnableRouteVisual(bool enabled);
+
     /*Return false if fail
     * Only use others' last frame info, DO NOT use any of new_ info
     */
@@ -91,4 +93,5 @@ private:
     
     VehicleGraphics* graphics;
     QGraphicsLineItem* leaderVisual;
+    QGraphicsPathItem* routeVisual;
 };

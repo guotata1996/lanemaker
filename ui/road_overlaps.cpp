@@ -19,7 +19,15 @@ namespace RoadRunner
             std::optional<RoadRunner::Road::RoadsOverlap> overlap;
             if (firstIter && !firstCtrlPointPreferredTarget.expired())
             {
-                overlap.emplace(newRoad->CalcOverlapWith(firstCtrlPointPreferredTarget.lock(), firstCtrlPointPreferredS, newPartBegin, newPartEnd));
+                auto intendedOverlap = newRoad->CalcOverlapWith(firstCtrlPointPreferredTarget.lock(), firstCtrlPointPreferredS, newPartBegin, newPartEnd);
+                if (intendedOverlap.has_value())
+                {
+                    overlap.emplace(intendedOverlap.value());
+                }
+                else
+                {
+                    assert(false);
+                }
             }
             else
             {
@@ -27,7 +35,15 @@ namespace RoadRunner
                 std::optional<RoadRunner::Road::RoadsOverlap> lastOverlap;
                 if (!lastCtrlPointPreferredTarget.expired())
                 {
-                    lastOverlap.emplace(newRoad->CalcOverlapWith(lastCtrlPointPreferredTarget.lock(), lastCtrlPointPreferredS, newPartBegin, newPartEnd));
+                    auto intendedOverlap = newRoad->CalcOverlapWith(lastCtrlPointPreferredTarget.lock(), lastCtrlPointPreferredS, newPartBegin, newPartEnd);
+                    if (intendedOverlap.has_value())
+                    {
+                        lastOverlap.emplace(intendedOverlap.value());
+                    }
+                    else
+                    {
+                        spdlog::warn("Intended end overlap may not be fulfilled.");
+                    }
                 }
 
                 if (overlap.has_value() && lastOverlap.has_value() &&

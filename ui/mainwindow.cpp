@@ -70,6 +70,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     pauseResumeSimulation = simulation->addAction("Paused");
     pauseResumeSimulation->setCheckable(true);
     pauseResumeSimulation->setChecked(false);
+    pauseResumeSimulation->setEnabled(false);
     menu->addMenu(simulation);
 
 #ifdef __linux__
@@ -395,6 +396,10 @@ void MainWindow::keyPressEvent(QKeyEvent* e)
         if (pauseResumeSimulation->isEnabled())
         {
             pauseResumeSimulation->toggle();
+        }
+        else if (toggleSimAction->isEnabled())
+        {
+            toggleSimAction->toggle();
         }
     }
     QWidget::keyPressEvent(e);

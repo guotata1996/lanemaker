@@ -294,7 +294,7 @@ namespace RoadRunner
 
     /*sBegin-sEnd provides a rough range where overlap with target falls at
     not necessarily inclusive because ref line may fall out of road width*/
-    Road::RoadsOverlap Road::CalcOverlapWith(std::shared_ptr<Road> target, double sWithin, double sBegin1, double sEnd1) const
+    std::optional<Road::RoadsOverlap> Road::CalcOverlapWith(std::shared_ptr<Road> target, double sWithin, double sBegin1, double sEnd1) const
     {
         std::map<double, Road::RoadsOverlap> sErrorToOverlap;
         for (auto overlapResult : AllOverlaps(sBegin1, sEnd1))
@@ -309,7 +309,13 @@ namespace RoadRunner
                 sErrorToOverlap.emplace(sErr, overlapResult);
             }
         }
-        return sErrorToOverlap.begin()->second;
+
+        std::optional<Road::RoadsOverlap> rtn;
+        if (!sErrorToOverlap.empty())
+        {
+            rtn.emplace(sErrorToOverlap.begin()->second);
+        }
+        return rtn;
     }
 
     std::vector<Road::RoadsOverlap> Road::AllOverlaps(double sBegin, double sEnd) const

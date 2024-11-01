@@ -17,7 +17,7 @@ VehicleGraphics::VehicleGraphics(QRectF r, std::weak_ptr<Vehicle> v) : QGraphics
 Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey destLane, double destS, double maxV) :
     AS(initialLocalS), ALane(initialLane), BS(destS), BLane(destLane),
     currLaneLength(0), tOffset(0), laneChangeDueS(0), velocity(0), MaxV(maxV), step(0),
-    ID(IDGenerator::ForVehicle()->GenerateID(this)), goalIndex(false)
+    ID(IDGenerator::ForVehicle()->GenerateID(this)), goalIndex(false), routeVisual(nullptr)
 {
 }
 
@@ -29,6 +29,11 @@ void Vehicle::InitGraphics()
     graphics->setBrush(QBrush(randColor, Qt::SolidPattern));
     graphics->hide();
     g_scene->addItem(graphics);
+
+    routeVisual = new QGraphicsPathItem;
+    routeVisual->setZValue(128);
+    routeVisual->hide();
+    g_scene->addItem(routeVisual);
 
     leaderVisual = new QGraphicsLineItem();
     g_scene->addItem(leaderVisual);
@@ -56,6 +61,34 @@ bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGr
         spdlog::info("====  end  navigation ====");
     }
 
+    QPainterPath routeVisualPath;
+    odr::Vec3D p;
+    const int Resolution = 5;
+    for (int i = 0; i != navigation.size(); ++i)
+    {
+        double sBeginOnLane = i == 0 ? sourceS() : odrMap.get_lanekey_length(navigation[i]);
+        double sEndOnLane = i == navigation.size() - 1 ? destS() : odrMap.get_lanekey_length(navigation[i]);
+        assert(sBeginOnLane <= sEndOnLane);
+
+        int nDivisions = std::min(30, static_cast<int>(std::ceil((sEndOnLane - sBeginOnLane) / Resolution)));
+            
+        for (int d = 0; d <= nDivisions; ++i)
+        {
+            double sAlongKey = sBeginOnLane + (sEndOnLane - sBeginOnLane) / nDivisions * d;
+            p = odrMap.get_lanekey_center_pos(navigation[i], sAlongKey);
+            if (routeVisualPath.isEmpty())
+            {
+                routeVisualPath.lineTo(p[0], p[1]);
+            }
+            else
+            {
+                routeVisualPath.moveTo(p[0], p[1]);
+            }
+        }
+    }
+
+    routeVisual->setPath(routeVisualPath);
+
     return !navigation.empty();
 }
 
@@ -63,7 +96,14 @@ void Vehicle::Clear()
 {
     g_scene->removeItem(graphics);
     g_scene->removeItem(leaderVisual);
+    g_scene->removeItem(routeVisual);
+    
     IDGenerator::ForVehicle()->FreeID(ID);
+}
+
+void Vehicle::EnableRouteVisual(bool enabled)
+{
+    routeVisual->setVisible(enabled);
 }
 
 bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
@@ -353,7 +393,7 @@ double Vehicle::vFromGibbs(double dt, std::shared_ptr<Vehicle> leader, double di
         if (underSqr < 0)
         {
             // gonna collide, hard stop
-            vOut = distance < li ? 0 : std::max(leader->velocity + b * dt, 0.0);
+            vOut = 0.0;
         }
         else
         {

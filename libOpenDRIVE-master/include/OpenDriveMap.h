@@ -54,6 +54,7 @@ public:
     std::vector<std::tuple<LaneKey, double, LaneKey, double>> get_routes() const;
     std::map<LaneKey, std::vector<std::pair<LaneKey, double>>> get_overlap_zones() const;
     double get_lanekey_length(LaneKey) const;
+    odr::Vec3D get_lanekey_center_pos(LaneKey, double sAlongTravel) const;
 
     void export_file(const std::string& fpath) const; 
 
