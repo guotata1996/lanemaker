@@ -6,6 +6,7 @@
 #include "test/validation.h"
 #include "action_manager.h"
 #include "preference.h"
+#include "util.h"
 
 #include <spdlog/spdlog.h>
 
@@ -73,36 +74,13 @@ namespace RoadRunner
                 rrJunction->AttachNoRegenerate(RoadRunner::ConnectionInfo(road, odr::RoadLink::ContactPoint_Start));
             }
         }
-
+        
         // show progress bar for large number of junctions
         // Realistically, junction graphics should be saved to xodr
-        const float nJunctions = id2RRJunction.size();
-        const bool needProgressBar = nJunctions > 10;
-        const int ProgressBarLength = 50;
-        int drawnBars = 0;
-        int iterations = 0;
-
-        if (needProgressBar)
-        {
-            std::cout << "Generating junctions ";
-        }
-
-        for (auto& idAndjunc : id2RRJunction)
+        std::cout << "Generating junctions ";
+        for (auto& idAndjunc : TQDM(id2RRJunction))
         {
             idAndjunc.second->GenerateGraphics();
-            if (needProgressBar)
-            {
-                int progressToDraw = ++iterations / nJunctions * ProgressBarLength;
-                for (int i = drawnBars; i < progressToDraw; ++i)
-                {
-                    std::cout << ".";
-                }
-                drawnBars = progressToDraw;
-            }
-        }
-        if (needProgressBar)
-        {
-            std::cout << std::endl;
         }
 
         while (!redoStack.empty())

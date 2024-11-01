@@ -64,4 +64,14 @@ namespace RoadRunner
         }
         return runTimestamp.value();
     }
+
+    TQDM<std::vector<size_t>>::HelperRange range(size_t s)
+    {
+        std::vector<size_t> rtn(s);
+        for (int i = 0; i != s; ++i)
+        {
+            rtn[i] = i;
+        }
+        return rtn;
+    }
 }

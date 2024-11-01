@@ -1,5 +1,6 @@
 #include "vehicle_manager.h"
 #include "change_tracker.h"
+#include "util.h"
 
 #include "spdlog/spdlog.h"
 
@@ -133,8 +134,9 @@ void VehicleManager::Spawn()
 
         double totalLength = std::accumulate(allWeights.begin(), allWeights.end(), 0);
         int nPair = std::ceil(totalLength / 50);
-        bool showProgress = nPair > 100;
-        for (int i = 0; i != nPair; ++i)
+        std::cout << "Spawning vehicles ";
+
+        for (auto i: RoadRunner::TQDM(RoadRunner::range(nPair)))
         {
             auto startIndex = RandomSelect(allWeights);
             auto endIndex = RandomSelect(allWeights);
@@ -150,7 +152,6 @@ void VehicleManager::Spawn()
                 && std::abs(startS - endS) < MinLengthRequired / 2)
             {
                 // Reject abrupt lane change req.
-                i--;
                 continue;
             }
             auto maxV = 10 + rand01() * 10;
