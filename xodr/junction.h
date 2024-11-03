@@ -265,7 +265,7 @@ namespace RoadRunner
 
         static odr::Vec2D calcInterfaceDir(const ConnectionInfo&);
 
-        /*right side: relative to interface provider
+        /*sideA/sideB: relative to interface provider
         * Return: true if intersection found
         */
         static bool bordersIntersect(odr::RoadLink::ContactPoint interfaceProviderContact,

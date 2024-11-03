@@ -3,6 +3,8 @@
 #include <CGAL/intersections.h>
 #include <CGAL/Cartesian.h>
 
+#include "polyline.h"
+
 #include <optional>
 
 using namespace CGAL;
@@ -467,72 +469,8 @@ namespace RoadRunner
         int bSide = interfaceProviderContact == infoB.contact ? -sideB : sideB;
 
         auto roadA = infoA.road.lock();
-        auto lenA = roadA->Length();
-        auto commonY = roadA->RefLine().get_grad_xy(
-            infoA.contact == odr::RoadLink::ContactPoint_Start ? 0 : lenA);
-        if (infoA.contact == odr::RoadLink::ContactPoint_End)
-        {
-            commonY = odr::negate(commonY);
-        }
-        commonY = odr::normalize(commonY);
-        odr::Vec2D commonX{ -commonY[1], commonY[0] };
         auto roadB = infoB.road.lock();
-        auto lenB = roadB->Length();
-
-        double deltaA = 0;
-        double deltaB = 0;
-        bool aStep = true, bStep = true;
-        double projXA, projYA, projXB, projYB;
-        odr::Vec2D posOnA, posOnB;
-
-        std::optional<bool> aSmallA;
-        
-        while (deltaA < lenA && deltaB < lenB)
-        {
-            if (aStep)
-            {
-                outSA = infoA.contact == odr::RoadLink::ContactPoint_Start ? deltaA : lenA - deltaA;
-                posOnA = roadA->generated.get_boundary_xy(aSide, outSA);
-                projYA = odr::dot(posOnA, commonY);
-                projXA = odr::dot(posOnA, commonX);
-            }
-            if (bStep)
-            {
-                outSB = infoB.contact == odr::RoadLink::ContactPoint_Start ? deltaB : lenB - deltaB;
-                posOnB = roadB->generated.get_boundary_xy(bSide, outSB);
-                projYB = odr::dot(posOnB, commonY);
-                projXB = odr::dot(posOnB, commonX);
-            }
-
-            bool nowASmallX = projXA < projXB;
-            if (aSmallA.has_value())
-            {
-                if (aSmallA.value() != nowASmallX)
-                {
-                    // X flipped! we are done
-                    return true;
-                }
-            }
-            else
-            {
-                // First iteration
-                aSmallA.emplace(nowASmallX);
-            }
-
-            if (projYA < projYB)
-            {
-                aStep = true;
-                bStep = false;
-                deltaA += 0.1;
-            }
-            else
-            {
-                aStep = false;
-                bStep = true;
-                deltaB += 0.1;
-            }
-        }
-
-        return false;
+        return RoadRunner::borderIntersect(roadA->generated, aSide, roadB->generated, bSide,
+            outSA, outSB, infoA.contact, infoB.contact);
     }
 };
