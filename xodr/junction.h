@@ -142,6 +142,8 @@ namespace RoadRunner
     // Only used to unlink the last (only) road when all rest
     void clearLinkage(std::string junctionID, std::string regularRoad);
 
+    bool connRoadsConflict(const odr::Road& roadA, const odr::Road& roadB);
+
     struct ChangeInConnecting
     {
         enum Type {
@@ -225,6 +227,8 @@ namespace RoadRunner
         virtual bool CanDegerate() const override;
 
         virtual uint8_t GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const override;
+
+        void GenerateSignalPhase();
 
 #ifndef G_TEST
         virtual void GenerateGraphics() override;

@@ -66,7 +66,7 @@ add_executable(
   RoadRunnerTest
   test/test.cc test/randomization_utils.cpp 
   test/validation.cpp test/junction_validation.cpp test/road_validation.cpp
-  xodr/road.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp
+  xodr/road.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp xodr/polyline.cpp
   xodr/junction.cpp xodr/junction_generation.cpp
   xodr/id_generator.cpp xodr/world.cpp
 )

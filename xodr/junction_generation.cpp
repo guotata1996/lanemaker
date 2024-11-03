@@ -1,5 +1,7 @@
 #include "junction.h"
 #include "curve_fitting.h"
+#include "polyline.h"
+
 #include <cmath> // floor, ceil
 #include <map>
 
@@ -612,5 +614,46 @@ namespace RoadRunner
             affectedRoad.EnableBorderMarking(odr::RoadLink::ContactPoint_End, 0);
             affectedRoad.EnableBorderMarking(odr::RoadLink::ContactPoint_End, 1);
         }
+    }
+
+    bool connRoadsConflict(const odr::Road& roadA, const odr::Road& roadB)
+    {
+        // If two connecting roads go into the same road end point
+        if (roadA.successor.id == roadB.successor.id)
+        {
+            std::set<int> roadASuccessors;
+            for (auto laneA : roadA.s_to_lanesection.rbegin()->second.id_to_lane)
+            {
+                roadASuccessors.emplace(laneA.second.successor);
+            }
+            for (auto laneB : roadB.s_to_lanesection.rbegin()->second.id_to_lane)
+            {
+                if (roadASuccessors.find(laneB.second.successor) != roadASuccessors.end())
+                {
+                    return true;
+                }
+            }
+        }
+
+        // Exempt conflict check if originates from the same road end point
+        
+        if (roadA.predecessor.id == roadB.predecessor.id)
+        {
+            std::set<int> roadAPredecessors;
+            for (auto laneA : roadA.s_to_lanesection.begin()->second.id_to_lane)
+            {
+                roadAPredecessors.emplace(laneA.second.predecessor);
+            }
+            for (auto laneB : roadB.s_to_lanesection.begin()->second.id_to_lane)
+            {
+                if (roadAPredecessors.find(laneB.second.predecessor) != roadAPredecessors.end())
+                {
+                    return false;
+                }
+            }
+        }
+        
+        double outSA, outSB;
+        return borderIntersect(roadA, -1, roadB, -1, outSA, outSB);
     }
 }

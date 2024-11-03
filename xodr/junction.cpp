@@ -336,6 +336,7 @@ namespace RoadRunner
 
         GenerateGraphics();
 #endif
+        GenerateSignalPhase();
 
         IDGenerator::ForJunction()->NotifyChange(ID());
 
@@ -418,6 +419,78 @@ namespace RoadRunner
             }
         }
         return rtn;
+    }
+
+    void Junction::GenerateSignalPhase()
+    {
+        std::map<std::pair<std::string, std::string>, bool> conflictResultBuffer;
+        std::vector<std::shared_ptr<Road>> pendingAssign;
+
+        for (auto road : connectingRoads)
+        {
+            pendingAssign.push_back(road);
+        }
+
+        std::sort(pendingAssign.begin(), pendingAssign.end(),
+            [](const std::shared_ptr<Road>& roadA, const std::shared_ptr<Road>& roadB)
+            {
+                int aLanes = roadA->generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(-1).size();
+                int bLanes = roadB->generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(-1).size();
+                return aLanes < bLanes;
+            });
+        
+        int currSignalPhase = 0;
+        std::map<std::string, int> connectingToSignalPhase;
+        while (!pendingAssign.empty())
+        {
+            auto groupInitiator = pendingAssign.back();
+            pendingAssign.pop_back();
+            std::vector<std::shared_ptr<Road>> group = { groupInitiator };
+
+            for (int i = pendingAssign.size() - 1; i >= 0; --i)
+            {
+                std::shared_ptr<Road> candidate = pendingAssign[i];
+                // Accept only if there's no conflict with any member in group
+                bool hasConflict = false;
+                for (auto existingMember: group)
+                {
+                    bool conflict;
+                    if (conflictResultBuffer.find(std::make_pair(candidate->ID(), existingMember->ID())) == conflictResultBuffer.end())
+                    {
+                        conflict = connRoadsConflict(candidate->generated, existingMember->generated);
+                        conflictResultBuffer.emplace(std::make_pair(candidate->ID(), existingMember->ID()), conflict);
+                        conflictResultBuffer.emplace(std::make_pair(existingMember->ID(), candidate->ID()), conflict);
+                    }
+                    else
+                    {
+                        conflict = conflictResultBuffer.at(std::make_pair(candidate->ID(), existingMember->ID()));
+                    }
+
+                    if (conflict)
+                    {
+                        hasConflict = true;
+                        break;
+                    }
+                }
+                if (!hasConflict)
+                {
+                    group.push_back(candidate);
+                    pendingAssign.erase(pendingAssign.begin() + i);
+                }
+            }
+
+            for (auto member : group)
+            {
+                connectingToSignalPhase.emplace(member->ID(), currSignalPhase);
+            }
+
+            currSignalPhase++;
+        }
+
+        for (auto& id_conn : generated.id_to_connection)
+        {
+            id_conn.second.signalPhase = connectingToSignalPhase.at(id_conn.second.connecting_road);
+        }
     }
 
     DirectJunction::DirectJunction(ConnectionInfo aInterfaceProvider) : AbstractJunction()

@@ -6,9 +6,10 @@ namespace odr
 JunctionLaneLink::JunctionLaneLink(int from, int to, double overlap) : from(from), to(to), overlapZone(overlap) {}
 
 JunctionConnection::JunctionConnection(std::string id, std::string incoming_road, std::string connecting_or_linked_road, 
-    ContactPoint contact_point, ContactPoint interface_provider_contact) :
+    ContactPoint contact_point, ContactPoint interface_provider_contact, int signalPhase) :
     id(id), incoming_road(incoming_road), connecting_road(connecting_or_linked_road), 
-    contact_point(contact_point), interface_provider_contact(interface_provider_contact)
+    contact_point(contact_point),
+    interface_provider_contact(interface_provider_contact), signalPhase(signalPhase)
 {
 }
 

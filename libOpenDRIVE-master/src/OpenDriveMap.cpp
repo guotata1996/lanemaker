@@ -149,6 +149,8 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
                 junction_interface_contact_point = JunctionConnection::ContactPoint_End;
             }
 
+            int signal_phase = connection_node.attribute("signalPhase").as_int(-1);
+
             const std::string   junction_connection_id = connection_node.attribute("id").as_string("");
             JunctionConnection& junction_connection = junction.id_to_connection
                                                           .insert({junction_connection_id,
@@ -157,7 +159,8 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
                                                                                       connection_node.attribute(_type == JunctionType::Common ? 
                                                                                           "connectingRoad" : "linkedRoad").as_string(""),
                                                                                       junction_conn_contact_point,
-                                                                                      junction_interface_contact_point)})
+                                                                                      junction_interface_contact_point,
+                                                                                      signal_phase)})
                                                           .first->second;
 
             for (pugi::xml_node lane_link_node : connection_node.children("laneLink"))
@@ -1455,6 +1458,11 @@ void OpenDriveMap::export_file(const std::string& fpath) const
             }
             if (!interfaceProviderContect.empty())
                 connection.append_attribute("interfaceProviderContactPoint").set_value(interfaceProviderContect.c_str());
+
+            if (c.second.signalPhase >= 0)
+            {
+                connection.append_attribute("signalPhase").set_value(c.second.signalPhase);
+            }
 
             for (auto ll : c.second.lane_links) 
             {

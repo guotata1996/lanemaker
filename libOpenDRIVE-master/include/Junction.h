@@ -50,13 +50,14 @@ struct JunctionConnection
     };
 
     JunctionConnection(std::string id, std::string incoming_road, std::string connecting_or_linked_road, 
-        ContactPoint contact_point, ContactPoint interface_provider_contact = ContactPoint_None);
+        ContactPoint contact_point, ContactPoint interface_provider_contact = ContactPoint_None, int signalPhase = -1);
 
     std::string  id = "";
     std::string  incoming_road = "";
     std::string  connecting_road = ""; // For direct junction: stores linkedRoad
     ContactPoint contact_point = ContactPoint_None;
     ContactPoint interface_provider_contact = ContactPoint_None;
+    int          signalPhase = -1;
 
     std::set<JunctionLaneLink> lane_links;
 };
