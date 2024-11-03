@@ -656,4 +656,20 @@ namespace RoadRunner
         double outSA, outSB;
         return borderIntersect(roadA, -1, roadB, -1, outSA, outSB);
     }
+
+    bool connRoadsConflictBuffered(const odr::Road& roadA, const odr::Road& roadB, std::map<std::pair<std::string, std::string>, bool>& conflictResultBuffer)
+    {
+        bool conflict;
+        if (conflictResultBuffer.find(std::make_pair(roadA.id, roadB.id)) == conflictResultBuffer.end())
+        {
+            conflict = connRoadsConflict(roadA, roadB);
+            conflictResultBuffer.emplace(std::make_pair(roadA.id, roadB.id), conflict);
+            conflictResultBuffer.emplace(std::make_pair(roadB.id, roadA.id), conflict);
+        }
+        else
+        {
+            conflict = conflictResultBuffer.at(std::make_pair(roadA.id, roadB.id));
+        }
+        return conflict;
+    }
 }

@@ -261,7 +261,6 @@ void MainWidget::gotoCreateRoadMode(bool checked)
 {
     if (!checked) return;
     mapView->setDragMode(QGraphicsView::NoDrag);
-    mapView->setInteractive(true);
     mapView->SetEditMode(RoadRunner::Mode_Create);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Create);
     createRoadOption->GotoRoadMode();
@@ -272,7 +271,6 @@ void MainWidget::gotoCreateLaneMode(bool checked)
 {
     if (!checked) return;
     mapView->setDragMode(QGraphicsView::NoDrag);
-    mapView->setInteractive(true);
     mapView->SetEditMode(RoadRunner::Mode_CreateLanes);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_CreateLanes);
     createRoadOption->GotoLaneMode();
@@ -283,7 +281,6 @@ void MainWidget::gotoDestroyMode(bool checked)
 {
     if (!checked) return;
     mapView->setDragMode(QGraphicsView::NoDrag);
-    mapView->setInteractive(true);
     mapView->SetEditMode(RoadRunner::Mode_Destroy);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Destroy);
     createRoadOption->hide();
@@ -294,7 +291,6 @@ void MainWidget::gotoModifyMode(bool checked)
 {
     if (!checked) return;
     mapView->setDragMode(QGraphicsView::NoDrag);
-    mapView->setInteractive(true);
     mapView->SetEditMode(RoadRunner::Mode_Modify);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Modify);
     createRoadOption->GotoRoadMode();
@@ -305,7 +301,6 @@ void MainWidget::gotoDragMode(bool checked)
 {
     if (!checked) return;
     mapView->setDragMode(QGraphicsView::ScrollHandDrag);
-    mapView->setInteractive(false);
     mapView->SetEditMode(RoadRunner::Mode_None);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_None);
     createRoadOption->hide();

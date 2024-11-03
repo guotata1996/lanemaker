@@ -142,7 +142,8 @@ namespace RoadRunner
     // Only used to unlink the last (only) road when all rest
     void clearLinkage(std::string junctionID, std::string regularRoad);
 
-    bool connRoadsConflict(const odr::Road& roadA, const odr::Road& roadB);
+    bool connRoadsConflictBuffered(const odr::Road& roadA, const odr::Road& roadB,
+        std::map<std::pair<std::string, std::string>, bool>& buffer);
 
     struct ChangeInConnecting
     {

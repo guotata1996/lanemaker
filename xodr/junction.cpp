@@ -439,8 +439,7 @@ namespace RoadRunner
                 return aLanes < bLanes;
             });
         
-        int currSignalPhase = 0;
-        std::map<std::string, int> connectingToSignalPhase;
+        std::vector<std::vector<std::shared_ptr<Road>>> nonOverlapGroups;
         while (!pendingAssign.empty())
         {
             auto groupInitiator = pendingAssign.back();
@@ -454,19 +453,7 @@ namespace RoadRunner
                 bool hasConflict = false;
                 for (auto existingMember: group)
                 {
-                    bool conflict;
-                    if (conflictResultBuffer.find(std::make_pair(candidate->ID(), existingMember->ID())) == conflictResultBuffer.end())
-                    {
-                        conflict = connRoadsConflict(candidate->generated, existingMember->generated);
-                        conflictResultBuffer.emplace(std::make_pair(candidate->ID(), existingMember->ID()), conflict);
-                        conflictResultBuffer.emplace(std::make_pair(existingMember->ID(), candidate->ID()), conflict);
-                    }
-                    else
-                    {
-                        conflict = conflictResultBuffer.at(std::make_pair(candidate->ID(), existingMember->ID()));
-                    }
-
-                    if (conflict)
+                    if (connRoadsConflictBuffered(candidate->generated, existingMember->generated, conflictResultBuffer))
                     {
                         hasConflict = true;
                         break;
@@ -478,13 +465,44 @@ namespace RoadRunner
                     pendingAssign.erase(pendingAssign.begin() + i);
                 }
             }
+            nonOverlapGroups.push_back(group);
+        }
 
-            for (auto member : group)
+        // expand raw group to include non-conflicting members from other groups
+        std::vector<std::vector<std::shared_ptr<Road>>> expandedGroup(nonOverlapGroups.size());
+        for (int i = 0; i != nonOverlapGroups.size(); ++i)
+        {
+            expandedGroup[i] = nonOverlapGroups[i];
+            for (int j = 0; j != nonOverlapGroups.size(); ++j)
             {
-                connectingToSignalPhase.emplace(member->ID(), currSignalPhase);
+                if (i == j) continue;
+                for (auto candidate : nonOverlapGroups[j])
+                {
+                    bool hasConflict = false;
+                    for (auto existingMember : expandedGroup[i])
+                    {
+                        if (connRoadsConflictBuffered(candidate->generated, existingMember->generated, conflictResultBuffer))
+                        {
+                            hasConflict = true;
+                            break;
+                        }
+                    }
+                    if (!hasConflict)
+                    {
+                        expandedGroup[i].push_back(candidate);
+                    }
+                }
             }
+        }
 
-            currSignalPhase++;
+        // Write to xodr
+        std::map<std::string, int> connectingToSignalPhase;
+        for (int phase = 0; phase != expandedGroup.size(); ++phase)
+        {
+            for (auto member : expandedGroup[phase])
+            {
+                connectingToSignalPhase.emplace(member->ID(), phase);
+            }
         }
 
         for (auto& id_conn : generated.id_to_connection)
