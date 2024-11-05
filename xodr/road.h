@@ -102,7 +102,7 @@ namespace RoadRunner
         // sWithin2 is expected to stay within overlapping section against target
         std::optional<RoadsOverlap> CalcOverlapWith(std::shared_ptr<Road> target, double sWithin2, double sBegin1, double sEnd1) const;
 
-        void EnableHighlight(bool enabled);
+        void EnableHighlight(bool enabled, bool bringToTop=true);
 #endif
 
         // Member variables

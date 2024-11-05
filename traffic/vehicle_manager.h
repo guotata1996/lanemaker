@@ -1,4 +1,5 @@
 #include "vehicle.h"
+#include "signal.h"
 #include <vector>
 #include <map>
 #include <QTimer>
@@ -17,6 +18,8 @@ public:
 
     void TogglePause();
 
+    static int FPS;
+
 private slots:
     void step();
 
@@ -25,7 +28,11 @@ private:
 
     std::map<std::string, std::shared_ptr<Vehicle>> allVehicles;
 
-    std::unordered_map <odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>> vehiclesOnLane;
+    std::map<std::string, std::shared_ptr<RoadRunner::Signal>> allSignals;
+
+    std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>> vehiclesOnLane;
+
+    std::unordered_map<odr::LaneKey, bool> signalStateOfLane; // true - green
 
     odr::RoutingGraph routingGraph;
 
@@ -35,5 +42,5 @@ private:
 
     IDGenerator* idGen;
 
-    const double FPS = 30;
+    unsigned long stepCount;
 };

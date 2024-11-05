@@ -32,9 +32,10 @@ namespace RoadRunner
         g_scene->removeItem(this);
     }
 
-    void SectionGraphics::EnableHighlight(bool enabled)
+    void SectionGraphics::EnableHighlight(bool enabled, bool bringToTop)
     {
-        setZValue(enabled ? 128 : sectionElevation);
+        double liftedElevation = bringToTop ? 128 : sectionElevation + 0.01;
+        setZValue(enabled ? liftedElevation : sectionElevation);
         for (auto laneSegment : allLaneGraphics)
         {
             if (laneSegment != nullptr)

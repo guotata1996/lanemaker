@@ -522,13 +522,13 @@ namespace RoadRunner
         return rtn;
     }
 
-    void Road::EnableHighlight(bool enabled)
+    void Road::EnableHighlight(bool enabled, bool bringToTop)
     {
         if (highlighted.has_value() && highlighted.value() == enabled) return;
 
         for (auto& s_and_graphics : s_to_section_graphics)
         {
-            s_and_graphics.second->EnableHighlight(enabled);
+            s_and_graphics.second->EnableHighlight(enabled, bringToTop);
         }
         highlighted.emplace(enabled);
     }

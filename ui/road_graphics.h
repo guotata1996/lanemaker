@@ -31,7 +31,7 @@ namespace RoadRunner
 
         ~SectionGraphics();
 
-        void EnableHighlight(bool enabled);
+        void EnableHighlight(bool enabled, bool bringToTop=true);
 
         /*Depends on ref line direction. Only this part needs updating upon reverse.*/
         void UpdateRefLineHint();

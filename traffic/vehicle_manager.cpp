@@ -24,6 +24,8 @@ size_t RandomSelect(const std::vector<double>& probs)
     return index;
 }
 
+int VehicleManager::FPS = 30;
+
 VehicleManager::VehicleManager(QObject* parent): QObject(parent),
     idGen(IDGenerator::ForVehicle())
 {
@@ -45,6 +47,15 @@ void VehicleManager::Begin()
         }
     }
     Spawn();
+    for (auto id_junction : RoadRunner::ChangeTracker::Instance()->Map().id_to_junction)
+    {
+        if (id_junction.second.type == odr::JunctionType::Common)
+        {
+            allSignals.emplace(id_junction.first, std::make_shared<RoadRunner::Signal>(id_junction.second));
+        }
+    }
+
+    stepCount = 0;
     timer->start();
 }
 
@@ -56,6 +67,12 @@ void VehicleManager::End()
         v.second->Clear();
     }
     allVehicles.clear();
+
+    for (auto s : allSignals)
+    {
+        s.second->Terminate();
+    }
+    allSignals.clear();
 }
 
 void VehicleManager::TogglePause()
@@ -169,6 +186,11 @@ void VehicleManager::Spawn()
 
 void VehicleManager::step()
 {
+    for (auto id_signal : allSignals)
+    {
+        id_signal.second->Update(stepCount, signalStateOfLane);
+    }
+
     vehiclesOnLane.clear();
     for (const auto& id_v : allVehicles)
     {
@@ -215,4 +237,6 @@ void VehicleManager::step()
     {
         allVehicles.erase(id);
     }
+
+    stepCount++;
 }
