@@ -33,7 +33,8 @@ public:
     bool PlanStep(double dt, const odr::OpenDriveMap& map,
         const std::unordered_map<odr::LaneKey, 
         std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane,
-        const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>& overlapZones);
+        const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>& overlapZones,
+        const std::unordered_map<odr::LaneKey, bool>& signalStates);
     
     void MakeStep(double dt, const odr::OpenDriveMap& map);
 
@@ -49,12 +50,13 @@ public:
         const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>& overlapZoneInfo,
         double& outDistance, double lookforward = 50);
 
-    std::shared_ptr<Vehicle> GetLeader(const odr::OpenDriveMap& map,
+    std::shared_ptr<const Vehicle> GetLeader(const odr::OpenDriveMap& map,
         const std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane,
         const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>& overlapZoneInfo,
+        const std::unordered_map<odr::LaneKey, bool>& signalStates,
         double& outDistance, double lookforward = 50) const;
 
-    double vFromGibbs(double dt, std::shared_ptr<Vehicle> leader, double distance) const;
+    double vFromGibbs(double dt, std::shared_ptr<const Vehicle> leader, double distance) const;
 
     std::string Log();
 

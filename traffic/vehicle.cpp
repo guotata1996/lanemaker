@@ -109,12 +109,13 @@ void Vehicle::EnableRouteVisual(bool enabled, const odr::OpenDriveMap& odrMap)
 bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
     const std::unordered_map<odr::LaneKey, 
     std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane,
-    const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>& overlapZones)
+    const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>& overlapZones,
+    const std::unordered_map<odr::LaneKey, bool>& signalStates)
 {
     double recordV = velocity, recordS = s;
 
     double leaderDistance;
-    auto leader = GetLeader(odrMap, vehiclesOnLane, overlapZones, leaderDistance);
+    auto leader = GetLeader(odrMap, vehiclesOnLane, overlapZones, signalStates, leaderDistance);
     if (leader != nullptr)
     {
         auto myTip = TipPos();
@@ -292,14 +293,15 @@ std::shared_ptr<Vehicle> Vehicle::GetLeaderInOverlapZone(
     return rtn;
 }
 
-std::shared_ptr<Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
+std::shared_ptr<const Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
     const std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>>& vehiclesOnLane,
     const std::map<odr::LaneKey, std::vector<std::pair<odr::LaneKey, double>>>& overlapZones,
+    const std::unordered_map<odr::LaneKey, bool>& signalStates,
     double& outDistance, double lookforward) const
 {
     // curr lane:
     // if lane changing, consider leader on both lanes
-    std::shared_ptr<Vehicle> rtn;
+    std::shared_ptr<const Vehicle> rtn;
     for (auto laneKey : OccupyingLanes())
     {
         if (vehiclesOnLane.find(laneKey) == vehiclesOnLane.end())
@@ -345,21 +347,35 @@ std::shared_ptr<Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
             return rtn;
         }
         double distanceSinceCurrKey;
-        if (vehiclesOnLane.find(navigation[i]) != vehiclesOnLane.end())
+
+        if (signalStates.find(navigation[i]) != signalStates.end() &&
+             (!signalStates.at(navigation[i]) ||
+               vehiclesOnLane.find(navigation[i]) != vehiclesOnLane.end() &&
+               vehiclesOnLane.at(navigation[i]).begin()->second->velocity < 2))
         {
-            auto& orderedOnLane = vehiclesOnLane.at(navigation[i]);
-            if (orderedOnLane.begin() != orderedOnLane.end())
-            {
-                distanceSinceCurrKey = orderedOnLane.begin()->second->s;
-                rtn = orderedOnLane.begin()->second;
-            }
+            // If red light, or traffic is jammed inside junction
+            // don't enter junction
+            distanceSinceCurrKey = 0;
+            rtn = shared_from_this();
         }
-        onOverlapZone = GetLeaderInOverlapZone(navigation[i], 0, map, vehiclesOnLane, overlapZones, onOverlapZoneDistance, lookforward);
-        if (onOverlapZone != nullptr &&
-            (rtn == nullptr || onOverlapZoneDistance < distanceSinceCurrKey))
+        else
         {
-            rtn = onOverlapZone;
-            distanceSinceCurrKey = onOverlapZoneDistance;
+            if (vehiclesOnLane.find(navigation[i]) != vehiclesOnLane.end())
+            {
+                auto& orderedOnLane = vehiclesOnLane.at(navigation[i]);
+                if (orderedOnLane.begin() != orderedOnLane.end())
+                {
+                    distanceSinceCurrKey = orderedOnLane.begin()->second->s;
+                    rtn = orderedOnLane.begin()->second;
+                }
+            }
+            onOverlapZone = GetLeaderInOverlapZone(navigation[i], 0, map, vehiclesOnLane, overlapZones, onOverlapZoneDistance, lookforward);
+            if (onOverlapZone != nullptr &&
+                (rtn == nullptr || onOverlapZoneDistance < distanceSinceCurrKey))
+            {
+                rtn = onOverlapZone;
+                distanceSinceCurrKey = onOverlapZoneDistance;
+            }
         }
 
         if (rtn != nullptr)
@@ -374,7 +390,7 @@ std::shared_ptr<Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
     return rtn;
 }
 
-double Vehicle::vFromGibbs(double dt, std::shared_ptr<Vehicle> leader, double distance) const
+double Vehicle::vFromGibbs(double dt, std::shared_ptr<const Vehicle> leader, double distance) const
 {
     // Gipps model
     const double tau = 1.5; // reaction time

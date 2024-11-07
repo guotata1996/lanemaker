@@ -27,6 +27,15 @@ namespace RoadRunner
     {
         if (step % (VehicleManager::FPS * SecondsPerPhase) == 0)
         {
+            if (step == 0)
+            {
+                // Fill in lookup table
+                for (const auto& key : phaseToLanes)
+                {
+                    for (const auto lane: key.second)
+                        allStates[lane] = false;
+                }
+            }
             HighlightRoadsInCurrentPhase(false);
             for (const auto& key : phaseToLanes.at(currPhase))
             {

@@ -206,7 +206,7 @@ void VehicleManager::step()
     {
         auto vehicle = id_v.second;
         bool isActive = vehicle->PlanStep(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->Map(),
-            vehiclesOnLane, overlapZones);
+            vehiclesOnLane, overlapZones, signalStateOfLane);
         if (!isActive)
         {
             inactives.emplace(id_v.first);
