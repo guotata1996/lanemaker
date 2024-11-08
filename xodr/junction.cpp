@@ -439,16 +439,51 @@ namespace RoadRunner
                 return aLanes < bLanes;
             });
         
+        std::map<std::string, std::set<std::pair<std::string, int>>> connectingToIncomingLanes;
+        for (const auto& id_conn : generated.id_to_connection)
+        {
+            const auto& conn = id_conn.second;
+            for (const auto& lane_links : conn.lane_links)
+            {
+                auto key = std::make_pair(conn.incoming_road, lane_links.from);
+                connectingToIncomingLanes[conn.connecting_road].emplace(key);
+            }
+        }
+
         std::vector<std::vector<std::shared_ptr<Road>>> nonOverlapGroups;
         while (!pendingAssign.empty())
         {
             auto groupInitiator = pendingAssign.back();
             pendingAssign.pop_back();
             std::vector<std::shared_ptr<Road>> group = { groupInitiator };
+            
+            // If two connecting roads originate from same lane, put them in the same group.
+            auto allIncomings = connectingToIncomingLanes.at(groupInitiator->ID());
+            while (true)
+            {
+                bool enrolledThisRound = false;
+                for (int i = pendingAssign.size() - 1; i >= 0; --i)
+                {
+                    auto candidate = pendingAssign[i];
+                    const auto& candidateIncoming = connectingToIncomingLanes.at(candidate->ID());
+                    std::vector<std::pair<std::string, int>> intersectionResult;
+                    std::set_intersection(candidateIncoming.begin(), candidateIncoming.end(),
+                        allIncomings.begin(), allIncomings.end(), std::back_inserter(intersectionResult));
+                    if (!intersectionResult.empty())
+                    {
+                        allIncomings.insert(candidateIncoming.begin(), candidateIncoming.end());
+                        group.push_back(candidate);
+                        pendingAssign.erase(pendingAssign.begin() + i);
+                        enrolledThisRound = true;
+                    }
+                }
+                if (!enrolledThisRound)
+                    break;
+            }
 
             for (int i = pendingAssign.size() - 1; i >= 0; --i)
             {
-                std::shared_ptr<Road> candidate = pendingAssign[i];
+                auto candidate = pendingAssign[i];
                 // Accept only if there's no conflict with any member in group
                 bool hasConflict = false;
                 for (auto existingMember: group)

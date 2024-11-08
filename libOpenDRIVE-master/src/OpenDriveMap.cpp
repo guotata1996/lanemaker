@@ -919,7 +919,7 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
 
                     const LaneKey from(from_road.id, from_lanesection.s0, from_lane.id);
                     const LaneKey to(to_road.id, to_lanesection.s0, to_lane.id);
-                    const double  lane_length = road.get_lanesection_length(from_lanesection);
+                    const double  lane_length = road.get_lanesection_length(find_successor ? from_lanesection : to_lanesection);
 
                     if (id_lane.first < 0)
                     {

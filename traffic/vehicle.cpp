@@ -42,6 +42,7 @@ void Vehicle::InitGraphics()
     g_scene->addItem(routeVisual);
 
     leaderVisual = new QGraphicsLineItem();
+    leaderVisual->setZValue(128.1);
     g_scene->addItem(leaderVisual);
     leaderVisual->hide();
 }
@@ -104,6 +105,7 @@ void Vehicle::EnableRouteVisual(bool enabled, const odr::OpenDriveMap& odrMap)
     }
 
     routeVisual->setVisible(enabled);
+    leaderVisual->setVisible(enabled);
 }
 
 bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
@@ -121,11 +123,11 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
         auto myTip = TipPos();
         auto leaderTail = leader->TailPos();
         leaderVisual->setLine(myTip[0], myTip[1], leaderTail[0], leaderTail[1]);
-        leaderVisual->show();
+        leaderVisual->setPen(QPen(Qt::black, 0.5));
     }
     else
     {
-        leaderVisual->hide();
+        leaderVisual->setPen(Qt::NoPen);
     }
     new_velocity = vFromGibbs(dt, leader, leaderDistance);
     new_s = s + dt * new_velocity;
@@ -463,7 +465,7 @@ void Vehicle::updateNavigation(const odr::OpenDriveMap& odrMap, const odr::Routi
 
     if (navigation.empty())
     {
-        spdlog::info("No route find form {} @{} to {} @{}", Source.to_string(), s, 
+        spdlog::info("No route find form {} @{} to {} @{}", Source.to_string(), sourceS(), 
             Dest.to_string(), destS());
     }
 
