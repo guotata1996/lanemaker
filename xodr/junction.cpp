@@ -531,18 +531,18 @@ namespace RoadRunner
         }
 
         // Write to xodr
-        std::map<std::string, int> connectingToSignalPhase;
+        std::map<std::string, std::set<int>> connectingToSignalPhase;
         for (int phase = 0; phase != expandedGroup.size(); ++phase)
         {
             for (auto member : expandedGroup[phase])
             {
-                connectingToSignalPhase.emplace(member->ID(), phase);
+                connectingToSignalPhase[member->ID()].emplace(phase);
             }
         }
 
         for (auto& id_conn : generated.id_to_connection)
         {
-            id_conn.second.signalPhase = connectingToSignalPhase.at(id_conn.second.connecting_road);
+            id_conn.second.signalPhases = connectingToSignalPhase.at(id_conn.second.connecting_road);
         }
     }
 

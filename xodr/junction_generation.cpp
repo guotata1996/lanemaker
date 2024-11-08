@@ -619,7 +619,8 @@ namespace RoadRunner
     bool connRoadsConflict(const odr::Road& roadA, const odr::Road& roadB)
     {
         // If two connecting roads go into the same road end point
-        if (roadA.successor.id == roadB.successor.id)
+        if (roadA.successor.id == roadB.successor.id &&
+            roadA.successor.contact_point == roadB.successor.contact_point)
         {
             std::set<int> roadASuccessors;
             for (auto laneA : roadA.s_to_lanesection.rbegin()->second.id_to_lane)

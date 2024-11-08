@@ -481,15 +481,16 @@ void Vehicle::MakeStep(double dt, const odr::OpenDriveMap& map)
     s = new_s;
 
     double laneChangeRate = 0;
-    if (s < laneChangeDueS - 0.1 && lcFrom.has_value())
+    if (s < laneChangeDueS && lcFrom.has_value())
     {
         double remainingS = laneChangeDueS - s;
-        laneChangeRate = tOffset / remainingS * 1.5;
-        tOffset -= laneChangeRate * dt * velocity;
+        laneChangeRate = tOffset / remainingS;
+        tOffset -= laneChangeRate * std::min(dt * velocity, remainingS);
     }
     else
     {
-        lcFrom.reset();
+        assert(std::abs(tOffset) < LCCompleteThreshold);
+        tOffset = 0;
     }
     if (std::abs(tOffset) < LCCompleteThreshold)
     {

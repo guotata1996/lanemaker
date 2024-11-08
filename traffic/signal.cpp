@@ -16,7 +16,10 @@ namespace RoadRunner
             for (auto ll : id_conn.second.lane_links)
             {
                 odr::LaneKey laneKey(id_conn.second.connecting_road, 0, ll.to);
-                phaseToLanes[id_conn.second.signalPhase].push_back(laneKey);
+                for (int phase : id_conn.second.signalPhases)
+                {
+                    phaseToLanes[phase].push_back(laneKey);
+                }
             }
         }
 
