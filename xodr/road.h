@@ -79,8 +79,7 @@ namespace RoadRunner
         void GenerateOrUpdateSectionGraphicsBetween(double s1, double s2);
 
         // Special markings for direct junction
-        void HideBorderMarkingForDJ(odr::RoadLink::ContactPoint, int side, double untilS);
-        void EnableBorderMarking(odr::RoadLink::ContactPoint, int side);
+        void ApplyBoundaryHideToGraphics();
 
         struct RoadsOverlap
         {
@@ -124,6 +123,8 @@ namespace RoadRunner
 
         std::optional<bool> highlighted;
 #endif
+
+        std::map<std::pair<odr::RoadLink::ContactPoint, int>, double> graphicsBoundaryHide;
     };
 
     enum RoadJoinError

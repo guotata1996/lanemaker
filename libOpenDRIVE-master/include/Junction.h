@@ -112,6 +112,20 @@ enum class JunctionType
     Direct
 };
 
+enum class BoundarySegmentType
+{
+    Lane,
+    Joint
+};
+
+struct BoundarySegment
+{
+    std::string road;
+    int         side; // begin side if BoundarySegmentType::Joint
+    double      sBegin, sEnd; // equal if BoundarySegmentType::Joint
+    BoundarySegmentType type = BoundarySegmentType::Lane;
+};
+
 class Junction : public XmlNode
 {
 public:
@@ -124,6 +138,7 @@ public:
     std::map<std::string, JunctionConnection> id_to_connection;
     std::map<std::string, JunctionController> id_to_controller;
     std::set<JunctionPriority>                priorities;
+    std::vector<BoundarySegment>              boundary; // cavities for direct junction
 };
 
 } // namespace odr

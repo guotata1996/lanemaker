@@ -193,6 +193,22 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
                                                                  controller_node.attribute("type").as_string(""),
                                                                  controller_node.attribute("sequence").as_uint(0))});
         }
+
+        if (junction_node.child("boundary"))
+        {
+            for (auto segment_node : junction_node.child("boundary").children("segment"))
+            {
+                odr::BoundarySegment segment;
+                segment.road = segment_node.attribute("roadID").as_string();
+                segment.side = strcmp(segment_node.attribute("side").as_string(), "left") == 0 ? 1 : -1;
+                segment.sBegin = segment_node.attribute("sStart").as_double();
+                segment.sEnd = segment_node.attribute("sEnd").as_double();
+                segment.type = strcmp(segment_node.attribute("type").as_string(), "lane") == 0 ? 
+                    BoundarySegmentType::Lane : BoundarySegmentType::Joint;
+                auto str = segment_node.attribute("side").as_string();
+                junction.boundary.push_back(segment);
+            }
+        }
     }
 
     for (pugi::xml_node road_node : odr_node.children("road"))
@@ -599,6 +615,19 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
         else
         {
             supported = false;
+        }
+
+        pugi::xml_node boundaryHide_node = road_node.child("roadRunnerBoundaryHide");
+        if (boundaryHide_node)
+        {
+            for (auto detail_node : boundaryHide_node.children())
+            {
+                odr::RoadLink::ContactPoint c = detail_node.attribute("contactPoint").as_string() == "start" ?
+                    odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End;
+                int side = strcmp(detail_node.attribute("side").as_string(), "left") == 0 ? 1 : -1;
+                double length = detail_node.attribute("s").as_double();
+                road.boundaryHide.emplace(std::make_pair(c, side), length);
+            }
         }
 
         /* parse road objects */
@@ -1411,6 +1440,20 @@ void OpenDriveMap::export_file(const std::string& fpath) const
                 section.append_attribute("offsetX2").set_value(customProfile.second.offsetx2);
             }
         }
+
+        if (!road.boundaryHide.empty())
+        {
+            pugi::xml_node customBoundaryHide = road_node.append_child("roadRunnerBoundaryHide");
+            for (auto boundary_length : road.boundaryHide)
+            {
+                auto           boundary = boundary_length.first;
+                pugi::xml_node hideDetail = customBoundaryHide.append_child("hide");
+                hideDetail.append_attribute("contactPoint").set_value(
+                    boundary.first == odr::RoadLink::ContactPoint_Start ? "start" : "end");
+                hideDetail.append_attribute("side").set_value(boundary.second == -1 ? "right" : "left");
+                hideDetail.append_attribute("s").set_value(boundary_length.second);
+            }
+        }
     }
 
     for (auto j : get_junctions()) 
@@ -1477,6 +1520,18 @@ void OpenDriveMap::export_file(const std::string& fpath) const
                     laneLink.append_attribute("overlapZone").set_value(ll.overlapZone);
                 }
             }
+        }
+
+        // Modified version based on xodr
+        auto boundary_node = junction.append_child("boundary");
+        for (auto segment : j.boundary)
+        {
+            auto segment_node = boundary_node.append_child("segment");
+            segment_node.append_attribute("roadID").set_value(segment.road.c_str());
+            segment_node.append_attribute("sStart").set_value(segment.sBegin);
+            segment_node.append_attribute("sEnd").set_value(segment.sEnd);
+            segment_node.append_attribute("side").set_value(segment.side > 0 ? "left" : "right");
+            segment_node.append_attribute("type").set_value(segment.type == odr::BoundarySegmentType::Lane ? "lane" : "joint");
         }
     }
     // junctions

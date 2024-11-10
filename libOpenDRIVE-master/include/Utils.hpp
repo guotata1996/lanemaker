@@ -61,6 +61,15 @@ std::vector<V> get_map_values(const std::map<K, V>& input_map)
     return retval;
 }
 
+template<template<class, class, class...> class C, typename K, typename V, typename... Args>
+V get_map_value_or(const C<K, V, Args...>& input_map, K const& key, const V& defval)
+{
+    typename C<K, V, Args...>::const_iterator it = input_map.find(key);
+    if (it == input_map.end())
+        return defval;
+    return it->second;
+}
+
 template<class K, class V>
 V get_nearest_lower_val(const std::map<K, V>& input_map, const K& k)
 {

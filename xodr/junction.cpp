@@ -334,6 +334,7 @@ namespace RoadRunner
             }
         }
 
+        generated.boundary = CalcBoundary();
         GenerateGraphics();
 #endif
         GenerateSignalPhase();
@@ -376,8 +377,33 @@ namespace RoadRunner
 #ifndef G_TEST
     void Junction::GenerateGraphics()
     {
-        auto boundary = CalcBoundary();
-        junctionGraphics = std::make_unique<JunctionGraphics>(boundary);
+        // Rasterize boundary
+        const double Resolution = 0.1;
+        odr::Line2D rasterizedBoundary;
+        for (auto segment : generated.boundary)
+        {
+            auto road = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(segment.road))->generated;
+            if (segment.type == odr::BoundarySegmentType::Lane)
+            {
+                int nPoints = std::ceil(std::abs(segment.sBegin - segment.sEnd) / Resolution);
+                if (nPoints > 0)
+                {
+                    for (int i = 0; i <= nPoints; ++i)
+                    {
+                        double frac = static_cast<double>(i) / nPoints;
+                        double s = (1 - frac) * segment.sBegin + frac * segment.sEnd;
+                        rasterizedBoundary.emplace_back(road.get_boundary_xy(segment.side, s));
+                    }
+                }
+            }
+            else
+            {
+                rasterizedBoundary.emplace_back(road.get_boundary_xy(segment.side, segment.sBegin));
+                rasterizedBoundary.emplace_back(road.get_boundary_xy(-segment.side, segment.sEnd));
+            }
+        }
+
+        junctionGraphics = std::make_unique<JunctionGraphics>(rasterizedBoundary);
         junctionGraphics->setZValue(Elevation() + 0.01);
     }
 #endif
@@ -683,8 +709,19 @@ namespace RoadRunner
 
             generated.id_to_connection.emplace(conn.id, conn);
         }
+
+        generated.boundary = CalcCavity();
 #ifndef G_TEST
         GenerateGraphics();
+
+        for (auto linkedInfo : formedFrom)
+        {
+            if (linkedInfo == interfaceInfo)
+            {
+                continue;
+            }
+            linkedInfo.road.lock()->ApplyBoundaryHideToGraphics();
+        }
 #endif
 
         IDGenerator::ForJunction()->NotifyChange(ID());
@@ -802,63 +839,41 @@ namespace RoadRunner
 #ifndef G_TEST
     void DirectJunction::GenerateGraphics()
     {
-        junctionGraphics = std::make_unique<JunctionGraphics>(CalcCavity());
-        junctionGraphics->setZValue(Elevation());
-
-        for (auto info : formedFrom)
+        // Rasterize boundary
+        std::vector<std::pair<odr::Line2D, odr::Line2D>> cavityBoundaries;
+        const double Resolution = 0.1;
+        assert(generated.boundary.size() % 2 == 0);
+        for (int i = 0, j = 1; i < generated.boundary.size(); i += 2, j += 2)
         {
-            const auto& linkedRoad = info.road.lock();
-            const auto& lookupTable = linkedRoad->generated.boundaryHide;
+            auto segmentOnA = generated.boundary[i];
+            auto segmentOnB = generated.boundary[j];
 
-            for (odr::RoadLink::ContactPoint contact :
-                {odr::RoadLink::ContactPoint_Start, odr::RoadLink::ContactPoint_End})
+            odr::Line2D aSideLine, bSideLine;
+            int npoints = std::ceil(std::max(std::abs(segmentOnA.sBegin - segmentOnA.sEnd),
+                std::abs(segmentOnB.sBegin - segmentOnB.sEnd)) / Resolution);
             {
-                for (int side : {-1, 1})
+                auto roadA = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(segmentOnA.road));
+                for (int i = 0; i <= npoints; ++i)
                 {
-                    auto keyLookup = std::make_pair(contact, side);
-                    double overlapLength = 0;
-                    if (lookupTable.find(keyLookup) != lookupTable.end())
-                    {
-                        overlapLength = contact == odr::RoadLink::ContactPoint_Start ? lookupTable.at(keyLookup) :
-                            std::abs(linkedRoad->Length() - lookupTable.at(keyLookup));
-                    }
-                    if (lookupTable.find(keyLookup) != lookupTable.end() && std::abs(overlapLength) > epsilon)
-                    {
-                        // Write hide boundary length to overlap zone
-                        for (auto& id_conn : generated.id_to_connection)
-                        {
-                            if (id_conn.second.connecting_road == linkedRoad->ID()
-                                    && id_conn.second.contact_point == contact)
-                            {
-                                std::set<int> lanesInvolved;
-                                
-                                for (auto it = id_conn.second.lane_links.begin(); it != id_conn.second.lane_links.end(); ++it)
-                                {
-                                    lanesInvolved.emplace(it->to);
-                                }
-                                int overlapLaneIt = side < 0 ? *lanesInvolved.begin() : *lanesInvolved.rbegin();
-
-                                // update lane_link xml
-                                decltype(id_conn.second.lane_links) updatedLaneLink;
-                                for (auto ll : id_conn.second.lane_links)
-                                {
-                                    if (ll.to == overlapLaneIt)
-                                    {
-                                        updatedLaneLink.emplace(odr::JunctionLaneLink(ll.from, ll.to, overlapLength));
-                                    }
-                                    else
-                                    {
-                                        updatedLaneLink.emplace(odr::JunctionLaneLink(ll.from, ll.to, ll.overlapZone));
-                                    }
-                                }
-                                id_conn.second.lane_links = updatedLaneLink;
-                                break;
-                            }
-                        }
-                    }
+                    double frac = static_cast<double>(i) / npoints;
+                    double s = frac * segmentOnA.sEnd + (1 - frac) * segmentOnA.sBegin;
+                    aSideLine.push_back(roadA->generated.get_boundary_xy(segmentOnA.side, s));
                 }
             }
+
+            {
+                auto roadB = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(segmentOnB.road));
+                for (int i = 0; i <= npoints; ++i)
+                {
+                    double frac = static_cast<double>(i) / npoints;
+                    double s = frac * segmentOnB.sEnd + (1 - frac) * segmentOnB.sBegin;
+                    bSideLine.push_back(roadB->generated.get_boundary_xy(segmentOnB.side, s));
+                }
+            }
+            cavityBoundaries.emplace_back(std::make_pair(aSideLine, bSideLine));
         }
+        junctionGraphics = std::make_unique<JunctionGraphics>(cavityBoundaries);
+        junctionGraphics->setZValue(Elevation());
     }
 #endif
 

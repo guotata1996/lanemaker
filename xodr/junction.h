@@ -238,7 +238,7 @@ namespace RoadRunner
         std::vector<std::shared_ptr<Road>> connectingRoads;
 
     private:
-        odr::Line2D CalcBoundary() const;
+        std::vector<odr::BoundarySegment> CalcBoundary() const;
     };
 
     class DirectJunction : public AbstractJunction
@@ -263,8 +263,9 @@ namespace RoadRunner
     private:
         std::optional<ConnectionInfo> InterfaceProvider() const;
 
-        // Also hides/shows boundary markings on interface user
-        std::vector<std::pair<odr::Line2D, odr::Line2D>> CalcCavity();
+        // Also writes boundary hide to linked roads
+        // No graphics change at this step
+        std::vector<odr::BoundarySegment> CalcCavity();
 
         odr::Vec2D interfaceDir; // Vector pointing into the interface provider
 

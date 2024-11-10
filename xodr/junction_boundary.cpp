@@ -1,9 +1,9 @@
 #include "junction.h"
+#include "polyline.h"
+#include "constants.h"
 
 #include <CGAL/intersections.h>
 #include <CGAL/Cartesian.h>
-
-#include "polyline.h"
 
 #include <optional>
 
@@ -51,9 +51,15 @@ namespace RoadRunner
         }
     };
 
-    odr::Line2D Junction::CalcBoundary() const
+    typedef std::tuple<double, double, double, double> SerializedSegment_2;
+    SerializedSegment_2 Serialize(Segment_2<Kernel> s)
     {
-        odr::Line2D result;
+        return std::make_tuple(s.source().x(), s.source().y(), s.target().x(), s.source().y());
+    }
+
+    std::vector<odr::BoundarySegment> Junction::CalcBoundary() const
+    {
+        std::vector<odr::BoundarySegment> result;
         if (formedFrom.size() < 2)
         {
             return result;
@@ -120,10 +126,12 @@ namespace RoadRunner
             if (info1.contact == odr::RoadLink::ContactPoint_Start)
             {
                 p1 = road1->generated.get_boundary_xy(1, 0);
+                result.emplace_back(odr::BoundarySegment{ road1->ID(), -1, 0, 0, odr::BoundarySegmentType::Joint });
             }
             else
             {
                 p1 = road1->generated.get_boundary_xy(-1, road1->Length());
+                result.emplace_back(odr::BoundarySegment{ road1->ID(), 1, road1->Length(), road1->Length(), odr::BoundarySegmentType::Joint });
             }
 
             const auto& info2 = sortedConnInfo[(i + 1) % sortedConnInfo.size()].info;
@@ -139,8 +147,6 @@ namespace RoadRunner
                 p2 = road2->generated.get_boundary_xy(1, road2->Length());
             }
 
-            result.push_back(p1);
-
             spdlog::trace("{},{} on road {} | {},{} on road {}", p1[0], p1[1], info1.road.lock()->ID(),
                 p2[0], p2[1], info2.road.lock()->ID());
 
@@ -152,6 +158,7 @@ namespace RoadRunner
 
             std::set<std::string> fineConnectingRoadIDs;
             std::vector<Segment_2<Kernel>> fineConnectingRoadBounds;
+            std::map<SerializedSegment_2, std::tuple<std::string, int, double, double>> fineConnectingBoundsToOrigin; // trace back to origin
 
             // Rough pass
             for (int j = 0; j != nProbs; ++j)
@@ -188,21 +195,27 @@ namespace RoadRunner
                     if (fineConnectingRoadIDs.find(connectingRoadID) == fineConnectingRoadIDs.end()) 
                     {
                         fineConnectingRoadIDs.emplace(connectingRoadID);
-                        auto fineBorders = furthestRoadAndSide->second.get_road_boundary(furthestRoadAndSide->first, 0.1);
-                        if (!fineBorders.empty())
+
+                        const auto connectingRoad = furthestRoadAndSide->second;
+                        int nPoints = std::ceil(connectingRoad.length / 0.1);
+                        for (int i = 0; i < nPoints; ++i)
                         {
-                            for (int i = 0; i < fineBorders.size() - 1; ++i)
-                            {
-                                CGAL::Point_2<Kernel> p1(fineBorders[i][0], fineBorders[i][1]);
-                                CGAL::Point_2<Kernel> p2(fineBorders[i + 1][0], fineBorders[i + 1][1]);
-                                fineConnectingRoadBounds.push_back(Segment_2<Kernel>(p1, p2));
-                            }
+                            double s1 = static_cast<double>(i) / nPoints * connectingRoad.length;
+                            double s2 = static_cast<double>(i + 1) / nPoints * connectingRoad.length;
+                            auto p1 = connectingRoad.get_boundary_xy(furthestRoadAndSide->first, s1);
+                            auto p2 = connectingRoad.get_boundary_xy(furthestRoadAndSide->first, s2);
+                            CGAL::Point_2<Kernel> cp1(p1[0], p1[1]), cp2(p2[0], p2[1]);
+                            auto segment_2 = Segment_2<Kernel>(cp1, cp2);
+                            fineConnectingRoadBounds.push_back(segment_2);
+                            fineConnectingBoundsToOrigin.emplace(Serialize(segment_2), std::make_tuple(
+                                furthestRoadAndSide->second.id, furthestRoadAndSide->first, s1, s2));
                         }
                     }
                 }
             }
 
             // Fine pass
+            odr::BoundarySegment currOutmostRoad;
             for (int j = 0; j != nProbs; ++j)
             {
                 auto ratio = static_cast<double>(j + 1) / (nProbs + 1);
@@ -210,8 +223,11 @@ namespace RoadRunner
                 Point_2 <Kernel> probP(probPos[0], probPos[1]);
                 Line_2< Kernel > probLine(probP, tan);
 
-                odr::Vec2D outmostPoint;
+                //odr::Vec2D outmostPoint;
                 double farthestDist = -DBL_MAX;
+                std::string probeOutmostRoad;
+                double sOnOutmostRoad;
+                int sideOnOutmostRoad;
                 for (const auto& roadBound : fineConnectingRoadBounds)
                 {
                     Object result = intersection(roadBound, probLine);
@@ -222,22 +238,58 @@ namespace RoadRunner
                         auto signedDistance = odr::dot(prob2I, outwardsDir);
                         if (signedDistance > farthestDist)
                         {
-                            outmostPoint = iPoint;
+                            //outmostPoint = iPoint;
                             farthestDist = signedDistance;
+                            auto detail = fineConnectingBoundsToOrigin.at(Serialize(roadBound));
+                            probeOutmostRoad = std::get<0>(detail);
+                            auto distFromSource = std::sqrt(CGAL::squared_distance(*pm, roadBound.source()));
+                            auto distFromTarget = std::sqrt(CGAL::squared_distance(*pm, roadBound.target()));
+                            sideOnOutmostRoad = std::get<1>(detail);
+                            double sOfSource = std::get<2>(detail);
+                            double sOfTarget = std::get<3>(detail);
+                            sOnOutmostRoad = (sOfSource * distFromTarget + sOfTarget * distFromSource) /
+                                (distFromSource + distFromTarget);
                         }
                     }
                 }
-                result.push_back(outmostPoint);
+
+                if (!probeOutmostRoad.empty())
+                {
+                    if (probeOutmostRoad != currOutmostRoad.road)
+                    {
+                        // outmost shifts, record history
+                        if (!currOutmostRoad.road.empty())
+                        {
+                            result.push_back(currOutmostRoad);
+                        }
+                        currOutmostRoad.road = probeOutmostRoad;
+                        currOutmostRoad.side = sideOnOutmostRoad;
+                        currOutmostRoad.sBegin = sOnOutmostRoad;
+                        currOutmostRoad.sEnd = sOnOutmostRoad;
+                    }
+                    else
+                    {
+                        // outmost continues
+                        currOutmostRoad.sEnd = sOnOutmostRoad;
+                    }
+                }
+                else
+                {
+                    spdlog::warn("No intersection found in fine path between {} and {}", road1->ID(), road2->ID());
+                }
             }
-        
-            result.push_back(p2);
+
+            if (!currOutmostRoad.road.empty())
+            {
+                result.push_back(currOutmostRoad);
+            }
+            // TODO: add joint
         }
         
         return result;
     }
 
-
-    std::vector<std::pair<odr::Line2D, odr::Line2D>> DirectJunction::CalcCavity()
+    std::vector<odr::BoundarySegment> DirectJunction::CalcCavity()
     {
         auto interfaceProvider = InterfaceProvider();
         auto interfaceProvideRoad = interfaceProvider->road.lock();
@@ -343,10 +395,10 @@ namespace RoadRunner
                 road.second == odr::RoadLink::ContactPoint_Start ? "start" : "end");
         }
 
-        std::vector<std::pair<odr::Line2D, odr::Line2D>> cavityPolygons;
+        std::vector<odr::BoundarySegment> rtn;
         if (strictlySortedLinkedRoad.empty())
         {
-            return cavityPolygons;
+            return rtn;
         }
 
         int interfaceSign = interfaceProvider->contact == odr::RoadLink::ContactPoint_End ? 1 : -1;
@@ -390,13 +442,15 @@ namespace RoadRunner
 
             if (cavityFound)
             {
-                roadA->HideBorderMarkingForDJ(infoA.contact, aSide, iSA);
-                roadB->HideBorderMarkingForDJ(infoB.contact, bSide, iSB);
+                roadA->generated.HideBorderMarkingForDJ(infoA.contact, aSide, iSA);
+                roadB->generated.HideBorderMarkingForDJ(infoB.contact, bSide, iSB);
+
+                const double sBeginA = iSA;
+                const double sBeginB = iSB;
 
                 int aStepDir = infoA.contact == odr::RoadLink::ContactPoint_Start ? 1 : -1;
                 int bStepDir = infoB.contact == odr::RoadLink::ContactPoint_Start ? 1 : -1;
 
-                odr::Line2D aSideLine, bSideLine;
                 while (0 <= iSA && iSA <= roadA->Length()
                     && 0 <= iSB && iSB <= roadB->Length())
                 {
@@ -424,30 +478,32 @@ namespace RoadRunner
                     }
                     else
                     {
-                        aSideLine.push_back(vA);
-                        bSideLine.push_back(vB);
-
                         iSA += aStepDir * vertexStep;
                         iSB += bStepDir * vertexStep;
                     }
                 }
+                iSA = std::max(0.0, std::min(roadA->Length(), iSA));
+                iSB = std::max(0.0, std::min(roadB->Length(), iSB));
 
-                cavityPolygons.push_back(std::make_pair(aSideLine, bSideLine));
+                odr::BoundarySegment segmentOnA{ roadA->ID(), aSide, sBeginA, iSA };
+                odr::BoundarySegment segmentOnB{ roadB->ID(), bSide, sBeginB, iSB };
+                rtn.push_back(segmentOnA);
+                rtn.push_back(segmentOnB);
             }
             else
             {
-                roadA->EnableBorderMarking(infoA.contact, aSide);
-                roadB->EnableBorderMarking(infoB.contact, bSide);
+                roadA->generated.EnableBorderMarking(infoA.contact, aSide);
+                roadB->generated.EnableBorderMarking(infoB.contact, bSide);
             }
         }
         
-        // Enable border marking on global boundaries
+        // Enable border marking on outmost linked roads
         {
             auto outmostA = strictlySortedLinkedRoad.front();
             auto infoA = linkedIDToInfo.at(outmostA);
             auto roadA = infoA.road.lock();
             int aSide = interfaceProvider->contact == infoA.contact ? 1 : -1;
-            roadA->EnableBorderMarking(infoA.contact, aSide);
+            roadA->generated.EnableBorderMarking(infoA.contact, aSide);
         }
 
         {
@@ -455,9 +511,64 @@ namespace RoadRunner
             auto infoB = linkedIDToInfo.at(outmostB);
             auto roadB = infoB.road.lock();
             int bSide = interfaceProvider->contact == infoB.contact ? -1 : 1;
-            roadB->EnableBorderMarking(infoB.contact, bSide);
+            roadB->generated.EnableBorderMarking(infoB.contact, bSide);
         }
-        return cavityPolygons;
+
+        // Calc overlap zone
+        for (auto info : formedFrom)
+        {
+            const auto& linkedRoad = info.road.lock();
+            const auto& lookupTable = linkedRoad->generated.boundaryHide;
+
+            for (odr::RoadLink::ContactPoint contact :
+            {odr::RoadLink::ContactPoint_Start, odr::RoadLink::ContactPoint_End})
+            {
+                for (int side : {-1, 1})
+                {
+                    auto keyLookup = std::make_pair(contact, side);
+                    double overlapLength = 0;
+                    if (lookupTable.find(keyLookup) != lookupTable.end())
+                    {
+                        overlapLength = contact == odr::RoadLink::ContactPoint_Start ? lookupTable.at(keyLookup) :
+                            std::abs(linkedRoad->Length() - lookupTable.at(keyLookup));
+                    }
+                    if (lookupTable.find(keyLookup) != lookupTable.end() && std::abs(overlapLength) > epsilon)
+                    {
+                        for (auto& id_conn : generated.id_to_connection)
+                        {
+                            if (id_conn.second.connecting_road == linkedRoad->ID()
+                                && id_conn.second.contact_point == contact)
+                            {
+                                std::set<int> lanesInvolved;
+
+                                for (auto it = id_conn.second.lane_links.begin(); it != id_conn.second.lane_links.end(); ++it)
+                                {
+                                    lanesInvolved.emplace(it->to);
+                                }
+                                int overlapLaneIt = side < 0 ? *lanesInvolved.begin() : *lanesInvolved.rbegin();
+
+                                // update lane_link xml
+                                decltype(id_conn.second.lane_links) updatedLaneLink;
+                                for (auto ll : id_conn.second.lane_links)
+                                {
+                                    if (ll.to == overlapLaneIt)
+                                    {
+                                        updatedLaneLink.emplace(odr::JunctionLaneLink(ll.from, ll.to, overlapLength));
+                                    }
+                                    else
+                                    {
+                                        updatedLaneLink.emplace(odr::JunctionLaneLink(ll.from, ll.to, ll.overlapZone));
+                                    }
+                                }
+                                id_conn.second.lane_links = updatedLaneLink;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return rtn;
     }
 
     bool DirectJunction::bordersIntersect(odr::RoadLink::ContactPoint interfaceProviderContact,

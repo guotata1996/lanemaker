@@ -189,44 +189,33 @@ namespace RoadRunner
     }
 
 #ifndef G_TEST
-    void Road::HideBorderMarkingForDJ(odr::RoadLink::ContactPoint c, int side, double untilS)
+    void Road::ApplyBoundaryHideToGraphics()
     {
-        if (c == odr::RoadLink::ContactPoint_Start && untilS == 0
-            || c == odr::RoadLink::ContactPoint_End && untilS == Length())
-        {
+        if (generated.boundaryHide == graphicsBoundaryHide) 
             return;
-        }
 
-        if (generated.HideBorderMarkingForDJ(c, side, untilS))
+        for (auto contact : { odr::RoadLink::ContactPoint_Start, odr::RoadLink::ContactPoint_End })
         {
-            if (c == odr::RoadLink::ContactPoint_Start)
+            for (auto side : { -1, 1 })
             {
-                GenerateOrUpdateSectionGraphicsBetween(0, untilS);
+                auto boundary = std::make_pair(contact, side);
+                double currBoundaryHide = odr::get_map_value_or(graphicsBoundaryHide, boundary, 0.0);
+                double newBoundaryHide = odr::get_map_value_or(generated.boundaryHide, boundary, 0.0);
+                if (currBoundaryHide != newBoundaryHide)
+                {
+                    if (contact == odr::RoadLink::ContactPoint_Start)
+                    {
+                        GenerateOrUpdateSectionGraphicsBetween(0, std::max(currBoundaryHide, newBoundaryHide));
+                    }
+                    else
+                    {
+                        GenerateOrUpdateSectionGraphicsBetween(std::min(currBoundaryHide, newBoundaryHide), Length());
+                    }
+                }
             }
-            else
-            {
-                GenerateOrUpdateSectionGraphicsBetween(untilS, Length());
-            }
         }
-    }
 
-    void Road::EnableBorderMarking(odr::RoadLink::ContactPoint c, int side)
-    {
-        double prevUntil = generated.EnableBorderMarking(c, side);
-
-        if (c == odr::RoadLink::ContactPoint_Start && prevUntil == 0
-            || c == odr::RoadLink::ContactPoint_End && prevUntil == Length())
-        {
-            return;
-        }
-        if (c == odr::RoadLink::ContactPoint_Start)
-        {
-            GenerateOrUpdateSectionGraphicsBetween(0, prevUntil);
-        }
-        else
-        {
-            GenerateOrUpdateSectionGraphicsBetween(prevUntil, Length());
-        }
+        graphicsBoundaryHide = generated.boundaryHide;
     }
 
     void Road::GenerateAllSectionGraphics()

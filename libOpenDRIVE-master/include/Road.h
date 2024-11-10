@@ -155,7 +155,6 @@ public:
     std::map<std::string, RoadSignal> id_to_signal;
     RoadRunner::LaneProfile           rr_profile;
 
-    // Properties will be filled out as while junctions are generated
     std::map<std::pair<odr::RoadLink::ContactPoint, int>, double> boundaryHide;
 };
 
