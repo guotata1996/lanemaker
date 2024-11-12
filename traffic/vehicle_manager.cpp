@@ -21,6 +21,7 @@ size_t RandomSelect(const std::vector<double>& probs)
     auto it = std::upper_bound(sumWeights.begin(), sumWeights.end(), target);
     size_t index = std::distance(sumWeights.begin(), it);
     if (index != 0) index--;
+    if (index >= probs.size()) index = probs.size() - 1;
     return index;
 }
 
@@ -104,7 +105,7 @@ void VehicleManager::Spawn()
             auto vehicle = std::make_shared<Vehicle>(startKey, startS, endKey, endS, 
                 allVehicles.size() % 2 == 1 ? 12 : 20);
             if (vehicle->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->Map(),
-                routingGraph))
+                routingGraph, numVehiclesOnLane))
             {
                 vehicle->InitGraphics();
                 allVehicles.emplace(vehicle->ID, vehicle);
@@ -175,7 +176,7 @@ void VehicleManager::Spawn()
             auto vehicle = std::make_shared<Vehicle>(startKey, startS, endKey, endS, maxV);
 
             if (vehicle->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->Map(),
-                routingGraph))
+                routingGraph, numVehiclesOnLane))
             {
                 vehicle->InitGraphics();
                 allVehicles.emplace(vehicle->ID, vehicle);
@@ -192,12 +193,14 @@ void VehicleManager::step()
     }
 
     vehiclesOnLane.clear();
+    numVehiclesOnLane.clear();
     for (const auto& id_v : allVehicles)
     {
         for (const auto& laneKey : id_v.second->OccupyingLanes())
         {
             // TODO: conflicting s
-            vehiclesOnLane[laneKey].emplace(id_v.second->CurrS(), id_v.second);
+            vehiclesOnLane[laneKey].emplace(id_v.second->S(), id_v.second);
+            numVehiclesOnLane[laneKey]++;
         }
     }
 
@@ -225,7 +228,7 @@ void VehicleManager::step()
         {
             // try reassign goal
             if (!allVehicles.at(id)->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->Map(),
-                routingGraph))
+                routingGraph, numVehiclesOnLane))
             {
                 allVehicles.at(id)->Clear();
                 to_erase.push_back(id);

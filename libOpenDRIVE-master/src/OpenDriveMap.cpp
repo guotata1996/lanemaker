@@ -932,6 +932,10 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
                 for (const auto& id_lane : lanesec.id_to_lane)
                 {
                     const Lane& lane = id_lane.second;
+                    if (!requireNextRoad && !requirePrevRoad && find_successor != (lane.id < 0))
+                    {
+                        continue;
+                    }
                     const int   next_lane_id = (find_successor == lane.id < 0) ? lane.successor : lane.predecessor;
                     if (next_lane_id == 0)
                         continue;
@@ -951,14 +955,16 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
 
                     const LaneKey from(from_road.id, from_lanesection.s0, from_lane.id);
                     const LaneKey to(to_road.id, to_lanesection.s0, to_lane.id);
-                    const double  lane_length = road.get_lanesection_length(find_successor ? from_lanesection : to_lanesection);
-
                     if (id_lane.first < 0)
                     {
+                        const double lane_length = to_road.junction == "-1" ?
+                            to_road.get_lanesection_length(to_lanesection) : 500; // Punish waiting caused by traffic signal
                         routing_graph.add_edge(RoutingGraphEdge(from, to, lane_length));
                     }
                     else
                     {
+                        const double lane_length = from_road.junction == "-1" ?
+                            from_road.get_lanesection_length(from_lanesection) : 500; // Punish waiting caused by traffic signal
                         routing_graph.add_edge(RoutingGraphEdge(to, from, lane_length));
                     }
                 }
@@ -1004,13 +1010,14 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
 
                 const LaneKey from(incoming_road.id, incoming_lanesec.s0, from_lane.id);
                 const LaneKey to(linked_road.id, linked_lanesec.s0, to_lane.id);
-                const double  lane_length = incoming_road.get_lanesection_length(incoming_lanesec);
                 if (is_succ_junc && from_lane.id < 0 || !is_succ_junc && from_lane.id > 0) 
                 {
+                    const double lane_length = linked_road.get_lanesection_length(linked_lanesec);
                     routing_graph.add_edge(RoutingGraphEdge(from, to, lane_length));
                 }
                 else
                 {
+                    const double lane_length = incoming_road.get_lanesection_length(incoming_lanesec);
                     routing_graph.add_edge(RoutingGraphEdge(to, from, lane_length));
                 }
             }

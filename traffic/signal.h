@@ -28,6 +28,6 @@ namespace RoadRunner
 
         int highlightedPhase;
 
-        const int SecondsPerPhase = 10;
+        const int SecondsPerPhase = 15;
     };
 };

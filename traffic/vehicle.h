@@ -20,7 +20,8 @@ public:
 
     void InitGraphics();
 
-    bool GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph);
+    bool GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph,
+        const std::unordered_map<odr::LaneKey, int>& trafficInfo);
 
     /*Clean graphics*/
     void Clear();
@@ -38,7 +39,8 @@ public:
     
     void MakeStep(double dt, const odr::OpenDriveMap& map);
 
-    double CurrS() const;
+    double S() const;
+    double V() const;
     std::vector<odr::LaneKey> OccupyingLanes() const; // 2 (parallel lanes) when lane switching
     odr::Vec3D TipPos() const;
     odr::Vec3D TailPos() const;
@@ -63,7 +65,8 @@ public:
     const std::string ID;
 
 private:
-    void updateNavigation(const odr::OpenDriveMap& map, const odr::RoutingGraph& routingGraph);
+    void updateNavigation(const odr::OpenDriveMap& map, const odr::RoutingGraph& routingGraph,
+        const std::unordered_map<odr::LaneKey, int>& nVehiclesOnlane);
 
     double new_velocity, new_s;
 

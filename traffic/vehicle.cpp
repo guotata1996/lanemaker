@@ -47,11 +47,12 @@ void Vehicle::InitGraphics()
     leaderVisual->hide();
 }
 
-bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph)
+bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph,
+    const std::unordered_map<odr::LaneKey, int>& nVehiclesOnLane)
 {
     assert(std::abs(tOffset) < LCCompleteThreshold);
     goalIndex = !goalIndex;
-    updateNavigation(odrMap, routingGraph);
+    updateNavigation(odrMap, routingGraph, nVehiclesOnLane);
     s = sourceS();
     laneChangeDueS = 0;
 
@@ -218,7 +219,7 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
 std::vector<odr::LaneKey> Vehicle::OccupyingLanes() const
 {
     std::vector<odr::LaneKey> rtn = { navigation.front() };
-    if (lcFrom.has_value())
+    if (lcFrom.has_value() && std::abs(tOffset) > 0.6)
     {
         rtn.push_back(lcFrom.value());
     }
@@ -237,9 +238,14 @@ odr::Vec3D Vehicle::TailPos() const
     return odr::add(offset, position);
 }
 
-double Vehicle::CurrS() const
+double Vehicle::S() const
 {
     return s;
+}
+
+double Vehicle::V() const
+{
+    return velocity;
 }
 
 std::shared_ptr<Vehicle> Vehicle::GetLeaderInOverlapZone(
@@ -335,6 +341,7 @@ std::shared_ptr<const Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
 
     if (rtn != nullptr)
     {
+        assert(rtn != shared_from_this());
         assert(outDistance > 0);
         return outDistance < lookforward ? rtn : nullptr;
     }
@@ -424,7 +431,8 @@ double Vehicle::vFromGibbs(double dt, std::shared_ptr<const Vehicle> leader, dou
     return vOut;
 }
 
-void Vehicle::updateNavigation(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph)
+void Vehicle::updateNavigation(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph,
+    const std::unordered_map<odr::LaneKey, int>& nVehiclesOnlane)
 {
     const auto Source = sourceLane();
     const auto Dest = destLane();
@@ -449,7 +457,7 @@ void Vehicle::updateNavigation(const odr::OpenDriveMap& odrMap, const odr::Routi
             
             for (auto second : routingGraph.get_lane_successors(Source))
             {
-                navigation = routingGraph.shortest_path(second, Dest);
+                navigation = routingGraph.shortest_path(second, Dest, nVehiclesOnlane);
                 if (!navigation.empty())
                 {
                     navigation.insert(navigation.begin(), Source);
@@ -460,7 +468,7 @@ void Vehicle::updateNavigation(const odr::OpenDriveMap& odrMap, const odr::Routi
     }
     else
     {
-        navigation = routingGraph.shortest_path(Source, Dest);
+        navigation = routingGraph.shortest_path(Source, Dest, nVehiclesOnlane);
     }
 
     if (navigation.empty())

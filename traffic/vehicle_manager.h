@@ -32,6 +32,8 @@ private:
 
     std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>> vehiclesOnLane;
 
+    std::unordered_map<odr::LaneKey, int> numVehiclesOnLane;
+
     std::unordered_map<odr::LaneKey, bool> signalStateOfLane; // true - green
 
     odr::RoutingGraph routingGraph;

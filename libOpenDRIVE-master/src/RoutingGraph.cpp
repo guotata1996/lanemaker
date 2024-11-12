@@ -51,7 +51,9 @@ std::vector<LaneKey> RoutingGraph::get_lane_predecessors(const LaneKey& lane_key
     return predecessor_lane_keys;
 }
 
-std::vector<LaneKey> RoutingGraph::shortest_path(const LaneKey& from, const LaneKey& to) const
+std::vector<LaneKey>
+RoutingGraph::shortest_path(const LaneKey& from, const LaneKey& to, 
+    const std::unordered_map<LaneKey, int>& numVehiclesOnLane) const
 {
     std::vector<LaneKey> path;
     if (this->lane_key_to_successors.count(from) + this->lane_key_to_neighbors.count(from) == 0)
@@ -125,7 +127,16 @@ std::vector<LaneKey> RoutingGraph::shortest_path(const LaneKey& from, const Lane
         
         for (const auto& successor : combinedSuccessor)
         {
-            const double alt = weights.at(smallest) + successor.weight;
+            double laneLength = successor.weight;
+            double estimatedSpd = 20;
+            if (numVehiclesOnLane.find(LaneKey(successor)) != numVehiclesOnLane.end())
+            {
+                double gap = laneLength / numVehiclesOnLane.at(LaneKey(successor));
+                estimatedSpd = std::max(std::min(gap / 2.5, 20.0), 2.0);
+            }
+
+            double estimatedTime = laneLength / estimatedSpd;
+            const double alt = weights.at(smallest) + estimatedTime;
             if (alt < weights.at(successor))
             {
                 weights[successor] = alt;
