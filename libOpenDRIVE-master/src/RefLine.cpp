@@ -12,8 +12,6 @@
 #include <vector>
 #include <cassert>
 
-#include <iostream>
-
 namespace odr
 {
 double RefLine::MinGeoLength = 1e-3f;

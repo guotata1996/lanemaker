@@ -608,7 +608,7 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
                     auto laneCount = sectionNode.attribute("laneCount").as_int();
                     auto offsetX2 = sectionNode.attribute("offsetX2").as_int();
                     RoadRunner::LanePlan profile{offsetX2, laneCount};
-                    road.rr_profile.rightPlan.emplace(s, profile);
+                    road.rr_profile.rightPlans.emplace(s, profile);
                 }
             }
         }
@@ -1030,6 +1030,11 @@ RoutingGraph OpenDriveMap::get_routing_graph() const
         const Road& road = id_road.second;
         for (auto s_lanesec_iter = road.s_to_lanesection.begin(); s_lanesec_iter != road.s_to_lanesection.end(); s_lanesec_iter++)
         {
+            if (road.get_lanesection_length(s_lanesec_iter->first) < 3.0) 
+            {
+                // No lane change on too-short lane section
+                continue;
+            }
             for (int side : { -1,1 })
             {
                 auto parallels = s_lanesec_iter->second.get_sorted_driving_lanes(side);
@@ -1493,10 +1498,10 @@ void OpenDriveMap::export_file(const std::string& fpath) const
                 section.append_attribute("offsetX2").set_value(customProfile.second.offsetx2);
             }
         }
-        if (!road.rr_profile.rightPlan.empty()) 
+        if (!road.rr_profile.rightPlans.empty()) 
         {
             pugi::xml_node customRight = customProfile.append_child("right");
-            for (auto customProfile : road.rr_profile.rightPlan) 
+            for (auto customProfile : road.rr_profile.rightPlans) 
             {
                 pugi::xml_node section = customRight.append_child("section");
                 section.append_attribute("type_s").set_value(customProfile.first);

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <list>
 #include <map>
-#include <cassert>
 #include <optional>
 #include "spdlog/spdlog.h"
 
@@ -108,6 +106,8 @@ namespace RoadRunner
         odr::Road generated;
 
         std::shared_ptr<AbstractJunction> successorJunction, predecessorJunction;
+
+        static bool ClearingMap;
 
     private:
         // Prevent formation of too-short segment

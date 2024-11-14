@@ -165,7 +165,7 @@ void MainWindow::reset()
 {
     auto prevLevel = spdlog::get_level();
     /*Road destruction order be random, which could cause temporary invalid state.*/
-    spdlog::set_level(spdlog::level::critical);
+    //spdlog::set_level(spdlog::level::critical);
 
     enableSimulation(false);
     mainWidget->Reset();
@@ -175,7 +175,7 @@ void MainWindow::reset()
     resizeDontRecord(PreferredSize().width(), PreferredSize().height());
     loadedFileName.clear();
 
-    spdlog::set_level(prevLevel);
+    //spdlog::set_level(prevLevel);
 }
 
 void MainWindow::resizeDontRecord(int w, int h)

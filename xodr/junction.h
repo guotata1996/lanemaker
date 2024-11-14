@@ -5,7 +5,6 @@
 
 #include <map>
 #include <vector>
-#include <functional>
 #include <optional>
 
 namespace RoadRunnerTest { class Validation; }

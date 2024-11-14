@@ -14,8 +14,6 @@
 #include <utility>
 #include <vector>
 
-#include <iostream>
-
 namespace odr
 {
 Poly3::Poly3(double s0, double a, double b, double c, double d) : raw_a(a), raw_b(b), raw_c(c), raw_d(d)

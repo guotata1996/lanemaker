@@ -18,6 +18,8 @@
 
 namespace RoadRunner
 {
+    bool Road::ClearingMap = false;
+
     Road::Road(const LaneProfile& p, std::unique_ptr<odr::RoadGeometry> l) :
         generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1")
     {
@@ -111,12 +113,14 @@ namespace RoadRunner
     {
         if (successorJunction != nullptr)
         {
-            successorJunction->NotifyPotentialChange();
+            if (!ClearingMap)
+                successorJunction->NotifyPotentialChange();
             successorJunction.reset();
         }
         if (predecessorJunction != nullptr)
         {
-            predecessorJunction->NotifyPotentialChange();
+            if (!ClearingMap)
+                predecessorJunction->NotifyPotentialChange();
             predecessorJunction.reset();
         }
 

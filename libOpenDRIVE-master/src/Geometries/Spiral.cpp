@@ -5,8 +5,6 @@
 
 #include <cmath>
 
-#include <iostream>
-
 namespace odr
 {
 

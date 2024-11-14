@@ -90,7 +90,7 @@ namespace RoadRunner
         std::string ToString() const;
 
     protected:
-        std::map<type_s, LanePlan> leftPlans, rightPlan;
+        std::map<type_s, LanePlan> leftPlans, rightPlans;
 
         // starts at 0, ends at length
         std::set<type_s> GetAllKeys(type_s length) const;

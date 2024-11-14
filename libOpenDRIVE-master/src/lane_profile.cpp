@@ -21,7 +21,7 @@ namespace RoadRunner
     { 
         if (nLanes_Right != 0)
         {
-            rightPlan.emplace(0, LanePlan{offsetX2_Right, static_cast<int8_t>(nLanes_Right)});
+            rightPlans.emplace(0, LanePlan{offsetX2_Right, static_cast<int8_t>(nLanes_Right)});
         }
         if (nLanes_Left != 0)
         {
@@ -32,20 +32,20 @@ namespace RoadRunner
     LaneProfile& LaneProfile::operator=(const LaneProfile& other)
     {
         leftPlans = other.leftPlans;
-        rightPlan = other.rightPlan;
+        rightPlans = other.rightPlans;
         return *this;
     }
 
     void LaneProfile::RemoveRedundantProfileKeys(int side)
     {
         std::set<type_s> toRemove;
-        if (side < 0 && rightPlan.size() >= 2)
+        if (side < 0 && rightPlans.size() >= 2)
         {
-            for (auto it = rightPlan.begin(); ; ++it)
+            for (auto it = rightPlans.begin(); ; ++it)
             {
                 auto end = it;
                 end++;
-                if (end == rightPlan.end()) break;
+                if (end == rightPlans.end()) break;
                 if (it->second == end->second)
                 {
                     toRemove.insert(end->first);
@@ -54,7 +54,7 @@ namespace RoadRunner
 
             for (type_s s : toRemove)
             {
-                rightPlan.erase(s);
+                rightPlans.erase(s);
             }
         }
         else if (side > 0 && leftPlans.size() >= 2)
@@ -109,12 +109,12 @@ namespace RoadRunner
             }
             else
             {
-                rightPlan.emplace(0, newRightProfile);
+                rightPlans.emplace(0, newRightProfile);
             }
         }
         else
         {
-            rightPlan.clear();
+            rightPlans.clear();
         }
     }
 
@@ -131,7 +131,7 @@ namespace RoadRunner
                 throw std::logic_error("OverwriteSection: param error");
         }
 
-        auto& profileToModify = side > 0 ? leftPlans : rightPlan;
+        auto& profileToModify = side > 0 ? leftPlans : rightPlans;
         if (profileToModify.empty()) 
         {
             throw std::logic_error("Override target side has empty profile!");
@@ -197,12 +197,12 @@ namespace RoadRunner
 
     LanePlan LaneProfile::RightEntrance() const
     {
-        return rightPlan.empty() ? LanePlan{ 0, 0 } : rightPlan.begin()->second;
+        return rightPlans.empty() ? LanePlan{ 0, 0 } : rightPlans.begin()->second;
     }
 
     LanePlan LaneProfile::RightExit() const
     {
-        return rightPlan.empty() ? LanePlan{ 0, 0 } : rightPlan.rbegin()->second;
+        return rightPlans.empty() ? LanePlan{ 0, 0 } : rightPlans.rbegin()->second;
     }
 
     std::map<std::pair<type_s, type_s>, LanePlan> LaneProfile::GetAllSections(type_s length, int side) const
@@ -210,8 +210,8 @@ namespace RoadRunner
         std::map<std::pair<type_s, type_s>, LanePlan> rtn;
         if (side == -1)
         {
-            if (rightPlan.empty()) return rtn;
-            auto rightKeys = odr::get_map_keys_sorted(rightPlan);
+            if (rightPlans.empty()) return rtn;
+            auto rightKeys = odr::get_map_keys_sorted(rightPlans);
             if (std::find(rightKeys.begin(), rightKeys.end(), length) == rightKeys.end())
             {
                 rightKeys.push_back(length);
@@ -220,7 +220,7 @@ namespace RoadRunner
             for (int i = 0; i < rightKeys.size() - 1 && rightKeys[i] < length; ++i)
             {
                 int j = i + 1;
-                auto section = rightPlan.at(rightKeys[i]);
+                auto section = rightPlans.at(rightKeys[i]);
 
                 type_s overwriteStart = rightKeys[i];
                 type_s overwriteEnd = std::min(rightKeys[j], length);
@@ -252,7 +252,7 @@ namespace RoadRunner
     std::set<type_s> LaneProfile::GetAllKeys(type_s length) const
     {
         std::set<type_s> rtn{0, length };
-        auto rightKeys = odr::get_map_keys(rightPlan);
+        auto rightKeys = odr::get_map_keys(rightPlans);
         for (auto key : rightKeys)
         {
             if (key < length)
@@ -273,7 +273,7 @@ namespace RoadRunner
 
     bool LaneProfile::HasSide(int side) const
     {
-        return side < 0 ? !rightPlan.empty() : !leftPlans.empty();
+        return side < 0 ? !rightPlans.empty() : !leftPlans.empty();
     }
 
     std::map<double, odr::Poly3> LaneProfile::_MakeTransition(
@@ -333,11 +333,11 @@ namespace RoadRunner
         std::map<double, odr::LaneSection>& laneSectionResult,
         std::map<double, odr::Poly3>& laneOffsetResult) const
     {
-        decltype(rightPlan) profiles;
+        decltype(rightPlans) profiles;
 
         if (rightSide)
         {
-            for (const auto& s_and_section : rightPlan)
+            for (const auto& s_and_section : rightPlans)
             {
                 type_s uniformS = s_and_section.first;
                 if (uniformS < ProfileMinLengthCM)
@@ -800,7 +800,7 @@ namespace RoadRunner
                 centerWidth.ComputeRelative(sectionStart);
                 odr::Lane medianLane(rtn->id, sectionStart, leftIDStart, false, "median");
                 if (std::abs(centerWidth.a) + std::abs(centerWidth.b) + std::abs(centerWidth.c) + std::abs(centerWidth.d) > 1e-3)
-                    medianLane.lane_width.s0_to_poly.emplace(keyCenter, centerWidth);
+                    medianLane.lane_width.s0_to_poly.emplace(sectionStart, centerWidth);
                 section.id_to_lane.emplace(1, medianLane);
             }
 
@@ -873,7 +873,7 @@ namespace RoadRunner
         // Fail if either side is undefined
         if (_length <= 0)
             throw std::logic_error("LaneProfile::Apply");
-        if (leftPlans.empty() && rightPlan.empty()) 
+        if (leftPlans.empty() && rightPlans.empty()) 
         {
             throw std::logic_error("LaneProfile::Apply empty");
         }
@@ -884,14 +884,14 @@ namespace RoadRunner
 
         std::map<double, odr::LaneSection> leftSections, rightSections;
         std::map<double, odr::Poly3> leftOffsets, rightOffsets;
-        if (!rightPlan.empty())
+        if (!rightPlans.empty())
         {
             // Once length is set, no key beyond length
-            for (type_s key : odr::get_map_keys(rightPlan))
+            for (type_s key : odr::get_map_keys(rightPlans))
             {
                 if (key >= length)
                 {
-                    rightPlan.erase(key);
+                    rightPlans.erase(key);
                 }
             }
             ConvertSide(true, rtn->id, length, rightSections, rightOffsets);
@@ -925,7 +925,7 @@ namespace RoadRunner
         // from this point, s keys align with road coordinate
 
         // Special cases: single-direction road
-        if (rightPlan.empty())
+        if (rightPlans.empty())
         {
             rtn->lane_offset.s0_to_poly = leftOffsets;
             rtn->s_to_lanesection = leftSections;
@@ -964,10 +964,10 @@ namespace RoadRunner
     std::string LaneProfile::ToString() const
     {
         std::stringstream ss;
-        if (!rightPlan.empty())
+        if (!rightPlans.empty())
         {
             ss << "\n======Right Profile======\n";
-            for (auto s_profile : rightPlan)
+            for (auto s_profile : rightPlans)
             {
                 ss << s_profile.first << " : Lanes=" << std::to_string(s_profile.second.laneCount) 
                     << " OffsetX2=" << std::to_string(s_profile.second.offsetx2) << std::endl;
@@ -989,15 +989,15 @@ namespace RoadRunner
     LanePlan LaneProfile::ProfileAt(double s, int side) const 
     { 
         type_s key = from_odr_unit(s);
-        auto&   lookup = side < 0 ? rightPlan : leftPlans;
+        auto&   lookup = side < 0 ? rightPlans : leftPlans;
         if (lookup.empty()) 
         {
             return LanePlan{0, 0};
         }
         if (side < 0) 
         {
-            auto it = rightPlan.upper_bound(key);
-            if (it != rightPlan.cbegin())
+            auto it = rightPlans.upper_bound(key);
+            if (it != rightPlans.cbegin())
                 it--;
             return it->second;
         }

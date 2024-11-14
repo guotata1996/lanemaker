@@ -1,6 +1,5 @@
 #include "util.h"
 
-#include <iostream>
 #include <iomanip>
 #include <ctime>
 #include <sstream>

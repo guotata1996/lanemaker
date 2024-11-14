@@ -29,7 +29,8 @@ namespace RoadRunner
     {
         // Temporarily hold shared_ptr to Connecting road until they get owned by junction
         std::vector<std::shared_ptr<RoadRunner::Road>> connectingRoadHolder;
-        for (const auto& id2Road : odrMap.id_to_road)
+        std::cout << "Generating road graphics ";
+        for (const auto& id2Road : TQDM(odrMap.id_to_road))
         {
             auto rrRoad = std::make_shared<RoadRunner::Road>(id2Road.second);
             rrRoad->GenerateAllSectionGraphics();
@@ -75,9 +76,7 @@ namespace RoadRunner
             }
         }
         
-        // show progress bar for large number of junctions
-        // Realistically, junction graphics should be saved to xodr
-        std::cout << "Generating junctions ";
+        std::cout << "Generating junction graphics ";
         for (auto& idAndjunc : TQDM(id2RRJunction))
         {
             idAndjunc.second->GenerateGraphics();
@@ -186,7 +185,9 @@ namespace RoadRunner
 
     void ChangeTracker::Clear()
     {
+        Road::ClearingMap = true;
         World::Instance()->allRoads.clear();
+        Road::ClearingMap = false;
         IDGenerator::Reset();
         odrMap.id_to_road.clear();
         odrMap.id_to_junction.clear();
