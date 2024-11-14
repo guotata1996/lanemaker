@@ -86,12 +86,13 @@ private:
     const double AS, BS;
 
     bool goalIndex;
-    unsigned long step;
+    unsigned long stepInJunction;
     odr::LaneKey sourceLane() const;
     odr::LaneKey destLane() const;
     double sourceS() const;
     double destS() const;
     const double MaxV;
+    const unsigned long DestroyIfInJunction = 30 * 30;
 
     odr::Vec3D position;
     double heading;

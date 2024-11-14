@@ -16,7 +16,7 @@ VehicleGraphics::VehicleGraphics(QRectF r, std::weak_ptr<Vehicle> v) : QGraphics
 
 Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey destLane, double destS, double maxV) :
     AS(initialLocalS), ALane(initialLane), BS(destS), BLane(destLane),
-    currLaneLength(0), tOffset(0), laneChangeDueS(0), velocity(0), MaxV(maxV), step(0),
+    currLaneLength(0), tOffset(0), laneChangeDueS(0), velocity(0), MaxV(maxV), stepInJunction(0),
     ID(IDGenerator::ForVehicle()->GenerateID(this)), goalIndex(false), routeVisual(nullptr)
 {
 }
@@ -50,6 +50,11 @@ void Vehicle::InitGraphics()
 bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph,
     const std::unordered_map<odr::LaneKey, int>& nVehiclesOnLane)
 {
+    if (stepInJunction > DestroyIfInJunction)
+    {
+        // Abort if stuck
+        return false;
+    }
     assert(std::abs(tOffset) < LCCompleteThreshold);
     goalIndex = !goalIndex;
     updateNavigation(odrMap, routingGraph, nVehiclesOnLane);
@@ -132,6 +137,19 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
     }
     new_velocity = vFromGibbs(dt, leader, leaderDistance);
     new_s = s + dt * new_velocity;
+
+    if (signalStates.find(navigation.front()) != signalStates.end())
+    {
+        stepInJunction++;
+        if (stepInJunction > DestroyIfInJunction)
+        {
+            return false;
+        }
+    }
+    else
+    {
+        stepInJunction = 0;
+    }
     
     if (std::equal_to<odr::LaneKey>{}(navigation.front(), destLane()) &&
         s <= destS() && new_s > destS())
@@ -362,7 +380,7 @@ std::shared_ptr<const Vehicle> Vehicle::GetLeader(const odr::OpenDriveMap& map,
                vehiclesOnLane.find(navigation[i]) != vehiclesOnLane.end() &&
                vehiclesOnLane.at(navigation[i]).begin()->second->velocity < 2))
         {
-            // If red light, or traffic is jammed inside junction
+            // If red light, or traffic on previous state remains in junction, or my lane is jammed
             // don't enter junction
             distanceSinceCurrKey = 0;
             rtn = shared_from_this();
@@ -520,11 +538,10 @@ void Vehicle::MakeStep(double dt, const odr::OpenDriveMap& map)
     auto newPos = road.get_xyz(sOnRefLine + currKey.lanesection_s0, tCenter + tOffset, 0);
     if (ID == NowDebugging)
     {
-        spdlog::info("[{}] Lane {} s={} tOffset={} t={} | G= {} @{} Nav:{}", step, currKey.to_string(), s, tOffset, tCenter + tOffset,
-            destLane().to_string(), destS(), navigation.size());
+        spdlog::info("Lane {} s={} tOffset={} t={} | G= {} @{} Nav:{} | Stuck:{}", currKey.to_string(), s, tOffset, tCenter + tOffset,
+            destLane().to_string(), destS(), navigation.size(), stepInJunction);
     }
 
-    step++;
     position = newPos;
 
     double gradFromLane = section.id_to_lane.at(currKey.lane_id).outer_border.get_grad(sOnRefLine + currKey.lanesection_s0);
@@ -572,5 +589,13 @@ std::string Vehicle::Log()
     ss << "Vehicle ID=" << ID << "  s=" << s << "  v=" << velocity << '\n';
     ss << "From " << sourceLane().to_string() << "@" << sourceS() <<
         " To " << destLane().to_string() << "@" << destS() << '\n';
+    for (int i = 0; i < navigation.size() && i < 3; ++i)
+    {
+        ss << " [nav " << i << " ]" << navigation[i].to_string() << '\n';
+    }
+    if (stepInJunction > 0)
+    {
+        ss << stepInJunction << " steps in current junction\n";
+    }
     return ss.str();
 }

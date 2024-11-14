@@ -1130,16 +1130,19 @@ std::vector<std::tuple<LaneKey, double, LaneKey, double>> OpenDriveMap::get_rout
     return rtn;
 }
 
+// l > 0: splitting lanes (direct juntion only)
+// l < 0: merging lanes (also applicable to common junction)
 std::map<LaneKey, std::vector<std::pair<LaneKey, double>>> OpenDriveMap::get_overlap_zones() const
 {
     std::map<LaneKey, std::vector<std::pair<LaneKey, double>>> rtn;
-    for (const auto& id_to_junction : this->id_to_junction)
+    const auto& routingGraph = get_routing_graph();
+    for (const auto& id_junction : this->id_to_junction)
     {
-        if (id_to_junction.second.type == odr::JunctionType::Direct)
+        if (id_junction.second.type == odr::JunctionType::Direct)
         {
             std::map<odr::LaneKey, std::vector<LaneKey>> incomingToLinked;
             std::map<odr::LaneKey, double>               incomingToOverlap;
-            for (const auto& id_conn : id_to_junction.second.id_to_connection)
+            for (const auto& id_conn : id_junction.second.id_to_connection)
             {
                 for (const auto& ll : id_conn.second.lane_links)
                 {
@@ -1181,6 +1184,60 @@ std::map<LaneKey, std::vector<std::pair<LaneKey, double>>> OpenDriveMap::get_ove
                             }
                         }
                         
+                    }
+                }
+            }
+        }
+        else
+        {
+            std::map<std::string, std::set<LaneKey>> conn_road_to_outgoing_keys;
+            for (const auto& id_conn : id_junction.second.id_to_connection)
+            {
+                auto conn_road = id_conn.second.connecting_road;
+                auto myLanes = id_to_road.at(conn_road).s_to_lanesection.begin()->second.get_sorted_driving_lanes(-1);
+                std::set<LaneKey> outgoing_keys;
+                for (const auto& l : myLanes)
+                {
+                    for (const auto& succ : routingGraph.get_lane_successors(l.key))
+                    {
+                        outgoing_keys.emplace(succ);
+                    }
+                }
+                conn_road_to_outgoing_keys.emplace(conn_road, outgoing_keys);
+            }
+
+            for (const auto& id_conn : id_junction.second.id_to_connection)
+            {
+                auto conn_road = id_conn.second.connecting_road;
+                const auto& my_outgoings = conn_road_to_outgoing_keys.at(conn_road);
+                for (const auto& other_id_conn : id_junction.second.id_to_connection)
+                {
+                    auto other_conn_road = other_id_conn.second.connecting_road;
+                    if (conn_road == other_conn_road)
+                    {
+                        continue;
+                    }
+                    bool conflict = false;
+                    for (const auto& other_outgoing : conn_road_to_outgoing_keys.at(other_conn_road))
+                    {
+                        if (my_outgoings.find(other_outgoing) != my_outgoings.end())
+                        {
+                            conflict = true;
+                            break;
+                        }
+                    }
+
+                    if (conflict)
+                    {
+                        auto myLanes = id_to_road.at(conn_road).s_to_lanesection.begin()->second.get_sorted_driving_lanes(-1);
+                        auto otherLanes = id_to_road.at(other_conn_road).s_to_lanesection.begin()->second.get_sorted_driving_lanes(-1);
+                        for (auto myLane : myLanes)
+                        {
+                            for (auto otherLane : otherLanes)
+                            {
+                                rtn[myLane.key].push_back(std::make_pair(otherLane.key, -id_to_road.at(conn_road).length));
+                            }
+                        }
                     }
                 }
             }
