@@ -18,6 +18,7 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp ${APP_ICON_RESOURCE_WINDOWS}
     xodr/road.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp xodr/polyline.cpp
     xodr/junction.cpp xodr/junction_generation.cpp xodr/junction_boundary.cpp
     xodr/id_generator.cpp xodr/change_tracker.cpp xodr/world.cpp
+    xodr/spatial_indexer.cpp
     ui/mainwindow.cpp ui/main_widget.cpp ui/map_view.cpp ${srcs_for_exe}
     ui/road_graphics.cpp ui/road_drawing.cpp ui/road_creation.cpp ui/lane_creation.cpp
     ui/road_modification.cpp ui/road_destruction.cpp ui/road_overlaps.cpp

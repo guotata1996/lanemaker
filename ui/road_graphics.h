@@ -52,6 +52,8 @@ namespace RoadRunner
 
         std::vector< LaneGraphics*> allLaneGraphics;
         QGraphicsPathItem* refLineHint;
+
+        std::vector<uint32_t> allSpatialIndice;
     };
 
     class LaneGraphics : public QGraphicsPolygonItem

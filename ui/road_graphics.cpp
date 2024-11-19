@@ -11,6 +11,7 @@
 #include "spdlog/spdlog.h"
 #include "stats.h"
 #include "junction.h"
+#include "spatial_indexer.h"
 
 extern QGraphicsScene* g_scene;
 
@@ -30,6 +31,10 @@ namespace RoadRunner
     SectionGraphics::~SectionGraphics()
     {
         g_scene->removeItem(this);
+        for (auto index : allSpatialIndice)
+        {
+            SpatialIndexer::Instance()->UnIndex(index);
+        }
     }
 
     void SectionGraphics::EnableHighlight(bool enabled, bool bringToTop)
@@ -85,11 +90,13 @@ namespace RoadRunner
                 auto laneSegmentItem = new LaneGraphics(poly, outerBorder, innerBorder,
                     laneID, laneIDWhenReversed, lane.type, this);
                 allLaneGraphics.push_back(laneSegmentItem);
+
+                // TODO: subdivide to more faces
+                allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, sBegin, sEnd));
             }
         }
         
         // Draw road markings
-        
         for (const auto& id2Lane : laneSection.id_to_lane)
         {
             const auto& lane = id2Lane.second;

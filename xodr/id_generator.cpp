@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 
 IDGenerator* IDGenerator::_junction = nullptr;
+IDGenerator* IDGenerator::_face = nullptr;
 IDGenerator* IDGenerator::_road = nullptr;
 IDGenerator* IDGenerator::_vehicle = nullptr;
 
@@ -27,6 +28,15 @@ IDGenerator* IDGenerator::ForRoad()
         _road = new IDGenerator("Road");
     }
     return _road;
+}
+
+IDGenerator* IDGenerator::ForFace()
+{
+    if (_face == nullptr)
+    {
+        _face = new IDGenerator("Face");
+    }
+    return _face;
 }
 
 IDGenerator* IDGenerator::ForVehicle()
