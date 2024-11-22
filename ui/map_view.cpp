@@ -7,6 +7,7 @@
 #include "action_manager.h"
 #include "constants.h"
 #include "vehicle.h"
+#include "spatial_indexer.h"
 
 #include <sstream>
 #include <iomanip> //std::setprecision
@@ -236,6 +237,12 @@ void MapView::OnMouseMove(const RoadRunner::MouseAction& evt)
         horizontalScrollBar()->setValue(horizontalScrollBar()->value() + offset.x());
 
         prevDragMousePos.emplace(screenPos);
+    }
+    RoadRunner::RayCastQuery q{ odr::Vec3D{evt.sceneX, evt.sceneY, 50}, odr::Vec3D{0, 0, -1} };
+    auto result = RoadRunner::SpatialIndexer::Instance()->RayCast(q);
+    if (result.hit)
+    {
+        spdlog::info("Hit road {} lane {} @{}", result.roadID, result.lane, result.s);
     }
 }
 

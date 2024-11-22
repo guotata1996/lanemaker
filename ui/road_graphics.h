@@ -3,6 +3,7 @@
 #include <qbrush.h>
 
 #include "road.h"
+#include "spatial_indexer.h"
 #include <map>
 
 namespace RoadRunner
@@ -53,7 +54,7 @@ namespace RoadRunner
         std::vector< LaneGraphics*> allLaneGraphics;
         QGraphicsPathItem* refLineHint;
 
-        std::vector<uint32_t> allSpatialIndice;
+        std::vector<FaceIndex_t> allSpatialIndice;
     };
 
     class LaneGraphics : public QGraphicsPolygonItem

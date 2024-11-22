@@ -18,7 +18,7 @@ namespace RoadRunner
         
     }
 
-    uint32_t SpatialIndexer::Index(odr::Road road, odr::Lane lane, double sBegin, double sEnd)
+    FaceIndex_t SpatialIndexer::Index(odr::Road road, odr::Lane lane, double sBegin, double sEnd)
     {
         double t1 = lane.inner_border.get(sBegin);
         double t2 = lane.outer_border.get(sBegin);
@@ -36,17 +36,21 @@ namespace RoadRunner
         auto s1t2 = mesh.add_vertex(Point(p2[0], p2[1], h12));
         auto s2t1 = mesh.add_vertex(Point(p3[0], p3[1], h34));
         auto s2t2 = mesh.add_vertex(Point(p4[0], p4[1], h34));
-        uint32_t faceID = mesh.add_face(s1t1, s1t2, s2t2, s2t1);
-        faceInfo.emplace(faceID, Quad{ road.id, lane.id, sBegin, sEnd });
+        uint32_t face1ID = mesh.add_face(s1t1, s1t2, s2t1);
+        uint32_t face2ID = mesh.add_face(s2t1, s1t2, s2t2);
+        Quad face{ road.id, lane.id, sBegin, sEnd, p1, p3 };
+        faceInfo.emplace(face1ID, face);
+        faceInfo.emplace(face2ID, face);
+
         tree.clear();
         tree.insert(faces(mesh).begin(), faces(mesh).end(), mesh);
-        spdlog::info("Added face {}", faceID);
-        return faceID;
+
+        return (static_cast<FaceIndex_t>(face1ID) << 32) | face2ID;
     }
 
-    SpatialQueryResult SpatialIndexer::RayCast(RayCastQuery ray)
+    RayCastResult SpatialIndexer::RayCast(RayCastQuery ray)
     {
-        SpatialQueryResult rtn;
+        RayCastResult rtn;
         if (ray.direction[2] > -0.1 || ray.origin[2] < 0.1)
         {
             return rtn;
@@ -60,16 +64,28 @@ namespace RoadRunner
         {
             auto faceID = intersection->second.id();
             auto info = faceInfo.at(faceID);
-            return SpatialQueryResult{ true, info.roadID, info.laneID, info.sBegin };// TODO: calc s
+            if (boost::get<Point>(&(intersection->first))) {
+                const Point* p = boost::get<Point>(&(intersection->first));
+                odr::Vec2D p2d{ p->x(), p->y() };
+                auto dir = odr::normalize(odr::sub(info.pointOnSEnd, info.pointOnSBegin));
+                auto projLength = odr::dot(dir, odr::sub(p2d, info.pointOnSBegin));
+                auto quadLength = odr::euclDistance(info.pointOnSBegin, info.pointOnSEnd);
+                auto hitS = (projLength * info.sEnd + (quadLength - projLength) * info.sBegin) / quadLength;
+                return RayCastResult{ true, info.roadID, info.laneID, hitS };
+            }
         }
 
         return rtn;
     }
 
-    bool SpatialIndexer::UnIndex(uint32_t index)
+    bool SpatialIndexer::UnIndex(FaceIndex_t index)
     {
-        faceInfo.erase(index);
-        mesh.remove_face(static_cast<face_descriptor>(index));
+        uint32_t face1ID = index >> 32;
+        uint32_t face2ID = index & 0xffffffff;
+        assert(faceInfo.erase(face1ID) == 1);
+        assert(faceInfo.erase(face2ID) == 1);
+        mesh.remove_face(static_cast<face_descriptor>(face1ID));
+        mesh.remove_face(static_cast<face_descriptor>(face2ID));
         return true;
     }
 }

@@ -1,4 +1,4 @@
-#define CGAL_EIGEN3_ENABLED
+#pragma once
 
 #include "Road.h"
 #include "id_generator.h"
@@ -16,12 +16,6 @@
 
 namespace
 {
-    struct RayCastQuery
-    {
-        odr::Vec3D origin;
-        odr::Vec3D direction;
-    };
-
     typedef CGAL::Simple_cartesian<double> K;
     typedef K::FT FT;
     typedef K::Point_3 Point;
@@ -44,12 +38,19 @@ namespace
         const std::string roadID;
         const int laneID;
         double sBegin, sEnd;
+        odr::Vec2D pointOnSBegin, pointOnSEnd; // must be parallel to long side
     };
 }
 
 namespace RoadRunner
 {
-    struct SpatialQueryResult
+    struct RayCastQuery
+    {
+        odr::Vec3D origin;
+        odr::Vec3D direction;
+    };
+
+    struct RayCastResult
     {
         bool hit = false;
         //bool isJunction;
@@ -58,16 +59,18 @@ namespace RoadRunner
         double s;
     };
 
+    typedef uint64_t FaceIndex_t;
+
     class SpatialIndexer
     {
     public:
         static SpatialIndexer* Instance();
 
-        uint32_t Index(odr::Road road, odr::Lane lane, double sBegin, double sEnd);
+        FaceIndex_t Index(odr::Road road, odr::Lane lane, double sBegin, double sEnd);
 
-        SpatialQueryResult RayCast(RayCastQuery ray);
+        RayCastResult RayCast(RayCastQuery ray);
 
-        bool UnIndex(uint32_t index);
+        bool UnIndex(FaceIndex_t index);
 
     private:
         SpatialIndexer();

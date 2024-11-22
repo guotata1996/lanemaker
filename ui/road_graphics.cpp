@@ -11,7 +11,6 @@
 #include "spdlog/spdlog.h"
 #include "stats.h"
 #include "junction.h"
-#include "spatial_indexer.h"
 
 extern QGraphicsScene* g_scene;
 
