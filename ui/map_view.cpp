@@ -20,11 +20,6 @@ std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 double g_PointerRoadS; /*Continous between 0 and Length() if g_PointerRoad is valid*/
 int g_PointerLane;
 
-std::vector<std::pair<RoadRunner::LaneGraphics*, double>> rotatingRoads;
-int g_RotatingIndex;
-int g_RotatingSize;
-std::string topRoadID;
-
 MapView* g_mapView;
 extern RoadRunner::LanePlan leftProfileSetting, rightProfileSetting;
 
@@ -223,8 +218,7 @@ void MapView::mouseDoubleClickEvent(QMouseEvent* evt)
 
 void MapView::OnMouseMove(const RoadRunner::MouseAction& evt)
 {
-    auto viewPos = mapFromScene(evt.sceneX, evt.sceneY);
-    SnapCursor(viewPos);
+    SnapCursor(QPointF(evt.sceneX, evt.sceneY));
     if (editMode != RoadRunner::Mode_None)
     {
         drawingSession->Update(evt);
@@ -237,12 +231,6 @@ void MapView::OnMouseMove(const RoadRunner::MouseAction& evt)
         horizontalScrollBar()->setValue(horizontalScrollBar()->value() + offset.x());
 
         prevDragMousePos.emplace(screenPos);
-    }
-    RoadRunner::RayCastQuery q{ odr::Vec3D{evt.sceneX, evt.sceneY, 50}, odr::Vec3D{0, 0, -1} };
-    auto result = RoadRunner::SpatialIndexer::Instance()->RayCast(q);
-    if (result.hit)
-    {
-        spdlog::info("Hit road {} lane {} @{}", result.roadID, result.lane, result.s);
     }
 }
 
@@ -355,19 +343,6 @@ void MapView::OnKeyPress(const RoadRunner::KeyPressAction& evt)
         }
         break;
     }
-    case Qt::Key_A:
-        if (!rotatingRoads.empty())
-        {
-            g_RotatingIndex = (g_RotatingIndex + 1) % rotatingRoads.size();
-            g_PointerRoad = rotatingRoads[g_RotatingIndex].first->GetRoad();
-            g_PointerRoadS = rotatingRoads[g_RotatingIndex].second;
-            if (drawingSession != nullptr)
-            {
-                drawingSession->SetHighlightTo(g_PointerRoad.lock());
-            }
-            parentContainer->SetHovering(PointerObjectInfo());
-        }
-        break;
     }
 }
 
@@ -446,8 +421,6 @@ void MapView::drawForeground(QPainter* painter, const QRectF& rect)
 
 void MapView::PostEditActions()
 {
-    rotatingRoads.clear();
-    g_RotatingSize = 0;
     g_PointerRoad.reset();
 
     AdjustSceneRect();
@@ -480,129 +453,37 @@ void MapView::handleException(std::exception e)
     }
 }
 
-void MapView::SnapCursor(const QPoint& viewPos)
+void MapView::SnapCursor(const QPointF& scenePos)
 {
-    QVector2D viewPosVec(viewPos);
-
-    rotatingRoads.clear();
     if (!g_PointerVehicle.expired())
     {
         g_PointerVehicle.lock()->EnableRouteVisual(false, RoadRunner::ChangeTracker::Instance()->Map());
     }
     g_PointerVehicle.reset();
 
-    // Direct candidates
-    decltype(rotatingRoads) directOver, indirectOver;
-
     // Nearby candidates
     double r = RoadRunner::SnapRadiusPx;
-    auto candidates = items(viewPos.x() - r, viewPos.y() - r, 2 * r, 2 * r);
-    auto scenePos = mapToScene(viewPos);
-    for (auto item : candidates)
+    //auto candidates = items(viewPos.x() - r, viewPos.y() - r, 2 * r, 2 * r);
+    RoadRunner::RayCastQuery ray{ odr::Vec3D{
+        static_cast<double>(scenePos.x()),
+        static_cast<double>(scenePos.y()), 50}, odr::Vec3D{0, 0, -1}};
+    auto rayCastResult = RoadRunner::SpatialIndexer::Instance()->RayCast(ray, r);
+    
+    if (rayCastResult.hit)
     {
-        while (item != nullptr)
-        {
-            auto laneGraphicsItem = dynamic_cast<RoadRunner::LaneGraphics*>(item);
-            if (laneGraphicsItem != nullptr)
-            {
-                double s;
-                auto snapResult = laneGraphicsItem->SnapCursor(scenePos, s);
-                if (snapResult.expired())
-                {
-                    double x, y;
-                    laneGraphicsItem->GetRoad()->GetEndPoint(true, x, y);
-                    QVector2D startViewPos(mapFromScene(QPoint(x, y)));
-                    double distToStart = startViewPos.distanceToPoint(viewPosVec);
-
-                    laneGraphicsItem->GetRoad()->GetEndPoint(false, x, y);
-                    QVector2D endViewPos(mapFromScene(QPoint(x, y)));
-                    double distToEnd = endViewPos.distanceToPoint(viewPosVec);
-
-                    if (std::min(distToStart, distToEnd) < RoadRunner::SnapRadiusPx)
-                    {
-                        double closestS = distToStart < distToEnd ? 0 : laneGraphicsItem->GetRoad()->Length();
-                        indirectOver.push_back(std::make_pair(laneGraphicsItem, closestS));
-                    }
-                }
-                else
-                {
-                    directOver.push_back(std::make_pair(laneGraphicsItem, s));
-                }
-
-                break;
-            }
-
-            auto vehicleGraphicsItem = dynamic_cast<VehicleGraphics*>(item);
-            if (vehicleGraphicsItem != nullptr)
-            {
-                g_PointerVehicle = vehicleGraphicsItem->vehicle;
-                break;
-            }
-            item = item->parentItem();
-        }
-    }
-
-    g_RotatingIndex = 0;
-    if (!directOver.empty())
-    {
-        // Sort by z value
-        std::sort(directOver.begin(), directOver.end(), [](
-            const std::pair<RoadRunner::LaneGraphics*, double>& a, const std::pair<RoadRunner::LaneGraphics*, double>& b)
-            {
-                auto aSection = dynamic_cast<RoadRunner::SectionGraphics*>(a.first->parentItem());
-                auto bSection = dynamic_cast<RoadRunner::SectionGraphics*>(b.first->parentItem());
-                return aSection->sectionElevation > bSection->sectionElevation;
-            });
-        rotatingRoads = directOver;
-    }
-    else if (!indirectOver.empty())
-    {
-        std::sort(indirectOver.begin(), indirectOver.end(),
-            [this, viewPosVec](const auto& a, const auto& b) {
-                odr::Vec2D p1 = a.first->GetRoad()->generated.get_xy(a.second);
-                QVector2D q1(mapFromScene(p1[0], p1[1]));
-                odr::Vec2D p2 = b.first->GetRoad()->generated.get_xy(b.second);
-                QVector2D q2(mapFromScene(p1[0], p2[1]));
-                return q1.distanceToPoint(viewPosVec) < q2.distanceToPoint(viewPosVec);
-            });
-
-        rotatingRoads = indirectOver;
+        g_PointerRoad = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(
+            rayCastResult.roadID))->shared_from_this();
+        g_PointerLane = rayCastResult.lane;
+        g_PointerRoadS = rayCastResult.s;
     }
     else
     {
-        rotatingRoads.clear();
+        g_PointerRoad.reset();
     }
-    g_RotatingSize = rotatingRoads.size();
 
     auto cursorInfo = QString("(%1, %2)| ")
         .arg(scenePos.x(), 4, 'f', 1)
         .arg(scenePos.y(), 4, 'f', 1);
-
-    if (rotatingRoads.empty())
-    {
-        g_PointerRoad.reset();
-        topRoadID.clear();
-    }
-    else
-    {
-        if (topRoadID == rotatingRoads.front().first->GetRoad()->ID())
-        {
-            // Try retain previous selected unless top road alters
-            for (int i = 0; i != rotatingRoads.size(); ++i)
-            {
-                if (rotatingRoads[i].first->GetRoad() == g_PointerRoad.lock())
-                {
-                    g_RotatingIndex = i;
-                    break;
-                }
-            }
-        }
-
-        g_PointerRoad = rotatingRoads[g_RotatingIndex].first->GetRoad();
-        g_PointerLane = rotatingRoads[g_RotatingIndex].first->LaneID();
-        g_PointerRoadS = rotatingRoads[g_RotatingIndex].second;
-        topRoadID = rotatingRoads.front().first->GetRoad()->ID();
-    }
 
     parentContainer->SetHovering(cursorInfo + PointerObjectInfo());
     if (!g_PointerVehicle.expired())

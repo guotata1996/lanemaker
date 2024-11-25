@@ -88,9 +88,8 @@ namespace RoadRunner
         for (auto& s_graphics : road2->s_to_section_graphics)
         {
             auto graphics = std::move(s_graphics.second);
-            graphics->road = road1;
-            graphics->sBegin += road2BaseD;
-            graphics->sEnd += road2BaseD;
+            graphics->updateIndexingInfo(road1->ID(),
+                graphics->SBegin() + road2BaseD, graphics->SEnd() + road2BaseD);
             road1->s_to_section_graphics.emplace(road2BaseD + s_graphics.first, std::move(graphics));
         }
 #endif
@@ -144,9 +143,7 @@ namespace RoadRunner
             for (auto it = sm1_it; it != roadAsPrev->s_to_section_graphics.end(); ++it)
             {
                 auto graphics = std::move(it->second);
-                graphics->road = part2;
-                graphics->sBegin -= s;
-                graphics->sEnd -= s;
+                graphics->updateIndexingInfo(part2->ID(), graphics->SBegin() - s, graphics->SEnd() - s);
                 part2->s_to_section_graphics.emplace(it->first - s, std::move(graphics));
                 sMovedFromPart1.insert(it->first);
             }

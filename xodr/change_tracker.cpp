@@ -7,6 +7,7 @@
 #include "action_manager.h"
 #include "preference.h"
 #include "util.h"
+#include "spatial_indexer.h"
 
 #include <spdlog/spdlog.h>
 
@@ -96,6 +97,7 @@ namespace RoadRunner
 
     void ChangeTracker::PostChangeActions()
     {
+        SpatialIndexer::Instance()->RebuildTree();
         if (g_preference.alwaysVerify)
             RoadRunnerTest::Validation::ValidateMap();
     }
@@ -191,6 +193,7 @@ namespace RoadRunner
         IDGenerator::Reset();
         odrMap.id_to_road.clear();
         odrMap.id_to_junction.clear();
+        SpatialIndexer::Instance()->RebuildTree();
     }
 
     void ChangeTracker::Save(std::string path)

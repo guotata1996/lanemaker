@@ -14,8 +14,6 @@
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
-extern int g_RotatingIndex;
-extern int g_RotatingSize;
 
 extern SectionProfileConfigWidget* g_createRoadOption;
 extern int8_t g_createRoadElevationOption;
@@ -131,15 +129,7 @@ void RoadDrawingSession::EndPickingProfile()
 
 bool RoadDrawingSession::IsElevationConsistWithExtend()
 {
-    switch (g_createRoadElevationOption)
-    {
-    case 1:
-        return g_RotatingIndex == 0;
-    case -1:
-        return g_RotatingIndex == g_RotatingSize - 1;
-    default:
-        return g_RotatingSize == 1;
-    }
+    return true;
 }
 
 bool RoadDrawingSession::IsProfileChangePoint(const std::shared_ptr<RoadRunner::Road>& road, double s)

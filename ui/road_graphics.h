@@ -34,19 +34,23 @@ namespace RoadRunner
 
         void EnableHighlight(bool enabled, bool bringToTop=true);
 
-        /*Depends on ref line direction. Only this part needs updating upon reverse.*/
-        void UpdateRefLineHint();
+        /*Assuming graphics remain the same.*/
+        void updateIndexingInfo(std::string newRoadID, double sBegin, double sEnd);
 
-        std::weak_ptr<RoadRunner::Road> road;
+        double SBegin() const;
+        double SEnd() const;
+        double Length() const;
 
         /*sBegin->sEnd follows the direction of generated LaneGraphics, NOT the direction of road ref line
           so it's possible that sBegin > sEnd*/
-        double sBegin, sEnd;
-        const double Length;
+        //double sBegin, sEnd;
+        //const double Length;
         double sectionElevation;
 
+        std::vector<FaceIndex_t> allSpatialIndice;
+
     private:
-        void Create(const odr::LaneSection&);
+        static QPainterPath CreateRefLinePath(const odr::Line3D& center);
 
         const double BrokenLength = 3;
         const double BrokenGap = 6;
@@ -54,7 +58,7 @@ namespace RoadRunner
         std::vector< LaneGraphics*> allLaneGraphics;
         QGraphicsPathItem* refLineHint;
 
-        std::vector<FaceIndex_t> allSpatialIndice;
+        QPainterPath refLinePath, refLinePathReversed;
     };
 
     class LaneGraphics : public QGraphicsPolygonItem
@@ -68,11 +72,7 @@ namespace RoadRunner
 
         void paint(QPainter* painter, const QStyleOptionGraphicsItem* item, QWidget* widget) override;
 
-        std::weak_ptr<Road> SnapCursor(QPointF p, double& outS);
-
         std::shared_ptr<Road> GetRoad() const;
-
-        int LaneID() const;
 
         void EnableHighlight(bool enabled);
 

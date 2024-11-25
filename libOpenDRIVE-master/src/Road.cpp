@@ -113,7 +113,7 @@ double Road::get_lanesection_length(const double lanesection_s0) const
     return s_end - lanesection_s0;
 }
 
-Vec2D Road::get_xy(const double s, const double t) 
+Vec2D Road::get_xy(const double s, const double t) const
 { 
     auto p3 = get_xyz(s, t, 0); 
     return Vec2D{p3[0], p3[1]};

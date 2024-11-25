@@ -262,4 +262,29 @@ constexpr T max_curvature(Vec<T, 2> p0, Vec<T, 2> p1, Vec<T, 2> p2)
     return pow(euclDistance(p1, m), 3) / pow(A, 2);
 }
 
+template<typename T, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
+void get_orthogonal(const Vec<T, 3> dir, Vec<T, 3>& out_o1, Vec<T, 3>& out_o2)
+{
+    if (dir[1] != 0)
+    {
+        out_o1[0] = 0;
+        out_o1[1] = -dir[2];
+        out_o1[2] = dir[1];
+        out_o1 = odr::normalize(out_o1);
+    }
+    else if (dir[0] != 0)
+    {
+        out_o1[0] = -dir[2];
+        out_o1[1] = 0;
+        out_o1[2] = dir[0];
+        out_o1 = odr::normalize(out_o1);
+    }
+    else
+    {
+        out_o1[0] = 1;
+        out_o1[1] = out_o1[2] = 0;
+    }
+    out_o2 = odr::crossProduct(dir, out_o1);
+}
+
 } // namespace odr

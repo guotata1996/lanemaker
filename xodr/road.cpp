@@ -101,9 +101,7 @@ namespace RoadRunner
             segEndIt++;
             double sRev = (segEndIt == temp_graphics.end()) ? 0 : roadLength - segEndIt->first;
             auto graphics = std::move(it->second);
-            graphics->sBegin = roadLength - graphics->sBegin;
-            graphics->sEnd = roadLength - graphics->sEnd;
-            graphics->UpdateRefLineHint();
+            graphics->updateIndexingInfo(ID(), roadLength - graphics->SBegin(), roadLength - graphics->SEnd());
             s_to_section_graphics.emplace(sRev, std::move(graphics));
         }
 #endif
@@ -268,7 +266,7 @@ namespace RoadRunner
             existingItr != s_to_section_graphics.end(); ++existingItr)
         {
             double existingStart = existingItr->first;
-            double existingEnd = existingStart + existingItr->second->Length;
+            double existingEnd = existingStart + existingItr->second->Length();
             if (existingStart < s2 && existingEnd > s1)
             {
                 createBegin = std::min(createBegin, existingStart);
@@ -316,15 +314,39 @@ namespace RoadRunner
         std::vector<Road::RoadsOverlap> rtn;
         if (sBegin >= sEnd) 
             return rtn;
-        auto beginIt = s_to_section_graphics.upper_bound(sBegin - 1e-3f);
-        if (beginIt != s_to_section_graphics.begin())
+
+        //auto beginIt = s_to_section_graphics.upper_bound(sBegin - 1e-3f);
+        //if (beginIt != s_to_section_graphics.begin())
+        //{
+        //    beginIt--;
+        //}
+        //auto endIt = s_to_section_graphics.upper_bound(sEnd + 1e-3f);
+
+        std::set<FaceIndex_t> selfFaces;
+        for (auto& s_graphics : s_to_section_graphics)
         {
-            beginIt--;
+            selfFaces.insert(
+                s_graphics.second->allSpatialIndice.begin(),
+                s_graphics.second->allSpatialIndice.end());
         }
-        auto endIt = s_to_section_graphics.upper_bound(sEnd + 1e-3f);
 
         std::map <std::shared_ptr<Road>, MultiSegment> collidings;
-        std::set< LaneGraphics*> myCollidingPieces;
+        
+        bool lastSHit = false;
+        for (auto s = sBegin; s <= sEnd; s += 1)
+        {
+            auto pt = generated.get_xyz(s, 0, 0);
+            RoadRunner::RayCastQuery ray{ 
+                odr::Vec3D{static_cast<double>(pt[0]), static_cast<double>(pt[1]), 50}, 
+                odr::Vec3D{0, 0, -1},
+                RayCastSkip(selfFaces)};
+            auto hit = RoadRunner::SpatialIndexer::Instance()->RayCast(ray);
+            if (hit.hit)
+            {
+                spdlog::info("Hit");
+            }
+        }
+        /*
         for (auto it = beginIt; it != endIt; ++it)
         {
             for (auto child : it->second->childItems())
@@ -334,175 +356,176 @@ namespace RoadRunner
                 {
                     continue;
                 }
-                SectionGraphics* myGraphicsSegment = dynamic_cast<SectionGraphics*>(laneSegmentItem->parentItem());
+                       SectionGraphics* myGraphicsSegment = dynamic_cast<SectionGraphics*>(laneSegmentItem->parentItem());
 
-                for (auto collision : laneSegmentItem->collidingItems())
-                {
-                    LaneGraphics* collisionSegmentItem = dynamic_cast<LaneGraphics*>(collision);
-                    if (collisionSegmentItem == nullptr)
-                    {
-                        continue;
-                    }
-                    
-                    SectionGraphics* collidingGraphicsSegment = dynamic_cast<SectionGraphics*>(collisionSegmentItem->parentItem());
-                    auto collidingRoad = collidingGraphicsSegment->road.lock();
-                    if (collidingRoad == shared_from_this())
-                    {
-                        if (SegmentsIntersect(myGraphicsSegment->sBegin - 0.01, myGraphicsSegment->sEnd + 0.01,
-                            collidingGraphicsSegment->sBegin - 0.01, collidingGraphicsSegment->sEnd + 0.01))
-                        {
-                            // Ignore self-overlaps between neighboring pieces
-                            continue;
-                        }
-                        if (myGraphicsSegment->sBegin < collidingGraphicsSegment->sBegin)
-                        {
-                            // Only record pairs where s1 > s2
-                            continue;
-                        }
-                    }
+               for (auto collision : laneSegmentItem->collidingItems())
+               {
+                   LaneGraphics* collisionSegmentItem = dynamic_cast<LaneGraphics*>(collision);
+                   if (collisionSegmentItem == nullptr)
+                   {
+                       continue;
+                   }
+                   
+                   SectionGraphics* collidingGraphicsSegment = dynamic_cast<SectionGraphics*>(collisionSegmentItem->parentItem());
+                   auto collidingRoad = collidingGraphicsSegment->road.lock();
+                   if (collidingRoad == shared_from_this())
+                   {
+                       if (SegmentsIntersect(myGraphicsSegment->sBegin - 0.01, myGraphicsSegment->sEnd + 0.01,
+                           collidingGraphicsSegment->sBegin - 0.01, collidingGraphicsSegment->sEnd + 0.01))
+                       {
+                           // Ignore self-overlaps between neighboring pieces
+                           continue;
+                       }
+                       if (myGraphicsSegment->sBegin < collidingGraphicsSegment->sBegin)
+                       {
+                           // Only record pairs where s1 > s2
+                           continue;
+                       }
+                   }
 
-                    if (collidingRoad->generated.junction != "-1")
-                    {
-                        auto junctionPtr = IDGenerator::ForJunction()->GetByID(collidingRoad->generated.junction);
-                        auto junction = static_cast<RoadRunner::Junction*>(junctionPtr)->shared_from_this();
-                        if (predecessorJunction == junction && 
-                            (myGraphicsSegment->sBegin < GraphicsDivision ||
-                            myGraphicsSegment->sEnd < GraphicsDivision))
-                        {
-                            // Already joined this junction
-                            continue;
-                        }
-                        if (successorJunction == junction &&
-                            (myGraphicsSegment->sBegin > Length() - GraphicsDivision ||
-                                myGraphicsSegment->sEnd > Length() - GraphicsDivision))
-                        {
-                            // Already joined this junction
-                            continue;
-                        }
-                    }
-                    
-                    if (collidings.find(collidingRoad) == collidings.end())
-                    {
-                        collidings.emplace(collidingRoad, MultiSegment(1));
-                    }
-                    collidings.at(collidingRoad).Insert(
-                        std::min(collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd),
-                        std::max(collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd));
-                    myCollidingPieces.insert(laneSegmentItem);
-                }
-            }
+                   if (collidingRoad->generated.junction != "-1")
+                   {
+                       auto junctionPtr = IDGenerator::ForJunction()->GetByID(collidingRoad->generated.junction);
+                       auto junction = static_cast<RoadRunner::Junction*>(junctionPtr)->shared_from_this();
+                       if (predecessorJunction == junction && 
+                           (myGraphicsSegment->sBegin < GraphicsDivision ||
+                           myGraphicsSegment->sEnd < GraphicsDivision))
+                       {
+                           // Already joined this junction
+                           continue;
+                       }
+                       if (successorJunction == junction &&
+                           (myGraphicsSegment->sBegin > Length() - GraphicsDivision ||
+                               myGraphicsSegment->sEnd > Length() - GraphicsDivision))
+                       {
+                           // Already joined this junction
+                           continue;
+                       }
+                   }
+                   
+                   if (collidings.find(collidingRoad) == collidings.end())
+                   {
+                       collidings.emplace(collidingRoad, MultiSegment(1));
+                   }
+                   collidings.at(collidingRoad).Insert(
+                       std::min(collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd),
+                       std::max(collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd));
+                   myCollidingPieces.insert(laneSegmentItem);
+               }
+           }
         }
         
         for (auto colliding : collidings)
         {
-            for (auto otherCollidingArea : colliding.second.Merge())
-            {
-                MultiSegment myCollidingIntervals(1);
+           for (auto otherCollidingArea : colliding.second.Merge())
+           {
+               MultiSegment myCollidingIntervals(1);
 
-                double sBeginOnOther = otherCollidingArea.first;
-                double sEndOnOther = otherCollidingArea.second;
-                bool isDirectJunctionOverlap = false;
+               double sBeginOnOther = otherCollidingArea.first;
+               double sEndOnOther = otherCollidingArea.second;
+               bool isDirectJunctionOverlap = false;
 
-                std::set<DirectJunction*> othersDirectJunctions;
-                if (sBeginOnOther == 0 && colliding.first.get()->predecessorJunction != nullptr)
-                {
-                    auto junc = dynamic_cast<DirectJunction*>(colliding.first.get()->predecessorJunction.get());
-                    if (junc != nullptr) othersDirectJunctions.emplace(junc);
-                }
-                if (sEndOnOther == colliding.first.get()->Length() &&
-                    colliding.first.get()->successorJunction != nullptr)
-                {
-                    auto junc = dynamic_cast<DirectJunction*>(colliding.first.get()->successorJunction.get());
-                    if (junc != nullptr) othersDirectJunctions.emplace(junc);
-                }
+               std::set<DirectJunction*> othersDirectJunctions;
+               if (sBeginOnOther == 0 && colliding.first.get()->predecessorJunction != nullptr)
+               {
+                   auto junc = dynamic_cast<DirectJunction*>(colliding.first.get()->predecessorJunction.get());
+                   if (junc != nullptr) othersDirectJunctions.emplace(junc);
+               }
+               if (sEndOnOther == colliding.first.get()->Length() &&
+                   colliding.first.get()->successorJunction != nullptr)
+               {
+                   auto junc = dynamic_cast<DirectJunction*>(colliding.first.get()->successorJunction.get());
+                   if (junc != nullptr) othersDirectJunctions.emplace(junc);
+               }
 
-                for (auto mine: myCollidingPieces)
-                {
-                    SectionGraphics* mySegment = dynamic_cast<SectionGraphics*>(mine->parentItem());
+               for (auto mine: myCollidingPieces)
+               {
+                   SectionGraphics* mySegment = dynamic_cast<SectionGraphics*>(mine->parentItem());
 
-                    std::set<DirectJunction*> myDirectJunctions;
-                    if (std::min(mySegment->sBegin, mySegment->sEnd) == 0
-                        && predecessorJunction != nullptr)
-                    {
-                        auto junc = dynamic_cast<DirectJunction*>(predecessorJunction.get());
-                        if (othersDirectJunctions.find(junc) != othersDirectJunctions.end())
-                        {
-                            isDirectJunctionOverlap = true;
-                            break;
-                        }
-                    }
-                    if (std::max(mySegment->sBegin, mySegment->sEnd) == Length()
-                        && successorJunction != nullptr)
-                    {
-                        auto junc = dynamic_cast<DirectJunction*>(successorJunction.get());
-                        if (othersDirectJunctions.find(junc) != othersDirectJunctions.end())
-                        {
-                            isDirectJunctionOverlap = true;
-                            break;
-                        }
-                    }
+                   std::set<DirectJunction*> myDirectJunctions;
+                   if (std::min(mySegment->sBegin, mySegment->sEnd) == 0
+                       && predecessorJunction != nullptr)
+                   {
+                       auto junc = dynamic_cast<DirectJunction*>(predecessorJunction.get());
+                       if (othersDirectJunctions.find(junc) != othersDirectJunctions.end())
+                       {
+                           isDirectJunctionOverlap = true;
+                           break;
+                       }
+                   }
+                   if (std::max(mySegment->sBegin, mySegment->sEnd) == Length()
+                       && successorJunction != nullptr)
+                   {
+                       auto junc = dynamic_cast<DirectJunction*>(successorJunction.get());
+                       if (othersDirectJunctions.find(junc) != othersDirectJunctions.end())
+                       {
+                           isDirectJunctionOverlap = true;
+                           break;
+                       }
+                   }
 
-                    for (auto otherPiece : mine->collidingItems())
-                    {
-                        LaneGraphics* collisionSegmentItem = dynamic_cast<LaneGraphics*>(otherPiece);
-                        if (collisionSegmentItem == nullptr)
-                        {
-                            continue;
-                        }
+                   for (auto otherPiece : mine->collidingItems())
+                   {
+                       LaneGraphics* collisionSegmentItem = dynamic_cast<LaneGraphics*>(otherPiece);
+                       if (collisionSegmentItem == nullptr)
+                       {
+                           continue;
+                       }
 
-                        if (collisionSegmentItem->GetRoad() == shared_from_this())
-                        {
-                            if (mySegment->sBegin < sBeginOnOther ||
-                                SegmentsIntersect(mySegment->sBegin - 0.01, mySegment->sEnd + 0.01,
-                                sBeginOnOther - 0.01, sEndOnOther + 0.01))
-                            {
-                                // Ignore self-overlaps between neighboring pieces
-                                continue;
-                            }
-                        }
+                       if (collisionSegmentItem->GetRoad() == shared_from_this())
+                       {
+                           if (mySegment->sBegin < sBeginOnOther ||
+                               SegmentsIntersect(mySegment->sBegin - 0.01, mySegment->sEnd + 0.01,
+                               sBeginOnOther - 0.01, sEndOnOther + 0.01))
+                           {
+                               // Ignore self-overlaps between neighboring pieces
+                               continue;
+                           }
+                       }
 
-                        SectionGraphics* collidingGraphicsSegment = dynamic_cast<SectionGraphics*>(collisionSegmentItem->parentItem());
-                        if (collidingGraphicsSegment->road.lock() == colliding.first &&
-                            SegmentsIntersect(sBeginOnOther, sEndOnOther,
-                            collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd))
-                        {
-                            myCollidingIntervals.Insert(mySegment->sBegin, mySegment->sEnd);
-                        }
-                    }
-                }
+                       SectionGraphics* collidingGraphicsSegment = dynamic_cast<SectionGraphics*>(collisionSegmentItem->parentItem());
+                       if (collidingGraphicsSegment->road.lock() == colliding.first &&
+                           SegmentsIntersect(sBeginOnOther, sEndOnOther,
+                           collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd))
+                       {
+                           myCollidingIntervals.Insert(mySegment->sBegin, mySegment->sEnd);
+                       }
+                   }
+               }
 
-                if (isDirectJunctionOverlap) continue;
+               if (isDirectJunctionOverlap) continue;
 
-                for (const auto& myCollidingInterval : myCollidingIntervals.Merge())
-                {
-                    if (myCollidingInterval.first < sBegin || myCollidingInterval.second > sEnd)
-                    {
-                        continue;
-                    }
-                    auto overlap = RoadsOverlap(
-                        myCollidingInterval.first, myCollidingInterval.second,
-                        colliding.first, sBeginOnOther , sEndOnOther );
-                    spdlog::trace("Collision detected between road {} @{}~{} vs road {} @{}~{}",
-                        ID(), overlap.sBegin1, overlap.sEnd1,
-                        colliding.first->ID(), overlap.sBegin2, overlap.sEnd2);
+               for (const auto& myCollidingInterval : myCollidingIntervals.Merge())
+               {
+                   if (myCollidingInterval.first < sBegin || myCollidingInterval.second > sEnd)
+                   {
+                       continue;
+                   }
+                   auto overlap = RoadsOverlap(
+                       myCollidingInterval.first, myCollidingInterval.second,
+                       colliding.first, sBeginOnOther , sEndOnOther );
+                   spdlog::trace("Collision detected between road {} @{}~{} vs road {} @{}~{}",
+                       ID(), overlap.sBegin1, overlap.sEnd1,
+                       colliding.first->ID(), overlap.sBegin2, overlap.sEnd2);
 
-                    rtn.emplace_back(overlap);
-                }
-            }
+                   rtn.emplace_back(overlap);
+               }
+           }
         }
         // Make sure result is deterministic in case multiple overlap at the same point
         std::sort(rtn.begin(), rtn.end(), [](const Road::RoadsOverlap& a, const Road::RoadsOverlap& b)
         {
-            if (a.sBegin1 != b.sBegin1)
-            {
-                return a.sBegin1 < b.sBegin1;
-            }
-            if (a.sBegin2 != b.sBegin2)
-            {
-                return a.sBegin2 < b.sBegin2;
-            }
-            return std::stoi(a.road2.lock()->ID()) < std::stoi(b.road2.lock()->ID());
+           if (a.sBegin1 != b.sBegin1)
+           {
+               return a.sBegin1 < b.sBegin1;
+           }
+           if (a.sBegin2 != b.sBegin2)
+           {
+               return a.sBegin2 < b.sBegin2;
+           }
+           return std::stoi(a.road2.lock()->ID()) < std::stoi(b.road2.lock()->ID());
         });
+        */
         return rtn;
     }
 

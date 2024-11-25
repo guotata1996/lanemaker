@@ -81,7 +81,7 @@ private:
     void confirmEdit();
     void quitEdit();
 
-    void SnapCursor(const QPoint&);
+    void SnapCursor(const QPointF&);
 
     void AdjustSceneRect();
 };

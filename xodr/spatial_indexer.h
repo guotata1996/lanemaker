@@ -12,8 +12,6 @@
 #include <CGAL/Polygon_mesh_processing/compute_normal.h>
 #include <CGAL/Polygon_mesh_processing/orientation.h>
 
-#include <iostream>
-
 namespace
 {
     typedef CGAL::Simple_cartesian<double> K;
@@ -35,19 +33,51 @@ namespace
 
     struct Quad
     {
-        const std::string roadID;
-        const int laneID;
+        std::string roadID;
+        const int laneIDNormal, laneIDReversed;
         double sBegin, sEnd;
         odr::Vec2D pointOnSBegin, pointOnSEnd; // must be parallel to long side
+
+        int GetLaneID()
+        {
+            return sBegin < sEnd ? laneIDNormal : laneIDReversed;
+        }
     };
 }
 
 namespace RoadRunner
 {
+    typedef uint64_t FaceIndex_t;
+
+    struct RayCastSkip
+    {
+        std::set<face_descriptor> fd;
+
+        RayCastSkip() = default;
+
+        RayCastSkip(std::set<FaceIndex_t> indice)
+        {
+            for (auto index : indice)
+            {
+                uint32_t face1ID = index >> 32;
+                uint32_t face2ID = index & 0xffffffff;
+                fd.emplace(face1ID);
+                fd.emplace(face2ID);
+            }
+        }
+
+        bool operator()(const face_descriptor& t) const
+        {
+            return fd.find(t) != fd.end();
+        }
+
+    };
+
     struct RayCastQuery
     {
         odr::Vec3D origin;
         odr::Vec3D direction;
+        RayCastSkip skip;
     };
 
     struct RayCastResult
@@ -59,8 +89,6 @@ namespace RoadRunner
         double s;
     };
 
-    typedef uint64_t FaceIndex_t;
-
     class SpatialIndexer
     {
     public:
@@ -68,21 +96,19 @@ namespace RoadRunner
 
         FaceIndex_t Index(odr::Road road, odr::Lane lane, double sBegin, double sEnd);
 
-        RayCastResult RayCast(RayCastQuery ray);
+        RayCastResult RayCast(RayCastQuery ray, double radius = 0);
 
-        bool UnIndex(FaceIndex_t index);
+        void UnIndex(FaceIndex_t index);
+
+        void RebuildTree();
+
+        std::map<uint32_t, Quad> faceInfo;
 
     private:
-        SpatialIndexer();
-
         static SpatialIndexer* _instance;
 
         Mesh mesh;
 
         Tree tree;
-
-        std::map<uint32_t, Quad> faceInfo;
-
-
     };
 }
