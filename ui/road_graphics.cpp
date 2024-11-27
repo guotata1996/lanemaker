@@ -242,10 +242,17 @@ namespace RoadRunner
     {
         for (auto index : allSpatialIndice)
         {
-            Quad& face = SpatialIndexer::Instance()->faceInfo.at(index);
-            face.roadID = newRoadID;
-            face.sBegin = sBegin;
-            face.sEnd = sEnd;
+            uint32_t face1ID = index >> 32;
+            uint32_t face2ID = index & 0xffffffff;
+            for (auto faceID : { face1ID , face2ID })
+            {
+                if (faceID == SpatialIndexer::InvalidFace) continue;
+                Quad& face = SpatialIndexer::Instance()->faceInfo.at(faceID);
+                face.roadID = newRoadID;
+                face.sBegin = sBegin;
+                face.sEnd = sEnd;
+            }
+
         }
         refLineHint->setPath(sBegin < sEnd ? refLinePath : refLinePathReversed);
     }

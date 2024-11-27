@@ -97,6 +97,7 @@ public:
     Vec2D get_xy(const double s, const double t = 0) const;
     Vec3D get_xyz(const double s, const double t, const double h, Vec3D* e_s = nullptr, Vec3D* e_t = nullptr, Vec3D* e_h = nullptr) const;
     Vec2D get_boundary_xy(int side, double s) const;
+    Vec3D get_boundary_xyz(int side, double s) const;
     Vec3D get_surface_pt(double s, const double t, Vec3D* vn = nullptr) const;
 
     Line3D get_lane_border_line(const Lane& lane, const double s_start, const double s_end, const double eps, const bool outer = true) const;

@@ -463,7 +463,6 @@ void MapView::SnapCursor(const QPointF& scenePos)
 
     // Nearby candidates
     double r = RoadRunner::SnapRadiusPx;
-    //auto candidates = items(viewPos.x() - r, viewPos.y() - r, 2 * r, 2 * r);
     RoadRunner::RayCastQuery ray{ odr::Vec3D{
         static_cast<double>(scenePos.x()),
         static_cast<double>(scenePos.y()), 50}, odr::Vec3D{0, 0, -1}};

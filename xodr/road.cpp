@@ -311,9 +311,9 @@ namespace RoadRunner
 
     std::vector<Road::RoadsOverlap> Road::AllOverlaps(double sBegin, double sEnd) const
     {
-        std::vector<Road::RoadsOverlap> rtn;
-        if (sBegin >= sEnd) 
-            return rtn;
+        std::vector<Road::RoadsOverlap> unfiltered, rtn;
+        //if (sBegin >= sEnd) 
+        //    return rtn;
 
         //auto beginIt = s_to_section_graphics.upper_bound(sBegin - 1e-3f);
         //if (beginIt != s_to_section_graphics.begin())
@@ -329,23 +329,87 @@ namespace RoadRunner
                 s_graphics.second->allSpatialIndice.begin(),
                 s_graphics.second->allSpatialIndice.end());
         }
-
-        std::map <std::shared_ptr<Road>, MultiSegment> collidings;
         
-        bool lastSHit = false;
-        for (auto s = sBegin; s <= sEnd; s += 1)
+        std::shared_ptr<Road> hitRoad;
+        double road2MinS, road2MaxS;
+        double road1BeginS;
+        for (auto s = sBegin; s <= sEnd; s += 0.5)
         {
-            auto pt = generated.get_xyz(s, 0, 0);
-            RoadRunner::RayCastQuery ray{ 
-                odr::Vec3D{static_cast<double>(pt[0]), static_cast<double>(pt[1]), 50}, 
-                odr::Vec3D{0, 0, -1},
-                RayCastSkip(selfFaces)};
-            auto hit = RoadRunner::SpatialIndexer::Instance()->RayCast(ray);
-            if (hit.hit)
+            bool maintainHit = false;
+            for (int side : {-1, 1})
             {
-                spdlog::info("Hit");
+                auto pt = generated.get_boundary_xyz(side, s);
+                RoadRunner::RayCastQuery ray{
+                    odr::Vec3D{static_cast<double>(pt[0]), static_cast<double>(pt[1]), 50},
+                    odr::Vec3D{0, 0, -1},
+                    RayCastSkip(selfFaces) };
+                auto hit = RoadRunner::SpatialIndexer::Instance()->RayCast(ray);
+                if (hit.hit && odr::euclDistance(hit.hitPos, pt) < 1)
+                {
+                    // only consider those on same Z plane
+                    auto currHitRoad = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(hit.roadID))->shared_from_this();
+                    if (hitRoad == nullptr)
+                    {
+                        // begining of hit
+                        maintainHit = true;
+                        road1BeginS = s;
+                        road2MinS = road2MaxS = hit.s;
+                        hitRoad = currHitRoad;
+                    }
+                    else if (hitRoad == currHitRoad)
+                    {
+                        maintainHit = true;
+                        road2MinS = std::min(road2MinS, hit.s);
+                        road2MaxS = std::max(road2MaxS, hit.s);
+                    }
+                }
+            }
+
+            if (!maintainHit && hitRoad != nullptr)
+            {
+                // end of hit
+                unfiltered.emplace_back(road1BeginS, s, hitRoad, road2MinS, road2MaxS);
+                hitRoad.reset();
             }
         }
+
+        if (hitRoad != nullptr)
+        {
+            unfiltered.emplace_back(road1BeginS, sEnd, hitRoad, road2MinS, road2MaxS);
+        }
+
+        for (const auto& overlap : unfiltered)
+        {
+            if (overlap.sBegin1 == overlap.sEnd1 ||
+                overlap.sBegin2 == overlap.sEnd2)
+            {
+                continue;
+            }
+            if (overlap.sBegin1 == 0 && predecessorJunction != nullptr ||
+                overlap.sEnd1 == Length() && successorJunction != nullptr)
+            {
+                continue;
+            }
+            if (overlap.road2.lock()->generated.junction != "-1")
+            {
+                auto junctionPtr = IDGenerator::ForJunction()->GetByID(overlap.road2.lock()->generated.junction);
+                auto junction = static_cast<RoadRunner::Junction*>(junctionPtr)->shared_from_this();
+                if (predecessorJunction == junction &&
+                    overlap.sBegin1 < 0.1)
+                {
+                    // Already joined this junction
+                    continue;
+                }
+                if (successorJunction == junction &&
+                    (overlap.sEnd1 > Length() - 0.1))
+                {
+                    // Already joined this junction
+                    continue;
+                }
+            }
+            rtn.emplace_back(overlap);
+        }
+
         /*
         for (auto it = beginIt; it != endIt; ++it)
         {

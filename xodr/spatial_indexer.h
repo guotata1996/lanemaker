@@ -83,6 +83,7 @@ namespace RoadRunner
     struct RayCastResult
     {
         bool hit = false;
+        odr::Vec3D hitPos;
         //bool isJunction;
         std::string roadID;
         int lane;
@@ -103,6 +104,8 @@ namespace RoadRunner
         void RebuildTree();
 
         std::map<uint32_t, Quad> faceInfo;
+
+        static uint32_t InvalidFace;
 
     private:
         static SpatialIndexer* _instance;

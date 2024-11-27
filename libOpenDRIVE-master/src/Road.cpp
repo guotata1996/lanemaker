@@ -144,14 +144,20 @@ Vec3D Road::get_xyz(const double s, const double t, const double h, Vec3D* _e_s,
     return xyz;
 }
 
-Vec2D Road::get_boundary_xy(int side, double s) const
-{ 
-    auto laneSection = get_lanesection(s);
+Vec2D Road::get_boundary_xy(int side, double s) const 
+{
+    auto xyz = get_boundary_xyz(side, s); 
+    return Vec2D {xyz[0], xyz[1]};
+}
+
+Vec3D Road::get_boundary_xyz(int side, double s) const
+{
+    auto   laneSection = get_lanesection(s);
     double t = lane_offset.get(s);
-    if (side < 0) 
+    if (side < 0)
     {
         auto rightMost = laneSection.id_to_lane.begin();
-        if (rightMost->first < 0) 
+        if (rightMost->first < 0)
         {
             t = rightMost->second.outer_border.get(s);
         }
@@ -159,13 +165,12 @@ Vec2D Road::get_boundary_xy(int side, double s) const
     else
     {
         auto leftMost = laneSection.id_to_lane.rbegin();
-        if (leftMost->first > 0) 
+        if (leftMost->first > 0)
         {
             t = leftMost->second.outer_border.get(s);
         }
     }
-    auto xyz = get_xyz(s, t, 0);
-    return Vec2D { xyz[0], xyz[1] };
+    return get_xyz(s, t, 0);
 }
 
 Vec3D Road::get_surface_pt(double s, const double t, Vec3D* vn) const

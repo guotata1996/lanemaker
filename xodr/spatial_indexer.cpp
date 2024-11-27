@@ -4,6 +4,8 @@ namespace RoadRunner
 {
     SpatialIndexer* SpatialIndexer::_instance = nullptr;
 
+    uint32_t SpatialIndexer::InvalidFace = 4294967295;
+
     SpatialIndexer* SpatialIndexer::Instance()
     {
         if (_instance == nullptr)
@@ -31,8 +33,22 @@ namespace RoadRunner
         auto s1t2 = mesh.add_vertex(Point(p2[0], p2[1], h12));
         auto s2t1 = mesh.add_vertex(Point(p3[0], p3[1], h34));
         auto s2t2 = mesh.add_vertex(Point(p4[0], p4[1], h34));
-        uint32_t face1ID = mesh.add_face(s1t1, s1t2, s2t1);
-        uint32_t face2ID = mesh.add_face(s2t1, s1t2, s2t2);
+        uint32_t face1ID = InvalidFace;
+        if (p1 != p2 && p1 != p3 && p2 != p3)
+        {
+            face1ID = mesh.add_face(s1t1, s1t2, s2t1);
+        }
+
+        uint32_t face2ID = InvalidFace;
+        if (p2 != p3 && p2 != p4 && p3 != p4)
+        {
+            face2ID = mesh.add_face(s2t1, s1t2, s2t2);
+        }
+        if (face2ID == face1ID)
+        {
+            // duplicated face
+            face2ID = InvalidFace;
+        }
 
         bool biDirRoad = road.rr_profile.HasSide(-1) && road.rr_profile.HasSide(1);
         int laneIDWhenReversed = -lane.id;
@@ -51,11 +67,16 @@ namespace RoadRunner
 
         Quad face{ road.id, lane.id, laneIDWhenReversed, sBegin, sEnd, p1, p3 };
 
-        assert(faceInfo.find(face1ID) == faceInfo.end());
-        assert(faceInfo.find(face2ID) == faceInfo.end());
-
-        faceInfo.emplace(face1ID, face);
-        faceInfo.emplace(face2ID, face);
+        if (face1ID != InvalidFace)
+        {
+            assert(faceInfo.find(face1ID) == faceInfo.end());
+            faceInfo.emplace(face1ID, face);
+        }
+        if (face2ID != InvalidFace)
+        {
+            assert(faceInfo.find(face2ID) == faceInfo.end());
+            faceInfo.emplace(face2ID, face);
+        }
 
         return (static_cast<FaceIndex_t>(face1ID) << 32) | face2ID;
     }
@@ -95,11 +116,12 @@ namespace RoadRunner
                 if (boost::get<Point>(&(intersection->first))) {
                     const Point* p = boost::get<Point>(&(intersection->first));
                     odr::Vec2D p2d{ p->x(), p->y() };
+                    odr::Vec3D p3d{ p->x(), p->y(), p->z() };
                     auto dir = odr::normalize(odr::sub(info.pointOnSEnd, info.pointOnSBegin));
                     auto projLength = odr::dot(dir, odr::sub(p2d, info.pointOnSBegin));
                     auto quadLength = odr::euclDistance(info.pointOnSBegin, info.pointOnSEnd);
                     auto hitS = (projLength * info.sEnd + (quadLength - projLength) * info.sBegin) / quadLength;
-                    return RayCastResult{ true, info.roadID, info.GetLaneID(), hitS };
+                    return RayCastResult{ true, p3d, info.roadID, info.GetLaneID(), hitS };
                 }
             }
         }
@@ -111,13 +133,43 @@ namespace RoadRunner
     {
         uint32_t face1ID = index >> 32;
         uint32_t face2ID = index & 0xffffffff;
-        auto nRemoved1 = faceInfo.erase(face1ID);
-        auto nRemoved2 = faceInfo.erase(face2ID);
-        assert(nRemoved1 == 1);
-        assert(nRemoved2 == 1);
         
-        mesh.remove_face(static_cast<face_descriptor>(face1ID));
-        mesh.remove_face(static_cast<face_descriptor>(face2ID));
+        std::set<CGAL::SM_Vertex_index> vertex;
+
+        if (face1ID != InvalidFace)
+        {
+            face_descriptor f1(face1ID);
+            CGAL::Vertex_around_face_iterator<Mesh> vbegin, vend;
+            for (boost::tie(vbegin, vend) = vertices_around_face(mesh.halfedge(f1), mesh);
+                vbegin != vend; ++vbegin) 
+            {
+                vertex.emplace(*vbegin);
+            }
+
+            auto nRemoved1 = faceInfo.erase(face1ID);
+            assert(nRemoved1 == 1);
+            mesh.remove_face(static_cast<face_descriptor>(face1ID));
+        }
+
+        if (face2ID != InvalidFace)
+        {
+            face_descriptor f2(face2ID);
+            CGAL::Vertex_around_face_iterator<Mesh> vbegin, vend;
+            for (boost::tie(vbegin, vend) = vertices_around_face(mesh.halfedge(f2), mesh);
+                vbegin != vend; ++vbegin)
+            {
+                vertex.emplace(*vbegin);
+            }
+
+            auto nRemoved2 = faceInfo.erase(face2ID);
+            assert(nRemoved2 == 1);
+            mesh.remove_face(static_cast<face_descriptor>(face2ID));
+        }
+        
+        for (auto vID : vertex)
+        {
+            mesh.remove_vertex(vID);
+        }
     }
 
     void SpatialIndexer::RebuildTree()
