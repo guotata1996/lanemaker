@@ -16,7 +16,10 @@ public:
     IDGenerator& operator=(const IDGenerator&) = delete;
     static IDGenerator* ForJunction();
     static IDGenerator* ForRoad();
-    static IDGenerator* ForFace();
+    static IDGenerator* ForFace(); // spatial
+    static IDGenerator* ForVertex(); // graphics
+    static IDGenerator* ForElement(); // graphics
+    static IDGenerator* ForGraphics(); // graphics
     static IDGenerator* ForVehicle();
     static void Reset();
 
@@ -39,6 +42,10 @@ private:
     static IDGenerator* _road;
     static IDGenerator* _face;
     static IDGenerator* _vehicle;
+
+    static IDGenerator* _vertex;
+    static IDGenerator* _element;
+    static IDGenerator* _graphics;
 
     std::string type;
     std::vector<bool> assigned;

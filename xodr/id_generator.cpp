@@ -7,6 +7,11 @@ IDGenerator* IDGenerator::_face = nullptr;
 IDGenerator* IDGenerator::_road = nullptr;
 IDGenerator* IDGenerator::_vehicle = nullptr;
 
+IDGenerator* IDGenerator::_vertex = nullptr;
+IDGenerator* IDGenerator::_element = nullptr;
+IDGenerator* IDGenerator::_graphics = nullptr;
+
+
 IDGenerator::IDGenerator(std::string aType): type(aType)
 {
     
@@ -46,6 +51,33 @@ IDGenerator* IDGenerator::ForVehicle()
         _vehicle = new IDGenerator("Vehicle");
     }
     return _vehicle;
+}
+
+IDGenerator* IDGenerator::ForVertex()
+{
+    if (_vertex == nullptr)
+    {
+        _vertex = new IDGenerator("Vertex");
+    }
+    return _vertex;
+}
+
+IDGenerator* IDGenerator::ForElement()
+{
+    if (_element == nullptr)
+    {
+        _element = new IDGenerator("Element");
+    }
+    return _element;
+}
+
+IDGenerator* IDGenerator::ForGraphics()
+{
+    if (_graphics == nullptr)
+    {
+        _graphics = new IDGenerator("Graphics");
+    }
+    return _graphics;
 }
 
 void IDGenerator::Reset()

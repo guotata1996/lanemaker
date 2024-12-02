@@ -48,6 +48,7 @@ namespace RoadRunner
         double sectionElevation;
 
         std::vector<FaceIndex_t> allSpatialIndice;
+        std::vector<std::size_t> allGraphicsIndice;
 
     private:
         static QPainterPath CreateRefLinePath(const odr::Line3D& center);

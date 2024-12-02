@@ -11,6 +11,11 @@ QT_END_NAMESPACE
 class MainWidget;
 class VehicleManager;
 
+namespace RoadRunner
+{
+    class MapViewGL;
+}
+
 class MainWindow : public QWidget
 {
 public:
@@ -45,6 +50,8 @@ private:
 
     std::unique_ptr<ReplayWindow> replayWindow;
     std::unique_ptr<PreferenceWindow> preferenceWindow;
+
+    RoadRunner::MapViewGL* mapViewGL;
 
     QAction* toggleSimAction;
     QAction* pauseResumeSimulation;

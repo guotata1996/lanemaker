@@ -26,6 +26,7 @@
 #include <QPushButton>
 #include <QGraphicsProxyWidget>
 
+#include "map_view_gl.h"
 
 QGraphicsScene* g_scene;
 
@@ -101,7 +102,23 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 
     auto mainLayout = new QVBoxLayout;
     mainLayout->addWidget(menu);
-    mainLayout->addWidget(mainWidget.get());
+    //mainLayout->addWidget(mainWidget.get());
+
+    QSurfaceFormat format;
+    format.setRenderableType(QSurfaceFormat::OpenGL);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    format.setVersion(3, 3);
+    format.setSamples(4);	// enable multisampling (antialiasing)
+    format.setDepthBufferSize(8);
+
+    mapViewGL = new RoadRunner::MapViewGL;
+    mapViewGL->setFormat(format);
+
+    QWidget* container = QWidget::createWindowContainer(mapViewGL, this);
+    container->setFocusPolicy(Qt::TabFocus);
+    container->setMinimumSize(QSize(800, 600));
+
+    mainLayout->addWidget(container);
     auto bottomLayout = new QHBoxLayout;
     hintStatus = std::make_unique<QStatusBar>();
     bottomLayout->addWidget(hintStatus.get());

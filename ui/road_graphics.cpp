@@ -1,5 +1,4 @@
 #include "road_graphics.h"
-#include "mainwindow.h"
 
 #include <QGraphicsSceneMouseEvent>
 #include <qgraphicsscene.h>
@@ -11,12 +10,14 @@
 #include "spdlog/spdlog.h"
 #include "stats.h"
 #include "junction.h"
+#include "map_view_gl.h"
 
 extern QGraphicsScene* g_scene;
 
-
 namespace RoadRunner
 {
+    extern MapViewGL* g_mapViewGL;
+
     SectionGraphics::SectionGraphics(std::shared_ptr<RoadRunner::Road> road,
         const odr::LaneSection& laneSection,
         double sBegin, double sEnd)
@@ -65,6 +66,7 @@ namespace RoadRunner
                 // TODO: subdivide to more faces
                 // TODO: re-index moved & reversed segments
                 allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, sMin, sMax));
+                allGraphicsIndice.push_back(g_mapViewGL->AddQuads(innerBorder, outerBorder));
             }
         }
 
@@ -189,6 +191,10 @@ namespace RoadRunner
         for (auto index : allSpatialIndice)
         {
             SpatialIndexer::Instance()->UnIndex(index);
+        }
+        for (auto index : allGraphicsIndice)
+        {
+            g_mapViewGL->RemoveItem(index);
         }
     }
 
