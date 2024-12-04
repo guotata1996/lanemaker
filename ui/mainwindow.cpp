@@ -117,6 +117,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     QWidget* container = QWidget::createWindowContainer(mapViewGL, this);
     container->setFocusPolicy(Qt::TabFocus);
     container->setMinimumSize(QSize(800, 600));
+    container->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     mainLayout->addWidget(container);
     auto bottomLayout = new QHBoxLayout;
@@ -252,6 +253,7 @@ void MainWindow::loadFromFile()
         RoadRunner::ActionManager::Instance()->Record(buffer.str());
 
         mainWidget->PostEditActions();
+        RoadRunner::g_mapViewGL->renderNow();
     }
 }
 

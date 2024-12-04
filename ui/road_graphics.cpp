@@ -16,8 +16,6 @@ extern QGraphicsScene* g_scene;
 
 namespace RoadRunner
 {
-    extern MapViewGL* g_mapViewGL;
-
     SectionGraphics::SectionGraphics(std::shared_ptr<RoadRunner::Road> road,
         const odr::LaneSection& laneSection,
         double sBegin, double sEnd)

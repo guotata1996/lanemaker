@@ -17,16 +17,20 @@ namespace RoadRunner
 	public:
 		MapViewGL();
 
-		size_t AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder);
+		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder);
 
-		void RemoveItem(size_t);
+		void RemoveItem(unsigned int);
 
 	protected:
 		void initializeGL() override;
 		void resizeGL(int width, int height) override;
 		void paintGL() override;
 
+		void mouseMoveEvent(QMouseEvent* event) override;
+
 	private:
+		QVector3D PointerDirection(QPoint cursor) const;
+
 		ShaderProgram shader;
 
 		std::array<Vertex, 2 * 262144>			m_vertexBufferData;
@@ -47,7 +51,9 @@ namespace RoadRunner
 		Camera						m_camera;		// Camera position, orientation and lens data
 		QMatrix4x4					m_worldToView;	// cached world to view transformation matrix
 
-		std::map<size_t, std::vector<size_t>> idToEids;
-		std::map<size_t, std::vector<size_t>> idToVids;
+		std::map<unsigned int, std::vector<unsigned int>> idToEids;
+		std::map<unsigned int, std::vector<unsigned int>> idToVids;
 	};
+
+	extern MapViewGL* g_mapViewGL;
 }
