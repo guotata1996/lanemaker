@@ -192,7 +192,7 @@ void MainWindow::reset()
     assert(mainWidget->view()->scene()->items().isEmpty());
     resizeDontRecord(PreferredSize().width(), PreferredSize().height());
     loadedFileName.clear();
-
+    RoadRunner::g_mapViewGL->renderNow();
     //spdlog::set_level(prevLevel);
 }
 

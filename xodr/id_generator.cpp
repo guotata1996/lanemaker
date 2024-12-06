@@ -85,6 +85,11 @@ void IDGenerator::Reset()
     IDGenerator::ForRoad()->reset();
     IDGenerator::ForJunction()->reset();
     IDGenerator::ForVehicle()->reset();
+
+    IDGenerator::ForFace()->reset();
+    IDGenerator::ForGraphics()->reset();
+    IDGenerator::ForElement()->reset();
+    IDGenerator::ForVertex()->reset();
 }
 
 size_t IDGenerator::size() const
