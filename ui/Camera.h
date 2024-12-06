@@ -49,6 +49,10 @@ public:
 		return m_world;
 	}
 
+	bool isRotationValid() const
+	{
+		return up().z() > 0.1;
+	}
 };
 
 #endif // CAMERA_H

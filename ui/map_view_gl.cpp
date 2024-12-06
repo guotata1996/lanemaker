@@ -28,6 +28,8 @@ namespace RoadRunner
         //m_camera.rotate(-25, QVector3D(0.0f, 1.0f, 0.0f));
 
         g_mapViewGL = this;
+
+        memset(pressedKeys, 0, sizeof(pressedKeys) / sizeof(bool));
     }
 
     unsigned int MapViewGL::AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder)
@@ -200,42 +202,80 @@ namespace RoadRunner
     {
         if (event->button() == Qt::RightButton)
         {
-            dragStartPos = event->pos();
-            dragStartRot = m_camera.rotation();
-            dragStartRay = PointerDirection(event->pos());
+            lastMousePos = event->pos();
+            dragStartRay = PointerDirection(lastMousePos);
         }
     }
 
     void MapViewGL::mouseMoveEvent(QMouseEvent* event)
     {
-        if (dragStartPos.has_value())
+        lastMousePos = event->pos();
+        if (dragStartRay.has_value())
         {
             if (event->x() < 0 || event->x() > width() ||
                 event->y() < 0 || event->y() > height())
             {
                 return;
             }
-            auto halfHeight = height() / 2;
-            auto halfWidth = width() / 2;
-            auto focalPlanDistance = halfHeight / std::tan(M_PI / 6); // 60 deg FOV
-
-            double startHAngle = std::atan2(dragStartPos->x() - halfWidth, focalPlanDistance);
-            double currHAngle = std::atan2(event->x() - halfWidth, focalPlanDistance);
-            double deltaHAngle = 180 / M_PI * (currHAngle - startHAngle);
-            auto hRot = QQuaternion::fromAxisAndAngle(m_camera.up(), deltaHAngle);
-            m_camera.setRotation(hRot);
             
-            double startVAngle = std::atan2(dragStartPos->y() - halfHeight, focalPlanDistance);
-            double currVAngle = std::atan2(event->y() - halfHeight, focalPlanDistance);
-            double deltaVAngle = 180 / M_PI * (currVAngle - startVAngle);
-            auto vRot = QQuaternion::fromAxisAndAngle(m_camera.right(), deltaVAngle);
-            m_camera.setRotation(dragStartRot.value() * hRot * vRot);
+            int i;
+            const int MaxIter = 500;
+            const auto backupRotation = m_camera.rotation();
+            for (i = 0; i != MaxIter; ++i)
+            {
+                double step = i < MaxIter / 2 ? 1 : 0.1;
+                int tol = i < MaxIter / 2 ? 1 : 3;
+                QPointF rayPixel = PixelLocation(dragStartRay.value());
 
-            renderLater();
+                auto xError = std::abs(event->x() - rayPixel.x());
+                auto yError = std::abs(event->y() - rayPixel.y());
+
+                if (xError <= tol && yError <= tol)
+                {
+                    break;
+                }
+                if (xError > yError)
+                {
+                    if (event->x() > rayPixel.x() + tol)
+                    {
+                        m_camera.rotate(step, QVector3D(0, 0, 1));
+                    }
+                    else
+                    {
+                        m_camera.rotate(-step, QVector3D(0, 0, 1));
+                    }
+                }
+                else
+                {
+                    if (event->y() > rayPixel.y() + tol)
+                    {
+                        m_camera.rotate(step, m_camera.right());
+                    }
+                    else
+                    {
+                        m_camera.rotate(-step, m_camera.right());
+                    }
+                }                
+            }
+
+            if (i == MaxIter)
+            {
+                spdlog::warn("Camera Angle Adj reach max iteration");
+                m_camera.setRotation(backupRotation);
+            }
+            else if (!m_camera.isRotationValid())
+            {
+                m_camera.setRotation(backupRotation);
+            }
+            else
+            {
+                renderLater();
+
+            }
         }
         else
         {
-            auto rayDir = PointerDirection(event->pos());
+            auto rayDir = PointerDirection(lastMousePos);
             OpenGLWindow::mouseMoveEvent(event);
             RayCastQuery ray{
                 odr::Vec3D{m_camera.translation().x(), m_camera.translation().y(), m_camera.translation().z()},
@@ -251,32 +291,102 @@ namespace RoadRunner
 
     void MapViewGL::mouseReleaseEvent(QMouseEvent* event)
     {
-        dragStartPos.reset();
+        dragStartRay.reset();
+    }
+
+    void MapViewGL::wheelEvent(QWheelEvent* event)
+    {
+        auto dir = event->angleDelta().y() > 0 ? 1 : -1;
+        auto delta = dir * PointerDirection(lastMousePos) * 10;
+        m_camera.translate(delta);
+        renderLater();
     }
 
     void MapViewGL::keyPressEvent(QKeyEvent* event)
     {
         auto flatForward = m_camera.forward().toVector2D();
         flatForward.normalize();
+        flatForward *= 5;
         if (event->key() == Qt::Key_W)
+        {
+            pressedKeys[Qt::Key_W] = true;
+        }
+        if (event->key() == Qt::Key_S)
+        {
+            pressedKeys[Qt::Key_S] = true;
+        }
+        if (event->key() == Qt::Key_A)
+        {
+            pressedKeys[Qt::Key_A] = true;
+        }
+        if (event->key() == Qt::Key_D)
+        {
+            pressedKeys[Qt::Key_D] = true;
+        }
+        if (event->key() == Qt::Key_Q)
+        {
+            pressedKeys[Qt::Key_Q] = true;
+        }
+        if (event->key() == Qt::Key_E)
+        {
+            pressedKeys[Qt::Key_E] = true;
+        }
+
+        if (pressedKeys[Qt::Key_W])
         {
             m_camera.translate(flatForward.x(), flatForward.y(), 0);
         }
-        else if (event->key() == Qt::Key_S)
+        if (pressedKeys[Qt::Key_S])
         {
             m_camera.translate(-flatForward.x(), -flatForward.y(), 0);
         }
-        else if (event->key() == Qt::Key_A)
+        if (pressedKeys[Qt::Key_A])
         {
             m_camera.translate(-flatForward.y(), flatForward.x(), 0);
         }
-        else if (event->key() == Qt::Key_D)
+        if (pressedKeys[Qt::Key_D])
         {
             m_camera.translate(flatForward.y(), -flatForward.x(), 0);
+        }
+        if (pressedKeys[Qt::Key_Q])
+        {
+            m_camera.rotate(-5, QVector3D(0, 0, 1));
+        }
+        if (pressedKeys[Qt::Key_E])
+        {
+            m_camera.rotate(5, QVector3D(0, 0, 1));
         }
 
         // update cached world2view matrix
         renderLater();
+    }
+
+    void MapViewGL::keyReleaseEvent(QKeyEvent* event)
+    {
+        if (event->key() == Qt::Key_W)
+        {
+            pressedKeys[Qt::Key_W] = false;
+        }
+        if (event->key() == Qt::Key_S)
+        {
+            pressedKeys[Qt::Key_S] = false;
+        }
+        if (event->key() == Qt::Key_A)
+        {
+            pressedKeys[Qt::Key_A] = false;
+        }
+        if (event->key() == Qt::Key_D)
+        {
+            pressedKeys[Qt::Key_D] = false;
+        }
+        if (event->key() == Qt::Key_Q)
+        {
+            pressedKeys[Qt::Key_Q] = false;
+        }
+        if (event->key() == Qt::Key_E)
+        {
+            pressedKeys[Qt::Key_E] = false;
+        }
     }
 
     QVector3D MapViewGL::PointerDirection(QPoint cursor) const
@@ -291,5 +401,19 @@ namespace RoadRunner
         auto rtn = m_camera.rotation().rotatedVector(dir);
         rtn.normalize();
         return rtn;
+    }
+
+    QPointF MapViewGL::PixelLocation(QVector3D globalDir) const
+    {
+        QVector3D localPos = m_camera.toMatrix().mapVector(globalDir);
+
+        auto halfHeight = height() / 2;
+        auto halfWidth = width() / 2;
+
+        auto focalPlanDistance = halfHeight / std::tan(M_PI / 6); // 60 deg FOV
+        auto scale = static_cast<float>(-focalPlanDistance) / localPos.z();
+        auto xPixel = scale * localPos.x() + halfWidth;
+        auto yPixel = -scale * localPos.y() + halfHeight;
+        return QPointF(xPixel, yPixel);
     }
 }

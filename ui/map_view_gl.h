@@ -31,10 +31,19 @@ namespace RoadRunner
 		void mouseMoveEvent(QMouseEvent* event) override;
 		void mouseReleaseEvent(QMouseEvent* event) override;
 
+		void wheelEvent(QWheelEvent* event) override;
+
 		void keyPressEvent(QKeyEvent* event) override;
+		void keyReleaseEvent(QKeyEvent* event) override;
 
 	private:
+		QPoint lastMousePos;
+		std::optional<QVector3D> dragStartRay;
+		bool pressedKeys[Qt::Key_Z];
+
 		QVector3D PointerDirection(QPoint cursor) const;
+
+		QPointF PixelLocation(QVector3D globalDir) const;
 
 		ShaderProgram shader;
 
@@ -58,10 +67,6 @@ namespace RoadRunner
 
 		std::map<unsigned int, std::vector<unsigned int>> idToEids;
 		std::map<unsigned int, std::vector<unsigned int>> idToVids;
-
-		std::optional<QPoint> dragStartPos;
-		std::optional<QQuaternion> dragStartRot;
-		std::optional<QVector3D> dragStartRay;
 	};
 
 	extern MapViewGL* g_mapViewGL;
