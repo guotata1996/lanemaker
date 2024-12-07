@@ -6,9 +6,6 @@ IDGenerator* IDGenerator::_junction = nullptr;
 IDGenerator* IDGenerator::_face = nullptr;
 IDGenerator* IDGenerator::_road = nullptr;
 IDGenerator* IDGenerator::_vehicle = nullptr;
-
-IDGenerator* IDGenerator::_vertex = nullptr;
-IDGenerator* IDGenerator::_element = nullptr;
 IDGenerator* IDGenerator::_graphics = nullptr;
 
 
@@ -53,24 +50,6 @@ IDGenerator* IDGenerator::ForVehicle()
     return _vehicle;
 }
 
-IDGenerator* IDGenerator::ForVertex()
-{
-    if (_vertex == nullptr)
-    {
-        _vertex = new IDGenerator("Vertex");
-    }
-    return _vertex;
-}
-
-IDGenerator* IDGenerator::ForElement()
-{
-    if (_element == nullptr)
-    {
-        _element = new IDGenerator("Element");
-    }
-    return _element;
-}
-
 IDGenerator* IDGenerator::ForGraphics()
 {
     if (_graphics == nullptr)
@@ -88,8 +67,6 @@ void IDGenerator::Reset()
 
     IDGenerator::ForFace()->reset();
     IDGenerator::ForGraphics()->reset();
-    IDGenerator::ForElement()->reset();
-    IDGenerator::ForVertex()->reset();
 }
 
 size_t IDGenerator::size() const

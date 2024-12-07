@@ -399,7 +399,7 @@ void MainWindow::setFPS(QString msg)
 
 void MainWindow::closeEvent(QCloseEvent* e)
 {
-    vehicleManager->End();
+    reset();
     testReplay();
     QWidget::closeEvent(e);
 }

@@ -188,6 +188,7 @@ namespace RoadRunner
     void ChangeTracker::Clear()
     {
         Road::ClearingMap = true;
+        SpatialIndexer::Instance()->Clear();
         World::Instance()->allRoads.clear();
         Road::ClearingMap = false;
         IDGenerator::Reset();

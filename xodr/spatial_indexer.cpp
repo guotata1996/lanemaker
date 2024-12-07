@@ -177,4 +177,11 @@ namespace RoadRunner
         tree.clear();
         tree.insert(faces(mesh).begin(), faces(mesh).end(), mesh);
     }
+
+    void SpatialIndexer::Clear()
+    {
+        mesh.clear();
+        tree.clear();
+        faceInfo.clear();
+    }
 }

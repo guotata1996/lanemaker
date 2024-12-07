@@ -52,7 +52,9 @@ namespace RoadRunner
 		ShaderProgram shader;
 
 		std::array<Vertex, 2 * 262144>			m_vertexBufferData;
+		size_t                                  m_vertexBufferCount;
 		std::array<GLuint, 3 * 262144>			m_elementBufferData;
+		size_t                                  m_elementCount;
 
 		/*! Wraps an OpenGL VertexArrayObject, that references the vertex coordinates and color buffers. */
 		//QOpenGLVertexArrayObject	m_vao;
@@ -60,7 +62,7 @@ namespace RoadRunner
 
 		/*! Holds position and colors in a single buffer. */
 		QOpenGLBuffer				m_vbo;
-		/*! Holds elements. */
+		/*! Holds elements. No need to bind / release*/
 		QOpenGLBuffer				m_ebo;
 
 		/*! The projection matrix, updated whenever the viewport geometry changes (in resizeGL() ). */

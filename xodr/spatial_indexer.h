@@ -107,6 +107,8 @@ namespace RoadRunner
 
         static uint32_t InvalidFace;
 
+        void Clear();
+
     private:
         static SpatialIndexer* _instance;
 

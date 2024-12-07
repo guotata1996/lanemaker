@@ -20,7 +20,7 @@ namespace RoadRunner
         const odr::LaneSection& laneSection,
         double sBegin, double sEnd)
     {
-        g_scene->addItem(this);
+        //g_scene->addItem(this);
         auto Length = (std::abs(sBegin - sEnd));
         
         odr::Road& gen = road->generated;
@@ -185,10 +185,13 @@ namespace RoadRunner
 
     SectionGraphics::~SectionGraphics()
     {
-        g_scene->removeItem(this);
-        for (auto index : allSpatialIndice)
+        //g_scene->removeItem(this);
+        if (!Road::ClearingMap)
         {
-            SpatialIndexer::Instance()->UnIndex(index);
+            for (auto index : allSpatialIndice)
+            {
+                SpatialIndexer::Instance()->UnIndex(index);
+            }
         }
         for (auto index : allGraphicsIndice)
         {
@@ -389,7 +392,7 @@ namespace RoadRunner
         setBrush(DefaultBrush);
         path.addPolygon(LineToPoly(boundary));
         setPath(path);
-        g_scene->addItem(this);
+        //g_scene->addItem(this);
         setAcceptHoverEvents(true);
     }
 
@@ -441,12 +444,12 @@ namespace RoadRunner
         }
         
         setPath(path);
-        g_scene->addItem(this);
+        //g_scene->addItem(this);
     }
 
     JunctionGraphics::~JunctionGraphics()
     {
-        g_scene->removeItem(this);
+        //g_scene->removeItem(this);
     }
 
     void JunctionGraphics::hoverEnterEvent(QGraphicsSceneHoverEvent* evt)
