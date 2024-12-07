@@ -51,7 +51,7 @@ public:
 
 	bool isRotationValid() const
 	{
-		return up().z() > 0.1;
+		return 0.1 < up().z() && up().z() < 0.9;
 	}
 };
 

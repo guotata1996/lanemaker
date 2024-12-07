@@ -203,14 +203,18 @@ namespace RoadRunner
         if (event->button() == Qt::RightButton)
         {
             lastMousePos = event->pos();
-            dragStartRay = PointerDirection(lastMousePos);
+            dragRotFixedRay = PointerDirection(lastMousePos);
+        }
+        else if (event->button() == Qt::MiddleButton)
+        {
+            lastMousePos = event->pos();
+            dragPan = true;
         }
     }
 
     void MapViewGL::mouseMoveEvent(QMouseEvent* event)
     {
-        lastMousePos = event->pos();
-        if (dragStartRay.has_value())
+        if (dragRotFixedRay.has_value())
         {
             if (event->x() < 0 || event->x() > width() ||
                 event->y() < 0 || event->y() > height())
@@ -225,7 +229,7 @@ namespace RoadRunner
             {
                 double step = i < MaxIter / 2 ? 1 : 0.1;
                 int tol = i < MaxIter / 2 ? 1 : 3;
-                QPointF rayPixel = PixelLocation(dragStartRay.value());
+                QPointF rayPixel = PixelLocation(dragRotFixedRay.value());
 
                 auto xError = std::abs(event->x() - rayPixel.x());
                 auto yError = std::abs(event->y() - rayPixel.y());
@@ -260,7 +264,7 @@ namespace RoadRunner
 
             if (i == MaxIter)
             {
-                spdlog::warn("Camera Angle Adj reach max iteration");
+                spdlog::trace("Camera Angle Adj reach max iteration");
                 m_camera.setRotation(backupRotation);
             }
             else if (!m_camera.isRotationValid())
@@ -270,12 +274,18 @@ namespace RoadRunner
             else
             {
                 renderLater();
-
             }
+        }
+        else if (dragPan)
+        {
+            auto lastGroundPos = PointerOnGround(lastMousePos);
+            auto currGroundPos = PointerOnGround(event->pos());
+            m_camera.translate(lastGroundPos - currGroundPos);
+            renderLater();
         }
         else
         {
-            auto rayDir = PointerDirection(lastMousePos);
+            auto rayDir = PointerDirection(event->pos());
             OpenGLWindow::mouseMoveEvent(event);
             RayCastQuery ray{
                 odr::Vec3D{m_camera.translation().x(), m_camera.translation().y(), m_camera.translation().z()},
@@ -287,11 +297,13 @@ namespace RoadRunner
                 spdlog::info("Hit: {}, {}, {}", hitInfo.hitPos[0], hitInfo.hitPos[1], hitInfo.hitPos[2]);
             }
         }
+        lastMousePos = event->pos();
     }
 
     void MapViewGL::mouseReleaseEvent(QMouseEvent* event)
     {
-        dragStartRay.reset();
+        dragRotFixedRay.reset();
+        dragPan = false;
     }
 
     void MapViewGL::wheelEvent(QWheelEvent* event)
@@ -415,5 +427,12 @@ namespace RoadRunner
         auto xPixel = scale * localPos.x() + halfWidth;
         auto yPixel = -scale * localPos.y() + halfHeight;
         return QPointF(xPixel, yPixel);
+    }
+
+    QVector2D MapViewGL::PointerOnGround(QPoint cursor) const
+    {
+        QVector3D dir = PointerDirection(cursor);
+        auto length = -m_camera.translation().z() / dir.z();
+        return QVector2D(m_camera.translation() + length * dir);
     }
 }

@@ -6,6 +6,7 @@
 #include "Vertex.h"
 #include "Camera.h"
 
+#include <qvector2d.h>
 #include <QMatrix4x4>
 #include <QOpenGLBuffer>
 #include <QOpenGLVertexArrayObject>
@@ -38,12 +39,15 @@ namespace RoadRunner
 
 	private:
 		QPoint lastMousePos;
-		std::optional<QVector3D> dragStartRay;
+		std::optional<QVector3D> dragRotFixedRay;
+		bool dragPan = false;
 		bool pressedKeys[Qt::Key_Z];
 
 		QVector3D PointerDirection(QPoint cursor) const;
 
 		QPointF PixelLocation(QVector3D globalDir) const;
+
+		QVector2D PointerOnGround(QPoint cursor) const;
 
 		ShaderProgram shader;
 
