@@ -31,6 +31,8 @@ namespace RoadRunner
             }
             return rtn;
         }
+
+        std::vector<QPolygonF> ArrowShape(int arrowType);
     }
 
     class LaneGraphics;
@@ -133,11 +135,5 @@ namespace RoadRunner
         const QBrush DefaultBrush = QBrush(Qt::darkGray, Qt::SolidPattern);
 
         std::vector<std::size_t> allGraphicsIndice;
-    };
-
-    class ArrowGraphics : public QGraphicsPathItem
-    {
-    public:
-        ArrowGraphics(int arrowType, QGraphicsItem* parent);
     };
 }

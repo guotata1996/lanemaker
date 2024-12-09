@@ -36,31 +36,6 @@ namespace RoadRunner
             {
                 odr::Line3D innerBorder, outerBorder;
                 gen.get_lane_border_line(lane, sMin, sMax, 0.1f, outerBorder, innerBorder);
-                /*
-                auto aggregateBorder = outerBorder;
-                aggregateBorder.insert(aggregateBorder.end(), innerBorder.rbegin(), innerBorder.rend());
-                QPolygonF poly = LineToPoly(aggregateBorder);
-                const int laneID = id2Lane.first;
-                int laneIDWhenReversed = 0;
-                if (biDirRoad)
-                {
-                    if (lane.type == "median")
-                    {
-                        assert(laneID == 1);
-                        laneIDWhenReversed = 1;
-                    }
-                    else
-                    {
-                        laneIDWhenReversed = -laneID + 1;
-                    }
-                }
-                else
-                {
-                    laneIDWhenReversed = -laneID;
-                }
-                auto laneSegmentItem = new LaneGraphics(poly, outerBorder, innerBorder,
-                    laneID, laneIDWhenReversed, lane.type, this);
-                allLaneGraphics.push_back(laneSegmentItem);*/
 
                 // TODO: subdivide to more faces
                 allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, sMin, sMax));
@@ -128,7 +103,6 @@ namespace RoadRunner
             }
         }
 
-        // TODO: Draw road objects if needed
         for (const auto& id_object : gen.id_to_object)
         {
             if (sMin <= id_object.second.s0 && id_object.second.s0 < sMax)
@@ -142,13 +116,19 @@ namespace RoadRunner
                         auto w = id_object.second.width;
                         auto s1 = s - w / 2;
                         auto s2 = s + w / 2;
-                        auto polys = gen.get_both_dirs_poly(s1, s2, 0.1);
-                        auto poly = id_object.first == std::to_string(odr::RoadLink::ContactPoint_Start) ? polys.first : polys.second;
-                        QPolygonF markingPoly = LineToPoly(poly);
-                        markingItem = new QGraphicsPolygonItem(markingPoly, this);
-                        markingItem->setPen(Qt::NoPen);
-                        Qt::GlobalColor color = Qt::white;
-                        markingItem->setBrush(QBrush(color, Qt::SolidPattern));
+
+                        uint8_t side = id_object.first == std::to_string(odr::RoadLink::ContactPoint_Start) ? 1 : -1;
+                        auto l1 = gen.get_side_border_line(side, s1, s2, false, 0.1);
+                        auto l2 = gen.get_side_border_line(side, s1, s2, true, 0.1);
+                        for (auto& p : l1)
+                        {
+                            p[2] += 0.01;
+                        }
+                        for (auto& p : l2)
+                        {
+                            p[2] += 0.01;
+                        }
+                        allGraphicsIndice.push_back(g_mapViewGL->AddQuads(l1, l2, Qt::white));
                     }
                     else if (id_object.second.subtype == "arrow")
                     {
@@ -156,20 +136,27 @@ namespace RoadRunner
                         auto pt = gen.get_surface_pt(sMid, id_object.second.t0);
                         auto hdg = gen.ref_line.get_hdg(sMid);
                         int arrowType = std::stoi(id_object.second.name);
-                        markingItem = new ArrowGraphics(arrowType, this);
                         QTransform arrowTransform;
                         arrowTransform.translate(pt[0], pt[1]);
                         arrowTransform.rotate(180 / M_PI * id_object.second.hdg);
-                        markingItem->setTransform(arrowTransform);
+
+                        for (auto poly : ArrowShape(arrowType))
+                        {
+                            auto transformed = arrowTransform.map(poly);
+                            odr::Line3D shape3;
+                            shape3.resize(transformed.size());
+                            for (int i = 0; i != transformed.size(); ++i)
+                            {
+                                shape3[i] = odr::Vec3D{ transformed[i].x(), transformed[i].y(), pt[2] + 0.01};
+                            }
+                            allGraphicsIndice.push_back(g_mapViewGL->AddPoly(shape3, Qt::white));
+                        }
                     }
                     else
                     {
                         spdlog::warn("roadMark subtype {} isn't supported!", id_object.second.subtype);
                         continue;
                     }
-                    markingItem->setPen(Qt::NoPen);
-                    Qt::GlobalColor color = Qt::white;
-                    markingItem->setBrush(QBrush(color, Qt::SolidPattern));
                 }
             }
         }
@@ -415,12 +402,6 @@ namespace RoadRunner
                 continue;
             }
             auto pOrigin = singleBoundary.front();
-            //auto p1 = singleBoundary.back();
-            //auto p2 = dualSides.second.back();
-            //auto pM = StripMidPoint(pOrigin, p1, p2);
-            //singleBoundary.push_back(pM);
-
-            // singleBoundary.insert(singleBoundary.end(), dualSides.second.rbegin(), dualSides.second.rend());
 
             allGraphicsIndice.push_back(g_mapViewGL->AddQuads(TwoDTo3D(dualSides.first, elevation), 
                 TwoDTo3D(dualSides.second, elevation), Qt::darkGray));
@@ -483,77 +464,88 @@ namespace RoadRunner
         return odr::add(pM, pMOffset);
     }
 
-    ArrowGraphics::ArrowGraphics(int markingType, QGraphicsItem* parent):
-        QGraphicsPathItem(parent)
+    namespace
     {
-        QPainterPath path;
-        path.setFillRule(Qt::WindingFill);
-        if ((markingType & DeadEnd) != 0)
+        std::vector<QPolygonF> ArrowShape(int markingType)
         {
-            QPolygonF stem, cross1, cross2;
-            stem << QPointF(-2, 0.2) << QPointF(1, 0.2) << QPointF(1, -0.2) << QPointF(-2, -0.2);
-            path.addPolygon(stem);
-            cross1 << QPointF(0.4, 1) << QPointF(0.6, 1) << QPointF(1.6, -1) << QPointF(1.4, -1);
-            path.addPolygon(cross1);
-            cross2 << QPointF(1.4, 1) << QPointF(1.6, 1) << QPointF(0.6, -1) << QPointF(0.4, -1);
-            path.addPolygon(cross2);
+            std::vector<QPolygonF> rtn;
+            if ((markingType & DeadEnd) != 0)
+            {
+                QPolygonF stem, cross1, cross2;
+                stem << QPointF(-2, 0.2) << QPointF(1, 0.2) << QPointF(1, -0.2) << QPointF(-2, -0.2);
+                rtn.push_back(stem);
+                cross1 << QPointF(0.4, 1) << QPointF(0.6, 1) << QPointF(1.6, -1) << QPointF(1.4, -1);
+                rtn.push_back(cross1);
+                cross2 << QPointF(1.4, 1) << QPointF(1.6, 1) << QPointF(0.6, -1) << QPointF(0.4, -1);
+                rtn.push_back(cross2);
+            }
+            if ((markingType & Turn_No) != 0)
+            {
+                QPolygonF shape;
+                shape << QPointF(-2, 0.2);
+                shape << QPointF(1, 0.2);
+                shape << QPointF(1, 0.5);
+                shape << QPointF(2, 0);
+                shape << QPointF(1, -0.5);
+                shape << QPointF(1, -0.2);
+                shape << QPointF(-2, -0.2);
+                rtn.push_back(shape);
+            }
+            if ((markingType & Turn_Left) != 0)
+            {
+                QPolygonF shape;
+                shape << QPointF(-2, 0.2);
+                shape << QPointF(-0.8, 0.2);
+                shape << QPointF(-0.2, 0.8);
+                shape << QPointF(-0.4, 1);
+                shape << QPointF(0.2, 1);
+                shape << QPointF(0.2, 0.4);
+                shape << QPointF(0, 0.6);
+                shape << QPointF(-0.8, -0.2);
+                shape << QPointF(-2, -0.2);
+                rtn.push_back(shape);
+            }
+            if ((markingType & Turn_Right) != 0)
+            {
+                QPolygonF shape;
+                shape << QPointF(-2, 0.2);
+                shape << QPointF(-0.8, 0.2);
+                shape << QPointF(0, -0.6);
+                shape << QPointF(0.2, -0.4);
+                shape << QPointF(0.2, -1);
+                shape << QPointF(-0.4, -1);
+                shape << QPointF(-0.2, -0.8);
+                shape << QPointF(-0.8, -0.2);
+                shape << QPointF(-2, -0.2);
+                rtn.push_back(shape);
+            }
+
+            if ((markingType & Turn_U) != 0 &&
+                (markingType & Turn_Right) == 0)
+            {
+                QPainterPath path;
+                path.moveTo(QPointF(-1.4, -0.2));
+                path.arcTo(QRectF(-1.6, 0.2, 0.4, 0.4), 90, -180);
+                path.arcTo(QRectF(-2, -0.2, 1.2, 1.2), -90, 180);
+                path.closeSubpath();
+
+                QPolygonF shape;
+                for (double pct = 0; pct < 1; pct += 0.01)
+                {
+                    shape.push_back(path.pointAtPercent(pct));
+                }
+                rtn.push_back(shape);
+
+                QPolygonF trunk;
+                trunk << QPointF(-2, 0.2) << QPointF(-1.4, 0.2) << QPointF(-1.4, -0.2) << QPointF(-2, -0.2);
+                rtn.push_back(trunk);
+
+                QPolygonF arrow;
+                arrow << QPointF(-1.4, 0.4) << QPointF(-1.4, 1.2) << QPointF(-1.7, 0.8);
+                rtn.push_back(arrow);
+            }
+            return rtn;
         }
-        if ((markingType & Turn_No) != 0)
-        {
-            QPolygonF shape;
-            shape << QPointF(-2, 0.2);
-            shape << QPointF(1, 0.2);
-            shape << QPointF(1, 0.5);
-            shape << QPointF(2, 0);
-            shape << QPointF(1, -0.5);
-            shape << QPointF(1, -0.2);
-            shape << QPointF(-2, -0.2);
-            path.addPolygon(shape);
-        }
-        if ((markingType & Turn_Left) != 0)
-        {
-            QPolygonF shape;
-            shape << QPointF(-2, 0.2);
-            shape << QPointF(-0.8, 0.2);
-            shape << QPointF(-0.2, 0.8);
-            shape << QPointF(-0.4, 1);
-            shape << QPointF(0.2, 1);
-            shape << QPointF(0.2, 0.4);
-            shape << QPointF(0, 0.6);
-            shape << QPointF(-0.8, -0.2);
-            shape << QPointF(-2, -0.2);
-            path.addPolygon(shape);
-        }
-        if ((markingType & Turn_Right) != 0)
-        {
-            QPolygonF shape;
-            shape << QPointF(-2, 0.2);
-            shape << QPointF(-0.8, 0.2);
-            shape << QPointF(0, -0.6);
-            shape << QPointF(0.2, -0.4);
-            shape << QPointF(0.2, -1);
-            shape << QPointF(-0.4, -1);
-            shape << QPointF(-0.2, -0.8);
-            shape << QPointF(-0.8, -0.2);
-            shape << QPointF(-2, -0.2);
-            path.addPolygon(shape);
-        }
-        if ((markingType & Turn_U) != 0 && 
-            (markingType & Turn_No) == 0 && (markingType & Turn_Right) == 0)
-        {
-            path.moveTo(QPointF(-1.4, -0.2));
-            path.arcTo(QRectF(-1.6, 0.2, 0.4, 0.4), 90, -180);
-            path.arcTo(QRectF(-2, -0.2, 1.2, 1.2), -90, 180);
-            path.closeSubpath();
-            QPolygonF truck;
-            truck << QPointF(-2, 0.2) << QPointF(-1.4, 0.2) << QPointF(-1.4, -0.2) << QPointF(-2, -0.2);
-            path.addPolygon(truck);
-            path.moveTo(-1.4, 0.4);
-            path.lineTo(-1.4, 1.2);
-            path.lineTo(-1.7, 0.8);
-            path.closeSubpath();
-        }
-        setPath(path);
     }
 }
 
