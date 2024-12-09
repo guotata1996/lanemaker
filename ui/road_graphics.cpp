@@ -36,6 +36,7 @@ namespace RoadRunner
             {
                 odr::Line3D innerBorder, outerBorder;
                 gen.get_lane_border_line(lane, sMin, sMax, 0.1f, outerBorder, innerBorder);
+                /*
                 auto aggregateBorder = outerBorder;
                 aggregateBorder.insert(aggregateBorder.end(), innerBorder.rbegin(), innerBorder.rend());
                 QPolygonF poly = LineToPoly(aggregateBorder);
@@ -59,12 +60,12 @@ namespace RoadRunner
                 }
                 auto laneSegmentItem = new LaneGraphics(poly, outerBorder, innerBorder,
                     laneID, laneIDWhenReversed, lane.type, this);
-                allLaneGraphics.push_back(laneSegmentItem);
+                allLaneGraphics.push_back(laneSegmentItem);*/
 
                 // TODO: subdivide to more faces
-                // TODO: re-index moved & reversed segments
                 allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, sMin, sMax));
-                allGraphicsIndice.push_back(g_mapViewGL->AddQuads(innerBorder, outerBorder));
+                allGraphicsIndice.push_back(g_mapViewGL->AddQuads(innerBorder, outerBorder, 
+                    lane.type == "median" ? Qt::yellow : Qt::darkGray));
             }
         }
 
@@ -85,12 +86,14 @@ namespace RoadRunner
                     continue;
                 }
 
-                std::vector<odr::Line3D> lines;
+                std::vector<odr::Line3D> leftLines, rightLines;
                 std::vector<std::string> colors;
 
                 if (groupIt->type == "solid" || groupIt->type == "curb")
                 {
-                    lines.push_back(gen.get_lane_marking_line(lane, groupsBegin, groupsEnd, groupIt->width, 0.1f));
+                    auto markingLine = gen.get_lane_marking_line(lane, groupsBegin, groupsEnd, groupIt->width, 0.1f);
+                    leftLines.push_back(markingLine.first);
+                    rightLines.push_back(markingLine.second);
                     colors.push_back(groupIt->color);
                 }
                 else if (groupIt->type == "broken")
@@ -103,9 +106,10 @@ namespace RoadRunner
                         double sEndInSegment = std::min(s + BrokenLength, groupsEnd);
                         if (sEndInSegment > sBeginInSegment + 0.1f)
                         {
-                            odr::Line3D markingLine = gen.get_lane_marking_line(lane,
+                            auto markingLine = gen.get_lane_marking_line(lane,
                                 sBeginInSegment, sEndInSegment, groupIt->width, 0.1f);
-                            lines.push_back(markingLine);
+                            leftLines.push_back(markingLine.first);
+                            rightLines.push_back(markingLine.second);
                             colors.push_back(groupIt->color);
                         }
                     }
@@ -115,19 +119,16 @@ namespace RoadRunner
                     continue;
                 }
 
-                for (int i = 0; i != lines.size(); ++i)
+                for (int i = 0; i != colors.size(); ++i)
                 {
-                    QPolygonF markingPoly = LineToPoly(lines[i]);
-                    auto markingItem = new MarkingGraphics(markingPoly, this);
-                    markingItem->setPen(Qt::NoPen);
                     Qt::GlobalColor color = colors[i] == "yellow" ? Qt::yellow :
                         (colors[i] == "white" ? Qt::white : Qt::lightGray);
-                    markingItem->setBrush(QBrush(color, Qt::SolidPattern));
+                    allGraphicsIndice.push_back(g_mapViewGL->AddQuads(leftLines[i], rightLines[i], color));
                 }
             }
         }
 
-        // Draw road objects if needed
+        // TODO: Draw road objects if needed
         for (const auto& id_object : gen.id_to_object)
         {
             if (sMin <= id_object.second.s0 && id_object.second.s0 < sMax)
@@ -185,7 +186,6 @@ namespace RoadRunner
 
     SectionGraphics::~SectionGraphics()
     {
-        //g_scene->removeItem(this);
         if (!Road::ClearingMap)
         {
             for (auto index : allSpatialIndice)
@@ -385,18 +385,18 @@ namespace RoadRunner
         }
     }
     
-    JunctionGraphics::JunctionGraphics(const odr::Line2D& boundary)
+    JunctionGraphics::JunctionGraphics(const odr::Line2D& boundary, double elevation)
     {
-        QPainterPath path;
-        setPen(Qt::NoPen);
-        setBrush(DefaultBrush);
-        path.addPolygon(LineToPoly(boundary));
-        setPath(path);
-        //g_scene->addItem(this);
-        setAcceptHoverEvents(true);
+        odr::Line3D boundary3;
+        boundary3.resize(boundary.size());
+        for (int i = 0; i != boundary.size(); ++i)
+        {
+            boundary3[i] = odr::Vec3D{ boundary[i][0], boundary[i][1], elevation };
+        }
+        allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3, Qt::darkGray));
     }
 
-    JunctionGraphics::JunctionGraphics(const std::vector<std::pair<odr::Line2D, odr::Line2D>>& boundary)
+    JunctionGraphics::JunctionGraphics(const std::vector<std::pair<odr::Line2D, odr::Line2D>>& boundary, double elevation)
     {
         QPainterPath path;
 
@@ -415,13 +415,15 @@ namespace RoadRunner
                 continue;
             }
             auto pOrigin = singleBoundary.front();
-            auto p1 = singleBoundary.back();
-            auto p2 = dualSides.second.back();
-            auto pM = StripMidPoint(pOrigin, p1, p2);
-            singleBoundary.push_back(pM);
+            //auto p1 = singleBoundary.back();
+            //auto p2 = dualSides.second.back();
+            //auto pM = StripMidPoint(pOrigin, p1, p2);
+            //singleBoundary.push_back(pM);
 
-            singleBoundary.insert(singleBoundary.end(), dualSides.second.rbegin(), dualSides.second.rend());
-            path.addPolygon(LineToPoly(singleBoundary));
+            // singleBoundary.insert(singleBoundary.end(), dualSides.second.rbegin(), dualSides.second.rend());
+
+            allGraphicsIndice.push_back(g_mapViewGL->AddQuads(TwoDTo3D(dualSides.first, elevation), 
+                TwoDTo3D(dualSides.second, elevation), Qt::darkGray));
 
             for (int i = 0; i < dualSides.first.size() - ZebraLineWidth; i += ZebraLineWidth + ZebraLineSkip)
             {
@@ -435,21 +437,24 @@ namespace RoadRunner
                 if (odr::euclDistance(p3, p4) < 0.5) continue;
                 auto pM2 = StripMidPoint(pOrigin, p3, p4);
 
-                QPolygonF singleStrip({ QPointF(p1[0], p1[1]), QPointF(pM1[0], pM1[1]), QPointF(p2[0], p2[1]), 
-                    QPointF(p4[0], p4[1]), QPointF(pM2[0], pM2[1]), QPointF(p3[0], p3[1]) });
-                auto line = new QGraphicsPolygonItem(singleStrip, this);
-                line->setBrush(QBrush(Qt::lightGray));
-                line->setPen(Qt::NoPen);
+                odr::Line3D boundary3d;
+                boundary3d.push_back(odr::Vec3D{ p1[0], p1[1], elevation + 0.01 });
+                boundary3d.push_back(odr::Vec3D{ pM1[0], pM1[1], elevation + 0.01 });
+                boundary3d.push_back(odr::Vec3D{ p2[0], p2[1], elevation + 0.01 });
+                boundary3d.push_back(odr::Vec3D{ p4[0], p4[1], elevation + 0.01 });
+                boundary3d.push_back(odr::Vec3D{ pM2[0], pM2[1], elevation + 0.01 });
+                boundary3d.push_back(odr::Vec3D{ p3[0], p3[1], elevation + 0.01 });
+                allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3d, Qt::lightGray));
             }
         }
-        
-        setPath(path);
-        //g_scene->addItem(this);
     }
 
     JunctionGraphics::~JunctionGraphics()
     {
-        //g_scene->removeItem(this);
+        for (auto index : allGraphicsIndice)
+        {
+            g_mapViewGL->RemoveItem(index);
+        }
     }
 
     void JunctionGraphics::hoverEnterEvent(QGraphicsSceneHoverEvent* evt)

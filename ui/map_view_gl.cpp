@@ -1,12 +1,12 @@
 #include "map_view_gl.h"
 #include <QOpenGLShaderProgram>
-
-#include "id_generator.h"
 #include <QMouseEvent>
 #include <QKeyEvent>
 
 #include <spdlog/spdlog.h>
+#include "id_generator.h"
 #include "spatial_indexer.h"
+#include "triangulation.h"
 
 namespace RoadRunner
 {
@@ -33,7 +33,7 @@ namespace RoadRunner
         m_vertexBufferCount = m_elementCount = 0;
     }
 
-    unsigned int MapViewGL::AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder)
+    unsigned int MapViewGL::AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color)
     {
         assert(lBorder.size() == rBorder.size());
 
@@ -47,12 +47,12 @@ namespace RoadRunner
         {
             auto l0 = lBorder[i];
             auto id_l = m_vertexBufferCount++;
-            m_vertexBufferData[id_l] = Vertex(QVector3D(l0[0], l0[1], l0[2]), QColor(255, 128, 64));
+            m_vertexBufferData[id_l] = Vertex(QVector3D(l0[0], l0[1], l0[2]), color);
             vids.push_back(id_l);
 
             auto r0 = rBorder[i];
             auto id_r = m_vertexBufferCount++;
-            m_vertexBufferData[id_r] = Vertex(QVector3D(r0[0], r0[1], r0[2]), QColor(255, 128, 64));
+            m_vertexBufferData[id_r] = Vertex(QVector3D(r0[0], r0[1], r0[2]), color);
             vids.push_back(id_r);
         }
         auto ptr_v = m_vbo.mapRange(vertexBufferChangeBegin * sizeof(Vertex), 
@@ -85,6 +85,52 @@ namespace RoadRunner
             3 * (m_elementCount - elementChangeBegin) * sizeof(GLuint));
         m_ebo.unmap();
         
+        m_vbo.release();
+        m_vao.release();
+
+        auto gid = std::stoi(IDGenerator::ForGraphics()->GenerateID(this));
+        idToEids.emplace(gid, eids);
+        idToVids.emplace(gid, vids);
+        return gid;
+    }
+
+    unsigned int MapViewGL::AddPoly(const odr::Line3D& boundary, QColor color)
+    {
+        m_vao.bind();
+        m_vbo.bind();
+
+        std::vector<GLuint> vids;
+        const size_t vertexBufferChangeBegin = m_vertexBufferCount;
+        for (const auto& p : boundary)
+        {
+            auto vid = m_vertexBufferCount++;
+            vids.push_back(vid);
+            m_vertexBufferData[vid] = Vertex(QVector3D(p[0], p[1], p[2]), color);
+        }
+        auto ptr_v = m_vbo.mapRange(vertexBufferChangeBegin * sizeof(Vertex),
+            (m_vertexBufferCount - vertexBufferChangeBegin) * sizeof(Vertex),
+            QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
+        memcpy(ptr_v, m_vertexBufferData.data() + vertexBufferChangeBegin,
+            (m_vertexBufferCount - vertexBufferChangeBegin) * sizeof(Vertex));
+        m_vbo.unmap();
+
+        std::vector<GLuint> eids;
+        const size_t elementChangeBegin = m_elementCount;
+        for (auto tri : Triangulate_2_5d(boundary))
+        {
+            auto eid = m_elementCount++;
+            eids.push_back(eid);
+            m_elementBufferData[3 * eid] = std::get<0>(tri) + vertexBufferChangeBegin;
+            m_elementBufferData[3 * eid + 1] = std::get<1>(tri) + vertexBufferChangeBegin;
+            m_elementBufferData[3 * eid + 2] = std::get<2>(tri) + vertexBufferChangeBegin;
+        }
+        auto ptr_e = m_ebo.mapRange(3 * elementChangeBegin * sizeof(GLuint),
+            3 * (m_elementCount - elementChangeBegin) * sizeof(GLuint),
+            QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
+        memcpy(ptr_e, m_elementBufferData.data() + 3 * elementChangeBegin,
+            3 * (m_elementCount - elementChangeBegin) * sizeof(GLuint));
+        m_ebo.unmap();
+
         m_vbo.release();
         m_vao.release();
 
@@ -311,7 +357,7 @@ namespace RoadRunner
             auto hitInfo = SpatialIndexer::Instance()->RayCast(ray);
             if (hitInfo.hit)
             {
-                spdlog::info("Hit: {}, {}, {}", hitInfo.hitPos[0], hitInfo.hitPos[1], hitInfo.hitPos[2]);
+                spdlog::info("Hit: Road {} @ {}, {}, {}", hitInfo.roadID, hitInfo.hitPos[0], hitInfo.hitPos[1], hitInfo.hitPos[2]);
             }
         }
         lastMousePos = event->pos();

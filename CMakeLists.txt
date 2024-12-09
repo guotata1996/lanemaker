@@ -26,6 +26,7 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp ${APP_ICON_RESOURCE_WINDOWS}
     ui/OpenGLWindow.cpp ui/map_view_gl.cpp ui/ShaderProgram.cpp ui/Transform3D.cpp
     traffic/vehicle.cpp traffic/vehicle_manager.cpp traffic/signal.cpp
     util/stats.cpp util/multi_segment.cpp util/label_with_link.cpp util/preference.cpp
+    util/triangulation.cpp
     test/validation.cpp test/junction_validation.cpp test/road_validation.cpp
 )
 

@@ -423,26 +423,22 @@ Line3D Road::get_road_boundary(int side, const double eps) const
     }
 }
 
-Line3D Road::get_lane_marking_line(
+std::pair<Line3D, Line3D> Road::get_lane_marking_line(
     const Lane& lane,
     const double s_start,
     const double s_end,
     const double width,
     const double eps) const
 {
-    Line3D           rtn;
+    std::pair<Line3D, Line3D> rtn;
     std::set<double> s_vals = this->approximate_lane_border_linear(lane, s_start, s_end, eps, false);
-
     for (const double& s : s_vals)
     {
         const double tRef = lane.outer_border.get(s);
-        rtn.push_back(this->get_surface_pt(s, tRef + width / 2));
-    }
-
-    for (auto it = s_vals.crbegin(); it != s_vals.crend(); ++it) 
-    {
-        const double tRef = lane.outer_border.get(*it);
-        rtn.push_back(this->get_surface_pt(*it, tRef - width / 2));
+        auto pt1 = this->get_surface_pt(s, tRef + width / 2);
+        rtn.first.push_back(odr::add(pt1, odr::Vec3D{0, 0, 0.01}));
+        auto pt2 = this->get_surface_pt(s, tRef - width / 2);
+        rtn.second.push_back(odr::add(pt2, odr::Vec3D{0, 0, 0.01}));
     }
     return rtn;
 }

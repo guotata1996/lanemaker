@@ -19,7 +19,8 @@ namespace RoadRunner
 	public:
 		MapViewGL();
 
-		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder);
+		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color);
+		unsigned int AddPoly(const odr::Line3D& boundary, QColor color);
 
 		void RemoveItem(unsigned int);
 

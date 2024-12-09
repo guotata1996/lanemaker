@@ -20,6 +20,17 @@ namespace RoadRunner
             }
             return rtn;
         }
+
+        odr::Line3D TwoDTo3D(const odr::Line2D l, double elevation)
+        {
+            odr::Line3D rtn;
+            rtn.resize(l.size());
+            for (int i = 0; i != l.size(); ++i)
+            {
+                rtn[i] = odr::Vec3D{ l[i][0], l[i][1], elevation };
+            }
+            return rtn;
+        }
     }
 
     class LaneGraphics;
@@ -103,9 +114,9 @@ namespace RoadRunner
     class JunctionGraphics : public QGraphicsPathItem
     {
     public:
-        JunctionGraphics(const odr::Line2D& normalBoundary);
+        JunctionGraphics(const odr::Line2D& normalBoundary, double eleation);
 
-        JunctionGraphics(const std::vector<std::pair<odr::Line2D, odr::Line2D>>& directCavities);
+        JunctionGraphics(const std::vector<std::pair<odr::Line2D, odr::Line2D>>& directCavities, double elevation);
 
         ~JunctionGraphics();
 
@@ -120,6 +131,8 @@ namespace RoadRunner
         double junctionElevation = 0;
 
         const QBrush DefaultBrush = QBrush(Qt::darkGray, Qt::SolidPattern);
+
+        std::vector<std::size_t> allGraphicsIndice;
     };
 
     class ArrowGraphics : public QGraphicsPathItem
