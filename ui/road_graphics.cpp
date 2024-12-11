@@ -12,23 +12,17 @@
 #include "junction.h"
 #include "map_view_gl.h"
 
-extern QGraphicsScene* g_scene;
 
 namespace RoadRunner
 {
     SectionGraphics::SectionGraphics(std::shared_ptr<RoadRunner::Road> road,
         const odr::LaneSection& laneSection,
         double sBegin, double sEnd)
-    {
-        //g_scene->addItem(this);
-        auto Length = (std::abs(sBegin - sEnd));
-        
+    {        
         odr::Road& gen = road->generated;
         bool biDirRoad = gen.rr_profile.HasSide(-1) && gen.rr_profile.HasSide(1);
-        const double sMin = std::min(sBegin, sEnd);
-        const double sMax = std::max(sBegin, sEnd);
-        sectionElevation = gen.ref_line.elevation_profile.get((sMin + sMax) / 2);
-        setZValue(sectionElevation);
+        sMin = std::min(sBegin, sEnd);
+        sMax = std::max(sBegin, sEnd);
         for (const auto& id2Lane : laneSection.id_to_lane)
         {
             const auto& lane = id2Lane.second;
@@ -37,8 +31,14 @@ namespace RoadRunner
                 odr::Line3D innerBorder, outerBorder;
                 gen.get_lane_border_line(lane, sMin, sMax, 0.1f, outerBorder, innerBorder);
 
-                // TODO: subdivide to more faces
-                allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, sMin, sMax));
+                int nSubDivisions = std::min(10, std::max(1, static_cast<int>(outerBorder.size()) / 3));
+                for (int d = 0; d != nSubDivisions; ++d)
+                {
+                    double segMin = (sMin * (nSubDivisions - d) + sMax * d) / nSubDivisions;
+                    double segMax = (sMin * (nSubDivisions - 1 - d) + sMax * (d + 1)) / nSubDivisions;
+                    allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, segMin, segMax));
+                }
+                
                 allGraphicsIndice.push_back(g_mapViewGL->AddQuads(innerBorder, outerBorder, 
                     lane.type == "median" ? Qt::yellow : Qt::darkGray));
             }
@@ -161,14 +161,15 @@ namespace RoadRunner
             }
         }
 
-        refLineHint = new QGraphicsPathItem(this);
-        refLineHint->setPen(QPen(Qt::green, 0.3, Qt::SolidLine));
-        refLineHint->hide();
-        auto lineAppox = gen.ref_line.get_line(std::min(sBegin, sEnd), std::max(sBegin, sEnd), 0.1f);
-        refLinePath = CreateRefLinePath(lineAppox);
-        std::reverse(lineAppox.begin(), lineAppox.end());
-        refLinePathReversed = CreateRefLinePath(lineAppox);
-        refLineHint->setPath(refLinePath);
+        //refLineHint = new QGraphicsPathItem(this);
+        //refLineHint->setPen(QPen(Qt::green, 0.3, Qt::SolidLine));
+        //refLineHint->hide();
+        //auto lineAppox = gen.ref_line.get_line(std::min(sBegin, sEnd), std::max(sBegin, sEnd), 0.1f);
+        //refLinePath = CreateRefLinePath(lineAppox);
+        //std::reverse(lineAppox.begin(), lineAppox.end());
+        //refLinePathReversed = CreateRefLinePath(lineAppox);
+        //refLineHint->setPath(refLinePath);
+        // TODO
     }
 
     SectionGraphics::~SectionGraphics()
@@ -188,16 +189,17 @@ namespace RoadRunner
 
     void SectionGraphics::EnableHighlight(bool enabled, bool bringToTop)
     {
-        double liftedElevation = bringToTop ? 128 : sectionElevation + 0.01;
-        setZValue(enabled ? liftedElevation : sectionElevation);
-        for (auto laneSegment : allLaneGraphics)
-        {
-            if (laneSegment != nullptr)
-            {
-                laneSegment->EnableHighlight(enabled);
-            }
-        }
-        refLineHint->setVisible(enabled);
+        //double liftedElevation = bringToTop ? 128 : sectionElevation + 0.01;
+        //setZValue(enabled ? liftedElevation : sectionElevation);
+        //for (auto laneSegment : allLaneGraphics)
+        //{
+        //    if (laneSegment != nullptr)
+        //    {
+        //        laneSegment->EnableHighlight(enabled);
+        //    }
+        //}
+        //refLineHint->setVisible(enabled);
+        // TODO
     }
 
     QPainterPath SectionGraphics::CreateRefLinePath(const odr::Line3D& lineAppox)
@@ -232,7 +234,7 @@ namespace RoadRunner
         return refLinePath;
     }
 
-    void SectionGraphics::updateIndexingInfo(std::string newRoadID, double sBegin, double sEnd)
+    void SectionGraphics::updateIndexingInfo(std::string newRoadID, int mult, double shift)
     {
         for (auto index : allSpatialIndice)
         {
@@ -243,133 +245,24 @@ namespace RoadRunner
                 if (faceID == SpatialIndexer::InvalidFace) continue;
                 Quad& face = SpatialIndexer::Instance()->faceInfo.at(faceID);
                 face.roadID = newRoadID;
-                face.sBegin = sBegin;
-                face.sEnd = sEnd;
+                face.sBegin = face.sBegin * mult + shift;
+                face.sEnd = face.sEnd * mult + shift;
             }
-
         }
-        refLineHint->setPath(sBegin < sEnd ? refLinePath : refLinePathReversed);
-    }
-
-    double SectionGraphics::SBegin() const
-    {
-        return SpatialIndexer::Instance()->faceInfo.at(allSpatialIndice.front()).sBegin;
-    }
-
-    double SectionGraphics::SEnd() const
-    {
-        return SpatialIndexer::Instance()->faceInfo.at(allSpatialIndice.front()).sEnd;
+        //refLineHint->setPath(sBegin < sEnd ? refLinePath : refLinePathReversed);
+        sMin = sMin * mult + shift;
+        sMax = sMax * mult + shift;
+        if (mult < 0)
+        {
+            std::swap(sMin, sMax);
+        }
+        assert(sMin < sMax);
     }
 
     double SectionGraphics::Length() const
     {
-        return std::abs(SBegin() - SEnd());
-    }
-
-    LaneGraphics::LaneGraphics(
-        const QPolygonF& poly,
-        odr::Line3D outerBorder, 
-        odr::Line3D innerBorder,
-        int laneID, int laneIDRev,
-        std::string laneType,
-        QGraphicsItem* parent) :
-        QGraphicsPolygonItem(poly, parent),
-        HighlightColor(189, 187, 185),
-        laneID(laneID), laneIDReversed(laneIDRev),
-        isMedian(laneType == "median")
-    {
-        setAcceptHoverEvents(true);
-
-        setPen(Qt::NoPen);
-        EnableHighlight(false);
-        
-        assert(outerBorder.size() == innerBorder.size());
-        assert(outerBorder.size() >= 2);
-
-        double outerCumLength = 0;
-        for (int i = 0; i < outerBorder.size() - 1; ++i)
-        {
-            auto outerP1 = outerBorder[i];
-            auto outerP2 = outerBorder[i + 1];
-            auto innerP1 = innerBorder[i];
-            auto innerP2 = innerBorder[i + 1];
-            odr::Line3D subdivision;
-            subdivision.push_back(outerP1);
-            subdivision.push_back(outerP2);
-            subdivision.push_back(innerP2);
-            subdivision.push_back(innerP1);
-            subdivisionPolys.push_back(LineToPoly(subdivision));
-            subdivisionPortion.push_back(outerCumLength);
-            outerCumLength += odr::euclDistance(outerP1, outerP2);
-        }
-        subdivisionPortion.push_back(outerCumLength);
-
-        for (int i = 0; i != subdivisionPortion.size(); ++i)
-        {
-            subdivisionPortion[i] /= outerCumLength;
-        }
-
-        odr::Line3D lowPolyV = { outerBorder.front(), outerBorder.back(), innerBorder.back(), innerBorder.front() };
-        lowLODPoly = LineToPoly(lowPolyV);
-
-        Stats::Instance("LaneGraphics Created")->Increment();
-    }
-
-    void LaneGraphics::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
-    {
-        const qreal lod = option->levelOfDetailFromTransform(painter->worldTransform());
-        if (lod > 2)
-        {
-            QGraphicsPolygonItem::paint(painter, option, widget);
-        }
-        else
-        {
-            painter->save();
-            painter->setPen(pen());
-            painter->setBrush(brush());
-            painter->drawPolygon(lowLODPoly);
-            painter->restore();
-        }
-    }
-
-    // TODO:
-    std::shared_ptr<Road> LaneGraphics::GetRoad() const
-    {
-        auto parentRoad = dynamic_cast<RoadRunner::SectionGraphics*>(parentItem());
-        return nullptr; // parentRoad->road.lock();
-    }
-
-    void LaneGraphics::EnableHighlight(bool enabled)
-    {
-        setBrush(QBrush(isMedian ? Qt::yellow : (enabled ? HighlightColor : Qt::darkGray), Qt::SolidPattern));
-    }
-
-
-    MarkingGraphics::MarkingGraphics(const QPolygonF& polygon, QGraphicsItem* parent) :
-        QGraphicsPolygonItem(polygon, parent)
-    {
-        lowLODPoly << polygon.front();
-        lowLODPoly << polygon.at(polygon.size() / 2 - 1);
-        lowLODPoly << polygon.at(polygon.size() / 2);
-        lowLODPoly << polygon.back();
-
-    };
-
-    void MarkingGraphics::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
-    {
-        const qreal lod = option->levelOfDetailFromTransform(painter->worldTransform());
-        if (lod > 4)
-        {
-            QGraphicsPolygonItem::paint(painter, option, widget);
-        }
-        else
-        {
-            painter->save();
-            painter->setPen(pen());
-            painter->setBrush(brush());
-            painter->drawPolygon(lowLODPoly);
-            painter->restore();
-        }
+        assert(sMin < sMax);
+        return sMax - sMin;
     }
     
     JunctionGraphics::JunctionGraphics(const odr::Line2D& boundary, double elevation)
@@ -386,9 +279,6 @@ namespace RoadRunner
     JunctionGraphics::JunctionGraphics(const std::vector<std::pair<odr::Line2D, odr::Line2D>>& boundary, double elevation)
     {
         QPainterPath path;
-
-        setPen(Qt::NoPen);
-        setBrush(DefaultBrush);
 
         const int ZebraLineWidth = 8;
         const int ZebraLineSkip = 16;
@@ -438,18 +328,18 @@ namespace RoadRunner
         }
     }
 
-    void JunctionGraphics::hoverEnterEvent(QGraphicsSceneHoverEvent* evt)
-    {
-        setBrush(Qt::NoBrush);
-        junctionElevation = zValue();
-        setZValue(128.1); // higher than highlighted linked road to properly receive hoverLeaveEvent
-    }
+    //void JunctionGraphics::hoverEnterEvent(QGraphicsSceneHoverEvent* evt)
+    //{
+    //    setBrush(Qt::NoBrush);
+    //    junctionElevation = zValue();
+    //    setZValue(128.1); // higher than highlighted linked road to properly receive hoverLeaveEvent
+    //}
 
-    void JunctionGraphics::hoverLeaveEvent(QGraphicsSceneHoverEvent* evt)
-    {
-        setBrush(DefaultBrush);
-        setZValue(junctionElevation);
-    }
+    //void JunctionGraphics::hoverLeaveEvent(QGraphicsSceneHoverEvent* evt)
+    //{
+    //    setBrush(DefaultBrush);
+    //    setZValue(junctionElevation);
+    //}
 
     odr::Vec2D JunctionGraphics::StripMidPoint(const odr::Vec2D& pOrigin, const odr::Vec2D& p1, const odr::Vec2D& p2)
     {

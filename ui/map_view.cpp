@@ -493,25 +493,25 @@ void MapView::SnapCursor(const QPointF& scenePos)
 
 void MapView::AdjustSceneRect()
 {
-    QRectF original(0, 0, 0, 0);
+    //QRectF original(0, 0, 0, 0);
 
-    if (backgroundItem != nullptr)
-    {
-        original = backgroundItem->sceneBoundingRect();
-    }
-    else
-    {
+    //if (backgroundItem != nullptr)
+    //{
+    //    original = backgroundItem->sceneBoundingRect();
+    //}
+    //else
+    //{
 
-        for (auto item : scene()->items())
-        {
-            if (dynamic_cast<RoadRunner::LaneGraphics*>(item) != nullptr)
-            {
-                original = original.united(item->sceneBoundingRect());
-            }
-        }
-    }
+    //    for (auto item : scene()->items())
+    //    {
+    //        if (dynamic_cast<RoadRunner::LaneGraphics*>(item) != nullptr)
+    //        {
+    //            original = original.united(item->sceneBoundingRect());
+    //        }
+    //    }
+    //}
 
-    QRectF paded(original.left() - ViewPadding, original.top() - ViewPadding,
-        original.width() + 2 * ViewPadding, original.height() + 2 * ViewPadding);
-    setSceneRect(paded);
+    //QRectF paded(original.left() - ViewPadding, original.top() - ViewPadding,
+    //    original.width() + 2 * ViewPadding, original.height() + 2 * ViewPadding);
+    //setSceneRect(paded);
 }

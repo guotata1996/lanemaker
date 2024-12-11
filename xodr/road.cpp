@@ -101,7 +101,7 @@ namespace RoadRunner
             segEndIt++;
             double sRev = (segEndIt == temp_graphics.end()) ? 0 : roadLength - segEndIt->first;
             auto graphics = std::move(it->second);
-            graphics->updateIndexingInfo(ID(), roadLength - graphics->SBegin(), roadLength - graphics->SEnd());
+            graphics->updateIndexingInfo(ID(), -1, roadLength);
             s_to_section_graphics.emplace(sRev, std::move(graphics));
         }
 #endif

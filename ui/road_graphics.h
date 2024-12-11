@@ -10,17 +10,6 @@ namespace RoadRunner
 {
     namespace
     {
-        template <class T>
-        QPolygonF LineToPoly(const std::vector<T>& line)
-        {
-            QPolygonF rtn;
-            for (const T& p : line)
-            {
-                rtn.append(QPointF(p[0], p[1]));
-            }
-            return rtn;
-        }
-
         odr::Line3D TwoDTo3D(const odr::Line2D l, double elevation)
         {
             odr::Line3D rtn;
@@ -35,9 +24,7 @@ namespace RoadRunner
         std::vector<QPolygonF> ArrowShape(int arrowType);
     }
 
-    class LaneGraphics;
-
-    class SectionGraphics : public QGraphicsRectItem
+    class SectionGraphics
     {
     public:
         SectionGraphics(std::shared_ptr<RoadRunner::Road> road, const odr::LaneSection& laneSection,
@@ -48,16 +35,12 @@ namespace RoadRunner
         void EnableHighlight(bool enabled, bool bringToTop=true);
 
         /*Assuming graphics remain the same.*/
-        void updateIndexingInfo(std::string newRoadID, double sBegin, double sEnd);
+        void updateIndexingInfo(std::string newRoadID, int mult, double shift);
 
-        double SBegin() const;
-        double SEnd() const;
         double Length() const;
 
-        /*sBegin->sEnd follows the direction of generated LaneGraphics, NOT the direction of road ref line
-          so it's possible that sBegin > sEnd*/
-        //double sBegin, sEnd;
-        //const double Length;
+        double sMin, sMax;
+        
         double sectionElevation;
 
         std::vector<FaceIndex_t> allSpatialIndice;
@@ -68,52 +51,9 @@ namespace RoadRunner
 
         const double BrokenLength = 3;
         const double BrokenGap = 6;
-
-        std::vector< LaneGraphics*> allLaneGraphics;
-        QGraphicsPathItem* refLineHint;
-
-        QPainterPath refLinePath, refLinePathReversed;
     };
 
-    class LaneGraphics : public QGraphicsPolygonItem
-    {
-        friend SectionGraphics;
-    public:
-        LaneGraphics(const QPolygonF& poly, 
-            odr::Line3D outerBorder, odr::Line3D innerBorder,
-            int laneID, int laneIDRev, std::string laneType,
-            QGraphicsItem* parent);
-
-        void paint(QPainter* painter, const QStyleOptionGraphicsItem* item, QWidget* widget) override;
-
-        std::shared_ptr<Road> GetRoad() const;
-
-        void EnableHighlight(bool enabled);
-
-    private:
-        QPolygonF lowLODPoly;
-
-        std::vector<QPolygonF> subdivisionPolys;
-        /*0, 0.05, ..., 0.95, 1*/
-        std::vector<double> subdivisionPortion;
-
-        const QColor HighlightColor;
-        bool isMedian;
-
-        const int laneID, laneIDReversed;
-    };
-
-    class MarkingGraphics : public QGraphicsPolygonItem
-    {
-    public:
-        MarkingGraphics(const QPolygonF& polygon, QGraphicsItem* parent = nullptr);
-
-        void paint(QPainter* painter, const QStyleOptionGraphicsItem* item, QWidget* widget) override;
-    private:
-        QPolygonF lowLODPoly;
-    };
-
-    class JunctionGraphics : public QGraphicsPathItem
+    class JunctionGraphics
     {
     public:
         JunctionGraphics(const odr::Line2D& normalBoundary, double eleation);
@@ -123,9 +63,9 @@ namespace RoadRunner
         ~JunctionGraphics();
 
     protected:
-        void hoverEnterEvent(QGraphicsSceneHoverEvent* evt) override;
+        //void hoverEnterEvent(QGraphicsSceneHoverEvent* evt) override;
 
-        void hoverLeaveEvent(QGraphicsSceneHoverEvent* evt) override;
+        //void hoverLeaveEvent(QGraphicsSceneHoverEvent* evt) override;
 
     private:
         odr::Vec2D StripMidPoint(const odr::Vec2D& pOrigin, const odr::Vec2D& p1, const odr::Vec2D& p2);

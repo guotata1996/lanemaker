@@ -366,10 +366,8 @@ namespace RoadRunnerTest
         std::vector<double> sMaxs;
         for (const auto& s_graphics : road.s_to_section_graphics)
         {
-            auto sBegin = s_graphics.second->SBegin();
-            auto sEnd = s_graphics.second->SEnd();
-            sMins.push_back(std::min(sBegin, sEnd));
-            sMaxs.push_back(std::max(sBegin, sEnd));
+            sMins.push_back(s_graphics.second->sMin);
+            sMaxs.push_back(s_graphics.second->sMax);
         }
 
         // Make sure section graphics are ordered from 0 till length

@@ -357,7 +357,8 @@ namespace RoadRunner
             auto hitInfo = SpatialIndexer::Instance()->RayCast(ray);
             if (hitInfo.hit)
             {
-                spdlog::info("Hit: Road {} @ {}, {}, {}", hitInfo.roadID, hitInfo.hitPos[0], hitInfo.hitPos[1], hitInfo.hitPos[2]);
+                spdlog::info("Hit: Road {} @ {} P= {}, {}, {}", hitInfo.roadID, hitInfo.s, 
+                    hitInfo.hitPos[0], hitInfo.hitPos[1], hitInfo.hitPos[2]);
             }
         }
         lastMousePos = event->pos();
