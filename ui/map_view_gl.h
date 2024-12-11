@@ -16,13 +16,20 @@ namespace RoadRunner
 {
 	class MapViewGL : public OpenGLWindow
 	{
+		Q_OBJECT
 	public:
 		MapViewGL();
 
 		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color);
 		unsigned int AddPoly(const odr::Line3D& boundary, QColor color);
-
+		
+		void UpdateItem(unsigned int, QColor);
 		void RemoveItem(unsigned int);
+
+		int VBufferUseage_pct() const;
+		int EBufferUseage_pct() const;
+	signals:
+		void HoveringChanged();
 
 	protected:
 		void initializeGL() override;
@@ -77,4 +84,7 @@ namespace RoadRunner
 	};
 
 	extern MapViewGL* g_mapViewGL;
+	extern std::string g_PointerRoadID;
+	extern double g_PointerRoadS;
+	extern int g_PointerLane;
 }

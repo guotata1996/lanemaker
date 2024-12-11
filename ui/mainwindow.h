@@ -70,9 +70,8 @@ public slots:
     void redo();
 
 private slots:
-    void setHint(QString);
-
-    void setFPS(QString);
+    void updateHint();
+    //void setFPS(QString);
 
     void newMap();
 

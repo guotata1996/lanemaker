@@ -116,7 +116,6 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 
     QWidget* container = QWidget::createWindowContainer(mapViewGL, this);
     container->setFocusPolicy(Qt::TabFocus);
-    container->setMinimumSize(QSize(800, 600));
     container->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     mainLayout->addWidget(container);
@@ -144,11 +143,13 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(debugReplayAction, &QAction::triggered, this, &MainWindow::debugActionHistory);
     connect(controlledReplayAction, &QAction::triggered, this, &MainWindow::playActionHistory);
     connect(replayWindow.get(), &ReplayWindow::Restart, this, &MainWindow::reset);
-    connect(mainWidget.get(), &MainWidget::HoveringChanged, this, &MainWindow::setHint);
-    connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
-    connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
+    //connect(mainWidget.get(), &MainWidget::HoveringChanged, this, &MainWindow::setHint);
+    //connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
+    //connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
     connect(preferenceWindow.get(), &PreferenceWindow::ToggleAA, mainWidget.get(), &MainWidget::toggleAntialiasing);
     //connect(testButton, &QPushButton::clicked, []() {spdlog::info("Test btn press"); });
+
+    connect(mapViewGL, &RoadRunner::MapViewGL::HoveringChanged, this, &MainWindow::updateHint);
 
     if (g_preference.showWelcome)
         preferenceWindow->open();
@@ -387,14 +388,21 @@ void MainWindow::enableSimulation(bool available)
     }
 }
 
-void MainWindow::setHint(QString msg) 
-{
-    hintStatus->showMessage(msg);
-}
+//void MainWindow::setFPS(QString msg)
+//{
+//    fpsStatus->showMessage(msg);
+//}
 
-void MainWindow::setFPS(QString msg)
+void MainWindow::updateHint()
 {
-    fpsStatus->showMessage(msg);
+    auto roadInfo = RoadRunner::g_PointerRoadID.empty() ? "" : 
+        QString("Road %1 @%2 Lane %3 | V:%4 E:%5")
+        .arg(RoadRunner::g_PointerRoadID.c_str())
+        .arg(RoadRunner::g_PointerRoadS, 6, 'f', 3)
+        .arg(RoadRunner::g_PointerLane)
+        .arg(mapViewGL->VBufferUseage_pct())
+        .arg(mapViewGL->EBufferUseage_pct());
+    hintStatus->showMessage(roadInfo);
 }
 
 void MainWindow::closeEvent(QCloseEvent* e)

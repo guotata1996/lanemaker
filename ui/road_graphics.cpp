@@ -188,18 +188,12 @@ namespace RoadRunner
     }
 
     void SectionGraphics::EnableHighlight(bool enabled, bool bringToTop)
-    {
-        //double liftedElevation = bringToTop ? 128 : sectionElevation + 0.01;
-        //setZValue(enabled ? liftedElevation : sectionElevation);
-        //for (auto laneSegment : allLaneGraphics)
-        //{
-        //    if (laneSegment != nullptr)
-        //    {
-        //        laneSegment->EnableHighlight(enabled);
-        //    }
-        //}
-        //refLineHint->setVisible(enabled);
-        // TODO
+    {        
+        QColor newColor = enabled ? Qt::lightGray : Qt::darkGray;
+        for (auto id : allGraphicsIndice)
+        {
+            g_mapViewGL->UpdateItem(id, newColor);
+        }
     }
 
     QPainterPath SectionGraphics::CreateRefLinePath(const odr::Line3D& lineAppox)

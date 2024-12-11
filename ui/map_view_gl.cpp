@@ -11,6 +11,9 @@
 namespace RoadRunner
 {
     MapViewGL* g_mapViewGL;
+    std::string g_PointerRoadID;
+    double g_PointerRoadS;
+    int g_PointerLane;
 
     MapViewGL::MapViewGL():
         shader(":/shaders/simple.vert", ":/shaders/simple.frag"),
@@ -140,6 +143,27 @@ namespace RoadRunner
         return gid;
     }
 
+    void MapViewGL::UpdateItem(unsigned int id, QColor color)
+    {
+        m_vao.bind();
+        m_vbo.bind();
+        for (auto vid : idToVids.at(id))
+        {
+            m_vertexBufferData[vid].r = color.redF();
+            m_vertexBufferData[vid].g = color.greenF();
+            m_vertexBufferData[vid].b = color.blue();
+
+            auto ptr_v = m_vbo.mapRange(vid * sizeof(Vertex), sizeof(Vertex),
+                QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
+            assert(ptr_v != nullptr);
+            memcpy(ptr_v, m_vertexBufferData.data() + vid, sizeof(Vertex));
+            m_vbo.unmap();
+        }
+
+        m_vao.release();
+        m_vbo.release();
+    }
+
     void MapViewGL::RemoveItem(unsigned int id)
     {
         if (!Road::ClearingMap)
@@ -188,6 +212,16 @@ namespace RoadRunner
             m_vao.release();
             m_vbo.release();
         }
+    }
+
+    int MapViewGL::VBufferUseage_pct() const
+    {
+        return static_cast<float>(m_vertexBufferCount) / m_vertexBufferData.size() * 100.0;
+    }
+
+    int MapViewGL::EBufferUseage_pct() const
+    {
+        return static_cast<float>(m_elementCount) * 3 / m_elementBufferData.size() * 100.0;
     }
 
     void MapViewGL::initializeGL()
@@ -346,21 +380,27 @@ namespace RoadRunner
             m_camera.translate(lastGroundPos - currGroundPos);
             renderLater();
         }
+
+        auto rayDir = PointerDirection(event->pos());
+        RayCastQuery ray{
+            odr::Vec3D{m_camera.translation().x(), m_camera.translation().y(), m_camera.translation().z()},
+            odr::Vec3D{rayDir.x(), rayDir.y(), rayDir.z()}
+        };
+        auto hitInfo = SpatialIndexer::Instance()->RayCast(ray);
+        if (hitInfo.hit)
+        {
+            g_PointerRoadID = hitInfo.roadID;
+            g_PointerRoadS = hitInfo.s;
+            g_PointerLane = hitInfo.lane;
+            static_cast<Road*>(IDGenerator::ForRoad()->GetByID(g_PointerRoadID))->EnableHighlight(true);
+            renderLater();
+        }
         else
         {
-            auto rayDir = PointerDirection(event->pos());
-            OpenGLWindow::mouseMoveEvent(event);
-            RayCastQuery ray{
-                odr::Vec3D{m_camera.translation().x(), m_camera.translation().y(), m_camera.translation().z()},
-                odr::Vec3D{rayDir.x(), rayDir.y(), rayDir.z()}
-            };
-            auto hitInfo = SpatialIndexer::Instance()->RayCast(ray);
-            if (hitInfo.hit)
-            {
-                spdlog::info("Hit: Road {} @ {} P= {}, {}, {}", hitInfo.roadID, hitInfo.s, 
-                    hitInfo.hitPos[0], hitInfo.hitPos[1], hitInfo.hitPos[2]);
-            }
+            g_PointerRoadID.clear();
         }
+        emit(HoveringChanged());
+        
         lastMousePos = event->pos();
     }
 
