@@ -39,8 +39,13 @@ namespace RoadRunner
                     allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, segMin, segMax));
                 }
                 
-                allGraphicsIndice.push_back(g_mapViewGL->AddQuads(innerBorder, outerBorder, 
-                    lane.type == "median" ? Qt::yellow : Qt::darkGray));
+                auto surfaceIndex = g_mapViewGL->AddQuads(innerBorder, outerBorder, 
+                    lane.type == "median" ? Qt::yellow : Qt::darkGray);
+                allGraphicsIndice.push_back(surfaceIndex);
+                if (lane.type != "median")
+                {
+                    allHighlightGraphicsIndice.push_back(surfaceIndex);
+                }
             }
         }
 
@@ -103,6 +108,7 @@ namespace RoadRunner
             }
         }
 
+        // Draw road objects
         for (const auto& id_object : gen.id_to_object)
         {
             if (sMin <= id_object.second.s0 && id_object.second.s0 < sMax)
@@ -187,10 +193,10 @@ namespace RoadRunner
         }
     }
 
-    void SectionGraphics::EnableHighlight(bool enabled, bool bringToTop)
-    {        
+    void SectionGraphics::EnableHighlight(bool enabled)
+    {
         QColor newColor = enabled ? Qt::lightGray : Qt::darkGray;
-        for (auto id : allGraphicsIndice)
+        for (auto id : allHighlightGraphicsIndice)
         {
             g_mapViewGL->UpdateItem(id, newColor);
         }

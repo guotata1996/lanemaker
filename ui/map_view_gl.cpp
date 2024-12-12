@@ -151,7 +151,7 @@ namespace RoadRunner
         {
             m_vertexBufferData[vid].r = color.redF();
             m_vertexBufferData[vid].g = color.greenF();
-            m_vertexBufferData[vid].b = color.blue();
+            m_vertexBufferData[vid].b = color.blueF();
 
             auto ptr_v = m_vbo.mapRange(vid * sizeof(Vertex), sizeof(Vertex),
                 QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
@@ -387,6 +387,18 @@ namespace RoadRunner
             odr::Vec3D{rayDir.x(), rayDir.y(), rayDir.z()}
         };
         auto hitInfo = SpatialIndexer::Instance()->RayCast(ray);
+
+        if (hitInfo.roadID != g_PointerRoadID && !g_PointerRoadID.empty())
+        {
+            auto prevHL = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(g_PointerRoadID));
+            if (prevHL != nullptr)
+            {
+                prevHL->EnableHighlight(false);
+                renderLater();
+            }
+        }
+        g_PointerRoadID.clear();
+
         if (hitInfo.hit)
         {
             g_PointerRoadID = hitInfo.roadID;
@@ -395,10 +407,7 @@ namespace RoadRunner
             static_cast<Road*>(IDGenerator::ForRoad()->GetByID(g_PointerRoadID))->EnableHighlight(true);
             renderLater();
         }
-        else
-        {
-            g_PointerRoadID.clear();
-        }
+
         emit(HoveringChanged());
         
         lastMousePos = event->pos();

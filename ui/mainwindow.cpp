@@ -146,7 +146,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     //connect(mainWidget.get(), &MainWidget::HoveringChanged, this, &MainWindow::setHint);
     //connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
     //connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
-    connect(preferenceWindow.get(), &PreferenceWindow::ToggleAA, mainWidget.get(), &MainWidget::toggleAntialiasing);
+    //connect(preferenceWindow.get(), &PreferenceWindow::ToggleAA, mainWidget.get(), &MainWidget::toggleAntialiasing);
     //connect(testButton, &QPushButton::clicked, []() {spdlog::info("Test btn press"); });
 
     connect(mapViewGL, &RoadRunner::MapViewGL::HoveringChanged, this, &MainWindow::updateHint);

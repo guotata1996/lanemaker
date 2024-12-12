@@ -608,7 +608,7 @@ namespace RoadRunner
 
         for (auto& s_and_graphics : s_to_section_graphics)
         {
-            s_and_graphics.second->EnableHighlight(enabled, bringToTop);
+            s_and_graphics.second->EnableHighlight(enabled);
         }
         highlighted.emplace(enabled);
     }

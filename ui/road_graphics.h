@@ -32,7 +32,7 @@ namespace RoadRunner
 
         ~SectionGraphics();
 
-        void EnableHighlight(bool enabled, bool bringToTop=true);
+        void EnableHighlight(bool enabled);
 
         /*Assuming graphics remain the same.*/
         void updateIndexingInfo(std::string newRoadID, int mult, double shift);
@@ -45,6 +45,7 @@ namespace RoadRunner
 
         std::vector<FaceIndex_t> allSpatialIndice;
         std::vector<unsigned int> allGraphicsIndice;
+        std::vector<unsigned int> allHighlightGraphicsIndice;
 
     private:
         static QPainterPath CreateRefLinePath(const odr::Line3D& center);
