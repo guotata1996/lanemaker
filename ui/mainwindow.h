@@ -51,8 +51,6 @@ private:
     std::unique_ptr<ReplayWindow> replayWindow;
     std::unique_ptr<PreferenceWindow> preferenceWindow;
 
-    RoadRunner::MapViewGL* mapViewGL;
-
     QAction* toggleSimAction;
     QAction* pauseResumeSimulation;
 

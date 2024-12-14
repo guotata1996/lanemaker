@@ -90,27 +90,6 @@ void MapView::hideScale()
     showingScale = false;
 }
 
-#if QT_CONFIG(wheelevent)
-void MapView::wheelEvent(QWheelEvent* e)
-{
-    if (!(e->modifiers() & Qt::ControlModifier)) {
-        auto target_viewport_pos = e->pos();
-        auto target_scene_pos = mapToScene(target_viewport_pos);
-        if (e->angleDelta().y() > 0)
-            parentContainer->zoomInBy(6);
-        else
-            parentContainer->zoomOutBy(6);
-        centerOn(target_scene_pos);
-        QPointF delta_viewport_pos = target_viewport_pos - QPointF(viewport()->width() / 2.0,
-            viewport()->height() / 2.0);
-        QPointF viewport_center = mapFromScene(target_scene_pos) - delta_viewport_pos;
-        centerOn(mapToScene(viewport_center.toPoint()));
-
-        e->accept();
-    }
-}
-#endif
-
 void MapView::scrollContentsBy(int dx, int dy)
 {
     QGraphicsView::scrollContentsBy(dx, dy);

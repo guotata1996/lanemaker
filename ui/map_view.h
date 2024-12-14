@@ -42,9 +42,6 @@ public slots:
     void hideScale();
 
 protected:
-#if QT_CONFIG(wheelevent)
-    void wheelEvent(QWheelEvent*) override;
-#endif
     void scrollContentsBy(int dx, int dy) override;
 
     void mousePressEvent(QMouseEvent* event) override;

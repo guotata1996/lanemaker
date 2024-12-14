@@ -102,23 +102,8 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 
     auto mainLayout = new QVBoxLayout;
     mainLayout->addWidget(menu);
-    //mainLayout->addWidget(mainWidget.get());
+    mainLayout->addWidget(mainWidget.get());
 
-    QSurfaceFormat format;
-    format.setRenderableType(QSurfaceFormat::OpenGL);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-    format.setVersion(3, 3);
-    format.setSamples(4);	// enable multisampling (antialiasing)
-    format.setDepthBufferSize(8);
-
-    mapViewGL = new RoadRunner::MapViewGL;
-    mapViewGL->setFormat(format);
-
-    QWidget* container = QWidget::createWindowContainer(mapViewGL, this);
-    container->setFocusPolicy(Qt::TabFocus);
-    container->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-    mainLayout->addWidget(container);
     auto bottomLayout = new QHBoxLayout;
     hintStatus = std::make_unique<QStatusBar>();
     bottomLayout->addWidget(hintStatus.get());
@@ -149,7 +134,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     //connect(preferenceWindow.get(), &PreferenceWindow::ToggleAA, mainWidget.get(), &MainWidget::toggleAntialiasing);
     //connect(testButton, &QPushButton::clicked, []() {spdlog::info("Test btn press"); });
 
-    connect(mapViewGL, &RoadRunner::MapViewGL::HoveringChanged, this, &MainWindow::updateHint);
+    connect(mainWidget->mapViewGL, &RoadRunner::MapViewGL::HoveringChanged, this, &MainWindow::updateHint);
 
     if (g_preference.showWelcome)
         preferenceWindow->open();
@@ -400,8 +385,8 @@ void MainWindow::updateHint()
         .arg(RoadRunner::g_PointerRoadID.c_str())
         .arg(RoadRunner::g_PointerRoadS, 6, 'f', 3)
         .arg(RoadRunner::g_PointerLane)
-        .arg(mapViewGL->VBufferUseage_pct())
-        .arg(mapViewGL->EBufferUseage_pct());
+        .arg(mainWidget->mapViewGL->VBufferUseage_pct())
+        .arg(mainWidget->mapViewGL->EBufferUseage_pct());
     hintStatus->showMessage(roadInfo);
 }
 

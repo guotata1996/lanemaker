@@ -3,6 +3,7 @@
 
 #include "main_widget.h"
 #include "map_view.h"
+#include "map_view_gl.h"
 #include "mainwindow.h"
 #include "action_manager.h"
 
@@ -28,110 +29,22 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     mapView->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
     mapView->setMouseTracking(true);
 
+    QSurfaceFormat format;
+    format.setRenderableType(QSurfaceFormat::OpenGL);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    format.setVersion(3, 3);
+    format.setSamples(4);	// enable multisampling (antialiasing)
+    format.setDepthBufferSize(8);
+
+    mapViewGL = new RoadRunner::MapViewGL;
+    mapViewGL->setFormat(format);
+
+    QWidget* container = QWidget::createWindowContainer(mapViewGL, this);
+    container->setFocusPolicy(Qt::TabFocus);
+    container->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
     int size = style()->pixelMetric(QStyle::PM_ToolBarIconSize);
     QSize iconSize(size, size);
-
-    QToolButton* zoomInIcon = new QToolButton;
-    zoomInIcon->setAutoRepeat(true);
-    zoomInIcon->setAutoRepeatInterval(33);
-    zoomInIcon->setAutoRepeatDelay(0);
-    zoomInIcon->setIcon(QPixmap(":/icons/zoomin.png"));
-    zoomInIcon->setIconSize(iconSize);
-    QToolButton* zoomOutIcon = new QToolButton;
-    zoomOutIcon->setAutoRepeat(true);
-    zoomOutIcon->setAutoRepeatInterval(33);
-    zoomOutIcon->setAutoRepeatDelay(0);
-    zoomOutIcon->setIcon(QPixmap(":/icons/zoomout.png"));
-    zoomOutIcon->setIconSize(iconSize);
-    zoomSlider = new QSlider;
-    zoomSlider->setMinimum(0);
-    zoomSlider->setMaximum(500);
-    zoomSlider->setValue(250);
-    zoomSlider->setTickPosition(QSlider::TicksRight);
-
-    // Zoom slider layout
-    QVBoxLayout* zoomSliderLayout = new QVBoxLayout;
-    createAbove = new QToolButton;
-    createAbove->setIcon(QPixmap(":/icons/bridge.png"));
-    createAbove->setIconSize(iconSize);
-    createAbove->setToolTip(tr("Above existing"));
-    createAbove->setCheckable(true);
-    connect(createAbove, &QToolButton::toggled, [this](bool checked) {
-        if (checked)
-        {
-            g_createRoadElevationOption = 1;
-            createRoadOption->update();
-            RoadRunner::ActionManager::Instance()->Record(g_createRoadElevationOption);
-        }
-    });
-
-    createFlat = new QToolButton;
-    createFlat->setIcon(QPixmap(":/icons/flat.png"));
-    createFlat->setIconSize(iconSize);
-    createFlat->setToolTip(tr("Form junction"));
-    createFlat->setCheckable(true);
-    connect(createFlat, &QToolButton::toggled, [this](bool checked) {
-        if (checked)
-        {
-            g_createRoadElevationOption = 0;
-            createRoadOption->update();
-            RoadRunner::ActionManager::Instance()->Record(g_createRoadElevationOption);
-        }
-    });
-
-    createBelow = new QToolButton;
-    createBelow->setIcon(QPixmap(":/icons/tunnel.png"));
-    createBelow->setIconSize(iconSize);
-    createBelow->setToolTip(tr("Below existing"));
-    createBelow->setCheckable(true);
-    connect(createBelow, &QToolButton::toggled, [this](bool checked) {
-        if (checked)
-        {
-            g_createRoadElevationOption = -1;
-            createRoadOption->update();
-            RoadRunner::ActionManager::Instance()->Record(g_createRoadElevationOption);
-        }});
-
-    auto elevationOptions = new QButtonGroup(this);
-    auto elevationLayout = new QVBoxLayout;
-    elevationLayout->addWidget(createAbove);
-    elevationLayout->addWidget(createFlat);
-    elevationLayout->addWidget(createBelow);
-    elevationLayout->setSpacing(0);
-
-    elevationOptions->setExclusive(true);
-    elevationOptions->addButton(createAbove);
-    elevationOptions->addButton(createFlat);
-    elevationOptions->addButton(createBelow);
-    
-    zoomSliderLayout->addLayout(elevationLayout);
-
-    zoomSliderLayout->addWidget(zoomInIcon);
-    zoomSliderLayout->addWidget(zoomSlider);
-    zoomSliderLayout->addWidget(zoomOutIcon);
-
-    QToolButton* rotateLeftIcon = new QToolButton;
-    rotateLeftIcon->setIcon(QPixmap(":/icons/rotateleft.png"));
-    rotateLeftIcon->setIconSize(iconSize);
-    QToolButton* rotateRightIcon = new QToolButton;
-    rotateRightIcon->setIcon(QPixmap(":/icons/rotateright.png"));
-    rotateRightIcon->setIconSize(iconSize);
-    rotateSlider = new QSlider;
-    rotateSlider->setOrientation(Qt::Horizontal);
-    rotateSlider->setMinimum(-360);
-    rotateSlider->setMaximum(360);
-    rotateSlider->setValue(0);
-    rotateSlider->setTickPosition(QSlider::TicksBelow);
-
-    // Rotate slider layout
-    QHBoxLayout* rotateSliderLayout = new QHBoxLayout;
-    rotateSliderLayout->addWidget(rotateLeftIcon);
-    rotateSliderLayout->addWidget(rotateSlider);
-    rotateSliderLayout->addWidget(rotateRightIcon);
-
-    resetButton = new QToolButton;
-    resetButton->setText(tr("0"));
-    resetButton->setEnabled(false);
 
     // Label layout
     QSize largeIconSize = iconSize * 1.75;
@@ -189,34 +102,18 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     labelLayout->addWidget(dragModeButton);
     labelLayout->addStretch();
 
-    QGridLayout* topLayout = new QGridLayout;
-    topLayout->addLayout(labelLayout, 0, 0);
-    topLayout->addWidget(mapView, 1, 0);
-    topLayout->addLayout(zoomSliderLayout, 1, 1);
-    topLayout->addLayout(rotateSliderLayout, 2, 0);
-    topLayout->addWidget(resetButton, 2, 1);
+    QVBoxLayout* topLayout = new QVBoxLayout;
+    topLayout->addLayout(labelLayout);
+    topLayout->addWidget(container);
     setLayout(topLayout);
 
     displayScaleTimer->setSingleShot(true);
 
-    connect(resetButton, &QAbstractButton::clicked, this, &MainWidget::resetView);
-    connect(zoomSlider, &QAbstractSlider::valueChanged, this, &MainWidget::setupMatrix);
-    connect(rotateSlider, &QAbstractSlider::valueChanged, this, &MainWidget::setupMatrix);
-    connect(zoomSlider, &QAbstractSlider::valueChanged, this, &MainWidget::RecordViewTransform);
-    connect(rotateSlider, &QAbstractSlider::valueChanged, this, &MainWidget::RecordViewTransform);
-    connect(mapView->verticalScrollBar(), &QAbstractSlider::valueChanged,
-        this, &MainWidget::setResetButtonEnabled);
-    connect(mapView->horizontalScrollBar(), &QAbstractSlider::valueChanged,
-        this, &MainWidget::setResetButtonEnabled);
     connect(createModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateRoadMode);
     connect(createLaneModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateLaneMode);
     connect(destroyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDestroyMode);
     connect(modifyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoModifyMode);
     connect(dragModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDragMode);
-    connect(rotateLeftIcon, &QAbstractButton::clicked, this, &MainWidget::rotateLeft);
-    connect(rotateRightIcon, &QAbstractButton::clicked, this, &MainWidget::rotateRight);
-    connect(zoomInIcon, &QAbstractButton::clicked, this, &MainWidget::zoomIn);
-    connect(zoomOutIcon, &QAbstractButton::clicked, this, &MainWidget::zoomOut);
     connect(displayScaleTimer, &QTimer::timeout, mapView, &MapView::hideScale);
 
     Reset();
@@ -227,35 +124,6 @@ QGraphicsView* MainWidget::view() const
     return static_cast<QGraphicsView*>(mapView);
 }
 
-void MainWidget::resetView()
-{
-    zoomSlider->setValue(250);
-    rotateSlider->setValue(0);
-    setupMatrix();
-    mapView->ensureVisible(QRectF(0, 0, 0, 0));
-
-    resetButton->setEnabled(false);
-}
-
-void MainWidget::setResetButtonEnabled()
-{
-    resetButton->setEnabled(true);
-}
-
-void MainWidget::setupMatrix()
-{
-    qreal scale = qPow(qreal(2), (zoomSlider->value() - 250) / qreal(50));
-
-    QTransform matrix;
-    matrix.scale(scale, -scale);
-    matrix.rotate(rotateSlider->value());
-
-    mapView->setTransform(matrix);
-    setResetButtonEnabled();
-
-    mapView->showScale();
-    displayScaleTimer->start(1000);
-}
 
 void MainWidget::gotoCreateRoadMode(bool checked)
 {
@@ -312,42 +180,6 @@ void MainWidget::toggleAntialiasing(bool enabled)
     mapView->setRenderHint(QPainter::Antialiasing, enabled);
 }
 
-void MainWidget::zoomIn()
-{
-    zoomSlider->setValue(zoomSlider->value() + 1);
-    RecordViewTransform();
-}
-
-void MainWidget::zoomOut()
-{
-    zoomSlider->setValue(zoomSlider->value() - 1);
-    RecordViewTransform();
-}
-
-void MainWidget::zoomInBy(int level)
-{
-    zoomSlider->setValue(zoomSlider->value() + level);
-    RecordViewTransform();
-}
-
-void MainWidget::zoomOutBy(int level)
-{
-    zoomSlider->setValue(zoomSlider->value() - level);
-    RecordViewTransform();
-}
-
-void MainWidget::rotateLeft()
-{
-    rotateSlider->setValue(rotateSlider->value() - 10);
-    RecordViewTransform();
-}
-
-void MainWidget::rotateRight()
-{
-    rotateSlider->setValue(rotateSlider->value() + 10);
-    RecordViewTransform();
-}
-
 void MainWidget::PostEditActions()
 {
     mapView->PostEditActions();
@@ -389,9 +221,7 @@ void MainWidget::Reset()
         btn->setChecked(false);
     }
     pointerModeGroup->setExclusive(true);
-    createFlat->setChecked(true);
     gotoDragMode();
-    resetView(); // Make sure to RecordViewTransform()
     mapView->ResetSceneRect();
     displayScaleTimer->stop();
     mapView->showScale(); // Show scale upon start / newMap
@@ -399,18 +229,12 @@ void MainWidget::Reset()
 
 void MainWidget::RecordViewTransform()
 {
-    if (zoomSlider != nullptr && rotateSlider != nullptr)
-    {
-        RoadRunner::ActionManager::Instance()->Record(
-            zoomSlider->value(), rotateSlider->value(),
-            mapView->horizontalScrollBar()->value(), mapView->verticalScrollBar()->value());
-    }
+    // TODO
 }
 
 void MainWidget::SetViewFromReplay(double zoomSliderVal, double rotateSliderVal)
 {
-    zoomSlider->setValue(zoomSliderVal);
-    rotateSlider->setValue(rotateSliderVal);
+    // TODO
 }
 
 void MainWidget::SetModeFromReplay(int mode)
@@ -437,47 +261,6 @@ void MainWidget::SetModeFromReplay(int mode)
 
 void MainWidget::SetElevationFromReplay(int8_t elevationSetting)
 {
-    switch (elevationSetting)
-    {
-    case -1:
-        createBelow->setChecked(true);
-        break;
-    case 0:
-        createFlat->setChecked(true);
-        break;
-    case 1:
-        createAbove->setChecked(true);
-        break;
-    default:
-        assert(false);
-    }
+    // TODO
 }
 
-void MainWidget::wheelEvent(QWheelEvent* e)
-{
-    if (e->modifiers() & Qt::ControlModifier)
-    {
-        if (e->angleDelta().y() > 0)
-        {
-            if (g_createRoadElevationOption == -1)
-            {
-                createFlat->click();
-            }
-            else if (g_createRoadElevationOption == 0)
-            {
-                createAbove->click();
-            }
-        }
-        else
-        {
-            if (g_createRoadElevationOption == 1)
-            {
-                createFlat->click();
-            }
-            else if (g_createRoadElevationOption == 0)
-            {
-                createBelow->click();
-            }
-        }
-    }
-}
