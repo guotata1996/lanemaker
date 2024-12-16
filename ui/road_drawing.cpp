@@ -10,7 +10,7 @@
 #include "CreateRoadOptionWidget.h"
 #include "stats.h"
 #include "constants.h"
-#include "map_view.h"
+#include "map_view_gl.h"
 
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
@@ -18,14 +18,33 @@ extern double g_PointerRoadS;
 extern SectionProfileConfigWidget* g_createRoadOption;
 extern int8_t g_createRoadElevationOption;
 
-extern MapView* g_mapView;
+std::shared_ptr<RoadRunner::Road> RoadDrawingSession::GetPointerRoad()
+{
+    if (RoadRunner::g_PointerRoadID.empty())
+    {
+        return std::shared_ptr<RoadRunner::Road>();
+    }
+    auto g_road = IDGenerator::ForRoad()->GetByID(RoadRunner::g_PointerRoadID);
+    if (g_road == nullptr) return std::shared_ptr<RoadRunner::Road>();
+    return static_cast<RoadRunner::Road*>(g_road)->shared_from_this();
+}
 
-RoadDrawingSession::RoadDrawingSession(QGraphicsView* aView) :
-    view(aView), scene(aView->scene()), world(World::Instance())
+odr::Line3D RoadDrawingSession::PainterPathToLine(QPainterPath boundary)
+{
+    int nPoints = std::max(std::min(static_cast<int>(boundary.length()), 200), 2);
+    odr::Line3D rtn(nPoints);
+    for (int i = 0; i != nPoints; ++i)
+    {
+        auto pt = boundary.pointAtPercent(static_cast<float>(i) / nPoints);
+        rtn[i] = odr::Vec3D{ pt.x(), pt.y(), 0};
+    }
+    return rtn;
+}
+
+RoadDrawingSession::RoadDrawingSession() :
+    world(World::Instance())
 {
     cursorItem = new CustomCursorItem;
-    scene->addItem(cursorItem);
-    cursorItem->hide(); // Hide until we receive mouse position
 }
 
 RoadDrawingSession::~RoadDrawingSession()
@@ -74,7 +93,7 @@ void RoadDrawingSession::SetHighlightTo(std::shared_ptr<RoadRunner::Road> target
 
 float RoadDrawingSession::SnapDistFromScale() const
 {
-    return RoadRunner::SnapRadiusPx / g_mapView->Zoom();
+    return RoadRunner::SnapRadiusPx / RoadRunner::g_mapViewGL->Zoom();
 }
 
 double RoadDrawingSession::GetAdjustedS(bool* onSegmentBoundary) const
@@ -149,16 +168,47 @@ bool RoadDrawingSession::IsProfileChangePoint(const std::shared_ptr<RoadRunner::
     return leftOffsetChange || rightOffsetChange;
 }
 
-void RoadDrawingSession::CustomCursorItem::EnableHighlight(int level)
+RoadDrawingSession::CustomCursorItem::CustomCursorItem()
 {
-    setBrush(level > 0 ? QBrush(level == 1 ? Qt::darkRed : Qt::red, Qt::SolidPattern) : Qt::NoBrush);
 }
 
-void RoadDrawingSession::CustomCursorItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+RoadDrawingSession::CustomCursorItem::~CustomCursorItem()
 {
-    this->setScale(RoadRunner::SnapRadiusPx / InitialRadius / g_mapView->Zoom());
-    QGraphicsEllipseItem::paint(painter, option, widget);
+    if (graphicsIndex.has_value())
+    {
+        RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex);
+    }
 }
+
+void RoadDrawingSession::CustomCursorItem::EnableHighlight(int level)
+{
+    //setBrush(level > 0 ? QBrush(level == 1 ? Qt::darkRed : Qt::red, Qt::SolidPattern) : Qt::NoBrush);
+}
+
+void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
+{
+    if (graphicsIndex.has_value())
+    {
+        RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex);
+    }
+    transform = t;
+    
+    odr::Line3D roundBoundary;
+    for (int i = 0; i < 24; ++i)
+    {
+        double angle = 2 * M_PI / 24 * i;
+        auto offset = odr::Vec3D{ std::cos(angle), std::sin(angle), 0.01 };
+        auto pos = odr::add(transform, offset);
+        roundBoundary.push_back(pos);
+    }
+    graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, Qt::red);
+}
+
+//void RoadDrawingSession::CustomCursorItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+//{
+//    this->setScale(RoadRunner::SnapRadiusPx / InitialRadius / RoadRunner::g_mapView->Zoom());
+//    QGraphicsEllipseItem::paint(painter, option, widget);
+//}
 
 void RoadDrawingSession::UpdateEndMarkings()
 {

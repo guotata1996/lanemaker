@@ -6,6 +6,7 @@
 #include "map_view_gl.h"
 #include "mainwindow.h"
 #include "action_manager.h"
+#include "road_drawing.h"
 
 #include "CreateRoadOptionWidget.h"
 #include "spdlog/spdlog.h"
@@ -115,7 +116,7 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     connect(modifyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoModifyMode);
     connect(dragModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDragMode);
     connect(displayScaleTimer, &QTimer::timeout, mapView, &MapView::hideScale);
-
+    connect(mapViewGL, &RoadRunner::MapViewGL::MousePerformedAction, this, &MainWidget::OnMouseMove);
     Reset();
 }
 
@@ -128,8 +129,7 @@ QGraphicsView* MainWidget::view() const
 void MainWidget::gotoCreateRoadMode(bool checked)
 {
     if (!checked) return;
-    mapView->setDragMode(QGraphicsView::NoDrag);
-    mapView->SetEditMode(RoadRunner::Mode_Create);
+    SetEditMode(RoadRunner::Mode_Create);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Create);
     createRoadOption->GotoRoadMode();
     emit InReadOnlyMode(false);
@@ -138,8 +138,7 @@ void MainWidget::gotoCreateRoadMode(bool checked)
 void MainWidget::gotoCreateLaneMode(bool checked)
 {
     if (!checked) return;
-    mapView->setDragMode(QGraphicsView::NoDrag);
-    mapView->SetEditMode(RoadRunner::Mode_CreateLanes);
+    SetEditMode(RoadRunner::Mode_CreateLanes);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_CreateLanes);
     createRoadOption->GotoLaneMode();
     emit InReadOnlyMode(false);
@@ -148,8 +147,7 @@ void MainWidget::gotoCreateLaneMode(bool checked)
 void MainWidget::gotoDestroyMode(bool checked)
 {
     if (!checked) return;
-    mapView->setDragMode(QGraphicsView::NoDrag);
-    mapView->SetEditMode(RoadRunner::Mode_Destroy);
+    SetEditMode(RoadRunner::Mode_Destroy);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Destroy);
     createRoadOption->hide();
     emit InReadOnlyMode(false);
@@ -158,8 +156,7 @@ void MainWidget::gotoDestroyMode(bool checked)
 void MainWidget::gotoModifyMode(bool checked)
 {
     if (!checked) return;
-    mapView->setDragMode(QGraphicsView::NoDrag);
-    mapView->SetEditMode(RoadRunner::Mode_Modify);
+    SetEditMode(RoadRunner::Mode_Modify);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Modify);
     createRoadOption->GotoRoadMode();
     emit InReadOnlyMode(false);
@@ -168,11 +165,18 @@ void MainWidget::gotoModifyMode(bool checked)
 void MainWidget::gotoDragMode(bool checked)
 {
     if (!checked) return;
-    mapView->setDragMode(QGraphicsView::ScrollHandDrag);
-    mapView->SetEditMode(RoadRunner::Mode_None);
+    SetEditMode(RoadRunner::Mode_None);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_None);
     createRoadOption->hide();
     emit InReadOnlyMode(true);
+}
+
+void MainWidget::OnMouseMove(RoadRunner::MouseAction evt)
+{
+    if (drawingSession != nullptr)
+    {
+        drawingSession->Update(evt);
+    }
 }
 
 void MainWidget::toggleAntialiasing(bool enabled)
@@ -262,5 +266,33 @@ void MainWidget::SetModeFromReplay(int mode)
 void MainWidget::SetElevationFromReplay(int8_t elevationSetting)
 {
     // TODO
+}
+
+void MainWidget::SetEditMode(RoadRunner::EditMode aMode)
+{
+    //editMode = aMode;
+
+    if (drawingSession != nullptr)
+    {
+        delete drawingSession;
+        drawingSession = nullptr;
+    }
+    switch (aMode)
+    {
+    case RoadRunner::Mode_Create:
+        drawingSession = new RoadCreationSession();
+        break;
+    case RoadRunner::Mode_CreateLanes:
+        drawingSession = new LanesCreationSession();
+        break;
+    case RoadRunner::Mode_Destroy:
+        drawingSession = new RoadDestroySession();
+        break;
+    case RoadRunner::Mode_Modify:
+        drawingSession = new RoadModificationSession();
+        break;
+    default:
+        break;
+    }
 }
 

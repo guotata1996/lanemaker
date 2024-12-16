@@ -134,7 +134,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     //connect(preferenceWindow.get(), &PreferenceWindow::ToggleAA, mainWidget.get(), &MainWidget::toggleAntialiasing);
     //connect(testButton, &QPushButton::clicked, []() {spdlog::info("Test btn press"); });
 
-    connect(mainWidget->mapViewGL, &RoadRunner::MapViewGL::HoveringChanged, this, &MainWindow::updateHint);
+    connect(mainWidget->mapViewGL, &RoadRunner::MapViewGL::MousePerformedAction, this, &MainWindow::updateHint);
 
     if (g_preference.showWelcome)
         preferenceWindow->open();

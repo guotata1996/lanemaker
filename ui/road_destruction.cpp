@@ -9,17 +9,16 @@
 extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
 extern double g_PointerRoadS;
 
-RoadDestroySession::RoadDestroySession(QGraphicsView* aView):
-    RoadDrawingSession(aView)
+RoadDestroySession::RoadDestroySession()
 {
-    hintItemLeft = scene->addPolygon(hintPolygonLeft);
+    //hintItemLeft = scene->addPolygon(hintPolygonLeft);
     hintItemLeft->setZValue(129);
     QPen pen;
     pen.setColor(Qt::red);
     pen.setWidthF(0.5);
     hintItemLeft->setPen(pen);
 
-    hintItemRight = scene->addPolygon(hintPolygonRight);
+    //hintItemRight = scene->addPolygon(hintPolygonRight);
     hintItemRight->setZValue(129);
     pen.setColor(Qt::green);
     hintItemRight->setPen(pen);
@@ -27,9 +26,9 @@ RoadDestroySession::RoadDestroySession(QGraphicsView* aView):
 
 RoadDestroySession::~RoadDestroySession()
 {
-    scene->removeItem(cursorItem);
-    scene->removeItem(hintItemLeft);
-    scene->removeItem(hintItemRight);
+    //scene->removeItem(cursorItem);
+    //scene->removeItem(hintItemLeft);
+    //scene->removeItem(hintItemRight);
 }
 
 bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
@@ -40,16 +39,16 @@ bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
     {
         bool onSegBoundary;
         auto snapped = g_road->generated.get_xy(GetAdjustedS(&onSegBoundary));
-        cursorItem->setPos(snapped[0], snapped[1]);
+        //cursorItem->setPos(snapped[0], snapped[1]);
         cursorItem->EnableHighlight(onSegBoundary ? 
             RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Line);
     }
     else
     {
-        cursorItem->setPos(scenePos);
+        //cursorItem->setPos(scenePos);
         cursorItem->EnableHighlight(RoadDrawingSession::Snap_Nothing);
     }
-    cursorItem->show();
+    //cursorItem->show();
     SetHighlightTo(g_road);
 
     // Preview

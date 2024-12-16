@@ -108,16 +108,16 @@ void MapView::SetEditMode(RoadRunner::EditMode aMode)
     switch (aMode)
     {
     case RoadRunner::Mode_Create:
-        drawingSession = new RoadCreationSession(this);
+        drawingSession = new RoadCreationSession();
         break;
     case RoadRunner::Mode_CreateLanes:
-        drawingSession = new LanesCreationSession(this);
+        drawingSession = new LanesCreationSession();
         break;
     case RoadRunner::Mode_Destroy:
-        drawingSession = new RoadDestroySession(this);
+        drawingSession = new RoadDestroySession();
         break;
     case RoadRunner::Mode_Modify:
-        drawingSession = new RoadModificationSession(this);
+        drawingSession = new RoadModificationSession();
         break;
     default:
         break;

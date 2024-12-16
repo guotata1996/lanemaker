@@ -15,8 +15,8 @@ extern int g_PointerLane;
 extern SectionProfileConfigWidget* g_createRoadOption;
 extern int8_t g_createRoadElevationOption;
 
-LanesCreationSession::LanesCreationSession(QGraphicsView* aView) :
-    RoadCreationSession(aView), lLanes(0), rLanes(0), rOffsetX2(0), lOffsetX2(0)
+LanesCreationSession::LanesCreationSession() :
+    lLanes(0), rLanes(0), rOffsetX2(0), lOffsetX2(0)
 {
 
 }

@@ -2,19 +2,20 @@
 
 #include "world.h"
 #include "action_defs.h"
+#include "road_graphics.h"
 
 #include "qgraphicsview.h"
 #include "qgraphicsitem.h"
-#include <vector>
+#include "Transform3D.h"
 #include <QPainterPath>
-
+#include <vector>
 #include <map>
 
 
 class RoadDrawingSession
 {
 public:
-    RoadDrawingSession(QGraphicsView* aView);
+    RoadDrawingSession();
 
     /*return false if force complete*/
     virtual bool Update(const RoadRunner::MouseAction&);
@@ -27,21 +28,22 @@ public:
     void SetHighlightTo(std::shared_ptr<RoadRunner::Road>);
 
 protected:
-    class CustomCursorItem : public QGraphicsEllipseItem
+    class CustomCursorItem
     {
     public:
-        CustomCursorItem() : QGraphicsEllipseItem(
-            -InitialRadius, -InitialRadius,
-            2 * InitialRadius, 2 * InitialRadius) {
-            setZValue(999);
-        }
-
-        virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
+        CustomCursorItem();
+        ~CustomCursorItem();
+        //virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
 
         void EnableHighlight(int level);
+        void SetTranslation(odr::Vec3D);
 
     private:
+        odr::Vec3D transform;
+
         static double InitialRadius;
+
+        std::optional<unsigned int> graphicsIndex;
     };
 
     enum SnapResult
@@ -50,6 +52,9 @@ protected:
         Snap_Line,
         Snap_Point
     };
+
+    static std::shared_ptr<RoadRunner::Road> GetPointerRoad();
+    static odr::Line3D PainterPathToLine(QPainterPath boundary);
 
     float SnapDistFromScale() const;
 
@@ -66,7 +71,6 @@ protected:
     static void UpdateEndMarkings();
 
     QGraphicsView* view;
-    QGraphicsScene* scene;
     World* world;
 
     CustomCursorItem* cursorItem;
@@ -81,7 +85,7 @@ private:
 class RoadCreationSession : public RoadDrawingSession
 {
 public:
-    RoadCreationSession(QGraphicsView* aView);
+    RoadCreationSession();
 
     virtual bool Update(const RoadRunner::MouseAction&);
 
@@ -136,7 +140,7 @@ private:
     {
         std::unique_ptr<odr::RoadGeometry> geo;
         QPainterPath refLinePreview;
-        QPainterPath boundaryPreview;
+        QPainterPath boundaryPreviewL, boundaryPreviewR;
     };
 
     SnapResult SnapCursor(odr::Vec2D&);
@@ -147,28 +151,33 @@ private:
     std::optional<odr::Vec2D> startPos; // Can be on blank or extend from
 
     void GeneratePainterPath(const std::unique_ptr<odr::RoadGeometry>&,
-        QPainterPath&, QPainterPath&);
+        QPainterPath&, QPainterPath&, QPainterPath&);
 
     void UpdateStagedFromGeometries(bool lanePlanChanged = false);
 
     std::unique_ptr<odr::RoadGeometry> flexGeo;
     QPainterPath flexRefLinePath;
-    QPainterPath flexBoundaryPath;
+    QPainterPath flexBoundaryPathL, flexBoundaryPathR;
     QPainterPath stagedRefLinePath;
-    QPainterPath stagedBoundaryPath;
+    QPainterPath stagedBoundaryPathL, stagedBoundaryPathR;
 
-    QGraphicsPathItem* stagedRefLinePreview;
-    QGraphicsPathItem* stagedBoundaryPreview;
-    QGraphicsPathItem* flexRefLinePreview;
-    QGraphicsPathItem* flexBoundaryPreview;
-    DirectionHandle* directionHandle;
+    //QGraphicsPathItem* stagedRefLinePreview;
+    //QGraphicsPathItem* stagedBoundaryPreview;
+    //QGraphicsPathItem* flexRefLinePreview;
+    //QGraphicsPathItem* flexBoundaryPreview;
+    DirectionHandle* directionHandle; // TODO
+
+    std::optional<RoadRunner::TemporaryGraphics> stagedRefLinePreview;
+    std::optional<RoadRunner::TemporaryGraphics> stagedBoundaryPreview;
+    std::optional<RoadRunner::TemporaryGraphics> flexRefLinePreview;
+    std::optional<RoadRunner::TemporaryGraphics> flexBoundaryPreview;
 };
 
 
 class LanesCreationSession : public RoadCreationSession
 {
 public:
-    LanesCreationSession(QGraphicsView* aView);
+    LanesCreationSession();
 
     virtual bool Complete() override;
 
@@ -204,7 +213,7 @@ private:
 class RoadDestroySession : public RoadDrawingSession
 {
 public:
-    RoadDestroySession(QGraphicsView* aView);
+    RoadDestroySession();
 
     virtual ~RoadDestroySession() override;
 
@@ -225,7 +234,7 @@ protected:
 class RoadModificationSession : public RoadDestroySession
 {
 public:
-    RoadModificationSession(QGraphicsView* aView);
+    RoadModificationSession();
 
     virtual bool Update(const RoadRunner::MouseAction&) override;
 

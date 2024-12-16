@@ -15,6 +15,33 @@
 
 namespace RoadRunner
 {
+    TemporaryGraphics::TemporaryGraphics(const odr::Line3D& boundaryL, const odr::Line3D& boundaryR, QColor color)
+    {
+        graphicsIndex = g_mapViewGL->AddQuads(boundaryL, boundaryR, color);
+    }
+
+    TemporaryGraphics::TemporaryGraphics(const odr::Line3D& center, double width, QColor color)
+    {
+        odr::Line3D left(center.size());
+        odr::Line3D right(center.size());
+        for (int i = 0; i != center.size(); ++i)
+        {
+            auto prev = i == 0 ? center[i] : center[i - 1];
+            auto next = i == center.size() - 1 ? center[i] : center[i + 1];
+            auto tan = odr::sub(next, prev);
+            odr::Vec2D radial{ -tan[1], tan[0] };
+            radial = odr::normalize(radial);
+            left[i] = odr::add(center[i], odr::Vec3D{ radial[0], radial[1], 0 });
+            right[i] = odr::add(center[i], odr::Vec3D{ -radial[0], -radial[1], 0 });
+        }
+        graphicsIndex = g_mapViewGL->AddQuads(left, right, color);
+    }
+
+    TemporaryGraphics::~TemporaryGraphics()
+    {
+        g_mapViewGL->RemoveItem(graphicsIndex);
+    }
+
     SectionGraphics::SectionGraphics(std::shared_ptr<RoadRunner::Road> road,
         const odr::LaneSection& laneSection,
         double sBegin, double sEnd)

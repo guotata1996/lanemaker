@@ -24,6 +24,17 @@ namespace RoadRunner
         std::vector<QPolygonF> ArrowShape(int arrowType);
     }
 
+    class TemporaryGraphics
+    {
+    public:
+        TemporaryGraphics(const odr::Line3D& boundaryL, const odr::Line3D& boundaryR, QColor color);
+        TemporaryGraphics(const odr::Line3D& center, double width, QColor color);
+
+        ~TemporaryGraphics();
+    private:
+        unsigned int graphicsIndex;
+    };
+
     class SectionGraphics
     {
     public:

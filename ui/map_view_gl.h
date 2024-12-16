@@ -12,6 +12,8 @@
 #include <QOpenGLVertexArrayObject>
 #include <optional>
 
+#include "action_defs.h"
+
 namespace RoadRunner
 {
 	class MapViewGL : public OpenGLWindow
@@ -28,8 +30,9 @@ namespace RoadRunner
 
 		int VBufferUseage_pct() const;
 		int EBufferUseage_pct() const;
+		float Zoom() const;
 	signals:
-		void HoveringChanged();
+		void MousePerformedAction(RoadRunner::MouseAction);
 
 	protected:
 		void initializeGL() override;
@@ -87,4 +90,5 @@ namespace RoadRunner
 	extern std::string g_PointerRoadID;
 	extern double g_PointerRoadS;
 	extern int g_PointerLane;
+	extern odr::Vec2D g_PointerOnGround;
 }

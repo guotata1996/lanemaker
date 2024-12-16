@@ -9,7 +9,7 @@ extern double g_PointerRoadS;
 
 extern SectionProfileConfigWidget* g_createRoadOption;
 
-RoadModificationSession::RoadModificationSession(QGraphicsView* aView) : RoadDestroySession(aView)
+RoadModificationSession::RoadModificationSession()
 {}
 
 bool RoadModificationSession::Update(const RoadRunner::MouseAction& evt)

@@ -2,6 +2,8 @@
 #include <QFrame>
 #include <QGraphicsView>
 
+#include "action_defs.h"
+
 QT_BEGIN_NAMESPACE
 class QLabel;
 class QSlider;
@@ -11,6 +13,7 @@ class QPixmap;
 QT_END_NAMESPACE
 
 class MapView;
+class RoadDrawingSession;
 namespace RoadRunner
 {
     class MapViewGL;
@@ -60,7 +63,13 @@ private slots:
     void gotoModifyMode(bool);
     void gotoDragMode(bool c=true);
 
+    void OnMouseMove(RoadRunner::MouseAction);
+
 private:
+    void SetEditMode(RoadRunner::EditMode aMode);
+
+    RoadDrawingSession* drawingSession = nullptr;
+
     QButtonGroup* pointerModeGroup;
     QToolButton* createModeButton, * createLaneModeButton, * destroyModeButton, * modifyModeButton, * dragModeButton;
 
