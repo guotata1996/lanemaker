@@ -62,8 +62,8 @@ namespace RoadRunner
 
 		ShaderProgram shader;
 
-		std::array<Vertex, 2 * 262144>			m_vertexBufferData;
-		unsigned int                            m_vertexBufferCount;
+		std::array<Vertex, (1<<24)> m_vertexBufferData;
+		unsigned int                m_vertexBufferCount;
 
 		/*! Wraps an OpenGL VertexArrayObject, that references the vertex coordinates and color buffers. */
 		//QOpenGLVertexArrayObject	m_vao;

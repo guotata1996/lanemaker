@@ -86,24 +86,24 @@ float RoadDrawingSession::SnapDistFromScale() const
 
 double RoadDrawingSession::GetAdjustedS(bool* onSegmentBoundary) const
 {
-    auto g_road = g_PointerRoad.lock();
+    auto g_road = GetPointerRoad();
     const double snapThreshold = SnapDistFromScale();
-    if (g_PointerRoadS < snapThreshold)
+    if (RoadRunner::g_PointerRoadS < snapThreshold)
     {
         if (onSegmentBoundary != nullptr) *onSegmentBoundary = true;
         return 0;
     }
-    else if (g_PointerRoadS > g_road->Length() - snapThreshold)
+    else if (RoadRunner::g_PointerRoadS > g_road->Length() - snapThreshold)
     {
         if (onSegmentBoundary != nullptr) *onSegmentBoundary = true;
         return g_road->Length();
     }
-    return g_road->SnapToSegmentBoundary(g_PointerRoadS, snapThreshold, onSegmentBoundary);
+    return g_road->SnapToSegmentBoundary(RoadRunner::g_PointerRoadS, snapThreshold, onSegmentBoundary);
 }
 
 void RoadDrawingSession::BeginPickingProfile()
 {
-    beginPickingS = g_PointerRoadS;
+    beginPickingS = g_PointerRoadS;    // TOOD:
     beginPickingRoad = g_PointerRoad;
     QPixmap p = QPixmap(":/icons/eyedropper.svg");
     view->setCursor(QCursor(p));
@@ -156,7 +156,7 @@ bool RoadDrawingSession::IsProfileChangePoint(const std::shared_ptr<RoadRunner::
     return leftOffsetChange || rightOffsetChange;
 }
 
-RoadDrawingSession::CustomCursorItem::CustomCursorItem()
+RoadDrawingSession::CustomCursorItem::CustomCursorItem(): color(Qt::black)
 {
 }
 
@@ -170,8 +170,8 @@ RoadDrawingSession::CustomCursorItem::~CustomCursorItem()
 
 void RoadDrawingSession::CustomCursorItem::EnableHighlight(int level)
 {
-    //setBrush(level > 0 ? QBrush(level == 1 ? Qt::darkRed : Qt::red, Qt::SolidPattern) : Qt::NoBrush);
-    // TODO
+    QColor color = level == 0 ? Qt::black : (level == 1 ? Qt::darkRed : Qt::red);
+    RoadRunner::g_mapViewGL->UpdateItem(*graphicsIndex, color);
 }
 
 void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
@@ -190,7 +190,7 @@ void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
         auto pos = odr::add(transform, offset);
         roundBoundary.push_back(pos);
     }
-    graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, Qt::red);
+    graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, color);
 }
 
 void RoadDrawingSession::UpdateEndMarkings()

@@ -8,9 +8,7 @@
 #include "constants.h"
 #include "road_drawing.h"
 #include "road_overlaps.h"
-
-extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
-extern int g_PointerLane;
+#include "map_view_gl.h"
 
 extern SectionProfileConfigWidget* g_createRoadOption;
 extern int8_t g_createRoadElevationOption;
@@ -247,7 +245,7 @@ bool LanesCreationSession::Complete()
 // 3) Where lane offset changes (on either side)
 bool LanesCreationSession::ValidateSnap() const
 {
-    auto g_road = g_PointerRoad.lock();
+    auto g_road = GetPointerRoad();
     if (g_road == nullptr)
     {
         return false;
@@ -273,7 +271,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(od
     {
         return RoadDrawingSession::Snap_Nothing;
     }
-    auto g_road = g_PointerRoad.lock();
+    auto g_road = GetPointerRoad();
     
     rLanes = g_createRoadOption->RightResult().laneCount;
     lLanes = g_createRoadOption->LeftResult().laneCount;
@@ -332,10 +330,10 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(od
         auto lanesRequired = rLanes;  // New road follows drawing direction
         std::vector<std::pair<uint8_t, uint8_t>> searchRanges;
         double baseOffset;
-        startSide = g_PointerLane < 0 ? -1 : 1;
+        startSide = RoadRunner::g_PointerLane < 0 ? -1 : 1;
         if (g_roadS == g_road->Length())
         {
-            if (g_PointerLane < 0 && rightProfile.laneCount >= lanesRequired)
+            if (RoadRunner::g_PointerLane < 0 && rightProfile.laneCount >= lanesRequired)
             {
                 searchRanges.push_back(std::make_pair(1, rightProfile.laneCount));
                 baseOffset = static_cast<double>(rightProfile.offsetx2) / 2;
@@ -344,7 +342,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(od
         }
         else if (g_roadS == 0)
         {
-            if (g_PointerLane > 0 && leftProfile.laneCount >= lanesRequired)
+            if (RoadRunner::g_PointerLane > 0 && leftProfile.laneCount >= lanesRequired)
             {
                 searchRanges.push_back(std::make_pair(1, leftProfile.laneCount));
                 baseOffset = static_cast<double>(leftProfile.offsetx2) / 2;
@@ -354,7 +352,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(od
         else
         {
             RoadRunner::LanePlan prevProfile, nextProfile;
-            if (g_PointerLane < 0)
+            if (RoadRunner::g_PointerLane < 0)
             {
                 prevProfile = g_roadProfile.ProfileAt(g_roadS - 0.01, -1);
                 nextProfile = g_roadProfile.ProfileAt(g_roadS + 0.01, -1);
@@ -461,7 +459,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
         return RoadDrawingSession::Snap_Nothing;
     }
 
-    auto g_road = g_PointerRoad.lock();
+    auto g_road = GetPointerRoad();
 
     if (rLanes != g_createRoadOption->RightResult().laneCount ||
         lLanes != g_createRoadOption->LeftResult().laneCount)
@@ -557,10 +555,10 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
         auto lanesRequired = rLanes;  // New road follows drawing direction
         std::vector<std::pair<uint8_t, uint8_t>> searchRanges;
         double baseOffset;
-        endSide = g_PointerLane < 0 ? -1 : 1;
+        endSide = RoadRunner::g_PointerLane < 0 ? -1 : 1;
         if (g_roadS == 0)
         {
-            if (g_PointerLane < 0 && rightProfile.laneCount >= lanesRequired)
+            if (RoadRunner::g_PointerLane < 0 && rightProfile.laneCount >= lanesRequired)
             {
                 searchRanges.push_back(std::make_pair(1, rightProfile.laneCount));
                 baseOffset = static_cast<double>(rightProfile.offsetx2) / 2;
@@ -571,7 +569,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
         }
         else if (g_roadS == g_road->Length())
         {
-            if (g_PointerLane > 0 && leftProfile.laneCount >= lanesRequired)
+            if (RoadRunner::g_PointerLane > 0 && leftProfile.laneCount >= lanesRequired)
             {
                 searchRanges.push_back(std::make_pair(1, leftProfile.laneCount));
                 baseOffset = static_cast<double>(leftProfile.offsetx2) / 2;
@@ -583,7 +581,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
         else
         {
             RoadRunner::LanePlan prevProfile, nextProfile;
-            if (g_PointerLane < 0)
+            if (RoadRunner::g_PointerLane < 0)
             {
                 prevProfile = g_roadProfile.ProfileAt(g_roadS - 0.01, -1);
                 nextProfile = g_roadProfile.ProfileAt(g_roadS + 0.01, -1);

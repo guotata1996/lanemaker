@@ -44,6 +44,7 @@ protected:
         static double InitialRadius;
 
         std::optional<unsigned int> graphicsIndex;
+        QColor color;
     };
 
     enum SnapResult

@@ -207,8 +207,7 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 	auto scenePos = RoadRunner::g_PointerOnGround;
 	auto snapLevel = SnapCursor(scenePos);
 	cursorItem->SetTranslation({ scenePos[0], scenePos[1], 0 });
-	//cursorItem->EnableHighlight(snapLevel);
-	//cursorItem->show();
+	cursorItem->EnableHighlight(snapLevel);
 
 	RoadRunner::LanePlan currLeftPlan{ PreviewLeftOffsetX2(), g_createRoadOption->LeftResult().laneCount };
 	RoadRunner::LanePlan currRightPlan{ PreviewRightOffsetX2(), g_createRoadOption->RightResult().laneCount };
