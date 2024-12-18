@@ -7,6 +7,7 @@
 #include "mainwindow.h"
 #include "action_manager.h"
 #include "road_drawing.h"
+#include "change_tracker.h"
 
 #include "CreateRoadOptionWidget.h"
 #include "spdlog/spdlog.h"
@@ -117,6 +118,7 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     connect(dragModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDragMode);
     connect(displayScaleTimer, &QTimer::timeout, mapView, &MapView::hideScale);
     connect(mapViewGL, &RoadRunner::MapViewGL::MousePerformedAction, this, &MainWidget::OnMouseMove);
+    connect(mapViewGL, &RoadRunner::MapViewGL::KeyPerformedAction, this, &MainWidget::OnKeyPressed);
     Reset();
 }
 
@@ -175,8 +177,43 @@ void MainWidget::OnMouseMove(RoadRunner::MouseAction evt)
 {
     if (drawingSession != nullptr)
     {
-        drawingSession->Update(evt);
+        if (!drawingSession->Update(evt))
+        {
+            confirmEdit();
+        }
     }
+}
+
+void MainWidget::OnKeyPressed(RoadRunner::KeyPressAction evt)
+{
+    switch (evt.key)
+    {
+    case Qt::Key_Escape:
+        quitEdit();
+        break;
+    case Qt::Key_Return:
+        if (drawingSession != nullptr)
+        {
+            confirmEdit();
+        }
+        break;
+    case Qt::Key_I:
+        // TODO
+        break;
+    }
+}
+
+void MainWidget::confirmEdit()
+{
+    RoadRunner::ChangeTracker::Instance()->StartRecordEdit();
+    bool cleanState = drawingSession->Complete();
+    RoadRunner::ChangeTracker::Instance()->FinishRecordEdit(!cleanState);
+    quitEdit();
+}
+
+void MainWidget::quitEdit()
+{
+    SetEditMode(editMode);
 }
 
 void MainWidget::toggleAntialiasing(bool enabled)
@@ -270,7 +307,7 @@ void MainWidget::SetElevationFromReplay(int8_t elevationSetting)
 
 void MainWidget::SetEditMode(RoadRunner::EditMode aMode)
 {
-    //editMode = aMode;
+    editMode = aMode;
 
     if (drawingSession != nullptr)
     {

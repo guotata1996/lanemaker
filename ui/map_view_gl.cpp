@@ -45,7 +45,7 @@ namespace RoadRunner
 
         unsigned int gid = std::stoi(IDGenerator::ForGraphics()->GenerateID(this));
         std::set<GLuint> vids;
-        const size_t vertexBufferChangeBegin = m_vertexBufferCount;
+        const auto vertexBufferChangeBegin = m_vertexBufferCount;
 
         for (int i = 0; i < lBorder.size() - 1; ++i)
         {
@@ -93,7 +93,7 @@ namespace RoadRunner
 
         auto gid = std::stoi(IDGenerator::ForGraphics()->GenerateID(this));
         std::set<GLuint> vids;
-        const size_t vertexBufferChangeBegin = m_vertexBufferCount;
+        const auto vertexBufferChangeBegin = m_vertexBufferCount;
 
         for (auto tri : Triangulate_2_5d(boundary))
         {
@@ -447,6 +447,7 @@ namespace RoadRunner
             m_camera.rotate(5, QVector3D(0, 0, 1));
         }
 
+        emit(KeyPerformedAction(event));
         // update cached world2view matrix
         renderLater();
     }
@@ -517,6 +518,6 @@ namespace RoadRunner
     float MapViewGL::Zoom() const
     {
         QVector3D rayOnGround = PointerOnGround(lastMousePos);
-        return 200 / rayOnGround.distanceToPoint(m_camera.translation());
+        return 100 / rayOnGround.distanceToPoint(m_camera.translation());
     }
 }

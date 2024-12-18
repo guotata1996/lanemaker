@@ -32,7 +32,7 @@ std::shared_ptr<RoadRunner::Road> RoadDrawingSession::GetPointerRoad()
 RoadDrawingSession::RoadDrawingSession() :
     world(World::Instance())
 {
-    cursorItem = new CustomCursorItem;
+    cursorItem = std::make_unique<CustomCursorItem>();
 }
 
 RoadDrawingSession::~RoadDrawingSession()

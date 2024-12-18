@@ -51,6 +51,11 @@ namespace RoadRunner
         }
     }
 
+    KeyPressAction::KeyPressAction(QKeyEvent* e)
+    {
+        key = e->key();
+    }
+
     ActionManager* ActionManager::instance = nullptr;
 
     ActionManager* ActionManager::Instance()
@@ -177,7 +182,7 @@ namespace RoadRunner
     void ActionManager::Record(QKeyEvent* evt)
     {
         FlushUnrecordedMouseMove();
-        KeyPressAction serialized{ evt->key() };
+        KeyPressAction serialized(evt);
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
         Save();
     }

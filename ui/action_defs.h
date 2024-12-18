@@ -42,6 +42,9 @@ namespace RoadRunner
 
     struct KeyPressAction
     {
+        KeyPressAction() = default;
+        KeyPressAction(QKeyEvent* e);
+
         int key;
 
         QString ToString() const

@@ -72,7 +72,7 @@ protected:
     QGraphicsView* view;
     World* world;
 
-    CustomCursorItem* cursorItem;
+    std::unique_ptr<CustomCursorItem> cursorItem;
 
 private:
     std::weak_ptr<RoadRunner::Road> highlighted;

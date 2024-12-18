@@ -64,10 +64,15 @@ private slots:
     void gotoDragMode(bool c=true);
 
     void OnMouseMove(RoadRunner::MouseAction);
+    void OnKeyPressed(RoadRunner::KeyPressAction);
 
 private:
     void SetEditMode(RoadRunner::EditMode aMode);
 
+    void confirmEdit();
+    void quitEdit();
+
+    RoadRunner::EditMode editMode = RoadRunner::Mode_None;
     RoadDrawingSession* drawingSession = nullptr;
 
     QButtonGroup* pointerModeGroup;

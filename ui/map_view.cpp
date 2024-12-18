@@ -332,7 +332,7 @@ void MapView::keyPressEvent(QKeyEvent* evt)
     RoadRunner::ActionManager::Instance()->Record(evt);
     try
     {
-        OnKeyPress(RoadRunner::KeyPressAction{evt->key()});
+        OnKeyPress(RoadRunner::KeyPressAction(evt));
     }
     catch (std::exception e)
     {
