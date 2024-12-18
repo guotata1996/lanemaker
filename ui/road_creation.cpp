@@ -60,28 +60,7 @@ void RoadCreationSession::DirectionHandle::paint(QPainter* painter, const QStyle
 
 RoadCreationSession::RoadCreationSession()
 {
-	QPainterPath p;
-	//flexRefLinePreview = scene->addPath(flexRefLinePath);
-	//flexRefLinePreview->setZValue(129); // always on top of boundary preview
-	//stagedRefLinePreview = scene->addPath(stagedRefLinePath);
-	//stagedRefLinePreview->setZValue(129);
-
-	QPen refLinePen;
-	refLinePen.setColor(Qt::blue);
-	//stagedRefLinePreview->setPen(refLinePen);
-	refLinePen.setStyle(Qt::DotLine);
-	//flexRefLinePreview->setPen(refLinePen);
-
-	//stagedBoundaryPreview = scene->addPath(stagedBoundaryPath);
-	//flexBoundaryPreview = scene->addPath(flexBoundaryPath);
-
-	//flexBoundaryPreview->setPen(QPen(Qt::gray));
-	//flexBoundaryPreview->setBrush(Qt::lightGray);
-	//stagedBoundaryPreview->setPen(QPen(Qt::gray));
-	//stagedBoundaryPreview->setBrush(Qt::lightGray);
-
 	directionHandle = new DirectionHandle;
-	//scene->addItem(directionHandle);
 	directionHandle->hide();
 }
 
@@ -254,7 +233,7 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 			auto endHdg = odr::Vec2D{ std::cos(targetHdg), std::sin(targetHdg) };
 			auto adjustedFit = RoadRunner::ConnectRays(refitStartPos, startHdg, endPos, endHdg);
 
-			GeneratePainterPath(adjustedFit, toRefit.refLinePreview, toRefit.boundaryPreviewR, toRefit.boundaryPreviewL);
+			GenerateHintLines(adjustedFit, toRefit.refLinePreview, toRefit.boundaryPreviewR, toRefit.boundaryPreviewL);
 			toRefit.geo = std::move(adjustedFit);
 
 			UpdateStagedFromGeometries();
@@ -364,7 +343,7 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 				flexGeo = RoadRunner::ConnectRays(localStartPos, localStartDir, scenePos, JoinAtEndDir());
 			}
 		
-			GeneratePainterPath(flexGeo, flexRefLinePath, flexBoundaryPathR, flexBoundaryPathL);
+			GenerateHintLines(flexGeo, flexRefLinePath, flexBoundaryPathR, flexBoundaryPathL);
 		}
 		else
 		{
@@ -372,16 +351,11 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 			flexBoundaryPathR.clear();
 			flexBoundaryPathL.clear();
 		}
-		//flexRefLinePreview->setPath(flexRefLinePath);
-		//flexRefLinePreview->show();
-		//flexBoundaryPreview->setPath(flexBoundaryPath);
-		//flexBoundaryPreview->setZValue(g_createRoadElevationOption >= 0 ? 128 : -128);
-		//flexBoundaryPreview->show();
 		
-		if (!flexRefLinePath.isEmpty())
+		if (!flexRefLinePath.empty())
 		{
-			flexRefLinePreview.emplace(PainterPathToLine(flexRefLinePath), 0.2, Qt::green);
-			flexBoundaryPreview.emplace(PainterPathToLine(flexBoundaryPathR), PainterPathToLine(flexBoundaryPathL), Qt::gray);
+			flexRefLinePreview.emplace(flexRefLinePath, 0.1, Qt::green);
+			flexBoundaryPreview.emplace(flexBoundaryPathR, flexBoundaryPathL, Qt::gray);
 		}
 		else
 		{
@@ -571,16 +545,10 @@ bool RoadCreationSession::Complete()
 
 RoadCreationSession::~RoadCreationSession()
 {
-	//scene->removeItem(stagedRefLinePreview);
-	//scene->removeItem(stagedBoundaryPreview);
-	//scene->removeItem(flexRefLinePreview);
-	//scene->removeItem(flexBoundaryPreview);
-	//scene->removeItem(cursorItem);
-	//scene->removeItem(directionHandle);
 }
 
-void RoadCreationSession::GeneratePainterPath(const std::unique_ptr<odr::RoadGeometry>& geo,
-	QPainterPath& centerPath, QPainterPath& boundaryPathR, QPainterPath& boundaryPathL)
+void RoadCreationSession::GenerateHintLines(const std::unique_ptr<odr::RoadGeometry>& geo,
+	odr::Line3D& centerPath, odr::Line3D& boundaryPathR, odr::Line3D& boundaryPathL)
 {
 	const int Division = 30;
 	centerPath.clear();
@@ -594,11 +562,7 @@ void RoadCreationSession::GeneratePainterPath(const std::unique_ptr<odr::RoadGeo
 		{
 			auto s = flexLen / (Division - 1) * i;
 			auto p = geo->get_xy(s);
-				
-			if (i == 0)
-				centerPath.moveTo(p[0], p[1]);
-			else
-				centerPath.lineTo(p[0], p[1]);
+			centerPath.push_back(odr::Vec3D{ p[0], p[1], 0 });
 		}
 
 		// right boundary
@@ -611,10 +575,7 @@ void RoadCreationSession::GeneratePainterPath(const std::unique_ptr<odr::RoadGeo
 			auto grad = odr::normalize(geo->get_grad(s));
 			auto offset = odr::mut(t, odr::Vec2D{ grad[1], -grad[0] });
 			p = odr::add(p, offset);
-			if (i == 0)
-				boundaryPathR.moveTo(p[0], p[1]);
-			else
-				boundaryPathR.lineTo(p[0], p[1]);
+			boundaryPathR.push_back(odr::Vec3D{ p[0], p[1], 0 });
 		}
 
 		// left boundary
@@ -627,10 +588,7 @@ void RoadCreationSession::GeneratePainterPath(const std::unique_ptr<odr::RoadGeo
 			auto grad = odr::normalize(geo->get_grad(s));
 			auto offset = odr::mut(t, odr::Vec2D{ grad[1], -grad[0] });
 			p = odr::add(p, offset);
-			if (i == 0)
-				boundaryPathL.moveTo(p[0], p[1]);
-			else
-				boundaryPathL.lineTo(p[0], p[1]);
+			boundaryPathL.push_back(odr::Vec3D{ p[0], p[1], 0 });
 		}
 	}
 }
@@ -644,13 +602,13 @@ void RoadCreationSession::UpdateStagedFromGeometries(bool lanePlanChanged)
 	{
 		if (lanePlanChanged)
 		{
-			GeneratePainterPath(staged.geo, staged.refLinePreview, staged.boundaryPreviewR, staged.boundaryPreviewL);
+			GenerateHintLines(staged.geo, staged.refLinePreview, staged.boundaryPreviewR, staged.boundaryPreviewL);
 		}
-		stagedRefLinePath.addPath(staged.refLinePreview);
-		stagedBoundaryPathL.addPath(staged.boundaryPreviewL);
-		stagedBoundaryPathR.addPath(staged.boundaryPreviewR);
+		stagedRefLinePath.insert(stagedRefLinePath.end(), staged.refLinePreview.begin(), staged.refLinePreview.end());
+		stagedBoundaryPathL.insert(stagedBoundaryPathL.end(), staged.boundaryPreviewL.begin(), staged.boundaryPreviewL.end());
+		stagedBoundaryPathR.insert(stagedBoundaryPathR.end(), staged.boundaryPreviewR.begin(), staged.boundaryPreviewR.end());
 	}
-	//stagedRefLinePreview->setPath(stagedRefLinePath);
-	//stagedBoundaryPreview->setPath(stagedBoundaryPath);
-	//stagedBoundaryPreview->setZValue(g_createRoadElevationOption >= 0 ? 128 : -128);
+
+	stagedRefLinePreview.emplace(stagedRefLinePath, 0.1, Qt::green);
+	stagedBoundaryPreview.emplace(stagedBoundaryPathR, stagedBoundaryPathL, Qt::gray);
 }

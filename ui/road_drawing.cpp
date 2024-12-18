@@ -29,18 +29,6 @@ std::shared_ptr<RoadRunner::Road> RoadDrawingSession::GetPointerRoad()
     return static_cast<RoadRunner::Road*>(g_road)->shared_from_this();
 }
 
-odr::Line3D RoadDrawingSession::PainterPathToLine(QPainterPath boundary)
-{
-    int nPoints = std::max(std::min(static_cast<int>(boundary.length()), 200), 2);
-    odr::Line3D rtn(nPoints);
-    for (int i = 0; i != nPoints; ++i)
-    {
-        auto pt = boundary.pointAtPercent(static_cast<float>(i) / nPoints);
-        rtn[i] = odr::Vec3D{ pt.x(), pt.y(), 0};
-    }
-    return rtn;
-}
-
 RoadDrawingSession::RoadDrawingSession() :
     world(World::Instance())
 {
@@ -183,6 +171,7 @@ RoadDrawingSession::CustomCursorItem::~CustomCursorItem()
 void RoadDrawingSession::CustomCursorItem::EnableHighlight(int level)
 {
     //setBrush(level > 0 ? QBrush(level == 1 ? Qt::darkRed : Qt::red, Qt::SolidPattern) : Qt::NoBrush);
+    // TODO
 }
 
 void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
@@ -203,12 +192,6 @@ void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
     }
     graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, Qt::red);
 }
-
-//void RoadDrawingSession::CustomCursorItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
-//{
-//    this->setScale(RoadRunner::SnapRadiusPx / InitialRadius / RoadRunner::g_mapView->Zoom());
-//    QGraphicsEllipseItem::paint(painter, option, widget);
-//}
 
 void RoadDrawingSession::UpdateEndMarkings()
 {

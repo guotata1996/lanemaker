@@ -18,8 +18,7 @@ namespace RoadRunner
 
     MapViewGL::MapViewGL():
         shader(":/shaders/simple.vert", ":/shaders/simple.frag"),
-        m_vbo(QOpenGLBuffer::VertexBuffer), // actually the default, so default constructor would have been enough
-        m_ebo(QOpenGLBuffer::IndexBuffer) // make this an Index Buffer
+        m_vbo(QOpenGLBuffer::VertexBuffer) // actually the default, so default constructor would have been enough
     {
         shader.m_uniformNames.append("worldToView");
 
@@ -34,7 +33,7 @@ namespace RoadRunner
         g_mapViewGL = this;
 
         memset(pressedKeys, 0, sizeof(pressedKeys) / sizeof(bool));
-        m_vertexBufferCount = m_elementCount = 0;
+        m_vertexBufferCount = 0;
     }
 
     unsigned int MapViewGL::AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color)
@@ -44,20 +43,34 @@ namespace RoadRunner
         m_vao.bind();
         m_vbo.bind();
 
-        std::vector<GLuint> vids;
+        unsigned int gid = std::stoi(IDGenerator::ForGraphics()->GenerateID(this));
+        std::set<GLuint> vids;
         const size_t vertexBufferChangeBegin = m_vertexBufferCount;
 
-        for (int i = 0; i != lBorder.size(); ++i)
+        for (int i = 0; i < lBorder.size() - 1; ++i)
         {
-            auto l0 = lBorder[i];
-            auto id_l = m_vertexBufferCount++;
-            m_vertexBufferData[id_l] = Vertex(QVector3D(l0[0], l0[1], l0[2]), color);
-            vids.push_back(id_l);
+            auto l0 = lBorder[i], l1 = lBorder[i + 1];
+            auto r0 = rBorder[i], r1 = rBorder[i + 1];
 
-            auto r0 = rBorder[i];
-            auto id_r = m_vertexBufferCount++;
-            m_vertexBufferData[id_r] = Vertex(QVector3D(r0[0], r0[1], r0[2]), color);
-            vids.push_back(id_r);
+            auto v11 = m_vertexBufferCount++;
+            m_vertexBufferData[v11] = Vertex(QVector3D(l0[0], l0[1], l0[2]), color, gid);
+            vids.emplace(v11);
+            auto v12 = m_vertexBufferCount++;
+            m_vertexBufferData[v12] = Vertex(QVector3D(r0[0], r0[1], r0[2]), color, gid);
+            vids.emplace(v12);
+            auto v13 = m_vertexBufferCount++;
+            m_vertexBufferData[v13] = Vertex(QVector3D(l1[0], l1[1], l1[2]), color, gid);
+            vids.emplace(v13);
+
+            auto v21 = m_vertexBufferCount++;
+            m_vertexBufferData[v21] = Vertex(QVector3D(l1[0], l1[1], l1[2]), color, gid);
+            vids.emplace(v21);
+            auto v22 = m_vertexBufferCount++;
+            m_vertexBufferData[v22] = Vertex(QVector3D(r0[0], r0[1], r0[2]), color, gid);
+            vids.emplace(v22);
+            auto v23 = m_vertexBufferCount++;
+            m_vertexBufferData[v23] = Vertex(QVector3D(r1[0], r1[1], r1[2]), color, gid);
+            vids.emplace(v23);
         }
         auto ptr_v = m_vbo.mapRange(vertexBufferChangeBegin * sizeof(Vertex), 
             (m_vertexBufferCount - vertexBufferChangeBegin) * sizeof(Vertex), 
@@ -65,35 +78,10 @@ namespace RoadRunner
         memcpy(ptr_v, m_vertexBufferData.data() + vertexBufferChangeBegin,
             (m_vertexBufferCount - vertexBufferChangeBegin) * sizeof(Vertex));
         m_vbo.unmap();
-
-        std::vector<GLuint> eids;
-        const size_t elementChangeBegin = m_elementCount;
-        for (int i = 0; i < lBorder.size() - 1; ++i)
-        {
-            auto ea = m_elementCount++;
-            eids.push_back(ea);
-            m_elementBufferData[3 * ea + 0] = vids[2 * i + 0];
-            m_elementBufferData[3 * ea + 1] = vids[2 * i + 1];
-            m_elementBufferData[3 * ea + 2] = vids[2 * i + 2];
-
-            auto eb = m_elementCount++;
-            eids.push_back(eb);
-            m_elementBufferData[3 * eb + 0] = vids[2 * i + 1];
-            m_elementBufferData[3 * eb + 1] = vids[2 * i + 2];
-            m_elementBufferData[3 * eb + 2] = vids[2 * i + 3];
-        }
-        auto ptr_e = m_ebo.mapRange(3 * elementChangeBegin * sizeof(GLuint), 
-            3 * (m_elementCount - elementChangeBegin) * sizeof(GLuint), 
-            QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
-        memcpy(ptr_e, m_elementBufferData.data() + 3 * elementChangeBegin,
-            3 * (m_elementCount - elementChangeBegin) * sizeof(GLuint));
-        m_ebo.unmap();
         
         m_vbo.release();
         m_vao.release();
 
-        auto gid = std::stoi(IDGenerator::ForGraphics()->GenerateID(this));
-        idToEids.emplace(gid, eids);
         idToVids.emplace(gid, vids);
         return gid;
     }
@@ -103,14 +91,28 @@ namespace RoadRunner
         m_vao.bind();
         m_vbo.bind();
 
-        std::vector<GLuint> vids;
+        auto gid = std::stoi(IDGenerator::ForGraphics()->GenerateID(this));
+        std::set<GLuint> vids;
         const size_t vertexBufferChangeBegin = m_vertexBufferCount;
-        for (const auto& p : boundary)
+
+        for (auto tri : Triangulate_2_5d(boundary))
         {
-            auto vid = m_vertexBufferCount++;
-            vids.push_back(vid);
-            m_vertexBufferData[vid] = Vertex(QVector3D(p[0], p[1], p[2]), color);
+            auto p1 = boundary[std::get<0>(tri)];
+            auto v1 = m_vertexBufferCount++;
+            vids.emplace(v1);
+            m_vertexBufferData[v1] = Vertex(QVector3D(p1[0], p1[1], p1[2]), color, gid);
+
+            auto p2 = boundary[std::get<1>(tri)];
+            auto v2 = m_vertexBufferCount++;
+            vids.emplace(v2);
+            m_vertexBufferData[v2] = Vertex(QVector3D(p2[0], p2[1], p2[2]), color, gid);
+
+            auto p3 = boundary[std::get<2>(tri)];
+            auto v3 = m_vertexBufferCount++;
+            vids.emplace(v3);
+            m_vertexBufferData[v3] = Vertex(QVector3D(p3[0], p3[1], p3[2]), color, gid);
         }
+
         auto ptr_v = m_vbo.mapRange(vertexBufferChangeBegin * sizeof(Vertex),
             (m_vertexBufferCount - vertexBufferChangeBegin) * sizeof(Vertex),
             QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
@@ -118,28 +120,9 @@ namespace RoadRunner
             (m_vertexBufferCount - vertexBufferChangeBegin) * sizeof(Vertex));
         m_vbo.unmap();
 
-        std::vector<GLuint> eids;
-        const size_t elementChangeBegin = m_elementCount;
-        for (auto tri : Triangulate_2_5d(boundary))
-        {
-            auto eid = m_elementCount++;
-            eids.push_back(eid);
-            m_elementBufferData[3 * eid] = std::get<0>(tri) + vertexBufferChangeBegin;
-            m_elementBufferData[3 * eid + 1] = std::get<1>(tri) + vertexBufferChangeBegin;
-            m_elementBufferData[3 * eid + 2] = std::get<2>(tri) + vertexBufferChangeBegin;
-        }
-        auto ptr_e = m_ebo.mapRange(3 * elementChangeBegin * sizeof(GLuint),
-            3 * (m_elementCount - elementChangeBegin) * sizeof(GLuint),
-            QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
-        memcpy(ptr_e, m_elementBufferData.data() + 3 * elementChangeBegin,
-            3 * (m_elementCount - elementChangeBegin) * sizeof(GLuint));
-        m_ebo.unmap();
-
         m_vbo.release();
         m_vao.release();
 
-        auto gid = std::stoi(IDGenerator::ForGraphics()->GenerateID(this));
-        idToEids.emplace(gid, eids);
         idToVids.emplace(gid, vids);
         return gid;
     }
@@ -175,28 +158,19 @@ namespace RoadRunner
 
         IDGenerator::ForGraphics()->FreeID(std::to_string(id));
 
-        for (auto eid : idToEids.at(id))
+        const auto& vidsToRemove = idToVids.at(id);
+        for (auto vid_it = vidsToRemove.rbegin(); vid_it != vidsToRemove.rend(); ++vid_it)
         {
-            if (!Road::ClearingMap && m_elementCount != 0 && m_elementCount - 1 != eid)
-            {
-                // swap eid and m_elementCount - 1
-                m_elementBufferData[3 * eid]     = m_elementBufferData[3 * (m_elementCount - 1)];
-                m_elementBufferData[3 * eid + 1] = m_elementBufferData[3 * (m_elementCount - 1) + 1];
-                m_elementBufferData[3 * eid + 2] = m_elementBufferData[3 * (m_elementCount - 1) + 2];
-
-                auto ptr_e = m_ebo.mapRange(3 * eid * sizeof(GLuint), 3 * sizeof(GLuint),
-                    QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
-                memcpy(ptr_e, m_elementBufferData.data() + 3 * eid, 3 * sizeof(GLuint));
-                m_ebo.unmap();
-            }
-            m_elementCount--;
-        }
-        idToEids.erase(id);
-
-        for (auto vid : idToVids.at(id))
-        {
+            auto vid = *vid_it;
             if (!Road::ClearingMap && m_vertexBufferCount != 0 && m_vertexBufferCount - 1 != vid)
             {
+                assert(m_vertexBufferData[vid].objectID == id);
+                auto objectToMove = m_vertexBufferData[m_vertexBufferCount - 1].objectID;
+                auto oldVIt = idToVids.at(objectToMove).find(m_vertexBufferCount - 1);
+                idToVids.at(objectToMove).erase(oldVIt);
+
+                assert(idToVids.at(objectToMove).find(vid) == idToVids.at(objectToMove).end());
+                idToVids.at(objectToMove).emplace(vid);
                 m_vertexBufferData[vid] = m_vertexBufferData[m_vertexBufferCount - 1];
                 auto ptr_v = m_vbo.mapRange(vid * sizeof(Vertex), sizeof(Vertex), 
                     QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
@@ -220,16 +194,9 @@ namespace RoadRunner
         return static_cast<float>(m_vertexBufferCount) / m_vertexBufferData.size() * 100.0;
     }
 
-    int MapViewGL::EBufferUseage_pct() const
-    {
-        return static_cast<float>(m_elementCount) * 3 / m_elementBufferData.size() * 100.0;
-    }
-
     void MapViewGL::initializeGL()
     {
         shader.create();
-
-        std::fill(m_elementBufferData.begin(), m_elementBufferData.end(), 0);
 
         // tell OpenGL to show only faces whose normal vector points towards us
         glDisable(GL_CULL_FACE);
@@ -245,12 +212,6 @@ namespace RoadRunner
         int vertexMemSize = m_vertexBufferData.size() * sizeof(Vertex);
         m_vbo.allocate(m_vertexBufferData.data(), vertexMemSize);
 
-        m_ebo.create();
-        m_ebo.bind();
-        m_ebo.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-        int elementMemSize = m_elementBufferData.size() * sizeof(GLuint);
-        m_ebo.allocate(m_elementBufferData.data(), elementMemSize);
-
         auto shaderProgramm = shader.shaderProgram();
         shaderProgramm->enableAttributeArray(0);
         shaderProgramm->setAttributeBuffer(0, GL_FLOAT, 0, 3, sizeof(Vertex));
@@ -260,7 +221,6 @@ namespace RoadRunner
         // Release (unbind) all
         m_vao.release();
         m_vbo.release();
-        m_ebo.release();
     }
 
     void MapViewGL::resizeGL(int width, int height)
@@ -291,7 +251,7 @@ namespace RoadRunner
         shaderProgramm->bind();
         shaderProgramm->setUniformValue(shader.m_uniformIDs[0], m_worldToView);
         m_vao.bind();
-        glDrawElements(GL_TRIANGLES, m_elementCount * 3, GL_UNSIGNED_INT, nullptr);
+        glDrawArrays(GL_TRIANGLES, 0, m_vertexBufferCount);
         m_vao.release();
         shaderProgramm->release();
     }

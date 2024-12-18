@@ -31,18 +31,20 @@ License    : BSD License,
 */
 struct Vertex {
 	Vertex() {}
-	Vertex(const QVector3D & coords, const QColor & col) :
+	Vertex(const QVector3D & coords, const QColor & col, const unsigned int objID) :
 		x(float(coords.x())),
 		y(float(coords.y())),
 		z(float(coords.z())),
 		r(float(col.redF())),
 		g(float(col.greenF())),
-		b(float(col.blueF()))
+		b(float(col.blueF())),
+		objectID(objID)
 	{
 	}
 
 	float x,y,z;
 	float r,g,b;
+	unsigned int objectID;
 };
 
 #endif // VERTEX_H

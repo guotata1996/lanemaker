@@ -54,7 +54,6 @@ protected:
     };
 
     static std::shared_ptr<RoadRunner::Road> GetPointerRoad();
-    static odr::Line3D PainterPathToLine(QPainterPath boundary);
 
     float SnapDistFromScale() const;
 
@@ -139,8 +138,8 @@ private:
     struct StagedGeometry
     {
         std::unique_ptr<odr::RoadGeometry> geo;
-        QPainterPath refLinePreview;
-        QPainterPath boundaryPreviewL, boundaryPreviewR;
+        odr::Line3D refLinePreview;
+        odr::Line3D boundaryPreviewL, boundaryPreviewR;
     };
 
     SnapResult SnapCursor(odr::Vec2D&);
@@ -150,21 +149,17 @@ private:
 
     std::optional<odr::Vec2D> startPos; // Can be on blank or extend from
 
-    void GeneratePainterPath(const std::unique_ptr<odr::RoadGeometry>&,
-        QPainterPath&, QPainterPath&, QPainterPath&);
+    void GenerateHintLines(const std::unique_ptr<odr::RoadGeometry>&,
+        odr::Line3D&, odr::Line3D&, odr::Line3D&);
 
     void UpdateStagedFromGeometries(bool lanePlanChanged = false);
 
     std::unique_ptr<odr::RoadGeometry> flexGeo;
-    QPainterPath flexRefLinePath;
-    QPainterPath flexBoundaryPathL, flexBoundaryPathR;
-    QPainterPath stagedRefLinePath;
-    QPainterPath stagedBoundaryPathL, stagedBoundaryPathR;
+    odr::Line3D flexRefLinePath;
+    odr::Line3D flexBoundaryPathL, flexBoundaryPathR;
+    odr::Line3D stagedRefLinePath;
+    odr::Line3D stagedBoundaryPathL, stagedBoundaryPathR;
 
-    //QGraphicsPathItem* stagedRefLinePreview;
-    //QGraphicsPathItem* stagedBoundaryPreview;
-    //QGraphicsPathItem* flexRefLinePreview;
-    //QGraphicsPathItem* flexBoundaryPreview;
     DirectionHandle* directionHandle; // TODO
 
     std::optional<RoadRunner::TemporaryGraphics> stagedRefLinePreview;

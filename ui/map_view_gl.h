@@ -29,7 +29,6 @@ namespace RoadRunner
 		void RemoveItem(unsigned int);
 
 		int VBufferUseage_pct() const;
-		int EBufferUseage_pct() const;
 		float Zoom() const;
 	signals:
 		void MousePerformedAction(RoadRunner::MouseAction);
@@ -64,8 +63,6 @@ namespace RoadRunner
 
 		std::array<Vertex, 2 * 262144>			m_vertexBufferData;
 		size_t                                  m_vertexBufferCount;
-		std::array<GLuint, 3 * 262144>			m_elementBufferData;
-		size_t                                  m_elementCount;
 
 		/*! Wraps an OpenGL VertexArrayObject, that references the vertex coordinates and color buffers. */
 		//QOpenGLVertexArrayObject	m_vao;
@@ -73,8 +70,6 @@ namespace RoadRunner
 
 		/*! Holds position and colors in a single buffer. */
 		QOpenGLBuffer				m_vbo;
-		/*! Holds elements. No need to bind / release*/
-		QOpenGLBuffer				m_ebo;
 
 		/*! The projection matrix, updated whenever the viewport geometry changes (in resizeGL() ). */
 		QMatrix4x4					m_projection;
@@ -82,8 +77,7 @@ namespace RoadRunner
 		Camera						m_camera;		// Camera position, orientation and lens data
 		QMatrix4x4					m_worldToView;	// cached world to view transformation matrix
 
-		std::map<unsigned int, std::vector<unsigned int>> idToEids;
-		std::map<unsigned int, std::vector<unsigned int>> idToVids;
+		std::map<unsigned int, std::set<unsigned int>> idToVids;
 	};
 
 	extern MapViewGL* g_mapViewGL;
