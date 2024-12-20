@@ -70,7 +70,6 @@ protected:
 
     static void UpdateEndMarkings();
 
-    QGraphicsView* view;
     World* world;
 
     std::unique_ptr<CustomCursorItem> cursorItem;
@@ -209,19 +208,14 @@ private:
 class RoadDestroySession : public RoadDrawingSession
 {
 public:
-    RoadDestroySession();
-
-    virtual ~RoadDestroySession() override;
-
     virtual bool Update(const RoadRunner::MouseAction&) override;
 
     virtual bool Complete() override;
 
 protected:
-    QGraphicsPathItem* previewItem;
+    odr::Line3D hintPolygonLeft, hintPolygonRight;
 
-    QPolygonF  hintPolygonLeft, hintPolygonRight;
-    QGraphicsPolygonItem* hintItemLeft, *hintItemRight;
+    std::optional<RoadRunner::TemporaryGraphics> hintItemLeft, hintItemRight;
 
     std::weak_ptr<RoadRunner::Road> targetRoad;
     std::unique_ptr<double> s1, s2;

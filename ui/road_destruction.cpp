@@ -1,54 +1,29 @@
 #include "road_drawing.h"
 #include "stats.h"
 #include "junction.h"
+#include "map_view_gl.h"
 
 #include <QGraphicsPathItem>
 #include <qevent.h>
 
 
-extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
-extern double g_PointerRoadS;
-
-RoadDestroySession::RoadDestroySession()
-{
-    //hintItemLeft = scene->addPolygon(hintPolygonLeft);
-    hintItemLeft->setZValue(129);
-    QPen pen;
-    pen.setColor(Qt::red);
-    pen.setWidthF(0.5);
-    hintItemLeft->setPen(pen);
-
-    //hintItemRight = scene->addPolygon(hintPolygonRight);
-    hintItemRight->setZValue(129);
-    pen.setColor(Qt::green);
-    hintItemRight->setPen(pen);
-}
-
-RoadDestroySession::~RoadDestroySession()
-{
-    //scene->removeItem(cursorItem);
-    //scene->removeItem(hintItemLeft);
-    //scene->removeItem(hintItemRight);
-}
-
 bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
 {
-    QPointF scenePos(evt.sceneX, evt.sceneY);
-    auto g_road = g_PointerRoad.lock();
+    auto g_road = GetPointerRoad();
     if (g_road != nullptr)
     {
         bool onSegBoundary;
-        auto snapped = g_road->generated.get_xy(GetAdjustedS(&onSegBoundary));
-        //cursorItem->setPos(snapped[0], snapped[1]);
+        auto snapped = g_road->generated.get_xyz(GetAdjustedS(&onSegBoundary), 0, 0);
+        cursorItem->SetTranslation(snapped);
         cursorItem->EnableHighlight(onSegBoundary ? 
             RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Line);
     }
     else
     {
-        //cursorItem->setPos(scenePos);
+        auto groundPos = RoadRunner::g_PointerOnGround;
+        cursorItem->SetTranslation({groundPos[0], groundPos[1], 0});
         cursorItem->EnableHighlight(RoadDrawingSession::Snap_Nothing);
     }
-    //cursorItem->show();
     SetHighlightTo(g_road);
 
     // Preview
@@ -76,20 +51,12 @@ bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
         {
             // Can preview
             auto borders = target->generated.get_both_dirs_poly(fromS, toS, 0.25);
-            auto& leftBorder = borders.first;
-            auto& rightBorder = borders.second;
-            for (const odr::Vec3D& p : leftBorder)
-            {
-                hintPolygonLeft.append(QPointF(p[0], p[1]));
-            }
-            for (const odr::Vec3D& p : rightBorder)
-            {
-                hintPolygonRight.append(QPointF(p[0], p[1]));
-            }
+            hintPolygonLeft = borders.first;
+            hintPolygonRight = borders.second;
         }
     }
-    hintItemLeft->setPolygon(hintPolygonLeft);
-    hintItemRight->setPolygon(hintPolygonRight);
+    hintItemLeft.emplace(hintPolygonLeft, 0.1, Qt::red);
+    hintItemRight.emplace(hintPolygonRight, 0.1, Qt::green);
 
     // Change target, s1, s2
     if (evt.button == Qt::LeftButton 
@@ -109,7 +76,7 @@ bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
             }
             else if (evt.type == QEvent::Type::MouseButtonDblClick)
             {
-                if (s2 == nullptr)
+                if (s2 == nullptr || std::abs(*s1 - *s2) < 1.0)
                 {
                     s1 = std::make_unique<double>(0);
                     s2 = std::make_unique<double>(target->Length());

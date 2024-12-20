@@ -4,9 +4,6 @@
 #include <qevent.h>
 #include "CreateRoadOptionWidget.h"
 
-extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
-extern double g_PointerRoadS;
-
 extern SectionProfileConfigWidget* g_createRoadOption;
 
 RoadModificationSession::RoadModificationSession()

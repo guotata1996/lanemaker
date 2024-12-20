@@ -12,9 +12,6 @@
 #include "constants.h"
 #include "map_view_gl.h"
 
-extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
-extern double g_PointerRoadS;
-
 extern SectionProfileConfigWidget* g_createRoadOption;
 extern int8_t g_createRoadElevationOption;
 
@@ -44,7 +41,7 @@ bool RoadDrawingSession::Update(const RoadRunner::MouseAction& evt)
 {
     if (evt.button == Qt::RightButton)
     {
-        if (!g_PointerRoad.expired() &&
+        if (GetPointerRoad() != nullptr &&
             evt.type == QEvent::Type::MouseButtonPress)
         {
             BeginPickingProfile();
@@ -103,15 +100,15 @@ double RoadDrawingSession::GetAdjustedS(bool* onSegmentBoundary) const
 
 void RoadDrawingSession::BeginPickingProfile()
 {
-    beginPickingS = g_PointerRoadS;    // TOOD:
-    beginPickingRoad = g_PointerRoad;
+    beginPickingS = RoadRunner::g_PointerRoadS;
+    beginPickingRoad = GetPointerRoad();
     QPixmap p = QPixmap(":/icons/eyedropper.svg");
-    view->setCursor(QCursor(p));
+    //view->setCursor(QCursor(p));
 }
 
 void RoadDrawingSession::ContinuePickingProfile()
 {
-    if (beginPickingRoad.expired() || g_PointerRoad.lock() != beginPickingRoad.lock())
+    if (beginPickingRoad.expired() || GetPointerRoad() != beginPickingRoad.lock())
     {
         return;
     }
@@ -119,7 +116,7 @@ void RoadDrawingSession::ContinuePickingProfile()
     auto pickFromRoad = beginPickingRoad.lock();
     auto leftProfile = pickFromRoad->generated.rr_profile.ProfileAt(beginPickingS, 1);
     auto rightProfile = pickFromRoad->generated.rr_profile.ProfileAt(beginPickingS, -1);
-    if (g_PointerRoadS < beginPickingS)
+    if (RoadRunner::g_PointerRoadS < beginPickingS)
     {
         std::swap(leftProfile, rightProfile);
         leftProfile.offsetx2 = -leftProfile.offsetx2;
@@ -131,7 +128,7 @@ void RoadDrawingSession::ContinuePickingProfile()
 void RoadDrawingSession::EndPickingProfile()
 {
     beginPickingRoad.reset();
-    view->setCursor(Qt::ArrowCursor);
+    //view->setCursor(Qt::ArrowCursor);
 }
 
 bool RoadDrawingSession::IsElevationConsistWithExtend()

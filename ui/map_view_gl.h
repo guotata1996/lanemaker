@@ -40,6 +40,7 @@ namespace RoadRunner
 		void paintGL() override;
 
 		void mousePressEvent(QMouseEvent* event) override;
+		void mouseDoubleClickEvent(QMouseEvent* event) override;
 		void mouseMoveEvent(QMouseEvent* event) override;
 		void mouseReleaseEvent(QMouseEvent* event) override;
 
@@ -62,7 +63,7 @@ namespace RoadRunner
 
 		ShaderProgram shader;
 
-		std::array<Vertex, (1<<24)> m_vertexBufferData;
+		std::array<Vertex, (1<<20)> m_vertexBufferData;
 		unsigned int                m_vertexBufferCount;
 
 		/*! Wraps an OpenGL VertexArrayObject, that references the vertex coordinates and color buffers. */
