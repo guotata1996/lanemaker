@@ -5,6 +5,7 @@
 #include <string>
 
 #include <QTime>
+#include "Transform3D.h"
 
 #include "action_defs.h"
 
@@ -25,9 +26,9 @@ namespace RoadRunner
 
         void Record(std::string loadedMap);
         void Record(RoadRunner::EditMode);
-        void Record(double zoomVal, double rotateVal, int hScroll, int vScroll);
-        void Record(QMouseEvent*);
-        void Record(QKeyEvent*);
+        void Record(Transform3D cameraTransform); // TODO: window resize
+        void Record(MouseAction);
+        void Record(KeyPressAction);
         void Record(const LanePlan&, const LanePlan&);
         void Record(int8_t elevationPlan);
         void Record(ActionType);

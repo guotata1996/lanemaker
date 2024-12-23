@@ -39,7 +39,7 @@ namespace RoadRunner
                 auto next = i == center.size() - 1 ? center[i] : center[i + 1];
                 auto tan = odr::sub(next, prev);
                 odr::Vec2D radial{ -tan[1], tan[0] };
-                radial = odr::normalize(radial);
+                radial = odr::mut(width, odr::normalize(radial));
                 left[i] = odr::add(center[i], odr::Vec3D{ radial[0], radial[1], 0 });
                 right[i] = odr::add(center[i], odr::Vec3D{ -radial[0], -radial[1], 0 });
             }

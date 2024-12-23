@@ -175,6 +175,7 @@ void MainWindow::reset()
     mainWidget->Reset();
     RoadRunner::ChangeTracker::Instance()->Clear();
     RoadRunner::ActionManager::Instance()->Reset();
+    RoadRunner::g_mapViewGL->ResetCamera();
     assert(mainWidget->view()->scene()->items().isEmpty());
     resizeDontRecord(PreferredSize().width(), PreferredSize().height());
     loadedFileName.clear();
@@ -391,8 +392,8 @@ void MainWindow::updateHint()
 
 void MainWindow::closeEvent(QCloseEvent* e)
 {
-    reset();
     testReplay();
+    reset();
     QWidget::closeEvent(e);
 }
 

@@ -103,7 +103,7 @@ void RoadDrawingSession::BeginPickingProfile()
     beginPickingS = RoadRunner::g_PointerRoadS;
     beginPickingRoad = GetPointerRoad();
     QPixmap p = QPixmap(":/icons/eyedropper.svg");
-    //view->setCursor(QCursor(p));
+    RoadRunner::g_mapViewGL->setCursor(QCursor(p));
 }
 
 void RoadDrawingSession::ContinuePickingProfile()
@@ -128,7 +128,7 @@ void RoadDrawingSession::ContinuePickingProfile()
 void RoadDrawingSession::EndPickingProfile()
 {
     beginPickingRoad.reset();
-    //view->setCursor(Qt::ArrowCursor);
+    RoadRunner::g_mapViewGL->setCursor(Qt::ArrowCursor);
 }
 
 bool RoadDrawingSession::IsElevationConsistWithExtend()

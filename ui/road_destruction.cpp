@@ -51,12 +51,20 @@ bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
         {
             // Can preview
             auto borders = target->generated.get_both_dirs_poly(fromS, toS, 0.25);
+            for (auto& lBorder : borders.first)
+            {
+                lBorder[2] += 0.02;
+            }
+            for (auto& rBorder : borders.second)
+            {
+                rBorder[2] += 0.02;
+            }
             hintPolygonLeft = borders.first;
             hintPolygonRight = borders.second;
         }
     }
-    hintItemLeft.emplace(hintPolygonLeft, 0.1, Qt::red);
-    hintItemRight.emplace(hintPolygonRight, 0.1, Qt::green);
+    hintItemLeft.emplace(hintPolygonLeft, 0.2, Qt::red);
+    hintItemRight.emplace(hintPolygonRight, 0.2, Qt::green);
 
     // Change target, s1, s2
     if (evt.button == Qt::LeftButton 

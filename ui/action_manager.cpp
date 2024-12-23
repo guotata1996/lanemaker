@@ -5,7 +5,7 @@
 #include "CreateRoadOptionWidget.h"
 #include "change_tracker.h"
 #include "util.h"
-#include "map_view.h"
+#include "map_view_gl.h"
 
 #include <fstream>
 #include <filesystem>
@@ -15,7 +15,6 @@
 #include <qscrollbar.h>
 
 
-extern MapView* g_mapView;
 extern MainWindow* g_mainWindow;
 extern SectionProfileConfigWidget* g_createRoadOption;
 
@@ -23,9 +22,8 @@ namespace RoadRunner
 {
     MouseAction::MouseAction(QMouseEvent* evt)
     {
-        auto scenePos = g_mapView->mapToScene(evt->pos());
-        sceneX = scenePos.x();
-        sceneY = scenePos.y();
+        screenX = evt->x();
+        screenY = evt->y();
         type = evt->type();
         if (type == QEvent::MouseMove)
         {
@@ -49,6 +47,13 @@ namespace RoadRunner
         {
             button = evt->button();
         }
+    }
+
+    MouseAction::MouseAction(QWheelEvent* evt)
+    {
+        type = evt->type();
+        screenX = evt->angleDelta().x();
+        screenY = evt->angleDelta().y();
     }
 
     KeyPressAction::KeyPressAction(QKeyEvent* e)
@@ -85,29 +90,34 @@ namespace RoadRunner
 
     void ActionManager::Replay(const ChangeModeAction& action)
     {
-        g_mapView->parentContainer->SetModeFromReplay(action.mode);
+        MainWidget::Instance()->SetModeFromReplay(action.mode);
     }
 
-    void ActionManager::Record(double zoomVal, double rotateVal, int hScroll, int vScroll)
+    void ActionManager::Record(Transform3D t)
     {
+        auto q = t.rotation().toVector4D();
         ChangeViewportAction serialized
         {
-            zoomVal, rotateVal,
-            hScroll, vScroll
+            t.translation().x(), t.translation().y(), t.translation().z(),
+            t.scale().x(), t.scale().y(), t.scale().z(),
+            q.x(), q.y(), q.z(), q.w(),
+            0, 0
         };
         latestViewportChange.emplace(serialized);
     }
 
     void ActionManager::Replay(const ChangeViewportAction& action)
     {
-        g_mapView->SetViewFromReplay(action.zoom, action.rotate, action.hScroll, action.vScroll);
+        Transform3D t;
+        t.setTranslation(action.transX, action.transY, action.transZ);
+        t.setScale(action.scaleX, action.scaleY, action.scaleZ);
+        t.setRotation(QQuaternion(QVector4D(action.rotX, action.rotY, action.rotZ, action.rotW)));
+        RoadRunner::g_mapViewGL->SetViewFromReplay(t);
     }
 
-    void ActionManager::Record(QMouseEvent* evt)
+    void ActionManager::Record(MouseAction serialized)
     {
-        MouseAction serialized(evt);
-
-        if (evt->type() == QEvent::Type::MouseMove)
+        if (serialized.type == QEvent::Type::MouseMove)
         {
             bool recordNow = false;
             if (serialized.button == Qt::LeftButton && currEditMode != EditMode::Mode_None)
@@ -120,6 +130,8 @@ namespace RoadRunner
             }
             else
             {
+                // TODO:
+                /*
                 auto lastXY = g_mapView->mapFromScene(
                     lastRecordedMouseMove.value().sceneX,
                     lastRecordedMouseMove.value().sceneY);
@@ -131,7 +143,8 @@ namespace RoadRunner
                 if (distanceSqr > MouseMoveRecordThreshold * MouseMoveRecordThreshold)
                 {
                     recordNow = true;
-                }
+                }*/
+
             }
 
             if (recordNow)
@@ -157,39 +170,22 @@ namespace RoadRunner
 
     void ActionManager::Replay(const MouseAction& action)
     {
-        switch (action.type)
-        {
-        case QEvent::Type::MouseButtonPress:
-        {
-            g_mapView->OnMousePress(action);
-            break;
-        }
-        case QEvent::Type::MouseButtonDblClick:
-            g_mapView->OnMouseDoubleClick(action);
-            break;
-        case QEvent::Type::MouseMove:
-            g_mapView->OnMouseMove(action);
-            break;
-        case QEvent::Type::MouseButtonRelease:
-            g_mapView->OnMouseRelease(action);
-            break;
-        default:
-            spdlog::error("Unsupported MouseAction to replay: {}", static_cast<int>(action.type));
-            break;
-        }
+        RoadRunner::g_mapViewGL->UpdateRayHit(QPoint(action.screenX, action.screenY));
+        MainWidget::Instance()->OnMouseAction(action);
+        RoadRunner::g_mapViewGL->renderLater();
     }
 
-    void ActionManager::Record(QKeyEvent* evt)
+    void ActionManager::Record(KeyPressAction serialized)
     {
         FlushUnrecordedMouseMove();
-        KeyPressAction serialized(evt);
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
         Save();
     }
 
     void ActionManager::Replay(const KeyPressAction& action)
     {
-        g_mapView->OnKeyPress(action);
+        MainWidget::Instance()->OnKeyPressed(action);
+        RoadRunner::g_mapViewGL->renderLater();
     }
 
     void ActionManager::Record(const LanePlan& left, const LanePlan& right)
@@ -213,7 +209,7 @@ namespace RoadRunner
 
     void ActionManager::Replay(const ChangeElevationAction& action)
     {
-        g_mapView->parentContainer->SetElevationFromReplay(action.plan);
+        //g_mapView->parentContainer->SetElevationFromReplay(action.plan);
     }
 
     void ActionManager::Record(ActionType actionNoParm)

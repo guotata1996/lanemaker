@@ -18,10 +18,13 @@
 extern SectionProfileConfigWidget* g_createRoadOption;
 int8_t g_createRoadElevationOption;
 
+MainWidget* MainWidget::instance = nullptr;
+
 MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     : QFrame(parent), createRoadOption(new SectionProfileConfigWidget),
     displayScaleTimer(new QTimer(this))
 {
+    instance = this;
     setFrameStyle(Sunken | StyledPanel);
     mapView = new MapView(this, scene);
     mapView->setRenderHint(QPainter::Antialiasing, false);
@@ -117,9 +120,14 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     connect(modifyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoModifyMode);
     connect(dragModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDragMode);
     connect(displayScaleTimer, &QTimer::timeout, mapView, &MapView::hideScale);
-    connect(mapViewGL, &RoadRunner::MapViewGL::MousePerformedAction, this, &MainWidget::OnMouseMove);
+    connect(mapViewGL, &RoadRunner::MapViewGL::MousePerformedAction, this, &MainWidget::OnMouseAction);
     connect(mapViewGL, &RoadRunner::MapViewGL::KeyPerformedAction, this, &MainWidget::OnKeyPressed);
     Reset();
+}
+
+MainWidget* MainWidget::Instance()
+{
+    return instance;
 }
 
 QGraphicsView* MainWidget::view() const
@@ -173,7 +181,7 @@ void MainWidget::gotoDragMode(bool checked)
     emit InReadOnlyMode(true);
 }
 
-void MainWidget::OnMouseMove(RoadRunner::MouseAction evt)
+void MainWidget::OnMouseAction(RoadRunner::MouseAction evt)
 {
     if (drawingSession != nullptr)
     {

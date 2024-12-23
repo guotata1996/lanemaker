@@ -21,9 +21,12 @@ namespace RoadRunner
 		Q_OBJECT
 	public:
 		MapViewGL();
+		void ResetCamera();
 
 		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color);
 		unsigned int AddPoly(const odr::Line3D& boundary, QColor color);
+		void SetViewFromReplay(Transform3D t);
+		void UpdateRayHit(QPoint screen);
 		
 		void UpdateItem(unsigned int, QColor);
 		void RemoveItem(unsigned int);

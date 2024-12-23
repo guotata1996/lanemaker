@@ -141,8 +141,8 @@ void ReplayWindow::FillHistoryTable()
 				break;
 			}
 			desc += QString(" (%1, %2)")
-				.arg(action.detail.mouse.sceneX, 4, 'f', 2)
-				.arg(action.detail.mouse.sceneY, 4, 'f', 2);
+				.arg(action.detail.mouse.screenX)
+				.arg(action.detail.mouse.screenY);
 			break;
 		case RoadRunner::ActionType::Action_KeyPress:
 			desc = QString("KeyPress %1").arg(action.detail.keyPress.ToString());
@@ -150,8 +150,8 @@ void ReplayWindow::FillHistoryTable()
 			break;
 		case RoadRunner::ActionType::Action_Viewport:
 			desc = QString("ViewChange zoom:%1 rot: %2")
-				.arg(action.detail.viewport.zoom)
-				.arg(action.detail.viewport.rotate);
+				.arg(action.detail.viewport.xSize)
+				.arg(action.detail.viewport.ySize);
 			icon = QIcon(QPixmap(":/icons/zoomin.png"));
 			break;
 		case RoadRunner::ActionType::Action_Undo:

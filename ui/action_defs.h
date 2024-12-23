@@ -31,13 +31,16 @@ namespace RoadRunner
 
     struct MouseAction
     {
-        double sceneX, sceneY;
+        int screenX, screenY;
         QEvent::Type type;
-        Qt::MouseButton button; // In case of MoseMove, the single buttons() or NoButton
-
+        Qt::MouseButton button;
+        // No need to save modifiers, as R-drag with modifiers has no effect
+        // - will not be recorded as change VP event
+        // - Even if session responds incorrectly, ChangeProfileAction will still be recorded at the end
         MouseAction() = default;
 
         MouseAction(QMouseEvent* e);
+        MouseAction(QWheelEvent* e);
     };
 
     struct KeyPressAction
@@ -73,8 +76,10 @@ namespace RoadRunner
 
     struct ChangeViewportAction
     {
-        double zoom, rotate;
-        int hScroll, vScroll;
+        float transX, transY, transZ;
+        float scaleX, scaleY, scaleZ;
+        float rotX, rotY, rotZ, rotW;
+        int xSize, ySize;
     };
 
     struct ChangeModeAction
@@ -175,8 +180,9 @@ namespace RoadRunner
         void serialize(Archive& archive)
         {
             archive(type, timeMS,
-                detail.viewport.zoom, detail.viewport.rotate,
-                detail.viewport.hScroll, detail.viewport.vScroll);
+                detail.viewport.transX, detail.viewport.transY, detail.viewport.transZ,
+                detail.viewport.scaleX, detail.viewport.scaleY, detail.viewport.scaleZ,
+                detail.viewport.rotX, detail.viewport.rotY, detail.viewport.rotZ, detail.viewport.rotW);
         }
     };
 }

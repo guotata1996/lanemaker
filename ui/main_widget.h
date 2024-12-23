@@ -27,6 +27,8 @@ class MainWidget : public QFrame
 public:
     explicit MainWidget(QGraphicsScene* scene, QWidget* parent = nullptr);
 
+    static MainWidget* Instance();
+
     QGraphicsView* view() const;
 
     void PostEditActions();
@@ -55,6 +57,8 @@ signals:
 
 public slots:
     void toggleAntialiasing(bool);
+    void OnMouseAction(RoadRunner::MouseAction);
+    void OnKeyPressed(RoadRunner::KeyPressAction);
 
 private slots:
     void gotoCreateRoadMode(bool);
@@ -63,10 +67,9 @@ private slots:
     void gotoModifyMode(bool);
     void gotoDragMode(bool c=true);
 
-    void OnMouseMove(RoadRunner::MouseAction);
-    void OnKeyPressed(RoadRunner::KeyPressAction);
-
 private:
+    static MainWidget* instance;
+
     void SetEditMode(RoadRunner::EditMode aMode);
 
     void confirmEdit();

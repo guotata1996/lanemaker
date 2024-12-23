@@ -27,7 +27,7 @@ bool RoadCreationSession::DirectionHandle::Update(const RoadRunner::MouseAction&
 {
 	if (!isVisible())
 		return false;
-	auto localPos = QPointF(act.sceneX, act.sceneY) - pos();
+	auto localPos = QPointF(act.screenX, act.screenY) - pos();
 	if (act.type == QEvent::Type::MouseButtonPress && contains(localPos))
 	{
 		dragging = true;
@@ -353,7 +353,7 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 		
 		if (!flexRefLinePath.empty())
 		{
-			flexRefLinePreview.emplace(flexRefLinePath, 0.1, Qt::green);
+			flexRefLinePreview.emplace(flexRefLinePath, 0.3, Qt::green);
 			flexBoundaryPreview.emplace(flexBoundaryPathR, flexBoundaryPathL, Qt::gray);
 		}
 		else
@@ -561,7 +561,7 @@ void RoadCreationSession::GenerateHintLines(const std::unique_ptr<odr::RoadGeome
 		{
 			auto s = flexLen / (Division - 1) * i;
 			auto p = geo->get_xy(s);
-			centerPath.push_back(odr::Vec3D{ p[0], p[1], 0 });
+			centerPath.push_back(odr::Vec3D{ p[0], p[1], 0.01 });
 		}
 
 		// right boundary
@@ -608,6 +608,6 @@ void RoadCreationSession::UpdateStagedFromGeometries(bool lanePlanChanged)
 		stagedBoundaryPathR.insert(stagedBoundaryPathR.end(), staged.boundaryPreviewR.begin(), staged.boundaryPreviewR.end());
 	}
 
-	stagedRefLinePreview.emplace(stagedRefLinePath, 0.1, Qt::green);
+	stagedRefLinePreview.emplace(stagedRefLinePath, 0.25, Qt::green);
 	stagedBoundaryPreview.emplace(stagedBoundaryPathR, stagedBoundaryPathL, Qt::gray);
 }

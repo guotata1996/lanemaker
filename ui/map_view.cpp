@@ -150,11 +150,11 @@ void MapView::OnMousePress(const RoadRunner::MouseAction& evt)
             confirmEdit();
         }
     }
-    if (evt.button == Qt::MiddleButton)
-    {
-        auto screenPos = mapFromScene(evt.sceneX, evt.sceneY);
-        prevDragMousePos.emplace(screenPos);
-    }
+    //if (evt.button == Qt::MiddleButton)
+    //{
+    //    auto screenPos = mapFromScene(evt.sceneX, evt.sceneY);
+    //    prevDragMousePos.emplace(screenPos);
+    //}
 }
 
 void MapView::mousePressEvent(QMouseEvent* evt)
@@ -197,14 +197,14 @@ void MapView::mouseDoubleClickEvent(QMouseEvent* evt)
 
 void MapView::OnMouseMove(const RoadRunner::MouseAction& evt)
 {
-    SnapCursor(QPointF(evt.sceneX, evt.sceneY));
+    SnapCursor(QPointF(evt.screenX, evt.screenY));
     if (editMode != RoadRunner::Mode_None)
     {
         drawingSession->Update(evt);
     }
     if (evt.button == Qt::MiddleButton)
     {
-        auto screenPos = mapFromScene(evt.sceneX, evt.sceneY);
+        auto screenPos = mapFromScene(evt.screenX, evt.screenY);
         auto offset = prevDragMousePos.value() - screenPos;
         verticalScrollBar()->setValue(verticalScrollBar()->value() + offset.y());
         horizontalScrollBar()->setValue(horizontalScrollBar()->value() + offset.x());
