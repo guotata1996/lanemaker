@@ -26,46 +26,7 @@ bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
     }
     SetHighlightTo(g_road);
 
-    // Preview
-    hintPolygonLeft.clear();
-    hintPolygonRight.clear();
     auto target = targetRoad.lock();
-    if (target != nullptr)
-    {
-        double fromS = -1;
-        double toS;
-
-        if (s2 != nullptr)
-        {
-            fromS = std::min(*s1, *s2);
-            toS = std::max(*s1, *s2);
-        }
-        else if (target == g_road)
-        {
-            double proposedS2 = GetAdjustedS();
-            fromS = std::min(*s1, proposedS2);
-            toS = std::max(*s1, proposedS2);
-        }
-
-        if (fromS >= 0)
-        {
-            // Can preview
-            auto borders = target->generated.get_both_dirs_poly(fromS, toS, 0.25);
-            for (auto& lBorder : borders.first)
-            {
-                lBorder[2] += 0.02;
-            }
-            for (auto& rBorder : borders.second)
-            {
-                rBorder[2] += 0.02;
-            }
-            hintPolygonLeft = borders.first;
-            hintPolygonRight = borders.second;
-        }
-    }
-    hintItemLeft.emplace(hintPolygonLeft, 0.2, Qt::red);
-    hintItemRight.emplace(hintPolygonRight, 0.2, Qt::green);
-
     // Change target, s1, s2
     if (evt.button == Qt::LeftButton 
         && g_road != nullptr && g_road->generated.junction == "-1")
@@ -97,6 +58,31 @@ bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
         }
     }
 
+    UpdateHint();
+
+    return true;
+}
+
+bool RoadDestroySession::Update(const RoadRunner::KeyPressAction& evt)
+{
+    if (evt.key == Qt::Key_Escape)
+    {
+        if (s2 != nullptr)
+        {
+            s2.reset();
+            UpdateHint();
+        }
+        else if (s1 != nullptr)
+        {
+            s1.reset();
+            targetRoad.reset();
+            UpdateHint();
+        }
+        else
+        {
+            return false;
+        }
+    }
     return true;
 }
 
@@ -161,4 +147,47 @@ bool RoadDestroySession::Complete()
 
     UpdateEndMarkings();
     return true;
+}
+
+void RoadDestroySession::UpdateHint()
+{
+    // Preview
+    hintPolygonLeft.clear();
+    hintPolygonRight.clear();
+    auto target = targetRoad.lock();
+    if (target != nullptr)
+    {
+        double fromS = -1;
+        double toS;
+
+        if (s2 != nullptr)
+        {
+            fromS = std::min(*s1, *s2);
+            toS = std::max(*s1, *s2);
+        }
+        else if (target == GetPointerRoad())
+        {
+            double proposedS2 = GetAdjustedS();
+            fromS = std::min(*s1, proposedS2);
+            toS = std::max(*s1, proposedS2);
+        }
+
+        if (fromS >= 0)
+        {
+            // Can preview
+            auto borders = target->generated.get_both_dirs_poly(fromS, toS, 0.25);
+            for (auto& lBorder : borders.first)
+            {
+                lBorder[2] += 0.02;
+            }
+            for (auto& rBorder : borders.second)
+            {
+                rBorder[2] += 0.02;
+            }
+            hintPolygonLeft = borders.first;
+            hintPolygonRight = borders.second;
+        }
+    }
+    hintItemLeft.emplace(hintPolygonLeft, 0.2, Qt::red);
+    hintItemRight.emplace(hintPolygonRight, 0.2, Qt::green);
 }

@@ -19,6 +19,7 @@ public:
 
     /*return false if force complete*/
     virtual bool Update(const RoadRunner::MouseAction&);
+    virtual bool Update(const RoadRunner::KeyPressAction&);
 
     /*return false to abort change*/
     virtual bool Complete() = 0;
@@ -86,7 +87,8 @@ class RoadCreationSession : public RoadDrawingSession
 public:
     RoadCreationSession();
 
-    virtual bool Update(const RoadRunner::MouseAction&);
+    virtual bool Update(const RoadRunner::MouseAction&) override;
+    virtual bool Update(const RoadRunner::KeyPressAction&) override;
 
     virtual bool Complete() override;
 
@@ -143,6 +145,7 @@ private:
     };
 
     SnapResult SnapCursor(odr::Vec2D&);
+    void UpdateFlexGeometry();
 
     std::vector<StagedGeometry> stagedGeometries;
     RoadRunner::LanePlan stagedLeftPlan, stagedRightPlan;
@@ -209,6 +212,7 @@ class RoadDestroySession : public RoadDrawingSession
 {
 public:
     virtual bool Update(const RoadRunner::MouseAction&) override;
+    virtual bool Update(const RoadRunner::KeyPressAction&) override;
 
     virtual bool Complete() override;
 
@@ -219,6 +223,9 @@ protected:
 
     std::weak_ptr<RoadRunner::Road> targetRoad;
     std::unique_ptr<double> s1, s2;
+
+private:
+    void UpdateHint();
 };
 
 class RoadModificationSession : public RoadDestroySession

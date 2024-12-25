@@ -242,124 +242,90 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 	}
 	else
 	{
-		if (act.type == QEvent::Type::MouseButtonPress)
+		if (act.type == QEvent::Type::MouseButtonPress &&
+			act.button == Qt::MouseButton::LeftButton)
 		{
-			if (act.button == Qt::MouseButton::LeftButton)
+			if (!startPos.has_value())
 			{
-				if (!startPos.has_value())
+				startPos.emplace(scenePos);
+				if (extendFromStart.expired())
 				{
-					startPos.emplace(scenePos);
-					if (extendFromStart.expired())
-					{
-						overlapAtStart = g_PointerRoad;
-						overlapAtStartS = RoadRunner::g_PointerRoadS;
-					}
-					else
-					{
-						overlapAtStart.reset();
-					}
-				}
-				else if (flexGeo != nullptr)
-				{
-					if (joinAtEnd.expired())
-					{
-						overlapAtEnd = g_PointerRoad;
-						overlapAtEndS = RoadRunner::g_PointerRoadS;
-					}
-					else
-					{
-						overlapAtEnd.reset();
-					}
-
-					auto newEnd = flexGeo->get_end_pos();
-					auto newHdg = flexGeo->get_end_hdg();
-					directionHandle->setPos(newEnd[0], newEnd[1]);
-					directionHandle->setRotation(newHdg * 180 / M_PI);
-					directionHandle->setScale(0);
-					directionHandle->show();
-					stagedGeometries.push_back(StagedGeometry
-						{
-							std::move(flexGeo), flexRefLinePath, flexBoundaryPathL, flexBoundaryPathR
-						}); // Do stage
-					UpdateStagedFromGeometries();
-				}
-				if (!joinAtEnd.expired())
-				{
-					// force complete
-					return false;
-				}
-			}
-			else if (act.button == Qt::MouseButton::RightButton)
-			{
-				if (!stagedGeometries.empty())
-				{
-					// Unstage one
-					stagedGeometries.pop_back();
-					if (stagedGeometries.empty())
-					{
-						directionHandle->hide();
-					}
-					else
-					{
-						auto newEnd = stagedGeometries.back().geo->get_end_pos();
-						auto newHdg = stagedGeometries.back().geo->get_end_hdg();
-						directionHandle->setPos(newEnd[0], newEnd[1]);
-						directionHandle->setRotation(newHdg * 180 / M_PI);
-					}
-					UpdateStagedFromGeometries();
+					overlapAtStart = g_PointerRoad;
+					overlapAtStartS = RoadRunner::g_PointerRoadS;
 				}
 				else
 				{
-					startPos.reset();
-					extendFromStart.reset();
+					overlapAtStart.reset();
 				}
 			}
+			else if (flexGeo != nullptr)
+			{
+				if (joinAtEnd.expired())
+				{
+					overlapAtEnd = g_PointerRoad;
+					overlapAtEndS = RoadRunner::g_PointerRoadS;
+				}
+				else
+				{
+					overlapAtEnd.reset();
+				}
+
+				auto newEnd = flexGeo->get_end_pos();
+				auto newHdg = flexGeo->get_end_hdg();
+				directionHandle->setPos(newEnd[0], newEnd[1]);
+				directionHandle->setRotation(newHdg * 180 / M_PI);
+				directionHandle->setScale(0);
+				directionHandle->show();
+				stagedGeometries.push_back(StagedGeometry
+					{
+						std::move(flexGeo), flexRefLinePath, flexBoundaryPathL, flexBoundaryPathR
+					}); // Do stage
+				UpdateStagedFromGeometries();
+			}
+			if (!joinAtEnd.expired())
+			{
+				// force complete
+				return false;
+			}
 		}
 
-		// Update flex geo
-		if (startPos.has_value() || !stagedGeometries.empty())
+		UpdateFlexGeometry();
+	}
+	return true;
+}
+
+bool RoadCreationSession::Update(const RoadRunner::KeyPressAction& act)
+{
+	if (act.key == Qt::Key_Escape)
+	{
+		if (!stagedGeometries.empty())
 		{
-			odr::Vec2D localStartPos, localStartDir;
+			// Unstage one
+			stagedGeometries.pop_back();
 			if (stagedGeometries.empty())
 			{
-				localStartPos = startPos.value();
-				localStartDir = extendFromStart.expired() ? odr::sub(scenePos, localStartPos) : ExtendFromDir();
+				directionHandle->hide();
 			}
 			else
 			{
-				const auto& geo = stagedGeometries.back().geo;
-				localStartPos = geo->get_xy(geo->length);
-				localStartDir = geo->get_grad(geo->length);
+				auto newEnd = stagedGeometries.back().geo->get_end_pos();
+				auto newHdg = stagedGeometries.back().geo->get_end_hdg();
+				directionHandle->setPos(newEnd[0], newEnd[1]);
+				directionHandle->setRotation(newHdg * 180 / M_PI);
 			}
-			localStartDir = odr::normalize(localStartDir);
-
-			if (joinAtEnd.expired())
-			{
-				flexGeo = RoadRunner::FitArcOrLine(localStartPos, localStartDir, scenePos);
-			}
-			else
-			{
-				flexGeo = RoadRunner::ConnectRays(localStartPos, localStartDir, scenePos, JoinAtEndDir());
-			}
-		
-			GenerateHintLines(flexGeo, flexRefLinePath, flexBoundaryPathR, flexBoundaryPathL);
+			UpdateFlexGeometry();
+			UpdateStagedFromGeometries();
+		}
+		else if (startPos.has_value())
+		{
+			startPos.reset();
+			extendFromStart.reset();
+			UpdateFlexGeometry();
 		}
 		else
 		{
-			flexRefLinePath.clear();
-			flexBoundaryPathR.clear();
-			flexBoundaryPathL.clear();
-		}
-		
-		if (!flexRefLinePath.empty())
-		{
-			flexRefLinePreview.emplace(flexRefLinePath, 0.3, Qt::green);
-			flexBoundaryPreview.emplace(flexBoundaryPathR, flexBoundaryPathL, Qt::gray);
-		}
-		else
-		{
-			flexRefLinePreview.reset();
-			flexBoundaryPreview.reset();
+			// quit session
+			return false;
 		}
 	}
 	return true;
@@ -589,6 +555,58 @@ void RoadCreationSession::GenerateHintLines(const std::unique_ptr<odr::RoadGeome
 			p = odr::add(p, offset);
 			boundaryPathL.push_back(odr::Vec3D{ p[0], p[1], 0 });
 		}
+	}
+}
+
+void RoadCreationSession::UpdateFlexGeometry()
+{
+	auto scenePos = RoadRunner::g_PointerOnGround;
+	SnapCursor(scenePos);
+
+	// Update flex geo
+	if (startPos.has_value() || !stagedGeometries.empty())
+	{
+		odr::Vec2D localStartPos, localStartDir;
+		if (stagedGeometries.empty())
+		{
+			localStartPos = startPos.value();
+			localStartDir = extendFromStart.expired() ? odr::sub(scenePos, localStartPos) : ExtendFromDir();
+		}
+		else
+		{
+			const auto& geo = stagedGeometries.back().geo;
+			localStartPos = geo->get_xy(geo->length);
+			localStartDir = geo->get_grad(geo->length);
+		}
+		localStartDir = odr::normalize(localStartDir);
+
+		if (joinAtEnd.expired())
+		{
+			flexGeo = RoadRunner::FitArcOrLine(localStartPos, localStartDir, scenePos);
+		}
+		else
+		{
+			flexGeo = RoadRunner::ConnectRays(localStartPos, localStartDir, scenePos, JoinAtEndDir());
+		}
+
+		GenerateHintLines(flexGeo, flexRefLinePath, flexBoundaryPathR, flexBoundaryPathL);
+	}
+	else
+	{
+		flexRefLinePath.clear();
+		flexBoundaryPathR.clear();
+		flexBoundaryPathL.clear();
+	}
+
+	if (!flexRefLinePath.empty())
+	{
+		flexRefLinePreview.emplace(flexRefLinePath, 0.3, Qt::green);
+		flexBoundaryPreview.emplace(flexBoundaryPathR, flexBoundaryPathL, Qt::gray);
+	}
+	else
+	{
+		flexRefLinePreview.reset();
+		flexBoundaryPreview.reset();
 	}
 }
 

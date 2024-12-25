@@ -390,6 +390,7 @@ std::pair<Line3D, Line3D> Road::get_both_dirs_poly(const double s_start, const d
         left = get_side_border_line(1, s_start, s_end, false, eps);
         auto leftBack = get_side_border_line(1, s_start, s_end, true, eps);
         left.insert(left.end(), leftBack.rbegin(), leftBack.rend());
+        if (!left.empty()) left.push_back(left.front());
     }
     if (!firstSection.get_sorted_driving_lanes(-1).empty())
     {
@@ -397,6 +398,7 @@ std::pair<Line3D, Line3D> Road::get_both_dirs_poly(const double s_start, const d
         right = get_side_border_line(-1, s_start, s_end, false, eps);
         auto rightBack = get_side_border_line(-1, s_start, s_end, true, eps);
         right.insert(right.end(), rightBack.rbegin(), rightBack.rend());
+        if (!right.empty()) right.push_back(right.front());
     }
 
     return std::make_pair(left, right);

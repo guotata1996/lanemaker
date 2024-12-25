@@ -197,7 +197,10 @@ void MainWidget::OnKeyPressed(RoadRunner::KeyPressAction evt)
     switch (evt.key)
     {
     case Qt::Key_Escape:
-        quitEdit();
+        if (!drawingSession->Update(evt))
+        {
+            quitEdit();
+        }
         break;
     case Qt::Key_Return:
         if (drawingSession != nullptr)

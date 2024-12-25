@@ -59,6 +59,11 @@ bool RoadDrawingSession::Update(const RoadRunner::MouseAction& evt)
     return true;
 }
 
+bool RoadDrawingSession::Update(const RoadRunner::KeyPressAction& evt)
+{
+    return true;
+}
+
 void RoadDrawingSession::SetHighlightTo(std::shared_ptr<RoadRunner::Road> target)
 {
     auto currHighlighted = highlighted.lock();
