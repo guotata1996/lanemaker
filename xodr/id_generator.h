@@ -17,7 +17,7 @@ public:
     static IDGenerator* ForJunction();
     static IDGenerator* ForRoad();
     static IDGenerator* ForFace(); // spatial
-    static IDGenerator* ForGraphics(); // graphics
+    static IDGenerator* ForGraphics(bool temporary); // graphics
     static IDGenerator* ForVehicle();
     static void Reset();
 
@@ -41,6 +41,7 @@ private:
     static IDGenerator* _face;
     static IDGenerator* _vehicle;
     static IDGenerator* _graphics;
+    static IDGenerator* _graphics_temp;
 
     std::string type;
     std::vector<bool> assigned;

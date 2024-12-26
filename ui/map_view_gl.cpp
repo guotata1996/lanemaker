@@ -17,210 +17,88 @@ namespace RoadRunner
     int g_PointerLane;
     odr::Vec2D g_PointerOnGround;
 
-    MapViewGL::MapViewGL():
-        shader(":/shaders/simple.vert", ":/shaders/simple.frag"),
-        m_vbo(QOpenGLBuffer::VertexBuffer) // actually the default, so default constructor would have been enough
+    MapViewGL::MapViewGL() :
+        permanentBuffer(1 << 24), temporaryBuffer(1 << 18)
     {
-        shader.m_uniformNames.append("worldToView");
         g_mapViewGL = this;
 
         memset(pressedKeys, 0, sizeof(pressedKeys) / sizeof(bool));
-        m_vertexBufferCount = 0;
         ResetCamera();
     }
 
     void MapViewGL::ResetCamera()
     {
-        assert(m_vertexBufferCount == 0);
         m_camera.setTranslation(0, -200, 250);
         m_camera.setRotation(30, QVector3D(1, 0, 0));
     }
 
-    unsigned int MapViewGL::AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color)
+    unsigned int MapViewGL::AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, bool temporary)
     {
-        assert(lBorder.size() == rBorder.size());
-
-        m_vao.bind();
-        m_vbo.bind();
-
-        unsigned int gid = std::stoi(IDGenerator::ForGraphics()->GenerateID(this));
-        std::set<GLuint> vids;
-        const auto vertexBufferChangeBegin = m_vertexBufferCount;
-
-        for (int i = 0; i < lBorder.size() - 1; ++i)
+        unsigned int gid = std::stoi(IDGenerator::ForGraphics(temporary)->GenerateID(this));
+        if (temporary)
         {
-            auto l0 = lBorder[i], l1 = lBorder[i + 1];
-            auto r0 = rBorder[i], r1 = rBorder[i + 1];
-
-            auto v11 = m_vertexBufferCount++;
-            m_vertexBufferData[v11] = Vertex(QVector3D(l0[0], l0[1], l0[2]), color, gid);
-            vids.emplace(v11);
-            auto v12 = m_vertexBufferCount++;
-            m_vertexBufferData[v12] = Vertex(QVector3D(r0[0], r0[1], r0[2]), color, gid);
-            vids.emplace(v12);
-            auto v13 = m_vertexBufferCount++;
-            m_vertexBufferData[v13] = Vertex(QVector3D(l1[0], l1[1], l1[2]), color, gid);
-            vids.emplace(v13);
-
-            auto v21 = m_vertexBufferCount++;
-            m_vertexBufferData[v21] = Vertex(QVector3D(l1[0], l1[1], l1[2]), color, gid);
-            vids.emplace(v21);
-            auto v22 = m_vertexBufferCount++;
-            m_vertexBufferData[v22] = Vertex(QVector3D(r0[0], r0[1], r0[2]), color, gid);
-            vids.emplace(v22);
-            auto v23 = m_vertexBufferCount++;
-            m_vertexBufferData[v23] = Vertex(QVector3D(r1[0], r1[1], r1[2]), color, gid);
-            vids.emplace(v23);
+            temporaryBuffer.AddQuads(gid, lBorder, rBorder, color); // TODO: check success
         }
-        auto ptr_v = m_vbo.mapRange(vertexBufferChangeBegin * sizeof(Vertex), 
-            (m_vertexBufferCount - vertexBufferChangeBegin) * sizeof(Vertex), 
-            QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
-        memcpy(ptr_v, m_vertexBufferData.data() + vertexBufferChangeBegin,
-            (m_vertexBufferCount - vertexBufferChangeBegin) * sizeof(Vertex));
-        m_vbo.unmap();
-        
-        m_vbo.release();
-        m_vao.release();
-
-        idToVids.emplace(gid, vids);
+        else
+        {
+            permanentBuffer.AddQuads(gid, lBorder, rBorder, color); // TODO: check success
+        }
         return gid;
     }
 
-    unsigned int MapViewGL::AddPoly(const odr::Line3D& boundary, QColor color)
+    unsigned int MapViewGL::AddPoly(const odr::Line3D& boundary, QColor color, bool temporary)
     {
-        m_vao.bind();
-        m_vbo.bind();
-
-        auto gid = std::stoi(IDGenerator::ForGraphics()->GenerateID(this));
-        std::set<GLuint> vids;
-        const auto vertexBufferChangeBegin = m_vertexBufferCount;
-
-        for (auto tri : Triangulate_2_5d(boundary))
+        auto gid = std::stoi(IDGenerator::ForGraphics(temporary)->GenerateID(this));
+        if (temporary)
         {
-            auto p1 = boundary[std::get<0>(tri)];
-            auto v1 = m_vertexBufferCount++;
-            vids.emplace(v1);
-            m_vertexBufferData[v1] = Vertex(QVector3D(p1[0], p1[1], p1[2]), color, gid);
-
-            auto p2 = boundary[std::get<1>(tri)];
-            auto v2 = m_vertexBufferCount++;
-            vids.emplace(v2);
-            m_vertexBufferData[v2] = Vertex(QVector3D(p2[0], p2[1], p2[2]), color, gid);
-
-            auto p3 = boundary[std::get<2>(tri)];
-            auto v3 = m_vertexBufferCount++;
-            vids.emplace(v3);
-            m_vertexBufferData[v3] = Vertex(QVector3D(p3[0], p3[1], p3[2]), color, gid);
+            temporaryBuffer.AddPoly(gid, boundary, color);
         }
-
-        auto ptr_v = m_vbo.mapRange(vertexBufferChangeBegin * sizeof(Vertex),
-            (m_vertexBufferCount - vertexBufferChangeBegin) * sizeof(Vertex),
-            QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
-        memcpy(ptr_v, m_vertexBufferData.data() + vertexBufferChangeBegin,
-            (m_vertexBufferCount - vertexBufferChangeBegin) * sizeof(Vertex));
-        m_vbo.unmap();
-
-        m_vbo.release();
-        m_vao.release();
-
-        idToVids.emplace(gid, vids);
+        else
+        {
+            permanentBuffer.AddPoly(gid, boundary, color);
+        }
         return gid;
     }
 
-    void MapViewGL::UpdateItem(unsigned int id, QColor color)
+    void MapViewGL::UpdateItem(unsigned int id, QColor color, bool temporary)
     {
-        m_vao.bind();
-        m_vbo.bind();
-        for (auto vid : idToVids.at(id))
+        if (!temporary)
         {
-            m_vertexBufferData[vid].r = color.redF();
-            m_vertexBufferData[vid].g = color.greenF();
-            m_vertexBufferData[vid].b = color.blueF();
-
-            auto ptr_v = m_vbo.mapRange(vid * sizeof(Vertex), sizeof(Vertex),
-                QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
-            assert(ptr_v != nullptr);
-            memcpy(ptr_v, m_vertexBufferData.data() + vid, sizeof(Vertex));
-            m_vbo.unmap();
+            permanentBuffer.UpdateItem(id, color);
         }
-
-        m_vao.release();
-        m_vbo.release();
+        else
+        {
+            temporaryBuffer.UpdateItem(id, color);
+        }
     }
 
-    void MapViewGL::RemoveItem(unsigned int id)
+    void MapViewGL::RemoveItem(unsigned int id, bool temporary)
     {
-        if (!Road::ClearingMap)
+        if (!temporary)
         {
-            m_vao.bind();
-            m_vbo.bind();
+            permanentBuffer.RemoveItem(id);
         }
-
-        IDGenerator::ForGraphics()->FreeID(std::to_string(id));
-
-        const auto& vidsToRemove = idToVids.at(id);
-        for (auto vid_it = vidsToRemove.rbegin(); vid_it != vidsToRemove.rend(); ++vid_it)
+        else
         {
-            auto vid = *vid_it;
-            if (!Road::ClearingMap && m_vertexBufferCount != 0 && m_vertexBufferCount - 1 != vid)
-            {
-                assert(m_vertexBufferData[vid].objectID == id);
-                auto objectToMove = m_vertexBufferData[m_vertexBufferCount - 1].objectID;
-                auto oldVIt = idToVids.at(objectToMove).find(m_vertexBufferCount - 1);
-                idToVids.at(objectToMove).erase(oldVIt);
-
-                assert(idToVids.at(objectToMove).find(vid) == idToVids.at(objectToMove).end());
-                idToVids.at(objectToMove).emplace(vid);
-                m_vertexBufferData[vid] = m_vertexBufferData[m_vertexBufferCount - 1];
-                auto ptr_v = m_vbo.mapRange(vid * sizeof(Vertex), sizeof(Vertex), 
-                    QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
-                assert(ptr_v != nullptr);
-                memcpy(ptr_v, m_vertexBufferData.data() + vid, sizeof(Vertex));
-                m_vbo.unmap();
-            }
-            m_vertexBufferCount--;
+            temporaryBuffer.RemoveItem(id);
         }
-        idToVids.erase(id);
-
-        if (!Road::ClearingMap)
-        {
-            m_vao.release();
-            m_vbo.release();
-        }
+        IDGenerator::ForGraphics(temporary)->FreeID(std::to_string(id));
     }
 
     int MapViewGL::VBufferUseage_pct() const
     {
-        return static_cast<float>(m_vertexBufferCount) / m_vertexBufferData.size() * 100.0;
+        return 0; // TODO
     }
 
     void MapViewGL::initializeGL()
     {
-        shader.create();
-
         // tell OpenGL to show only faces whose normal vector points towards us
         glDisable(GL_CULL_FACE);
         // enable depth testing, important for the grid and for the drawing order of several objects
         glEnable(GL_DEPTH_TEST);
 
-        m_vao.create();
-        m_vao.bind();
-
-        m_vbo.create();
-        m_vbo.bind();
-        m_vbo.setUsagePattern(QOpenGLBuffer::DynamicDraw);
-        int vertexMemSize = m_vertexBufferData.size() * sizeof(Vertex);
-        m_vbo.allocate(m_vertexBufferData.data(), vertexMemSize);
-
-        auto shaderProgramm = shader.shaderProgram();
-        shaderProgramm->enableAttributeArray(0);
-        shaderProgramm->setAttributeBuffer(0, GL_FLOAT, 0, 3, sizeof(Vertex));
-        shaderProgramm->enableAttributeArray(1); // array with index/id 1
-        shaderProgramm->setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
-
-        // Release (unbind) all
-        m_vao.release();
-        m_vbo.release();
+        permanentBuffer.Initialize();
+        temporaryBuffer.Initialize();
     }
 
     void MapViewGL::resizeGL(int width, int height)
@@ -234,7 +112,6 @@ namespace RoadRunner
             /* far */            1000.0f
         );
         // Mind: to not use 0.0 for near plane, otherwise depth buffering and depth testing won't work!
-
     }
 
     void MapViewGL::paintGL()
@@ -247,13 +124,14 @@ namespace RoadRunner
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.1f, 0.15f, 0.3f, 1.0f);
-        auto shaderProgramm = shader.shaderProgram();
-        shaderProgramm->bind();
-        shaderProgramm->setUniformValue(shader.m_uniformIDs[0], m_worldToView);
-        m_vao.bind();
-        glDrawArrays(GL_TRIANGLES, 0, m_vertexBufferCount);
-        m_vao.release();
-        shaderProgramm->release();
+
+        for (auto buffer : {&permanentBuffer, &temporaryBuffer})
+        {
+            auto nVertex = buffer->Bind(m_worldToView);
+            glDrawArrays(GL_TRIANGLES, 0, nVertex);
+            buffer->Unbind();
+        }
+
     }
 
     void MapViewGL::mousePressEvent(QMouseEvent* event)

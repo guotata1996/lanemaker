@@ -27,7 +27,7 @@ QT_END_NAMESPACE
 	the QOpenGLWidget. Thus, you can easily switch to an QOpenGLWidget class later on,
 	if you need it.
 */
-class OpenGLWindow : public QWindow, protected QOpenGLFunctions {
+class OpenGLWindow : public QWindow, public QOpenGLFunctions {
 	Q_OBJECT
 public:
 	explicit OpenGLWindow(QWindow *parent = nullptr);

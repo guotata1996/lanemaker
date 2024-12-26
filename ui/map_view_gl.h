@@ -2,17 +2,13 @@
 
 #include "OpenGLWindow.h"
 #include "Math.hpp"
-#include "ShaderProgram.h"
-#include "Vertex.h"
 #include "Camera.h"
+#include "gl_buffer_manage.h"
+#include "action_defs.h"
 
 #include <qvector2d.h>
 #include <QMatrix4x4>
-#include <QOpenGLBuffer>
-#include <QOpenGLVertexArrayObject>
 #include <optional>
-
-#include "action_defs.h"
 
 namespace RoadRunner
 {
@@ -23,16 +19,19 @@ namespace RoadRunner
 		MapViewGL();
 		void ResetCamera();
 
-		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color);
-		unsigned int AddPoly(const odr::Line3D& boundary, QColor color);
+		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, bool temporary=false);
+		unsigned int AddPoly(const odr::Line3D& boundary, QColor color, bool temporary=false);
 		void SetViewFromReplay(Transform3D t);
 		void UpdateRayHit(QPoint screen);
 		
-		void UpdateItem(unsigned int, QColor);
-		void RemoveItem(unsigned int);
+		void UpdateItem(unsigned int, QColor, bool temporary = false);
+		void RemoveItem(unsigned int, bool temporary = false);
 
 		int VBufferUseage_pct() const;
 		float Zoom() const;
+
+		QMatrix4x4					m_worldToView;	// cached world to view transformation matrix
+
 	signals:
 		void MousePerformedAction(RoadRunner::MouseAction);
 		void KeyPerformedAction(RoadRunner::KeyPressAction);
@@ -64,25 +63,13 @@ namespace RoadRunner
 
 		QVector2D PointerOnGround(QPoint cursor) const;
 
-		ShaderProgram shader;
-
-		std::array<Vertex, (1<<20)> m_vertexBufferData;
-		unsigned int                m_vertexBufferCount;
-
-		/*! Wraps an OpenGL VertexArrayObject, that references the vertex coordinates and color buffers. */
-		//QOpenGLVertexArrayObject	m_vao;
-		QOpenGLVertexArrayObject m_vao;
-
-		/*! Holds position and colors in a single buffer. */
-		QOpenGLBuffer				m_vbo;
+		GLBufferManage     permanentBuffer;
+		GLBufferManage     temporaryBuffer;
 
 		/*! The projection matrix, updated whenever the viewport geometry changes (in resizeGL() ). */
 		QMatrix4x4					m_projection;
 		Transform3D					m_transform;	// world transformation matrix generator
 		Camera						m_camera;		// Camera position, orientation and lens data
-		QMatrix4x4					m_worldToView;	// cached world to view transformation matrix
-
-		std::map<unsigned int, std::set<unsigned int>> idToVids;
 	};
 
 	extern MapViewGL* g_mapViewGL;

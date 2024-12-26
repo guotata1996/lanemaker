@@ -19,7 +19,7 @@ namespace RoadRunner
     {
         if (boundaryL.size() > 1)
         {
-            graphicsIndex = g_mapViewGL->AddQuads(boundaryL, boundaryR, color);
+            graphicsIndex = g_mapViewGL->AddQuads(boundaryL, boundaryR, color, true);
         }
         else
         {
@@ -43,7 +43,7 @@ namespace RoadRunner
                 left[i] = odr::add(center[i], odr::Vec3D{ radial[0], radial[1], 0 });
                 right[i] = odr::add(center[i], odr::Vec3D{ -radial[0], -radial[1], 0 });
             }
-            graphicsIndex = g_mapViewGL->AddQuads(left, right, color);
+            graphicsIndex = g_mapViewGL->AddQuads(left, right, color, true);
         }
         else
         {
@@ -55,7 +55,7 @@ namespace RoadRunner
     {
         if (graphicsIndex != -1)
         {
-            g_mapViewGL->RemoveItem(graphicsIndex);
+            g_mapViewGL->RemoveItem(graphicsIndex, true);
         }
     }
 

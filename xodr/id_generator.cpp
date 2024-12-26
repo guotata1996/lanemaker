@@ -7,6 +7,7 @@ IDGenerator* IDGenerator::_face = nullptr;
 IDGenerator* IDGenerator::_road = nullptr;
 IDGenerator* IDGenerator::_vehicle = nullptr;
 IDGenerator* IDGenerator::_graphics = nullptr;
+IDGenerator* IDGenerator::_graphics_temp = nullptr;
 
 
 IDGenerator::IDGenerator(std::string aType): type(aType)
@@ -50,13 +51,24 @@ IDGenerator* IDGenerator::ForVehicle()
     return _vehicle;
 }
 
-IDGenerator* IDGenerator::ForGraphics()
+IDGenerator* IDGenerator::ForGraphics(bool temporary)
 {
-    if (_graphics == nullptr)
+    if (temporary)
     {
-        _graphics = new IDGenerator("Graphics");
+        if (_graphics_temp == nullptr)
+        {
+            _graphics_temp = new IDGenerator("Graphics Temporary");
+        }
+        return _graphics_temp;
     }
-    return _graphics;
+    else
+    {
+        if (_graphics == nullptr)
+        {
+            _graphics = new IDGenerator("Graphics");
+        }
+        return _graphics;
+    }
 }
 
 void IDGenerator::Reset()
@@ -66,7 +78,8 @@ void IDGenerator::Reset()
     IDGenerator::ForVehicle()->reset();
 
     IDGenerator::ForFace()->reset();
-    IDGenerator::ForGraphics()->reset();
+    IDGenerator::ForGraphics(true)->reset();
+    IDGenerator::ForGraphics(false)->reset();
 }
 
 size_t IDGenerator::size() const
