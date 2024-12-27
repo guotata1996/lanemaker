@@ -83,7 +83,7 @@ void RoadDrawingSession::SetHighlightTo(std::shared_ptr<RoadRunner::Road> target
 
 float RoadDrawingSession::SnapDistFromScale() const
 {
-    return RoadRunner::SnapRadiusPx / RoadRunner::g_mapViewGL->Zoom();
+    return RoadRunner::SnapRadiusPx / std::min(1.0f, RoadRunner::g_mapViewGL->Zoom());
 }
 
 double RoadDrawingSession::GetAdjustedS(bool* onSegmentBoundary) const

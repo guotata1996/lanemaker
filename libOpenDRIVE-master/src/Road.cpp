@@ -230,6 +230,38 @@ Vec3D Road::get_surface_pt(double s, const double t, Vec3D* vn) const
     return this->get_xyz(s, t, h_t, nullptr, nullptr, vn);
 }
 
+std::vector<std::pair<double, double>> Road::sample_st(double sBegin, double sEnd, double interval) const 
+{
+    std::vector<std::pair<double, double>> rtn;
+
+    for (auto s : odr::xrange(sBegin, sEnd, interval)) 
+    {
+        auto   laneSection = get_lanesection(s);
+        double tmin = lane_offset.get(s);
+        double tmax = tmin;
+        if (laneSection.id_to_lane.begin()->first < 0) 
+        {
+            // has right lane
+            tmin = laneSection.id_to_lane.begin()->second.outer_border.get(s);
+        }
+        if (laneSection.id_to_lane.rbegin()->first > 0) 
+        {
+            // has left lane
+            tmax = laneSection.id_to_lane.rbegin()->second.outer_border.get(s);
+        }
+        if (tmin == tmax) 
+        {
+            continue;
+        }
+        assert(tmin < tmax);
+        for (auto t : odr::xrange(tmin, tmax, interval)) 
+        {
+            rtn.push_back(std::make_pair(s, t));
+        }
+    }
+    return rtn;
+}
+
 std::set<double>
 Road::approximate_lane_border_linear(const Lane& lane, const double s_start, const double s_end, const double eps, const bool outer) const
 {

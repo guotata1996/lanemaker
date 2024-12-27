@@ -8,6 +8,7 @@
 #include "spatial_indexer.h"
 #include "triangulation.h"
 #include "action_manager.h"
+#include "constants.h"
 
 namespace RoadRunner
 {
@@ -425,7 +426,7 @@ namespace RoadRunner
             odr::Vec3D{m_camera.translation().x(), m_camera.translation().y(), m_camera.translation().z()},
             odr::Vec3D{rayDir.x(), rayDir.y(), rayDir.z()}
         };
-        auto hitInfo = SpatialIndexer::Instance()->RayCast(ray);
+        auto hitInfo = SpatialIndexer::Instance()->RayCast(ray, RoadRunner::SnapRadiusPx);
 
         if (hitInfo.roadID != g_PointerRoadID && !g_PointerRoadID.empty())
         {

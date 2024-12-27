@@ -97,8 +97,8 @@ namespace RoadRunner
             for (int angle_slice = 0; angle_slice != 12; ++angle_slice)
             {
                 auto angle = 2 * M_PI / 12 * angle_slice;
-                auto xOffset = odr::mut(std::cos(angle), o1);
-                auto yOffset = odr::mut(std::sin(angle), o2);
+                auto xOffset = odr::mut(std::cos(angle) * radius, o1);
+                auto yOffset = odr::mut(std::sin(angle) * radius, o2);
                 candidateOrigins.push_back(odr::add(odr::add(ray.origin, xOffset), yOffset));
             }
         }
@@ -108,7 +108,7 @@ namespace RoadRunner
             Ray ray_query(Point(origin[0], origin[1], origin[2]),
                 Vector(ray.direction[0], ray.direction[1], ray.direction[2]));
 
-            Ray_intersection intersection = tree.first_intersection(ray_query);
+            Ray_intersection intersection = tree.first_intersection(ray_query, ray.skip);
             if (intersection.has_value())
             {
                 auto faceID = intersection->second.id();
@@ -126,6 +126,40 @@ namespace RoadRunner
             }
         }
 
+        return rtn;
+    }
+
+    std::vector<RayCastResult> SpatialIndexer::AllOverlaps(odr::Vec3D origin, double overlapThreshold)
+    {
+        std::vector<RayCastResult> rtn;
+
+        Ray ray_query(Point(origin[0], origin[1], origin[2] + overlapThreshold), Vector(0, 0, -1));
+        std::list<Ray_intersection> intersections;
+        tree.all_intersections(ray_query, std::back_inserter(intersections));
+        for (auto intersection : intersections)
+        {
+            if (boost::get<Point>(&(intersection->first)))
+            {
+                const Point* p = boost::get<Point>(&(intersection->first));
+                odr::Vec3D p3d{ p->x(), p->y(), p->z() };
+                if (odr::euclDistance(origin, p3d) > overlapThreshold)
+                {
+                    continue;
+                }
+
+                auto faceID = intersection->second.id();
+                auto info = faceInfo.at(faceID);
+                odr::Vec2D p2d{ p->x(), p->y() };
+                auto dir = odr::normalize(odr::sub(info.pointOnSEnd, info.pointOnSBegin));
+                auto projLength = odr::dot(dir, odr::sub(p2d, info.pointOnSBegin));
+                auto quadLength = odr::euclDistance(info.pointOnSBegin, info.pointOnSEnd);
+                auto hitS = (projLength * info.sEnd + (quadLength - projLength) * info.sBegin) / quadLength;
+                hitS = std::max(std::min(info.sBegin, info.sEnd), hitS);
+                hitS = std::min(std::max(info.sBegin, info.sEnd), hitS);
+                RayCastResult result{ true, p3d, info.roadID, info.GetLaneID(), hitS };
+                rtn.emplace_back(result);
+            }
+        }
         return rtn;
     }
 

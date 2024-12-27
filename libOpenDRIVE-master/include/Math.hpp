@@ -287,4 +287,16 @@ void get_orthogonal(const Vec<T, 3> dir, Vec<T, 3>& out_o1, Vec<T, 3>& out_o2)
     out_o2 = odr::crossProduct(dir, out_o1);
 }
 
+template<typename T, typename std::enable_if_t<std::is_arithmetic<T>::value>* = nullptr>
+std::vector<T> xrange(T begin, T end, T interval)
+{
+    int            nSegment = std::ceil((end - begin) / interval);
+    std::vector<T> rtn(nSegment + 1);
+    for (int i = 0; i <= nSegment; ++i) 
+    {
+        rtn[i] = (begin * (nSegment - i) + end * i) / nSegment;
+    }
+    return rtn;
+}
+
 } // namespace odr

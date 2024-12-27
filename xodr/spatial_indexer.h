@@ -99,6 +99,8 @@ namespace RoadRunner
 
         RayCastResult RayCast(RayCastQuery ray, double radius = 0);
 
+        std::vector<RayCastResult> AllOverlaps(odr::Vec3D origin, double overlapThreshold = 0.01);
+
         void UnIndex(FaceIndex_t index);
 
         void RebuildTree();

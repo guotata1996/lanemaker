@@ -99,6 +99,8 @@ public:
     Vec2D get_boundary_xy(int side, double s) const;
     Vec3D get_boundary_xyz(int side, double s) const;
     Vec3D get_surface_pt(double s, const double t, Vec3D* vn = nullptr) const;
+    /*Uniformly sample of (s,t) pairs with max interval (min density)*/
+    std::vector<std::pair<double, double>> sample_st(double sBegin, double sEnd, double interval) const;
 
     Line3D get_lane_border_line(const Lane& lane, const double s_start, const double s_end, const double eps, const bool outer = true) const;
     /*Ensure s match*/
