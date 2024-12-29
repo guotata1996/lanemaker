@@ -314,13 +314,6 @@ namespace RoadRunner
         std::vector<Road::RoadsOverlap> unfiltered, rtn;
         if (sBegin >= sEnd) 
             return rtn;
-        /*
-        auto beginIt = s_to_section_graphics.upper_bound(sBegin - 1e-3f);
-        if (beginIt != s_to_section_graphics.begin())
-        {
-            beginIt--;
-        }
-        auto endIt = s_to_section_graphics.upper_bound(sEnd + 1e-3f);*/
         
         std::set<FaceIndex_t> selfFaces;
         for (auto& s_graphics : s_to_section_graphics)
@@ -329,87 +322,6 @@ namespace RoadRunner
                 s_graphics.second->allSpatialIndice.begin(),
                 s_graphics.second->allSpatialIndice.end());
         }
-        /*
-        std::shared_ptr<Road> hitRoad;
-        double road2MinS, road2MaxS;
-        double road1BeginS;
-        for (auto s = sBegin; s <= sEnd; s += 0.5)
-        {
-            bool maintainHit = false;
-            for (int side : {-1, 1})
-            {
-                auto pt = generated.get_boundary_xyz(side, s);
-                RoadRunner::RayCastQuery ray{
-                    odr::Vec3D{static_cast<double>(pt[0]), static_cast<double>(pt[1]), 50},
-                    odr::Vec3D{0, 0, -1},
-                    RayCastSkip(selfFaces) };
-                auto hit = RoadRunner::SpatialIndexer::Instance()->RayCast(ray);
-                if (hit.hit && odr::euclDistance(hit.hitPos, pt) < 1)
-                {
-                    // only consider those on same Z plane
-                    auto currHitRoad = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(hit.roadID))->shared_from_this();
-                    if (hitRoad == nullptr)
-                    {
-                        // begining of hit
-                        maintainHit = true;
-                        road1BeginS = s;
-                        road2MinS = road2MaxS = hit.s;
-                        hitRoad = currHitRoad;
-                    }
-                    else if (hitRoad == currHitRoad)
-                    {
-                        maintainHit = true;
-                        road2MinS = std::min(road2MinS, hit.s);
-                        road2MaxS = std::max(road2MaxS, hit.s);
-                    }
-                }
-            }
-
-            if (!maintainHit && hitRoad != nullptr)
-            {
-                // end of hit
-                unfiltered.emplace_back(road1BeginS, s, hitRoad, road2MinS, road2MaxS);
-                hitRoad.reset();
-            }
-        }
-
-        if (hitRoad != nullptr)
-        {
-            unfiltered.emplace_back(road1BeginS, sEnd, hitRoad, road2MinS, road2MaxS);
-        }
-
-        for (const auto& overlap : unfiltered)
-        {
-            if (overlap.sBegin1 == overlap.sEnd1 ||
-                overlap.sBegin2 == overlap.sEnd2)
-            {
-                continue;
-            }
-            if (overlap.sBegin1 == 0 && predecessorJunction != nullptr ||
-                overlap.sEnd1 == Length() && successorJunction != nullptr)
-            {
-                continue;
-            }
-            if (overlap.road2.lock()->generated.junction != "-1")
-            {
-                auto junctionPtr = IDGenerator::ForJunction()->GetByID(overlap.road2.lock()->generated.junction);
-                auto junction = static_cast<RoadRunner::Junction*>(junctionPtr)->shared_from_this();
-                if (predecessorJunction == junction &&
-                    overlap.sBegin1 < 0.1)
-                {
-                    // Already joined this junction
-                    continue;
-                }
-                if (successorJunction == junction &&
-                    (overlap.sEnd1 > Length() - 0.1))
-                {
-                    // Already joined this junction
-                    continue;
-                }
-            }
-            rtn.emplace_back(overlap);
-        }
-        */
         
         std::map<std::shared_ptr<Road>, MultiSegment> rangeOnOther;
         std::map<std::shared_ptr<Road>, MultiSegment> rangeOnSelf;
@@ -508,26 +420,26 @@ namespace RoadRunner
                 auto selfInterval = selfIntervals[association.first];
                 auto otherInterval = otherIntervals[association.second];
                 std::set<DirectJunction*> othersDirectJunctions;
-                if (otherInterval.first == 0 && other.first->predecessorJunction != nullptr)
+                if (/*otherInterval.first == 0 && */other.first->predecessorJunction != nullptr)
                 {
                     auto junc = dynamic_cast<DirectJunction*>(other.first->predecessorJunction.get());
                     if (junc != nullptr) othersDirectJunctions.emplace(junc);
                 }
-                if (otherInterval.second == other.first->Length() &&
+                if (/*otherInterval.second == other.first->Length() &&*/
                     other.first->successorJunction != nullptr)
                 {
                     auto junc = dynamic_cast<DirectJunction*>(other.first->successorJunction.get());
                     if (junc != nullptr) othersDirectJunctions.emplace(junc);
                 }
 
-                if (selfInterval.first == 0 && predecessorJunction != nullptr &&
+                if (sBegin == 0 && predecessorJunction != nullptr &&
                     othersDirectJunctions.find(dynamic_cast<DirectJunction*>(predecessorJunction.get())) != othersDirectJunctions.end())
                 {
                     // skip overlap across direct junctions
                     continue;
                 }
 
-                if (selfInterval.second == Length() && successorJunction != nullptr &&
+                if (sEnd == Length() && successorJunction != nullptr &&
                     othersDirectJunctions.find(dynamic_cast<DirectJunction*>(successorJunction.get())) != othersDirectJunctions.end())
                 {
                     // skip overlap across direct junctions
@@ -537,102 +449,6 @@ namespace RoadRunner
                 rtn.emplace_back(selfInterval.first, selfInterval.second,
                     other.first, otherInterval.first, otherInterval.second);
             }
-            /*
-           for (auto otherCollidingArea : )
-           {
-               MultiSegment myCollidingIntervals(1);
-
-               double sBeginOnOther = otherCollidingArea.first;
-               double sEndOnOther = otherCollidingArea.second;
-               bool isDirectJunctionOverlap = false;
-
-               std::set<DirectJunction*> othersDirectJunctions;
-               if (sBeginOnOther == 0 && colliding.first.get()->predecessorJunction != nullptr)
-               {
-                   auto junc = dynamic_cast<DirectJunction*>(colliding.first.get()->predecessorJunction.get());
-                   if (junc != nullptr) othersDirectJunctions.emplace(junc);
-               }
-               if (sEndOnOther == colliding.first.get()->Length() &&
-                   colliding.first.get()->successorJunction != nullptr)
-               {
-                   auto junc = dynamic_cast<DirectJunction*>(colliding.first.get()->successorJunction.get());
-                   if (junc != nullptr) othersDirectJunctions.emplace(junc);
-               }
-
-               for (auto mine: myCollidingPieces)
-               {
-                   SectionGraphics* mySegment = dynamic_cast<SectionGraphics*>(mine->parentItem());
-
-                   std::set<DirectJunction*> myDirectJunctions;
-                   if (std::min(mySegment->sBegin, mySegment->sEnd) == 0
-                       && predecessorJunction != nullptr)
-                   {
-                       auto junc = dynamic_cast<DirectJunction*>(predecessorJunction.get());
-                       if (othersDirectJunctions.find(junc) != othersDirectJunctions.end())
-                       {
-                           isDirectJunctionOverlap = true;
-                           break;
-                       }
-                   }
-                   if (std::max(mySegment->sBegin, mySegment->sEnd) == Length()
-                       && successorJunction != nullptr)
-                   {
-                       auto junc = dynamic_cast<DirectJunction*>(successorJunction.get());
-                       if (othersDirectJunctions.find(junc) != othersDirectJunctions.end())
-                       {
-                           isDirectJunctionOverlap = true;
-                           break;
-                       }
-                   }
-
-                   for (auto otherPiece : mine->collidingItems())
-                   {
-                       LaneGraphics* collisionSegmentItem = dynamic_cast<LaneGraphics*>(otherPiece);
-                       if (collisionSegmentItem == nullptr)
-                       {
-                           continue;
-                       }
-
-                       if (collisionSegmentItem->GetRoad() == shared_from_this())
-                       {
-                           if (mySegment->sBegin < sBeginOnOther ||
-                               SegmentsIntersect(mySegment->sBegin - 0.01, mySegment->sEnd + 0.01,
-                               sBeginOnOther - 0.01, sEndOnOther + 0.01))
-                           {
-                               // Ignore self-overlaps between neighboring pieces
-                               continue;
-                           }
-                       }
-
-                       SectionGraphics* collidingGraphicsSegment = dynamic_cast<SectionGraphics*>(collisionSegmentItem->parentItem());
-                       if (collidingGraphicsSegment->road.lock() == colliding.first &&
-                           SegmentsIntersect(sBeginOnOther, sEndOnOther,
-                           collidingGraphicsSegment->sBegin, collidingGraphicsSegment->sEnd))
-                       {
-                           myCollidingIntervals.Insert(mySegment->sBegin, mySegment->sEnd);
-                       }
-                   }
-               }
-
-               if (isDirectJunctionOverlap) continue;
-
-               for (const auto& myCollidingInterval : myCollidingIntervals.Merge())
-               {
-                   if (myCollidingInterval.first < sBegin || myCollidingInterval.second > sEnd)
-                   {
-                       continue;
-                   }
-                   auto overlap = RoadsOverlap(
-                       myCollidingInterval.first, myCollidingInterval.second,
-                       colliding.first, sBeginOnOther , sEndOnOther );
-                   spdlog::trace("Collision detected between road {} @{}~{} vs road {} @{}~{}",
-                       ID(), overlap.sBegin1, overlap.sEnd1,
-                       colliding.first->ID(), overlap.sBegin2, overlap.sEnd2);
-
-                   rtn.emplace_back(overlap);
-               }
-           }
-        }*/
         }
         // Make sure result is deterministic in case multiple overlap at the same point
         std::sort(rtn.begin(), rtn.end(), [](const Road::RoadsOverlap& a, const Road::RoadsOverlap& b)

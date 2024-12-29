@@ -381,13 +381,18 @@ void MainWindow::enableSimulation(bool available)
 
 void MainWindow::updateHint()
 {
-    auto roadInfo = RoadRunner::g_PointerRoadID.empty() ? "" : 
+    auto groundInfo = QString("(%1, %2) ")
+        .arg(RoadRunner::g_PointerOnGround[0])
+        .arg(RoadRunner::g_PointerOnGround[1]);
+    auto roadInfo = RoadRunner::g_PointerRoadID.empty() ? 
+        "" :
         QString("Road %1 @%2 Lane %3 | V:%4")
         .arg(RoadRunner::g_PointerRoadID.c_str())
         .arg(RoadRunner::g_PointerRoadS, 6, 'f', 3)
         .arg(RoadRunner::g_PointerLane)
         .arg(mainWidget->mapViewGL->VBufferUseage_pct());
-    hintStatus->showMessage(roadInfo);
+    groundInfo.append(roadInfo);
+    hintStatus->showMessage(groundInfo);
 }
 
 void MainWindow::closeEvent(QCloseEvent* e)

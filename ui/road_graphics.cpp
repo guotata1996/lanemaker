@@ -83,12 +83,24 @@ namespace RoadRunner
                     allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, segMin, segMax));
                 }
                 
+                // outline for highlight
                 auto surfaceIndex = g_mapViewGL->AddQuads(innerBorder, outerBorder, 
                     lane.type == "median" ? Qt::yellow : Qt::darkGray);
                 allGraphicsIndice.push_back(surfaceIndex);
                 if (lane.type != "median")
                 {
                     allHighlightGraphicsIndice.push_back(surfaceIndex);
+                }
+
+                // Draw magnetic snap area
+                const double MagneticSnapDist = 2;
+                if (sBegin == 0 && road->predecessorJunction == nullptr)
+                {
+                    allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, -MagneticSnapDist, 0));
+                }
+                if (sEnd == road->Length() && road->successorJunction == nullptr)
+                {
+                    allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, sEnd, sEnd + MagneticSnapDist));
                 }
             }
         }

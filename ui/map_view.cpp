@@ -445,7 +445,7 @@ void MapView::SnapCursor(const QPointF& scenePos)
     RoadRunner::RayCastQuery ray{ odr::Vec3D{
         static_cast<double>(scenePos.x()),
         static_cast<double>(scenePos.y()), 50}, odr::Vec3D{0, 0, -1}};
-    auto rayCastResult = RoadRunner::SpatialIndexer::Instance()->RayCast(ray, r);
+    auto rayCastResult = RoadRunner::SpatialIndexer::Instance()->RayCast(ray);
     
     if (rayCastResult.hit)
     {

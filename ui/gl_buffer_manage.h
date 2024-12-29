@@ -23,6 +23,8 @@ namespace RoadRunner
         unsigned int Bind(QMatrix4x4 worldToView);
         void Unbind();
 
+        int Useage_pct() const;
+
     private:
         std::vector<Vertex>          m_vertexBufferData;
         unsigned int                 m_vertexBufferCount;

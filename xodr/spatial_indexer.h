@@ -37,6 +37,7 @@ namespace
         const int laneIDNormal, laneIDReversed;
         double sBegin, sEnd;
         odr::Vec2D pointOnSBegin, pointOnSEnd; // must be parallel to long side
+        bool magneticArea;
 
         int GetLaneID()
         {
@@ -97,7 +98,7 @@ namespace RoadRunner
 
         FaceIndex_t Index(odr::Road road, odr::Lane lane, double sBegin, double sEnd);
 
-        RayCastResult RayCast(RayCastQuery ray, double radius = 0);
+        RayCastResult RayCast(RayCastQuery ray);
 
         std::vector<RayCastResult> AllOverlaps(odr::Vec3D origin, double overlapThreshold = 0.01);
 

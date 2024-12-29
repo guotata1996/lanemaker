@@ -88,7 +88,7 @@ namespace RoadRunner
 
     int MapViewGL::VBufferUseage_pct() const
     {
-        return 0; // TODO
+        return permanentBuffer.Useage_pct();
     }
 
     void MapViewGL::initializeGL()
@@ -426,7 +426,7 @@ namespace RoadRunner
             odr::Vec3D{m_camera.translation().x(), m_camera.translation().y(), m_camera.translation().z()},
             odr::Vec3D{rayDir.x(), rayDir.y(), rayDir.z()}
         };
-        auto hitInfo = SpatialIndexer::Instance()->RayCast(ray, RoadRunner::SnapRadiusPx);
+        auto hitInfo = SpatialIndexer::Instance()->RayCast(ray);
 
         if (hitInfo.roadID != g_PointerRoadID && !g_PointerRoadID.empty())
         {

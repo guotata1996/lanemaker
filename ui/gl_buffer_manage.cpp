@@ -219,4 +219,9 @@ namespace RoadRunner
         m_vao.release();
         shader.shaderProgram()->release();
     }
+
+    int GLBufferManage::Useage_pct() const
+    {
+        return static_cast<float>(m_vertexBufferCount) / m_vertexBufferData.size() * 100;
+    }
 }

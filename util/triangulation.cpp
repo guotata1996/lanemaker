@@ -46,7 +46,16 @@ namespace RoadRunner
             pointIndex.emplace(p2d, i);
             polygon.push_back(p2d);
         }
-        auto ccw = polygon.is_counterclockwise_oriented();
+        bool ccw;
+        try
+        {
+            ccw = polygon.is_counterclockwise_oriented();
+        }
+        catch (CGAL::Precondition_exception)
+        {
+            spdlog::warn("Invalid geometry to triangulate!");
+            return rtn;
+        }
 
         CDT T;
         for (size_t i = 0; i < polygon.size(); ++i) {

@@ -119,8 +119,19 @@ Vec2D Road::get_xy(const double s, const double t) const
     return Vec2D{p3[0], p3[1]};
 }
 
-Vec3D Road::get_xyz(const double s, const double t, const double h, Vec3D* _e_s, Vec3D* _e_t, Vec3D* _e_h) const
+Vec3D Road::get_xyz(double s, const double t, const double h, Vec3D* _e_s, Vec3D* _e_t, Vec3D* _e_h) const
 {
+    double xtra = 0;
+    if (s < 0)
+    {
+        xtra = s; //xtra < 0
+        s = 0;
+    }
+    else if (s > length)
+    {
+        xtra = s - length; // xtra > 0
+        s = length;
+    }
     const Vec3D  s_vec = this->ref_line.get_grad(s);
     const double theta = this->superelevation.get(s);
 
@@ -132,7 +143,8 @@ Vec3D Road::get_xyz(const double s, const double t, const double h, Vec3D* _e_s,
     const Vec3D p0 = this->ref_line.get_xyz(s);
     const Mat3D trans_mat{{{e_t[0], e_h[0], p0[0]}, {e_t[1], e_h[1], p0[1]}, {e_t[2], e_h[2], p0[2]}}};
 
-    const Vec3D xyz = MatVecMultiplication(trans_mat, Vec3D{t, h, 1});
+    Vec3D xyz = MatVecMultiplication(trans_mat, Vec3D{t, h, 1});
+    xyz = odr::add(xyz, odr::mut(xtra, e_s));
 
     if (_e_s)
         *_e_s = e_s;
@@ -233,8 +245,11 @@ Vec3D Road::get_surface_pt(double s, const double t, Vec3D* vn) const
 std::vector<std::pair<double, double>> Road::sample_st(double sBegin, double sEnd, double interval) const 
 {
     std::vector<std::pair<double, double>> rtn;
-
-    for (auto s : odr::xrange(sBegin, sEnd, interval)) 
+    if (sEnd - sBegin < 0.01)
+    {
+        return rtn;
+    }
+    for (auto s : odr::xrange(sBegin, sEnd - 0.02, interval)) 
     {
         auto   laneSection = get_lanesection(s);
         double tmin = lane_offset.get(s);
@@ -253,7 +268,6 @@ std::vector<std::pair<double, double>> Road::sample_st(double sBegin, double sEn
         {
             continue;
         }
-        assert(tmin < tmax);
         for (auto t : odr::xrange(tmin, tmax, interval)) 
         {
             rtn.push_back(std::make_pair(s, t));
