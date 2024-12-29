@@ -13,55 +13,92 @@
 extern SectionProfileConfigWidget* g_createRoadOption;
 extern int8_t g_createRoadElevationOption;
 
-RoadCreationSession::DirectionHandle::DirectionHandle()
+RoadCreationSession::DirectionHandle::DirectionHandle(odr::Vec3D _center, double _angle) :
+	center(_center), angle(_angle)
 {
-	QMatrix rotTrans;
-	rotTrans.rotate(90);
-	auto pic = QPixmap(":/icons/dir_cursor.png").transformed(rotTrans);
-	setPixmap(pic);
-	setOffset(-pic.width() / 2, -pic.height() / 2);
-	setZValue(128);
+	UpdateGraphics();
+}
+
+RoadCreationSession::DirectionHandle::~DirectionHandle()
+{
+	if (graphicsIndex.has_value())
+	{
+		RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex, true);
+	}
 }
 
 bool RoadCreationSession::DirectionHandle::Update(const RoadRunner::MouseAction& act)
 {
-	if (!isVisible())
-		return false;
-	auto localPos = QPointF(act.screenX, act.screenY) - pos();
-	if (act.type == QEvent::Type::MouseButtonPress && contains(localPos))
+	odr::Vec2D hitPos;
+	auto hit = rayHitLocal(hitPos);
+	if (act.type == QEvent::Type::MouseButtonPress && hit)
 	{
 		dragging = true;
-		deltaRotation = rotation() - std::atan2(localPos.y(), localPos.x()) * 180 / M_PI;
+		deltaRotation = angle - std::atan2(hitPos[1], hitPos[0]);
 	}
 	else if (act.type == QEvent::Type::MouseButtonRelease && dragging)
 	{
 		dragging = false;
+		UpdateGraphics();
 	}
 	else if (dragging)
 	{
-		double newRotation = std::atan2(localPos.y(), localPos.x()) * 180 / M_PI + deltaRotation;
-		setRotation(newRotation);
+		angle = std::atan2(hitPos[1], hitPos[0]) + deltaRotation;
+		UpdateGraphics();
 	}
-	return dragging || contains(localPos);
+	return dragging || hit;
 }
 
-bool RoadCreationSession::DirectionHandle::contains(const QPointF& point) const
+double RoadCreationSession::DirectionHandle::Rotation() const
 {
-	double dis = std::sqrt(std::pow(point.x(), 2) + std::pow(point.y(), 2));
-	dis /= scale();
-	return 86 < dis && dis < 132; // Pixel count from raw image
+	return angle;
 }
 
-void RoadCreationSession::DirectionHandle::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+bool RoadCreationSession::DirectionHandle::rayHitLocal(odr::Vec2D& outPos) const
 {
-	this->setScale(0.4 / RoadRunner::g_mapViewGL->Zoom());
-	QGraphicsPixmapItem::paint(painter, option, widget);
+	double cameraZ = RoadRunner::g_CameraPosition[2];
+	double portion = (cameraZ - center[2]) / cameraZ;
+	odr::Vec2D cameraXY{ RoadRunner::g_CameraPosition[0], RoadRunner::g_CameraPosition[1] };
+	auto offsetAtGround = odr::sub(RoadRunner::g_PointerOnGround, cameraXY);
+	auto offsetAtLevel = odr::mut(portion, offsetAtGround);
+	odr::Vec2D centerXY{ center[0], center[1] };
+	outPos = odr::sub(odr::add(cameraXY, offsetAtLevel), centerXY);
+
+	auto offsetMagnitude = odr::norm(outPos);
+	return InnerRadius < offsetMagnitude && offsetMagnitude < OuterRadius;
+}
+
+void RoadCreationSession::DirectionHandle::UpdateGraphics()
+{
+	const int nDivision = 36;
+	const double sliceAngle = 2 * M_PI / nDivision;
+	auto angles = odr::xrange(angle + sliceAngle / 2, angle + 2 * M_PI - sliceAngle / 2, sliceAngle);
+
+	auto liftedCenter = odr::add(center, odr::Vec3D{ 0, 0, 0.01 });
+	odr::Line3D roundBoundary;
+	// Outer circle
+	for (auto angle_outer : angles)
+	{
+		odr::Vec3D r{ std::cos(angle_outer), std::sin(angle_outer), 0 };
+		roundBoundary.push_back(odr::add(liftedCenter, odr::mut(OuterRadius, r)));
+	}
+	// Inner circle, reversed
+	for (auto angle_inner = angles.rbegin(); angle_inner != angles.rend(); ++angle_inner)
+	{
+		odr::Vec3D r{ std::cos(*angle_inner), std::sin(*angle_inner), 0 };
+		roundBoundary.push_back(odr::add(liftedCenter, odr::mut(InnerRadius, r)));
+	}
+	if (graphicsIndex.has_value())
+	{
+		RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex, true);
+	}
+
+	graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, dragging ? Qt::green : Qt::darkGreen, true);
 }
 
 RoadCreationSession::RoadCreationSession()
 {
-	directionHandle = new DirectionHandle;
-	directionHandle->hide();
+
 }
 
 RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point)
@@ -200,9 +237,15 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 	RoadDrawingSession::Update(act);
 	auto g_PointerRoad = GetPointerRoad();
 	SetHighlightTo(g_PointerRoad);
-	auto prevHandleDir = directionHandle->rotation();
-	bool dirHandleEvt = directionHandle->Update(act);
-	auto currHandleDir = directionHandle->rotation();
+
+	bool dirHandleEvt = false;
+	double prevHandleDir, currHandleDir;
+	if (directionHandle != nullptr)
+	{
+		prevHandleDir = directionHandle->Rotation();
+		dirHandleEvt = directionHandle->Update(act);
+		currHandleDir = directionHandle->Rotation();
+	}
 
 	auto scenePos = RoadRunner::g_PointerOnGround;
 	auto snapLevel = SnapCursor(scenePos);
@@ -221,14 +264,13 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 	if (dirHandleEvt)
 	{
 		// Adjust end direction by rotary
-		//cursorItem->hide();
 		if (prevHandleDir != currHandleDir)
 		{
 			auto& toRefit = stagedGeometries.back();
 			auto refitStartPos = toRefit.geo->get_xy(0);
 			auto startHdg = odr::normalize(toRefit.geo->get_grad(0));
 			auto endPos = toRefit.geo->get_end_pos();
-			auto targetHdg = currHandleDir / 180 * M_PI;
+			auto targetHdg = currHandleDir;
 			auto endHdg = odr::Vec2D{ std::cos(targetHdg), std::sin(targetHdg) };
 			auto adjustedFit = RoadRunner::ConnectRays(refitStartPos, startHdg, endPos, endHdg);
 
@@ -237,8 +279,8 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 
 			UpdateStagedFromGeometries();
 		}
-		//flexBoundaryPreview->hide();
-		//flexRefLinePreview->hide();
+		flexBoundaryPreview.reset();
+		flexRefLinePreview.reset();
 	}
 	else
 	{
@@ -272,10 +314,8 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 
 				auto newEnd = flexGeo->get_end_pos();
 				auto newHdg = flexGeo->get_end_hdg();
-				directionHandle->setPos(newEnd[0], newEnd[1]);
-				directionHandle->setRotation(newHdg * 180 / M_PI);
-				directionHandle->setScale(0);
-				directionHandle->show();
+				directionHandle = std::make_unique<DirectionHandle>(
+					odr::Vec3D{ newEnd[0], newEnd[1], 0 }, newHdg);
 				stagedGeometries.push_back(StagedGeometry
 					{
 						std::move(flexGeo), flexRefLinePath, flexBoundaryPathL, flexBoundaryPathR
@@ -304,14 +344,14 @@ bool RoadCreationSession::Update(const RoadRunner::KeyPressAction& act)
 			stagedGeometries.pop_back();
 			if (stagedGeometries.empty())
 			{
-				directionHandle->hide();
+				directionHandle.reset();
 			}
 			else
 			{
 				auto newEnd = stagedGeometries.back().geo->get_end_pos();
 				auto newHdg = stagedGeometries.back().geo->get_end_hdg();
-				directionHandle->setPos(newEnd[0], newEnd[1]);
-				directionHandle->setRotation(newHdg * 180 / M_PI);
+				directionHandle = std::make_unique<DirectionHandle>(
+					odr::Vec3D{ newEnd[0], newEnd[1], 0 }, newHdg);
 			}
 			UpdateFlexGeometry();
 			UpdateStagedFromGeometries();

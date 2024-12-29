@@ -128,24 +128,6 @@ namespace RoadRunner
             {
                 recordNow = true;
             }
-            else
-            {
-                // TODO:
-                /*
-                auto lastXY = g_mapView->mapFromScene(
-                    lastRecordedMouseMove.value().sceneX,
-                    lastRecordedMouseMove.value().sceneY);
-
-                int lastX = lastXY.x();
-                int lastY = lastXY.y();
-                int distanceSqr = std::pow(lastX - evt->pos().x(), 2) +
-                    std::pow(lastY - evt->pos().y(), 2);
-                if (distanceSqr > MouseMoveRecordThreshold * MouseMoveRecordThreshold)
-                {
-                    recordNow = true;
-                }*/
-
-            }
 
             if (recordNow)
             {

@@ -166,21 +166,21 @@ RoadDrawingSession::CustomCursorItem::~CustomCursorItem()
 {
     if (graphicsIndex.has_value())
     {
-        RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex);
+        RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex, true);
     }
 }
 
 void RoadDrawingSession::CustomCursorItem::EnableHighlight(int level)
 {
     QColor color = level == 0 ? Qt::black : (level == 1 ? Qt::darkRed : Qt::red);
-    RoadRunner::g_mapViewGL->UpdateItem(*graphicsIndex, color);
+    RoadRunner::g_mapViewGL->UpdateItem(*graphicsIndex, color, true);
 }
 
 void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
 {
     if (graphicsIndex.has_value())
     {
-        RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex);
+        RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex, true);
     }
     transform = t;
     
@@ -192,7 +192,7 @@ void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
         auto pos = odr::add(transform, offset);
         roundBoundary.push_back(pos);
     }
-    graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, color);
+    graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, color, true);
 }
 
 void RoadDrawingSession::UpdateEndMarkings()

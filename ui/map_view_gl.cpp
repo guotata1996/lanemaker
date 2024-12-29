@@ -17,13 +17,13 @@ namespace RoadRunner
     double g_PointerRoadS;
     int g_PointerLane;
     odr::Vec2D g_PointerOnGround;
+    odr::Vec3D g_CameraPosition;
 
     MapViewGL::MapViewGL() :
         permanentBuffer(1 << 24), temporaryBuffer(1 << 18)
     {
         g_mapViewGL = this;
 
-        memset(pressedKeys, 0, sizeof(pressedKeys) / sizeof(bool));
         ResetCamera();
     }
 
@@ -274,96 +274,55 @@ namespace RoadRunner
         renderLater();
     }
 
-    // TODO: add to action replay
     void MapViewGL::keyPressEvent(QKeyEvent* event)
     {
-        RoadRunner::ActionManager::Instance()->Record(event);
+        bool changeViewPoint = false;
         
         auto flatForward = m_camera.forward().toVector2D();
         flatForward.normalize();
         flatForward *= 5;
         if (event->key() == Qt::Key_W)
         {
-            pressedKeys[Qt::Key_W] = true;
-        }
-        if (event->key() == Qt::Key_S)
-        {
-            pressedKeys[Qt::Key_S] = true;
-        }
-        if (event->key() == Qt::Key_A)
-        {
-            pressedKeys[Qt::Key_A] = true;
-        }
-        if (event->key() == Qt::Key_D)
-        {
-            pressedKeys[Qt::Key_D] = true;
-        }
-        if (event->key() == Qt::Key_Q)
-        {
-            pressedKeys[Qt::Key_Q] = true;
-        }
-        if (event->key() == Qt::Key_E)
-        {
-            pressedKeys[Qt::Key_E] = true;
-        }
-
-        if (pressedKeys[Qt::Key_W])
-        {
             m_camera.translate(flatForward.x(), flatForward.y(), 0);
+            changeViewPoint = true;
         }
-        if (pressedKeys[Qt::Key_S])
+        else if (event->key() == Qt::Key_S)
         {
             m_camera.translate(-flatForward.x(), -flatForward.y(), 0);
+            changeViewPoint = true;
         }
-        if (pressedKeys[Qt::Key_A])
+        else if (event->key() == Qt::Key_A)
         {
             m_camera.translate(-flatForward.y(), flatForward.x(), 0);
+            changeViewPoint = true;
         }
-        if (pressedKeys[Qt::Key_D])
+        else if (event->key() == Qt::Key_D)
         {
             m_camera.translate(flatForward.y(), -flatForward.x(), 0);
+            changeViewPoint = true;
         }
-        if (pressedKeys[Qt::Key_Q])
+        else if (event->key() == Qt::Key_Q)
         {
             m_camera.rotate(-5, QVector3D(0, 0, 1));
+            changeViewPoint = true;
         }
-        if (pressedKeys[Qt::Key_E])
+        else if (event->key() == Qt::Key_E)
         {
             m_camera.rotate(5, QVector3D(0, 0, 1));
+            changeViewPoint = true;
         }
 
-        emit(KeyPerformedAction(event));
+        if (changeViewPoint)
+        {
+            RoadRunner::ActionManager::Instance()->Record(m_camera);
+        }
+        else
+        {
+            RoadRunner::ActionManager::Instance()->Record(event);
+            emit(KeyPerformedAction(event));
+        }
         // update cached world2view matrix
         renderLater();
-    }
-
-    // TODO: add to action replay
-    void MapViewGL::keyReleaseEvent(QKeyEvent* event)
-    {
-        if (event->key() == Qt::Key_W)
-        {
-            pressedKeys[Qt::Key_W] = false;
-        }
-        if (event->key() == Qt::Key_S)
-        {
-            pressedKeys[Qt::Key_S] = false;
-        }
-        if (event->key() == Qt::Key_A)
-        {
-            pressedKeys[Qt::Key_A] = false;
-        }
-        if (event->key() == Qt::Key_D)
-        {
-            pressedKeys[Qt::Key_D] = false;
-        }
-        if (event->key() == Qt::Key_Q)
-        {
-            pressedKeys[Qt::Key_Q] = false;
-        }
-        if (event->key() == Qt::Key_E)
-        {
-            pressedKeys[Qt::Key_E] = false;
-        }
     }
 
     QVector3D MapViewGL::PointerDirection(QPoint cursor) const
@@ -422,8 +381,9 @@ namespace RoadRunner
         g_PointerOnGround[1] = currGroundPos.y();
 
         auto rayDir = PointerDirection(screen);
+        g_CameraPosition = odr::Vec3D{ m_camera.translation().x(), m_camera.translation().y(), m_camera.translation().z() };
         RayCastQuery ray{
-            odr::Vec3D{m_camera.translation().x(), m_camera.translation().y(), m_camera.translation().z()},
+            g_CameraPosition,
             odr::Vec3D{rayDir.x(), rayDir.y(), rayDir.z()}
         };
         auto hitInfo = SpatialIndexer::Instance()->RayCast(ray);

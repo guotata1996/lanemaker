@@ -123,7 +123,14 @@ namespace RoadRunner
 
         Ray ray_query(Point(origin[0], origin[1], origin[2] + overlapThreshold), Vector(0, 0, -1));
         std::list<Ray_intersection> intersections;
-        tree.all_intersections(ray_query, std::back_inserter(intersections));
+        try
+        {
+            tree.all_intersections(ray_query, std::back_inserter(intersections));
+        }
+        catch (CGAL::Failure_exception)
+        {
+            return rtn;
+        }
         for (auto intersection : intersections)
         {
             if (boost::get<Point>(&(intersection->first)))

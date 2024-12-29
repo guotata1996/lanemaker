@@ -183,6 +183,10 @@ namespace RoadRunner
             }
         }
 
+        // Update magnetic snap area
+        dueUpdateS.Insert(0, 0.5);
+        dueUpdateS.Insert(Length() - 0.5, Length());
+
         for (auto segment : dueUpdateS.Merge())
         {
             GenerateOrUpdateSectionGraphicsBetween(segment.first, segment.second);

@@ -208,9 +208,6 @@ void MainWidget::OnKeyPressed(RoadRunner::KeyPressAction evt)
             confirmEdit();
         }
         break;
-    case Qt::Key_I:
-        // TODO
-        break;
     }
 }
 

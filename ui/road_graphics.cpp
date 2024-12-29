@@ -62,7 +62,7 @@ namespace RoadRunner
     SectionGraphics::SectionGraphics(std::shared_ptr<RoadRunner::Road> road,
         const odr::LaneSection& laneSection,
         double sBegin, double sEnd)
-    {        
+    {
         odr::Road& gen = road->generated;
         bool biDirRoad = gen.rr_profile.HasSide(-1) && gen.rr_profile.HasSide(1);
         sMin = std::min(sBegin, sEnd);
@@ -94,13 +94,13 @@ namespace RoadRunner
 
                 // Draw magnetic snap area
                 const double MagneticSnapDist = 2;
-                if (sBegin == 0 && road->predecessorJunction == nullptr)
+                if (sMin == 0 && gen.predecessor.type != odr::RoadLink::Type_Junction)
                 {
                     allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, -MagneticSnapDist, 0));
                 }
-                if (sEnd == road->Length() && road->successorJunction == nullptr)
+                if (sMax == road->Length() && gen.successor.type != odr::RoadLink::Type_Junction)
                 {
-                    allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, sEnd, sEnd + MagneticSnapDist));
+                    allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, sMax, sMax + MagneticSnapDist));
                 }
             }
         }
@@ -222,16 +222,6 @@ namespace RoadRunner
                 }
             }
         }
-
-        //refLineHint = new QGraphicsPathItem(this);
-        //refLineHint->setPen(QPen(Qt::green, 0.3, Qt::SolidLine));
-        //refLineHint->hide();
-        //auto lineAppox = gen.ref_line.get_line(std::min(sBegin, sEnd), std::max(sBegin, sEnd), 0.1f);
-        //refLinePath = CreateRefLinePath(lineAppox);
-        //std::reverse(lineAppox.begin(), lineAppox.end());
-        //refLinePathReversed = CreateRefLinePath(lineAppox);
-        //refLineHint->setPath(refLinePath);
-        // TODO
     }
 
     SectionGraphics::~SectionGraphics()

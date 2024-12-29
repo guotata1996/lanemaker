@@ -49,13 +49,11 @@ namespace RoadRunner
 		void wheelEvent(QWheelEvent* event) override;
 
 		void keyPressEvent(QKeyEvent* event) override;
-		void keyReleaseEvent(QKeyEvent* event) override;
 
 	private:
 		QPoint lastMousePos;
 		std::optional<QVector3D> dragRotFixedRay;
 		bool dragPan = false;
-		bool pressedKeys[Qt::Key_Z];
 
 		QVector3D PointerDirection(QPoint cursor) const;
 
@@ -77,4 +75,5 @@ namespace RoadRunner
 	extern double g_PointerRoadS;
 	extern int g_PointerLane;
 	extern odr::Vec2D g_PointerOnGround;
+	extern odr::Vec3D g_CameraPosition;
 }

@@ -34,7 +34,6 @@ protected:
     public:
         CustomCursorItem();
         ~CustomCursorItem();
-        //virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
 
         void EnableHighlight(int level);
         void SetTranslation(odr::Vec3D);
@@ -119,22 +118,28 @@ protected:
     virtual RoadRunner::type_t PreviewLeftOffsetX2() const;
 
 private:
-    class DirectionHandle : public QGraphicsPixmapItem
+    class DirectionHandle
     {
     public:
-        DirectionHandle();
+        DirectionHandle(odr::Vec3D center, double angle);
+        ~DirectionHandle();
 
         bool Update(const RoadRunner::MouseAction& act);
-
-    protected:
-        virtual bool contains(const QPointF& point) const override;
-
-        virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
-            QWidget* widget = nullptr) override;
+        double Rotation() const;
 
     private:
+        bool rayHitLocal(odr::Vec2D&) const;
+        void UpdateGraphics();
+
+        const odr::Vec3D center;
+        double angle;
+
         double dragging = false;
         double deltaRotation;
+
+        std::optional<unsigned int> graphicsIndex;
+        const double InnerRadius = 4;
+        const double OuterRadius = 6;
     };
 
     struct StagedGeometry
@@ -163,7 +168,7 @@ private:
     odr::Line3D stagedRefLinePath;
     odr::Line3D stagedBoundaryPathL, stagedBoundaryPathR;
 
-    DirectionHandle* directionHandle; // TODO
+    std::unique_ptr<DirectionHandle> directionHandle;
 
     std::optional<RoadRunner::TemporaryGraphics> stagedRefLinePreview;
     std::optional<RoadRunner::TemporaryGraphics> stagedBoundaryPreview;
