@@ -132,7 +132,6 @@ namespace RoadRunner
             glDrawArrays(GL_TRIANGLES, 0, nVertex);
             buffer->Unbind();
         }
-
     }
 
     void MapViewGL::mousePressEvent(QMouseEvent* event)
@@ -376,6 +375,7 @@ namespace RoadRunner
 
     void MapViewGL::UpdateRayHit(QPoint screen)
     {
+        // TODO: g_PointerVehicle.lock()->EnableRouteVisual(false, RoadRunner::ChangeTracker::Instance()->Map());
         auto currGroundPos = PointerOnGround(screen);
         g_PointerOnGround[0] = currGroundPos.x();
         g_PointerOnGround[1] = currGroundPos.y();

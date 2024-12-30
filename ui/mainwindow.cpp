@@ -128,10 +128,9 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(debugReplayAction, &QAction::triggered, this, &MainWindow::debugActionHistory);
     connect(controlledReplayAction, &QAction::triggered, this, &MainWindow::playActionHistory);
     connect(replayWindow.get(), &ReplayWindow::Restart, this, &MainWindow::reset);
-    //connect(mainWidget.get(), &MainWidget::HoveringChanged, this, &MainWindow::setHint);
     //connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
     //connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
-    //connect(preferenceWindow.get(), &PreferenceWindow::ToggleAA, mainWidget.get(), &MainWidget::toggleAntialiasing);
+    connect(preferenceWindow.get(), &PreferenceWindow::ToggleAA, mainWidget.get(), &MainWidget::toggleAntialiasing);
     //connect(testButton, &QPushButton::clicked, []() {spdlog::info("Test btn press"); });
 
     connect(mainWidget->mapViewGL, &RoadRunner::MapViewGL::MousePerformedAction, this, &MainWindow::updateHint);
@@ -176,7 +175,7 @@ void MainWindow::reset()
     RoadRunner::ChangeTracker::Instance()->Clear();
     RoadRunner::ActionManager::Instance()->Reset();
     RoadRunner::g_mapViewGL->ResetCamera();
-    assert(mainWidget->view()->scene()->items().isEmpty());
+    // TODO: assertion check scene is empty
     resizeDontRecord(PreferredSize().width(), PreferredSize().height());
     loadedFileName.clear();
     RoadRunner::g_mapViewGL->renderNow();
@@ -239,7 +238,6 @@ void MainWindow::loadFromFile()
         buffer << ifs.rdbuf();
         RoadRunner::ActionManager::Instance()->Record(buffer.str());
 
-        mainWidget->PostEditActions();
         RoadRunner::g_mapViewGL->renderNow();
     }
 }
@@ -258,7 +256,7 @@ void MainWindow::setBackgroundPicture()
             return;
         }
 
-        mainWidget->SetBackgroundImage(QPixmap::fromImage(image));
+        // TODO
     }
 }
 
@@ -270,10 +268,6 @@ void MainWindow::undo()
     {
         spdlog::warn("Cannot undo");
     }
-    else
-    {
-        mainWidget->PostEditActions();
-    }
 }
 
 void MainWindow::redo()
@@ -283,10 +277,6 @@ void MainWindow::redo()
     if (!RoadRunner::ChangeTracker::Instance()->Redo())
     {
         spdlog::warn("Cannot redo");
-    }
-    else
-    {
-        mainWidget->PostEditActions();
     }
 }
 

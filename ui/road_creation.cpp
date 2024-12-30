@@ -1,7 +1,6 @@
 #include "road_drawing.h"
 #include "curve_fitting.h"
 #include "CreateRoadOptionWidget.h"
-#include "map_view.h"
 #include "map_view_gl.h"
 #include "junction.h"
 #include "constants.h"

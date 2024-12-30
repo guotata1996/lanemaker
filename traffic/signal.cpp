@@ -4,10 +4,10 @@
 
 #include "id_generator.h"
 
-extern std::weak_ptr<RoadRunner::Road> g_PointerRoad;
-
 namespace RoadRunner
 {
+    extern std::string g_PointerRoadID;
+
     Signal::Signal(const odr::Junction& junction): highlightedPhase(-1)
     {
         for (const auto& id_conn : junction.id_to_connection)
@@ -52,8 +52,7 @@ namespace RoadRunner
             }
         }
 
-        if (!g_PointerRoad.expired() && 
-            controllingRoads.find(g_PointerRoad.lock()->ID()) != controllingRoads.end())
+        if (controllingRoads.find(g_PointerRoadID) != controllingRoads.end())
         {
             HighlightRoadsInCurrentPhase(true);
         }

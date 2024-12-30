@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
 #include "main_widget.h"
-#include "map_view.h"
 #include "map_view_gl.h"
 #include "mainwindow.h"
 #include "action_manager.h"
@@ -21,25 +20,16 @@ int8_t g_createRoadElevationOption;
 MainWidget* MainWidget::instance = nullptr;
 
 MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
-    : QFrame(parent), createRoadOption(new SectionProfileConfigWidget),
-    displayScaleTimer(new QTimer(this))
+    : QFrame(parent), createRoadOption(new SectionProfileConfigWidget)
 {
     instance = this;
     setFrameStyle(Sunken | StyledPanel);
-    mapView = new MapView(this, scene);
-    mapView->setRenderHint(QPainter::Antialiasing, false);
-    mapView->setDragMode(QGraphicsView::RubberBandDrag);
-    mapView->setOptimizationFlags(QGraphicsView::DontSavePainterState);
-    mapView->setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
-    mapView->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-    mapView->setMouseTracking(true);
 
     QSurfaceFormat format;
     format.setRenderableType(QSurfaceFormat::OpenGL);
     format.setProfile(QSurfaceFormat::CoreProfile);
     format.setVersion(3, 3);
-    format.setSamples(4);	// enable multisampling (antialiasing)
-    format.setDepthBufferSize(8);
+    format.setDepthBufferSize(16);
 
     mapViewGL = new RoadRunner::MapViewGL;
     mapViewGL->setFormat(format);
@@ -112,16 +102,13 @@ MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
     topLayout->addWidget(container);
     setLayout(topLayout);
 
-    displayScaleTimer->setSingleShot(true);
-
     connect(createModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateRoadMode);
     connect(createLaneModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateLaneMode);
     connect(destroyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDestroyMode);
     connect(modifyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoModifyMode);
     connect(dragModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDragMode);
-    connect(displayScaleTimer, &QTimer::timeout, mapView, &MapView::hideScale);
     connect(mapViewGL, &RoadRunner::MapViewGL::MousePerformedAction, this, &MainWidget::OnMouseAction);
-    connect(mapViewGL, &RoadRunner::MapViewGL::KeyPerformedAction, this, &MainWidget::OnKeyPressed);
+    connect(mapViewGL, &RoadRunner::MapViewGL::KeyPerformedAction, this, &MainWidget::OnKeyPress);
     Reset();
 }
 
@@ -129,12 +116,6 @@ MainWidget* MainWidget::Instance()
 {
     return instance;
 }
-
-QGraphicsView* MainWidget::view() const
-{
-    return static_cast<QGraphicsView*>(mapView);
-}
-
 
 void MainWidget::gotoCreateRoadMode(bool checked)
 {
@@ -183,31 +164,45 @@ void MainWidget::gotoDragMode(bool checked)
 
 void MainWidget::OnMouseAction(RoadRunner::MouseAction evt)
 {
-    if (drawingSession != nullptr)
+    try
     {
-        if (!drawingSession->Update(evt))
+        if (drawingSession != nullptr)
         {
-            confirmEdit();
+            if (!drawingSession->Update(evt))
+            {
+                confirmEdit();
+            }
         }
+    }
+    catch (std::exception e)
+    {
+        elegantlyHandleException(e);
     }
 }
 
-void MainWidget::OnKeyPressed(RoadRunner::KeyPressAction evt)
+void MainWidget::OnKeyPress(RoadRunner::KeyPressAction evt)
 {
-    switch (evt.key)
+    try
     {
-    case Qt::Key_Escape:
-        if (!drawingSession->Update(evt))
+        switch (evt.key)
         {
-            quitEdit();
+        case Qt::Key_Escape:
+            if (!drawingSession->Update(evt))
+            {
+                quitEdit();
+            }
+            break;
+        case Qt::Key_Return:
+            if (drawingSession != nullptr)
+            {
+                confirmEdit();
+            }
+            break;
         }
-        break;
-    case Qt::Key_Return:
-        if (drawingSession != nullptr)
-        {
-            confirmEdit();
-        }
-        break;
+    }
+    catch (std::exception e)
+    {
+        elegantlyHandleException(e);
     }
 }
 
@@ -226,22 +221,9 @@ void MainWidget::quitEdit()
 
 void MainWidget::toggleAntialiasing(bool enabled)
 {
-    mapView->setRenderHint(QPainter::Antialiasing, enabled);
-}
-
-void MainWidget::PostEditActions()
-{
-    mapView->PostEditActions();
-}
-
-void MainWidget::SetHovering(QString a)
-{
-    emit HoveringChanged(a);
-}
-
-void MainWidget::SetBackgroundImage(const QPixmap& image)
-{
-    mapView->SetBackground(image);
+    auto fmt = mapViewGL->format();
+    fmt.setSamples(enabled ? 4 : 1);
+    mapViewGL->setFormat(fmt);
 }
 
 void MainWidget::Painted()
@@ -271,19 +253,6 @@ void MainWidget::Reset()
     }
     pointerModeGroup->setExclusive(true);
     gotoDragMode();
-    mapView->ResetSceneRect();
-    displayScaleTimer->stop();
-    mapView->showScale(); // Show scale upon start / newMap
-}
-
-void MainWidget::RecordViewTransform()
-{
-    // TODO
-}
-
-void MainWidget::SetViewFromReplay(double zoomSliderVal, double rotateSliderVal)
-{
-    // TODO
 }
 
 void MainWidget::SetModeFromReplay(int mode)
@@ -340,4 +309,26 @@ void MainWidget::SetEditMode(RoadRunner::EditMode aMode)
         break;
     }
 }
+
+#ifdef _DEBUG
+void MainWidget::elegantlyHandleException(std::exception e)
+{
+    // Do nothing
+    throw e;
+}
+
+#else
+void MainWidget::elegantlyHandleException(std::exception e)
+{
+    RoadRunner::ActionManager::Instance()->MarkException();
+    auto msg = std::string(e.what()) + "\nReplayable at " + RoadRunner::ActionManager::Instance()->AutosavePath();
+    auto quit = QMessageBox::question(this, "Quit now?",
+        QString::fromStdString(msg), QMessageBox::Yes | QMessageBox::No);
+    if (quit == QMessageBox::Yes)
+    {
+        QCoreApplication::quit();
+    }
+}
+
+#endif
 

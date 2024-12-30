@@ -166,7 +166,7 @@ namespace RoadRunner
 
     void ActionManager::Replay(const KeyPressAction& action)
     {
-        MainWidget::Instance()->OnKeyPressed(action);
+        MainWidget::Instance()->OnKeyPress(action);
         RoadRunner::g_mapViewGL->renderLater();
     }
 

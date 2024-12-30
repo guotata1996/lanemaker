@@ -29,20 +29,10 @@ public:
 
     static MainWidget* Instance();
 
-    QGraphicsView* view() const;
-
-    void PostEditActions();
-
-    void SetHovering(QString);
-
-    void SetBackgroundImage(const QPixmap& image);
-
     void Painted();
 
     void Reset();
 
-    void RecordViewTransform();
-    void SetViewFromReplay(double zoomSliderVal, double rotateSliderVal);
     void SetModeFromReplay(int mode);
     void SetElevationFromReplay(int8_t elevationSetting);
 
@@ -58,7 +48,7 @@ signals:
 public slots:
     void toggleAntialiasing(bool);
     void OnMouseAction(RoadRunner::MouseAction);
-    void OnKeyPressed(RoadRunner::KeyPressAction);
+    void OnKeyPress(RoadRunner::KeyPressAction);
 
 private slots:
     void gotoCreateRoadMode(bool);
@@ -75,20 +65,17 @@ private:
     void confirmEdit();
     void quitEdit();
 
+    void elegantlyHandleException(std::exception);
+
     RoadRunner::EditMode editMode = RoadRunner::Mode_None;
     RoadDrawingSession* drawingSession = nullptr;
 
     QButtonGroup* pointerModeGroup;
     QToolButton* createModeButton, * createLaneModeButton, * destroyModeButton, * modifyModeButton, * dragModeButton;
 
-    MapView* mapView;
-
     //QToolButton* resetButton;
     SectionProfileConfigWidget* createRoadOption;
 
     unsigned int nRepaints = 0;
     qint64 lastUpdateFPSMS = 0;
-
-    /*Hidden foreground scale after some time from scroll*/
-    QTimer* displayScaleTimer;
 };
