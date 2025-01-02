@@ -18,12 +18,13 @@ namespace RoadRunner
     int g_PointerLane;
     odr::Vec2D g_PointerOnGround;
     odr::Vec3D g_CameraPosition;
+    int g_createRoadElevationOption;
 
     MapViewGL::MapViewGL() :
         permanentBuffer(1 << 24), temporaryBuffer(1 << 18)
     {
         g_mapViewGL = this;
-
+        g_createRoadElevationOption = 0;
         ResetCamera();
     }
 
@@ -57,6 +58,20 @@ namespace RoadRunner
         else
         {
             permanentBuffer.AddPoly(gid, boundary, color);
+        }
+        return gid;
+    }
+
+    unsigned int MapViewGL::AddColumn(const odr::Line3D& boundary, double h, QColor color, bool temporary)
+    {
+        auto gid = std::stoi(IDGenerator::ForGraphics(temporary)->GenerateID(this));
+        if (temporary)
+        {
+            temporaryBuffer.AddColumn(gid, boundary, h, color);
+        }
+        else
+        {
+            permanentBuffer.AddColumn(gid, boundary, h, color);
         }
         return gid;
     }
@@ -265,10 +280,21 @@ namespace RoadRunner
 
     void MapViewGL::wheelEvent(QWheelEvent* event)
     {
+        bool ctrlPressed = event->modifiers() & Qt::CTRL;
         auto dir = event->angleDelta().y() > 0 ? 1 : -1;
-        auto delta = dir * PointerDirection(lastMousePos) * 10;
-        m_camera.translate(delta);
-        ActionManager::Instance()->Record(m_camera);
+
+        if (ctrlPressed)
+        {
+            g_createRoadElevationOption += dir;
+            ActionManager::Instance()->Record(g_createRoadElevationOption);
+            emit(MousePerformedAction(event)); // immediately repaint cursor
+        }
+        else
+        {
+            auto delta = dir * PointerDirection(lastMousePos) * 10;
+            m_camera.translate(delta);
+            ActionManager::Instance()->Record(m_camera);
+        }
 
         renderLater();
     }

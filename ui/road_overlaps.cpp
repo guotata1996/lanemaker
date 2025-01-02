@@ -2,7 +2,10 @@
 #include "world.h"
 #include "constants.h"
 
-extern int8_t g_createRoadElevationOption;
+namespace RoadRunner
+{
+    extern int g_createRoadElevationOption;
+}
 
 namespace RoadRunner
 {
@@ -250,9 +253,9 @@ namespace RoadRunner
                     auto connS = conn.contact == odr::RoadLink::ContactPoint_Start ? 0 : connRoad->Length();
                     RoadRunner::CubicSplineGenerator::OverwriteSection(connRoad->RefLine().elevation_profile,
                         connRoad->Length(), connS, connS, junctionElevation);
-                    connRoad->GenerateOrUpdateSectionGraphicsBetween(
-                        std::max(connS - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
-                        std::min(connS + RoadRunner::CubicSplineGenerator::MaxTransitionLength, connRoad->Length()));
+                    //connRoad->GenerateOrUpdateSectionGraphicsBetween(
+                    //    std::max(connS - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
+                    //    std::min(connS + RoadRunner::CubicSplineGenerator::MaxTransitionLength, connRoad->Length()));
                 }
                 auto junction = std::make_shared<RoadRunner::Junction>();
                 auto errorCode = junction->CreateFrom(junctionInfo);
@@ -300,7 +303,7 @@ namespace RoadRunner
                 continue;
             }
 
-            if (g_createRoadElevationOption > 0)
+            if (RoadRunner::g_createRoadElevationOption > 0)
             {
                 auto existingClosest = existingProfile.get_min(overlap.sBegin1, overlap.sEnd1);
                 auto existingSafest = existingProfile.get_max(overlap.sBegin1, overlap.sEnd1);
@@ -312,7 +315,7 @@ namespace RoadRunner
                     dueGraphicsUpdate.push_back(overlap);
                 }
             }
-            else if (g_createRoadElevationOption < 0)
+            else if (RoadRunner::g_createRoadElevationOption < 0)
             {
                 auto existingClosest = existingProfile.get_max(overlap.sBegin1, overlap.sEnd1);
                 auto existingSafest = existingProfile.get_min(overlap.sBegin1, overlap.sEnd1);
@@ -327,12 +330,12 @@ namespace RoadRunner
         }
 
 
-        for (const auto& overlap : dueGraphicsUpdate)
-        {
-            newRoad->GenerateOrUpdateSectionGraphicsBetween(
-                std::max(overlap.sBegin1 - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
-                std::min(overlap.sEnd1 + RoadRunner::CubicSplineGenerator::MaxTransitionLength, newRoad->Length()));
-        }
+        //for (const auto& overlap : dueGraphicsUpdate)
+        //{
+        //    newRoad->GenerateOrUpdateSectionGraphicsBetween(
+        //        std::max(overlap.sBegin1 - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
+        //        std::min(overlap.sEnd1 + RoadRunner::CubicSplineGenerator::MaxTransitionLength, newRoad->Length()));
+        //}
 
         return true;
     }

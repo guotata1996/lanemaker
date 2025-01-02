@@ -39,8 +39,6 @@ protected:
         void SetTranslation(odr::Vec3D);
 
     private:
-        odr::Vec3D transform;
-
         static double InitialRadius;
 
         std::optional<unsigned int> graphicsIndex;
@@ -145,8 +143,7 @@ private:
     struct StagedGeometry
     {
         std::unique_ptr<odr::RoadGeometry> geo;
-        odr::Line3D refLinePreview;
-        odr::Line3D boundaryPreviewL, boundaryPreviewR;
+        double endEleveation;
     };
 
     SnapResult SnapCursor(odr::Vec2D&);
@@ -156,17 +153,16 @@ private:
     RoadRunner::LanePlan stagedLeftPlan, stagedRightPlan;
 
     std::optional<odr::Vec2D> startPos; // Can be on blank or extend from
+    double startElevation;
 
-    void GenerateHintLines(const std::unique_ptr<odr::RoadGeometry>&,
+    void GenerateHintLines(const odr::RefLine& refLine,
         odr::Line3D&, odr::Line3D&, odr::Line3D&);
 
-    void UpdateStagedFromGeometries(bool lanePlanChanged = false);
+    void UpdateStagedFromGeometries();
 
     std::unique_ptr<odr::RoadGeometry> flexGeo;
-    odr::Line3D flexRefLinePath;
-    odr::Line3D flexBoundaryPathL, flexBoundaryPathR;
-    odr::Line3D stagedRefLinePath;
-    odr::Line3D stagedBoundaryPathL, stagedBoundaryPathR;
+    double flexEndElevation;
+
 
     std::unique_ptr<DirectionHandle> directionHandle;
 

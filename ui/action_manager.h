@@ -26,11 +26,11 @@ namespace RoadRunner
 
         void Record(std::string loadedMap);
         void Record(RoadRunner::EditMode);
-        void Record(Transform3D cameraTransform); // TODO: window resize
+        void Record(Transform3D cameraTransform);
         void Record(MouseAction);
         void Record(KeyPressAction);
         void Record(const LanePlan&, const LanePlan&);
-        void Record(int8_t elevationPlan);
+        void Record(int zSetting);
         void Record(ActionType);
         void Record(const QSize& oldSize, const QSize& newSize);
 

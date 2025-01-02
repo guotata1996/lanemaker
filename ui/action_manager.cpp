@@ -182,16 +182,16 @@ namespace RoadRunner
         g_createRoadOption->SetOption(action.leftProfile, action.rightProfile);
     }
 
-    void ActionManager::Record(int8_t plan)
+    void ActionManager::Record(int zSetting)
     {
-        ChangeElevationAction serialized{ plan };
+        ChangeElevationAction serialized{ zSetting };
         history.emplace_back(serialized, startTime.msecsTo(QTime::currentTime()));
         Save();
     }
 
     void ActionManager::Replay(const ChangeElevationAction& action)
     {
-        //g_mapView->parentContainer->SetElevationFromReplay(action.plan);
+        g_createRoadElevationOption = action.plan;
     }
 
     void ActionManager::Record(ActionType actionNoParm)

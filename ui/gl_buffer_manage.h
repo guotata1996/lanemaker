@@ -17,6 +17,7 @@ namespace RoadRunner
 
         bool AddQuads(unsigned int objectID, const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color);
         bool AddPoly(unsigned int objectID, const odr::Line3D& boundary, QColor color);
+        bool AddColumn(unsigned int objectID, const odr::Line3D& boundary, double h, QColor color);
         void UpdateItem(unsigned int, QColor);
         void RemoveItem(unsigned int);
 

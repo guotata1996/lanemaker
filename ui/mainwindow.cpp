@@ -175,6 +175,7 @@ void MainWindow::reset()
     RoadRunner::ChangeTracker::Instance()->Clear();
     RoadRunner::ActionManager::Instance()->Reset();
     RoadRunner::g_mapViewGL->ResetCamera();
+    RoadRunner::g_createRoadElevationOption = 0;
     // TODO: assertion check scene is empty
     resizeDontRecord(PreferredSize().width(), PreferredSize().height());
     loadedFileName.clear();

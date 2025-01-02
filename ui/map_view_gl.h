@@ -21,6 +21,7 @@ namespace RoadRunner
 
 		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, bool temporary=false);
 		unsigned int AddPoly(const odr::Line3D& boundary, QColor color, bool temporary=false);
+		unsigned int AddColumn(const odr::Line3D& boundary, double h, QColor color, bool temporary = false);
 		void SetViewFromReplay(Transform3D t);
 		void UpdateRayHit(QPoint screen);
 		
@@ -76,4 +77,5 @@ namespace RoadRunner
 	extern int g_PointerLane;
 	extern odr::Vec2D g_PointerOnGround;
 	extern odr::Vec3D g_CameraPosition;
+	extern int g_createRoadElevationOption;
 }

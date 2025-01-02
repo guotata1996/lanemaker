@@ -9,7 +9,6 @@
 #include <sstream>
 
 SectionProfileConfigWidget* g_createRoadOption;
-extern int8_t g_createRoadElevationOption;
 
 CreateRoadOptionWidget::CreateRoadOptionWidget():
     rightLogo(":/icons/car_leaving.png"),
@@ -115,16 +114,15 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
 
     // Draw result
     colorPen.setWidth(3);
-    const int yOffsetForElevation = -g_createRoadElevationOption * TickHeight / 2;
     if (activeLeftSetting.laneCount != 0)
     {
         colorPen.setColor(Qt::red);
         painter.setPen(colorPen);
-        painter.drawLine(lOuterResult, YCenter + yOffsetForElevation, lInnerResult, YCenter + yOffsetForElevation);
+        painter.drawLine(lOuterResult, YCenter, lInnerResult, YCenter);
         for (int i = 0; i != activeLeftSetting.laneCount; ++i)
         {
             int logoCenter = lInnerResult - (i * 2 + 1) * TickInterval;
-            QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight + yOffsetForElevation, TickHeight, TickHeight);
+            QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight, TickHeight, TickHeight);
             painter.drawImage(rect, leftLogo);
         }
     }
@@ -133,11 +131,11 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
     {
         colorPen.setColor(Qt::green);
         painter.setPen(colorPen);
-        painter.drawLine(rOuterResult, YCenter + yOffsetForElevation, rInnerResult, YCenter + yOffsetForElevation);
+        painter.drawLine(rOuterResult, YCenter, rInnerResult, YCenter);
         for (int i = 0; i != activeRightSetting.laneCount; ++i)
         {
             int logoCenter = rInnerResult + (i * 2 + 1) * TickInterval;
-            QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight + yOffsetForElevation, TickHeight, TickHeight);
+            QRectF rect(logoCenter - TickHeight / 2, YCenter - TickHeight, TickHeight, TickHeight);
             painter.drawImage(rect, rightLogo);
         }
     }

@@ -36,9 +36,9 @@ namespace RoadRunner
         RoadRunner::CubicSplineGenerator::OverwriteSection(
             connRoad->RefLine().elevation_profile, connRoad->Length(), connS, connS, Elevation());
 #ifndef G_TEST
-        connRoad->GenerateOrUpdateSectionGraphicsBetween(
-            std::max(connS - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
-            std::min(connS + RoadRunner::CubicSplineGenerator::MaxTransitionLength, connRoad->Length()));
+        //connRoad->GenerateOrUpdateSectionGraphicsBetween(
+        //    std::max(connS - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
+        //    std::min(connS + RoadRunner::CubicSplineGenerator::MaxTransitionLength, connRoad->Length()));
 #endif
 
         std::vector<ConnectionInfo> newConnections = { conn };

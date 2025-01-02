@@ -15,7 +15,6 @@
 #include <QtMath>
 
 extern SectionProfileConfigWidget* g_createRoadOption;
-int8_t g_createRoadElevationOption;
 
 MainWidget* MainWidget::instance = nullptr;
 

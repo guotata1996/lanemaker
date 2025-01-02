@@ -11,7 +11,10 @@
 #include "map_view_gl.h"
 
 extern SectionProfileConfigWidget* g_createRoadOption;
-extern int8_t g_createRoadElevationOption;
+namespace RoadRunner
+{
+    extern int g_createRoadElevationOption;
+}
 
 LanesCreationSession::LanesCreationSession() :
     lLanes(0), rLanes(0), rOffsetX2(0), lOffsetX2(0)
@@ -223,7 +226,7 @@ bool LanesCreationSession::Complete()
     }
 
     bool success;
-    if (g_createRoadElevationOption == 0)
+    if (RoadRunner::g_createRoadElevationOption == 0)
     {
         success = RoadRunner::TryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd,
             overlapAtStart, overlapAtStartS, overlapAtEnd, overlapAtEndS);

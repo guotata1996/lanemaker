@@ -10,7 +10,6 @@
 #include <math.h>
 
 extern SectionProfileConfigWidget* g_createRoadOption;
-extern int8_t g_createRoadElevationOption;
 
 RoadCreationSession::DirectionHandle::DirectionHandle(odr::Vec3D _center, double _angle) :
 	center(_center), angle(_angle)
@@ -248,14 +247,14 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 
 	auto scenePos = RoadRunner::g_PointerOnGround;
 	auto snapLevel = SnapCursor(scenePos);
-	cursorItem->SetTranslation({ scenePos[0], scenePos[1], 0 });
+	cursorItem->SetTranslation({ scenePos[0], scenePos[1], 4.0 * RoadRunner::g_createRoadElevationOption });
 	cursorItem->EnableHighlight(snapLevel);
 
 	RoadRunner::LanePlan currLeftPlan{ PreviewLeftOffsetX2(), g_createRoadOption->LeftResult().laneCount };
 	RoadRunner::LanePlan currRightPlan{ PreviewRightOffsetX2(), g_createRoadOption->RightResult().laneCount };
 	if (currLeftPlan != stagedLeftPlan || currRightPlan != stagedRightPlan)
 	{
-		UpdateStagedFromGeometries(true);
+		UpdateStagedFromGeometries();
 		stagedLeftPlan = currLeftPlan;
 		stagedRightPlan = currRightPlan;
 	}
@@ -273,7 +272,6 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 			auto endHdg = odr::Vec2D{ std::cos(targetHdg), std::sin(targetHdg) };
 			auto adjustedFit = RoadRunner::ConnectRays(refitStartPos, startHdg, endPos, endHdg);
 
-			GenerateHintLines(adjustedFit, toRefit.refLinePreview, toRefit.boundaryPreviewR, toRefit.boundaryPreviewL);
 			toRefit.geo = std::move(adjustedFit);
 
 			UpdateStagedFromGeometries();
@@ -289,6 +287,7 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 			if (!startPos.has_value())
 			{
 				startPos.emplace(scenePos);
+				startElevation = 4.0 * RoadRunner::g_createRoadElevationOption;
 				if (extendFromStart.expired())
 				{
 					overlapAtStart = g_PointerRoad;
@@ -317,7 +316,7 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 					odr::Vec3D{ newEnd[0], newEnd[1], 0 }, newHdg);
 				stagedGeometries.push_back(StagedGeometry
 					{
-						std::move(flexGeo), flexRefLinePath, flexBoundaryPathL, flexBoundaryPathR
+						std::move(flexGeo), flexEndElevation//, flexRefLinePath, flexBoundaryPathL, flexBoundaryPathR
 					}); // Do stage
 				UpdateStagedFromGeometries();
 			}
@@ -373,15 +372,19 @@ bool RoadCreationSession::Update(const RoadRunner::KeyPressAction& act)
 odr::RefLine RoadCreationSession::ResultRefLine() const
 {
 	odr::RefLine refLine("", 0);
+	std::map<double, double> zControlPoints;
+	zControlPoints.emplace(0, startElevation);
+
 	for (auto& staged : stagedGeometries)
 	{
-		const auto& localGeo = staged.geo;
+		auto localGeo = staged.geo->clone();
 		auto localLength = localGeo->length;
 		localGeo->s0 = refLine.length;
-		refLine.s0_to_geometry.emplace(refLine.length, localGeo->clone());
+		refLine.s0_to_geometry.emplace(refLine.length, std::move(localGeo));
 		refLine.length += localLength;
+		zControlPoints.emplace(refLine.length, staged.endEleveation);
 	}
-	refLine.elevation_profile = odr::CubicSpline(0);
+	refLine.elevation_profile = RoadRunner::CubicSplineGenerator::FromControlPoints(zControlPoints);
 	return refLine;
 }
 
@@ -531,7 +534,7 @@ bool RoadCreationSession::Complete()
 	}
 	
 	bool success;
-	if (g_createRoadElevationOption == 0)
+	if (RoadRunner::g_createRoadElevationOption == 0)
 	{
 		success = TryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd,
 			overlapAtStart, overlapAtStartS, overlapAtEnd, overlapAtEndS);
@@ -551,22 +554,22 @@ RoadCreationSession::~RoadCreationSession()
 {
 }
 
-void RoadCreationSession::GenerateHintLines(const std::unique_ptr<odr::RoadGeometry>& geo,
+void RoadCreationSession::GenerateHintLines(const odr::RefLine& refLine,
 	odr::Line3D& centerPath, odr::Line3D& boundaryPathR, odr::Line3D& boundaryPathL)
 {
-	const int Division = 30;
 	centerPath.clear();
 	boundaryPathR.clear();
 	boundaryPathL.clear();
-	if (geo != nullptr && geo->length > 1e-2)
+	if (refLine.length > 1e-2)
 	{
-		auto flexLen = geo->length;
+		const int Division = std::min(125, static_cast<int>(std::ceil(refLine.length / 4)));
+		auto flexLen = refLine.length;
 			
 		for (int i = 0; i != Division; ++i)
 		{
 			auto s = flexLen / (Division - 1) * i;
-			auto p = geo->get_xy(s);
-			centerPath.push_back(odr::Vec3D{ p[0], p[1], 0.01 });
+			auto p = refLine.get_xyz(s);
+			centerPath.push_back(p);
 		}
 
 		// right boundary
@@ -575,11 +578,8 @@ void RoadCreationSession::GenerateHintLines(const std::unique_ptr<odr::RoadGeome
 		for (int i = 0; i != Division; ++i)
 		{
 			auto s = flexLen / (Division - 1) * i;
-			auto p = geo->get_xy(s);
-			auto grad = odr::normalize(geo->get_grad(s));
-			auto offset = odr::mut(t, odr::Vec2D{ grad[1], -grad[0] });
-			p = odr::add(p, offset);
-			boundaryPathR.push_back(odr::Vec3D{ p[0], p[1], 0 });
+			auto p = refLine.get_xyz(s, t);
+			boundaryPathR.push_back(p);
 		}
 
 		// left boundary
@@ -588,11 +588,8 @@ void RoadCreationSession::GenerateHintLines(const std::unique_ptr<odr::RoadGeome
 		for (int i = 0; i != Division; ++i)
 		{
 			auto s = flexLen / (Division - 1) * i;
-			auto p = geo->get_xy(s);
-			auto grad = odr::normalize(geo->get_grad(s));
-			auto offset = odr::mut(t, odr::Vec2D{ grad[1], -grad[0] });
-			p = odr::add(p, offset);
-			boundaryPathL.push_back(odr::Vec3D{ p[0], p[1], 0 });
+			auto p = refLine.get_xyz(s, t);
+			boundaryPathL.push_back(p);
 		}
 	}
 }
@@ -602,20 +599,27 @@ void RoadCreationSession::UpdateFlexGeometry()
 	auto scenePos = RoadRunner::g_PointerOnGround;
 	SnapCursor(scenePos);
 
-	// Update flex geo
+	flexRefLinePreview.reset();
+	flexBoundaryPreview.reset();
+
 	if (startPos.has_value() || !stagedGeometries.empty())
 	{
+		odr::Line3D flexRefLinePath, flexBoundaryPathR, flexBoundaryPathL;
+
 		odr::Vec2D localStartPos, localStartDir;
+		double localStartZ;
 		if (stagedGeometries.empty())
 		{
 			localStartPos = startPos.value();
 			localStartDir = extendFromStart.expired() ? odr::sub(scenePos, localStartPos) : ExtendFromDir();
+			localStartZ = startElevation;
 		}
 		else
 		{
 			const auto& geo = stagedGeometries.back().geo;
 			localStartPos = geo->get_xy(geo->length);
 			localStartDir = geo->get_grad(geo->length);
+			localStartZ = stagedGeometries.back().endEleveation;
 		}
 		localStartDir = odr::normalize(localStartDir);
 
@@ -628,43 +632,42 @@ void RoadCreationSession::UpdateFlexGeometry()
 			flexGeo = RoadRunner::ConnectRays(localStartPos, localStartDir, scenePos, JoinAtEndDir());
 		}
 
-		GenerateHintLines(flexGeo, flexRefLinePath, flexBoundaryPathR, flexBoundaryPathL);
-	}
-	else
-	{
-		flexRefLinePath.clear();
-		flexBoundaryPathR.clear();
-		flexBoundaryPathL.clear();
-	}
+		if (flexGeo->length > 0)
+		{
+			flexEndElevation = 4.0 * RoadRunner::g_createRoadElevationOption;
 
-	if (!flexRefLinePath.empty())
-	{
-		flexRefLinePreview.emplace(flexRefLinePath, 0.3, Qt::green);
-		flexBoundaryPreview.emplace(flexBoundaryPathR, flexBoundaryPathL, Qt::gray);
-	}
-	else
-	{
-		flexRefLinePreview.reset();
-		flexBoundaryPreview.reset();
+			auto elevationProfile = RoadRunner::CubicSplineGenerator::FromControlPoints(
+				std::map<double, double>{{0, localStartZ}, { flexGeo->length, flexEndElevation }}
+			);
+
+			std::vector<std::unique_ptr<odr::RoadGeometry>> allGeo;
+			allGeo.emplace_back(flexGeo->clone());
+			odr::RefLine flexRefLine("", 0);
+			flexRefLine.s0_to_geometry.emplace(0, flexGeo->clone());
+			flexRefLine.length = flexGeo->length;
+			flexRefLine.elevation_profile = elevationProfile;
+			GenerateHintLines(flexRefLine, flexRefLinePath, flexBoundaryPathR, flexBoundaryPathL);
+
+			flexRefLinePreview.emplace(flexRefLinePath, 0.3, Qt::green);
+			flexBoundaryPreview.emplace(flexBoundaryPathR, flexBoundaryPathL, Qt::gray);
+		}
 	}
 }
 
-void RoadCreationSession::UpdateStagedFromGeometries(bool lanePlanChanged)
+void RoadCreationSession::UpdateStagedFromGeometries()
 {
-	stagedRefLinePath.clear();
-	stagedBoundaryPathL.clear();
-	stagedBoundaryPathR.clear();
-	for (auto& staged : stagedGeometries)
-	{
-		if (lanePlanChanged)
-		{
-			GenerateHintLines(staged.geo, staged.refLinePreview, staged.boundaryPreviewR, staged.boundaryPreviewL);
-		}
-		stagedRefLinePath.insert(stagedRefLinePath.end(), staged.refLinePreview.begin(), staged.refLinePreview.end());
-		stagedBoundaryPathL.insert(stagedBoundaryPathL.end(), staged.boundaryPreviewL.begin(), staged.boundaryPreviewL.end());
-		stagedBoundaryPathR.insert(stagedBoundaryPathR.end(), staged.boundaryPreviewR.begin(), staged.boundaryPreviewR.end());
-	}
+	odr::Line3D stagedRefLinePath, stagedBoundaryPathL, stagedBoundaryPathR;
 
-	stagedRefLinePreview.emplace(stagedRefLinePath, 0.25, Qt::green);
-	stagedBoundaryPreview.emplace(stagedBoundaryPathR, stagedBoundaryPathL, Qt::gray);
+	if (!stagedGeometries.empty() && stagedGeometries.front().geo->length != 0)
+	{
+		auto resultRefLine = ResultRefLine();
+		GenerateHintLines(resultRefLine, stagedRefLinePath, stagedBoundaryPathR, stagedBoundaryPathL);
+		stagedRefLinePreview.emplace(stagedRefLinePath, 0.25, Qt::green);
+		stagedBoundaryPreview.emplace(stagedBoundaryPathR, stagedBoundaryPathL, Qt::gray);
+	}
+	else
+	{
+		stagedRefLinePreview.reset();
+		stagedBoundaryPreview.reset();
+	}
 }

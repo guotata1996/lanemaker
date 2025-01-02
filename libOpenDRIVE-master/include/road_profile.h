@@ -143,10 +143,13 @@ namespace RoadRunner
     public:
         static void OverwriteSection(odr::CubicSpline& target, double length, double start, double end, double value);
 
-        static double MaxTransitionLength;
+        static odr::CubicSpline FromControlPoints(std::map<double, double>);
+
     private:
         // f(0) = y0, f(len) = y1, f'(0) = f'(len) = 0
         static odr::Poly3 FitPoly3(double s0, double y0, double s1, double y1);
+
+        static odr::Poly3 FitPoly3(double s0, double y0, double deri0, double s1, double y1, double deri1);
 
         static double Precision;
     };

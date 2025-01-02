@@ -13,7 +13,6 @@
 #include "map_view_gl.h"
 
 extern SectionProfileConfigWidget* g_createRoadOption;
-extern int8_t g_createRoadElevationOption;
 
 std::shared_ptr<RoadRunner::Road> RoadDrawingSession::GetPointerRoad()
 {
@@ -158,7 +157,7 @@ bool RoadDrawingSession::IsProfileChangePoint(const std::shared_ptr<RoadRunner::
     return leftOffsetChange || rightOffsetChange;
 }
 
-RoadDrawingSession::CustomCursorItem::CustomCursorItem(): color(Qt::black)
+RoadDrawingSession::CustomCursorItem::CustomCursorItem(): color(Qt::white)
 {
 }
 
@@ -172,7 +171,7 @@ RoadDrawingSession::CustomCursorItem::~CustomCursorItem()
 
 void RoadDrawingSession::CustomCursorItem::EnableHighlight(int level)
 {
-    QColor color = level == 0 ? Qt::black : (level == 1 ? Qt::darkRed : Qt::red);
+    QColor color = level == 0 ? Qt::white : (level == 1 ? Qt::darkRed : Qt::red);
     RoadRunner::g_mapViewGL->UpdateItem(*graphicsIndex, color, true);
 }
 
@@ -182,17 +181,26 @@ void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
     {
         RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex, true);
     }
-    transform = t;
+    auto centerOnXY = odr::Vec3D{ t[0], t[1], 0 };
+    auto h = t[2];
     
     odr::Line3D roundBoundary;
     for (int i = 0; i < 24; ++i)
     {
         double angle = 2 * M_PI / 24 * i;
         auto offset = odr::Vec3D{ std::cos(angle), std::sin(angle), 0.01 };
-        auto pos = odr::add(transform, offset);
+        auto pos = odr::add(centerOnXY, offset);
         roundBoundary.push_back(pos);
     }
-    graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, color, true);
+
+    if (h == 0)
+    {
+        graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, color, true);
+    }
+    else
+    {
+        graphicsIndex = RoadRunner::g_mapViewGL->AddColumn(roundBoundary, h, color, true);
+    }
 }
 
 void RoadDrawingSession::UpdateEndMarkings()
