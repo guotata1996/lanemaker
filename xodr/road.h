@@ -94,10 +94,7 @@ namespace RoadRunner
         std::optional<RoadsOverlap> FirstOverlap(double sBegin, double sEnd) const;
 
         // Everything included
-        std::vector<RoadsOverlap> AllOverlaps(double sBegin, double sEnd) const;
-
-        // sWithin2 is expected to stay within overlapping section against target
-        std::optional<RoadsOverlap> CalcOverlapWith(std::shared_ptr<Road> target, double sWithin2, double sBegin1, double sEnd1) const;
+        std::vector<RoadsOverlap> AllOverlaps(double sBegin, double sEnd, double zThreshold) const;
 
         void EnableHighlight(bool enabled, bool bringToTop=true);
 #endif

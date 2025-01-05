@@ -100,7 +100,7 @@ namespace RoadRunner
 
         RayCastResult RayCast(RayCastQuery ray);
 
-        std::vector<RayCastResult> AllOverlaps(odr::Vec3D origin, double overlapThreshold = 0.01);
+        std::vector<RayCastResult> AllOverlaps(odr::Vec3D origin, double zRange = 0.01);
 
         void UnIndex(FaceIndex_t index);
 

@@ -34,7 +34,6 @@ public:
     void Reset();
 
     void SetModeFromReplay(int mode);
-    void SetElevationFromReplay(int8_t elevationSetting);
 
     RoadRunner::MapViewGL* mapViewGL;
 

@@ -20,4 +20,6 @@ namespace RoadRunner
 
     // allowed gap between roads, in meters
     const double epsilon = 1e-2;
+
+    const double ElevationStep = 2.0;
 }

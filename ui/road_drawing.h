@@ -101,12 +101,6 @@ protected:
     std::weak_ptr<RoadRunner::Road> joinAtEnd;
     double joinAtEndS;
 
-    // Record overlap (for junction / bridge / tunnel) // TODO:
-    std::weak_ptr<RoadRunner::Road> overlapAtStart;
-    double overlapAtStartS;
-    std::weak_ptr<RoadRunner::Road> overlapAtEnd;
-    double overlapAtEndS;
-
     virtual odr::Vec2D ExtendFromDir() const;
     virtual odr::Vec2D JoinAtEndDir() const;
 
@@ -162,7 +156,6 @@ private:
 
     std::unique_ptr<odr::RoadGeometry> flexGeo;
     double flexEndElevation;
-
 
     std::unique_ptr<DirectionHandle> directionHandle;
 

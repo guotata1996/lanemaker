@@ -117,11 +117,11 @@ namespace RoadRunner
         return rtn;
     }
 
-    std::vector<RayCastResult> SpatialIndexer::AllOverlaps(odr::Vec3D origin, double overlapThreshold)
+    std::vector<RayCastResult> SpatialIndexer::AllOverlaps(odr::Vec3D origin, double zRange)
     {
         std::vector<RayCastResult> rtn;
 
-        Ray ray_query(Point(origin[0], origin[1], origin[2] + overlapThreshold), Vector(0, 0, -1));
+        Ray ray_query(Point(origin[0], origin[1], origin[2] + zRange), Vector(0, 0, -1));
         std::list<Ray_intersection> intersections;
         try
         {
@@ -137,7 +137,7 @@ namespace RoadRunner
             {
                 const Point* p = boost::get<Point>(&(intersection->first));
                 odr::Vec3D p3d{ p->x(), p->y(), p->z() };
-                if (odr::euclDistance(origin, p3d) > overlapThreshold)
+                if (odr::euclDistance(origin, p3d) > zRange)
                 {
                     continue;
                 }

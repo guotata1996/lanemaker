@@ -123,6 +123,8 @@ namespace RoadRunner
     odr::Poly3 CubicSplineGenerator::FitPoly3(double s0, double y0, double y_0, double s1, double y1, double y_1)
     { 
         double l = s1 - s0;
+        y_0 *= l;
+        y_1 *= l;
         double a = y0;
         double b = y_0;
         double c = 3 * y1 - y_1 - 3 * y0 - 2 * y_0;

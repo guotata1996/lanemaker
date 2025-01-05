@@ -192,6 +192,7 @@ namespace RoadRunner
     void ActionManager::Replay(const ChangeElevationAction& action)
     {
         g_createRoadElevationOption = action.plan;
+        MainWidget::Instance()->OnMouseAction(MouseAction());
     }
 
     void ActionManager::Record(ActionType actionNoParm)

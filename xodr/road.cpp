@@ -287,33 +287,7 @@ namespace RoadRunner
         GenerateSectionGraphicsBetween(createBegin, createEnd);
     }
 
-    /*sBegin-sEnd provides a rough range where overlap with target falls at
-    not necessarily inclusive because ref line may fall out of road width*/
-    std::optional<Road::RoadsOverlap> Road::CalcOverlapWith(std::shared_ptr<Road> target, double sWithin, double sBegin1, double sEnd1) const
-    {
-        std::map<double, Road::RoadsOverlap> sErrorToOverlap;
-        for (auto overlapResult : AllOverlaps(sBegin1, sEnd1))
-        {
-            if (overlapResult.road2.lock() == target)
-            {
-                if (overlapResult.sBegin2 <= sWithin && sWithin <= overlapResult.sEnd2)
-                {
-                    return overlapResult;
-                }
-                double sErr = std::min(overlapResult.sBegin2 - sWithin, sWithin - overlapResult.sEnd2);
-                sErrorToOverlap.emplace(sErr, overlapResult);
-            }
-        }
-
-        std::optional<Road::RoadsOverlap> rtn;
-        if (!sErrorToOverlap.empty())
-        {
-            rtn.emplace(sErrorToOverlap.begin()->second);
-        }
-        return rtn;
-    }
-
-    std::vector<Road::RoadsOverlap> Road::AllOverlaps(double sBegin, double sEnd) const
+    std::vector<Road::RoadsOverlap> Road::AllOverlaps(double sBegin, double sEnd, double zThreshold) const
     {
         std::vector<Road::RoadsOverlap> unfiltered, rtn;
         if (sBegin >= sEnd) 
@@ -336,7 +310,7 @@ namespace RoadRunner
         {
             auto pt = generated.get_xyz(st.first, st.second, 0);
 
-            for (auto overlap : SpatialIndexer::Instance()->AllOverlaps(pt))
+            for (auto overlap : SpatialIndexer::Instance()->AllOverlaps(pt, zThreshold))
             {
                 if (overlap.roadID == ID())
                 {
@@ -474,7 +448,7 @@ namespace RoadRunner
     std::optional<Road::RoadsOverlap> Road::FirstOverlap(double sBegin, double sEnd) const
     {
         std::optional<Road::RoadsOverlap> rtn;
-        auto allOverlaps = AllOverlaps(sBegin, sEnd);
+        auto allOverlaps = AllOverlaps(sBegin, sEnd, 3.0);
         if (allOverlaps.empty()) return rtn;
         rtn.emplace(allOverlaps.front());
         return rtn;

@@ -247,7 +247,7 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 
 	auto scenePos = RoadRunner::g_PointerOnGround;
 	auto snapLevel = SnapCursor(scenePos);
-	cursorItem->SetTranslation({ scenePos[0], scenePos[1], 4.0 * RoadRunner::g_createRoadElevationOption });
+	cursorItem->SetTranslation({ scenePos[0], scenePos[1], RoadRunner::ElevationStep * RoadRunner::g_createRoadElevationOption });
 	cursorItem->EnableHighlight(snapLevel);
 
 	RoadRunner::LanePlan currLeftPlan{ PreviewLeftOffsetX2(), g_createRoadOption->LeftResult().laneCount };
@@ -287,29 +287,17 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 			if (!startPos.has_value())
 			{
 				startPos.emplace(scenePos);
-				startElevation = 4.0 * RoadRunner::g_createRoadElevationOption;
 				if (extendFromStart.expired())
 				{
-					overlapAtStart = g_PointerRoad;
-					overlapAtStartS = RoadRunner::g_PointerRoadS;
+					startElevation = RoadRunner::ElevationStep * RoadRunner::g_createRoadElevationOption;
 				}
 				else
 				{
-					overlapAtStart.reset();
+					startElevation = extendFromStart.lock()->generated.get_xyz(extendFromStartS, 0, 0)[2];
 				}
 			}
 			else if (flexGeo != nullptr)
 			{
-				if (joinAtEnd.expired())
-				{
-					overlapAtEnd = g_PointerRoad;
-					overlapAtEndS = RoadRunner::g_PointerRoadS;
-				}
-				else
-				{
-					overlapAtEnd.reset();
-				}
-
 				auto newEnd = flexGeo->get_end_pos();
 				auto newHdg = flexGeo->get_end_hdg();
 				directionHandle = std::make_unique<DirectionHandle>(
@@ -409,6 +397,12 @@ bool RoadCreationSession::Complete()
 	if (!extendFromStart.expired() && extendFromStart.lock() == joinAtEnd.lock())
 	{
 		spdlog::warn("Self-loop is not supported!");
+		return true;
+	}
+
+	if (stagedGeometries.empty())
+	{
+		spdlog::warn("Too few control points");
 		return true;
 	}
 
@@ -533,16 +527,7 @@ bool RoadCreationSession::Complete()
 		world->allRoads.insert(newRoad);
 	}
 	
-	bool success;
-	if (RoadRunner::g_createRoadElevationOption == 0)
-	{
-		success = TryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd,
-			overlapAtStart, overlapAtStartS, overlapAtEnd, overlapAtEndS);
-	}
-	else
-	{
-		success = TryCreateBridgeAndTunnel(std::move(newRoad), newPartBegin, newPartEnd);
-	}
+	bool success = CreateJunctionAtZOverlap(std::move(newRoad), newPartBegin, newPartEnd);
 	if (success)
 	{
 		UpdateEndMarkings();
@@ -626,16 +611,16 @@ void RoadCreationSession::UpdateFlexGeometry()
 		if (joinAtEnd.expired())
 		{
 			flexGeo = RoadRunner::FitArcOrLine(localStartPos, localStartDir, scenePos);
+			flexEndElevation = RoadRunner::ElevationStep * RoadRunner::g_createRoadElevationOption;
 		}
 		else
 		{
 			flexGeo = RoadRunner::ConnectRays(localStartPos, localStartDir, scenePos, JoinAtEndDir());
+			flexEndElevation = joinAtEnd.lock()->generated.get_xyz(joinAtEndS, 0, 0)[2];
 		}
 
 		if (flexGeo->length > 0)
 		{
-			flexEndElevation = 4.0 * RoadRunner::g_createRoadElevationOption;
-
 			auto elevationProfile = RoadRunner::CubicSplineGenerator::FromControlPoints(
 				std::map<double, double>{{0, localStartZ}, { flexGeo->length, flexEndElevation }}
 			);

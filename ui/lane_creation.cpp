@@ -225,16 +225,7 @@ bool LanesCreationSession::Complete()
         world->allRoads.insert(newRoad);
     }
 
-    bool success;
-    if (RoadRunner::g_createRoadElevationOption == 0)
-    {
-        success = RoadRunner::TryCreateJunction(std::move(newRoad), newPartBegin, newPartEnd,
-            overlapAtStart, overlapAtStartS, overlapAtEnd, overlapAtEndS);
-    }
-    else
-    {
-        success = RoadRunner::TryCreateBridgeAndTunnel(std::move(newRoad), newPartBegin, newPartEnd);
-    }
+    bool success = CreateJunctionAtZOverlap(std::move(newRoad), newPartBegin, newPartEnd);
     if (success)
     {
         UpdateEndMarkings();

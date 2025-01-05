@@ -9,54 +9,13 @@ namespace RoadRunner
 
 namespace RoadRunner
 {
-    bool TryCreateJunction(std::shared_ptr<RoadRunner::Road> newRoad, 
-        double newPartBegin, double newPartEnd,
-        std::weak_ptr<RoadRunner::Road> firstCtrlPointPreferredTarget, double firstCtrlPointPreferredS,
-        std::weak_ptr<RoadRunner::Road> lastCtrlPointPreferredTarget, double lastCtrlPointPreferredS)
+    bool CreateJunctionAtZOverlap(std::shared_ptr<RoadRunner::Road> newRoad, double newPartBegin, double newPartEnd)
     {
         const double RoadMinLength = 5; // Discard if any leftover road is too short
 
-        bool firstIter = true;
         while (true)
         {
-            std::optional<RoadRunner::Road::RoadsOverlap> overlap;
-            if (firstIter && !firstCtrlPointPreferredTarget.expired())
-            {
-                auto intendedOverlap = newRoad->CalcOverlapWith(firstCtrlPointPreferredTarget.lock(), firstCtrlPointPreferredS, newPartBegin, newPartEnd);
-                if (intendedOverlap.has_value())
-                {
-                    overlap.emplace(intendedOverlap.value());
-                }
-                else
-                {
-                    assert(false);
-                }
-            }
-            else
-            {
-                overlap = newRoad->FirstOverlap(newPartBegin, newPartEnd);
-                std::optional<RoadRunner::Road::RoadsOverlap> lastOverlap;
-                if (!lastCtrlPointPreferredTarget.expired())
-                {
-                    auto intendedOverlap = newRoad->CalcOverlapWith(lastCtrlPointPreferredTarget.lock(), lastCtrlPointPreferredS, newPartBegin, newPartEnd);
-                    if (intendedOverlap.has_value())
-                    {
-                        lastOverlap.emplace(intendedOverlap.value());
-                    }
-                    else
-                    {
-                        spdlog::warn("Intended end overlap may not be fulfilled.");
-                    }
-                }
-
-                if (overlap.has_value() && lastOverlap.has_value() &&
-                    overlap->sEnd1 > lastOverlap->sBegin1 - RoadMinLength - JunctionTrimMax)
-                {
-                    // If overlap is too close to the last preferred target, force apply preferred
-                    overlap = lastOverlap;
-                }
-            }
-            firstIter = false;
+            std::optional<RoadRunner::Road::RoadsOverlap> overlap = newRoad->FirstOverlap(newPartBegin, newPartEnd);
 
             if (!overlap.has_value())
             {
@@ -253,9 +212,7 @@ namespace RoadRunner
                     auto connS = conn.contact == odr::RoadLink::ContactPoint_Start ? 0 : connRoad->Length();
                     RoadRunner::CubicSplineGenerator::OverwriteSection(connRoad->RefLine().elevation_profile,
                         connRoad->Length(), connS, connS, junctionElevation);
-                    //connRoad->GenerateOrUpdateSectionGraphicsBetween(
-                    //    std::max(connS - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
-                    //    std::min(connS + RoadRunner::CubicSplineGenerator::MaxTransitionLength, connRoad->Length()));
+                    connRoad->GenerateOrUpdateSectionGraphicsBetween(0.0, connRoad->Length());
                 }
                 auto junction = std::make_shared<RoadRunner::Junction>();
                 auto errorCode = junction->CreateFrom(junctionInfo);
@@ -275,68 +232,6 @@ namespace RoadRunner
             newPartBegin = 0;
             newPartEnd -= sEnd1;
         }
-        return true;
-    }
-
-    bool TryCreateBridgeAndTunnel(std::shared_ptr<RoadRunner::Road> newRoad, double newPartBegin, double newPartEnd)
-    {
-        auto newPartBeginS = RoadRunner::from_odr_unit(newPartBegin);
-        auto newPartEndS = RoadRunner::from_odr_unit(newPartEnd);
-
-        auto allOverlaps = newRoad->AllOverlaps(newPartBegin, newPartEnd);
-        if (allOverlaps.empty())
-        {
-            return true;
-        }
-
-        const double clearance = 5;
-        auto& existingProfile = newRoad->RefLine().elevation_profile;
-        auto  newRoadLength = RoadRunner::from_odr_unit(newRoad->Length());
-        decltype(allOverlaps) dueGraphicsUpdate;
-        for (const auto& overlap : allOverlaps)
-        {
-            const auto& overlappingProfile = overlap.road2.lock()->RefLine().elevation_profile;
-            if (overlap.sBegin1 == 0 && newRoad->predecessorJunction != nullptr
-                || overlap.sEnd1 == newRoad->Length() && newRoad->successorJunction != nullptr)
-            {
-                // Don't change end point elevation if it goes to a junction
-                continue;
-            }
-
-            if (RoadRunner::g_createRoadElevationOption > 0)
-            {
-                auto existingClosest = existingProfile.get_min(overlap.sBegin1, overlap.sEnd1);
-                auto existingSafest = existingProfile.get_max(overlap.sBegin1, overlap.sEnd1);
-                double overlapRequirement = overlappingProfile.get_max(overlap.sBegin2, overlap.sEnd2) + clearance;
-                if (existingClosest < overlapRequirement)
-                {
-                    RoadRunner::CubicSplineGenerator::OverwriteSection(existingProfile, newRoad->Length(),
-                        overlap.sBegin1, overlap.sEnd1, std::max(existingSafest, overlapRequirement));
-                    dueGraphicsUpdate.push_back(overlap);
-                }
-            }
-            else if (RoadRunner::g_createRoadElevationOption < 0)
-            {
-                auto existingClosest = existingProfile.get_max(overlap.sBegin1, overlap.sEnd1);
-                auto existingSafest = existingProfile.get_min(overlap.sBegin1, overlap.sEnd1);
-                double overlapRequirement = overlappingProfile.get_min(overlap.sBegin2, overlap.sEnd2) - clearance;
-                if (existingClosest > overlapRequirement)
-                {
-                    RoadRunner::CubicSplineGenerator::OverwriteSection(existingProfile, newRoad->Length(),
-                        overlap.sBegin1, overlap.sEnd1, std::min(existingSafest, overlapRequirement));
-                    dueGraphicsUpdate.push_back(overlap);
-                }
-            }
-        }
-
-
-        //for (const auto& overlap : dueGraphicsUpdate)
-        //{
-        //    newRoad->GenerateOrUpdateSectionGraphicsBetween(
-        //        std::max(overlap.sBegin1 - RoadRunner::CubicSplineGenerator::MaxTransitionLength, 0.0),
-        //        std::min(overlap.sEnd1 + RoadRunner::CubicSplineGenerator::MaxTransitionLength, newRoad->Length()));
-        //}
-
         return true;
     }
 }

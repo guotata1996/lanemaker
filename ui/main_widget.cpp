@@ -163,8 +163,10 @@ void MainWidget::gotoDragMode(bool checked)
 
 void MainWidget::OnMouseAction(RoadRunner::MouseAction evt)
 {
+#ifndef _DEBUG
     try
     {
+#endif
         if (drawingSession != nullptr)
         {
             if (!drawingSession->Update(evt))
@@ -172,21 +174,25 @@ void MainWidget::OnMouseAction(RoadRunner::MouseAction evt)
                 confirmEdit();
             }
         }
+#ifndef _DEBUG
     }
     catch (std::exception e)
     {
         elegantlyHandleException(e);
     }
+#endif
 }
 
 void MainWidget::OnKeyPress(RoadRunner::KeyPressAction evt)
 {
+#ifndef _DEBUG
     try
     {
+#endif
         switch (evt.key)
         {
         case Qt::Key_Escape:
-            if (!drawingSession->Update(evt))
+            if (drawingSession != nullptr && !drawingSession->Update(evt))
             {
                 quitEdit();
             }
@@ -198,11 +204,13 @@ void MainWidget::OnKeyPress(RoadRunner::KeyPressAction evt)
             }
             break;
         }
+#ifndef _DEBUG
     }
     catch (std::exception e)
     {
         elegantlyHandleException(e);
     }
+#endif
 }
 
 void MainWidget::confirmEdit()
@@ -276,11 +284,6 @@ void MainWidget::SetModeFromReplay(int mode)
     }
 }
 
-void MainWidget::SetElevationFromReplay(int8_t elevationSetting)
-{
-    // TODO
-}
-
 void MainWidget::SetEditMode(RoadRunner::EditMode aMode)
 {
     editMode = aMode;
@@ -309,14 +312,6 @@ void MainWidget::SetEditMode(RoadRunner::EditMode aMode)
     }
 }
 
-#ifdef _DEBUG
-void MainWidget::elegantlyHandleException(std::exception e)
-{
-    // Do nothing
-    throw e;
-}
-
-#else
 void MainWidget::elegantlyHandleException(std::exception e)
 {
     RoadRunner::ActionManager::Instance()->MarkException();
@@ -328,6 +323,4 @@ void MainWidget::elegantlyHandleException(std::exception e)
         QCoreApplication::quit();
     }
 }
-
-#endif
 
