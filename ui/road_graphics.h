@@ -10,17 +10,6 @@ namespace RoadRunner
 {
     namespace
     {
-        odr::Line3D TwoDTo3D(const odr::Line2D l, double elevation)
-        {
-            odr::Line3D rtn;
-            rtn.resize(l.size());
-            for (int i = 0; i != l.size(); ++i)
-            {
-                rtn[i] = odr::Vec3D{ l[i][0], l[i][1], elevation };
-            }
-            return rtn;
-        }
-
         std::vector<QPolygonF> ArrowShape(int arrowType);
     }
 
@@ -70,7 +59,7 @@ namespace RoadRunner
     public:
         JunctionGraphics(const odr::Line2D& normalBoundary, double eleation);
 
-        JunctionGraphics(const std::vector<std::pair<odr::Line2D, odr::Line2D>>& directCavities, double elevation);
+        JunctionGraphics(const std::vector<std::pair<odr::Line3D, odr::Line3D>>& directCavities);
 
         ~JunctionGraphics();
 
@@ -80,7 +69,7 @@ namespace RoadRunner
         //void hoverLeaveEvent(QGraphicsSceneHoverEvent* evt) override;
 
     private:
-        odr::Vec2D StripMidPoint(const odr::Vec2D& pOrigin, const odr::Vec2D& p1, const odr::Vec2D& p2);
+        odr::Vec3D StripMidPoint(const odr::Vec3D& pOrigin, const odr::Vec3D& p1, const odr::Vec3D& p2);
 
         double junctionElevation = 0;
 

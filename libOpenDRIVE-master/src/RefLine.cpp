@@ -191,7 +191,7 @@ Vec3D RefLine::get_xyz(const double s, const double t) const
     if (geom)
     {
         pt_xy = geom->get_xy(s);
-        Vec2D fwd = geom->get_grad(s);
+        Vec2D fwd = odr::normalize(geom->get_grad(s));
         Vec2D right{-fwd[1], fwd[0]};
         right = mut(t, right);
         pt_xy = add(pt_xy, right);

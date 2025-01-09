@@ -837,7 +837,7 @@ namespace RoadRunner
     void DirectJunction::GenerateGraphics()
     {
         // Rasterize boundary
-        std::vector<std::pair<odr::Line2D, odr::Line2D>> cavityBoundaries;
+        std::vector<std::pair<odr::Line3D, odr::Line3D>> cavityBoundaries;
         const double Resolution = 0.1;
         assert(generated.boundary.size() % 2 == 0);
         for (int i = 0, j = 1; i < generated.boundary.size(); i += 2, j += 2)
@@ -845,7 +845,7 @@ namespace RoadRunner
             auto segmentOnA = generated.boundary[i];
             auto segmentOnB = generated.boundary[j];
 
-            odr::Line2D aSideLine, bSideLine;
+            odr::Line3D aSideLine, bSideLine;
             int npoints = std::ceil(std::max(std::abs(segmentOnA.sBegin - segmentOnA.sEnd),
                 std::abs(segmentOnB.sBegin - segmentOnB.sEnd)) / Resolution);
             {
@@ -854,7 +854,7 @@ namespace RoadRunner
                 {
                     double frac = static_cast<double>(i) / npoints;
                     double s = frac * segmentOnA.sEnd + (1 - frac) * segmentOnA.sBegin;
-                    aSideLine.push_back(roadA->generated.get_boundary_xy(segmentOnA.side, s));
+                    aSideLine.push_back(roadA->generated.get_boundary_xyz(segmentOnA.side, s));
                 }
             }
 
@@ -864,12 +864,12 @@ namespace RoadRunner
                 {
                     double frac = static_cast<double>(i) / npoints;
                     double s = frac * segmentOnB.sEnd + (1 - frac) * segmentOnB.sBegin;
-                    bSideLine.push_back(roadB->generated.get_boundary_xy(segmentOnB.side, s));
+                    bSideLine.push_back(roadB->generated.get_boundary_xyz(segmentOnB.side, s));
                 }
             }
             cavityBoundaries.emplace_back(std::make_pair(aSideLine, bSideLine));
         }
-        junctionGraphics = std::make_unique<JunctionGraphics>(cavityBoundaries, Elevation());
+        junctionGraphics = std::make_unique<JunctionGraphics>(cavityBoundaries);
         //junctionGraphics->setZValue(Elevation());
     }
 #endif

@@ -372,7 +372,10 @@ odr::RefLine RoadCreationSession::ResultRefLine() const
 		refLine.length += localLength;
 		zControlPoints.emplace(refLine.length, staged.endEleveation);
 	}
-	refLine.elevation_profile = RoadRunner::CubicSplineGenerator::FromControlPoints(zControlPoints);
+	if (!stagedGeometries.empty())
+	{
+		refLine.elevation_profile = RoadRunner::CubicSplineGenerator::FromControlPoints(zControlPoints);
+	}
 	return refLine;
 }
 
@@ -397,12 +400,6 @@ bool RoadCreationSession::Complete()
 	if (!extendFromStart.expired() && extendFromStart.lock() == joinAtEnd.lock())
 	{
 		spdlog::warn("Self-loop is not supported!");
-		return true;
-	}
-
-	if (stagedGeometries.empty())
-	{
-		spdlog::warn("Too few control points");
 		return true;
 	}
 
@@ -547,7 +544,7 @@ void RoadCreationSession::GenerateHintLines(const odr::RefLine& refLine,
 	boundaryPathL.clear();
 	if (refLine.length > 1e-2)
 	{
-		const int Division = std::min(125, static_cast<int>(std::ceil(refLine.length / 4)));
+		const int Division = std::min(125, static_cast<int>(std::ceil(refLine.length / 4)) + 1);
 		auto flexLen = refLine.length;
 			
 		for (int i = 0; i != Division; ++i)
@@ -558,8 +555,8 @@ void RoadCreationSession::GenerateHintLines(const odr::RefLine& refLine,
 		}
 
 		// right boundary
-		RoadRunner::type_t offsetX2 = g_createRoadOption->RightResult().laneCount != 0 ? -PreviewRightOffsetX2() : -PreviewLeftOffsetX2();
-		double t = (offsetX2 + g_createRoadOption->RightResult().laneCount * 2) * RoadRunner::LaneWidth / 2;
+		RoadRunner::type_t offsetX2 = g_createRoadOption->RightResult().laneCount != 0 ? PreviewRightOffsetX2() : PreviewLeftOffsetX2();
+		double t = (offsetX2 - g_createRoadOption->RightResult().laneCount * 2) * RoadRunner::LaneWidth / 2;
 		for (int i = 0; i != Division; ++i)
 		{
 			auto s = flexLen / (Division - 1) * i;
@@ -569,7 +566,7 @@ void RoadCreationSession::GenerateHintLines(const odr::RefLine& refLine,
 
 		// left boundary
 		offsetX2 = g_createRoadOption->LeftResult().laneCount != 0 ? PreviewLeftOffsetX2() : PreviewRightOffsetX2();
-		t = -(offsetX2 + g_createRoadOption->LeftResult().laneCount * 2) * RoadRunner::LaneWidth / 2;
+		t = (offsetX2 + g_createRoadOption->LeftResult().laneCount * 2) * RoadRunner::LaneWidth / 2;
 		for (int i = 0; i != Division; ++i)
 		{
 			auto s = flexLen / (Division - 1) * i;

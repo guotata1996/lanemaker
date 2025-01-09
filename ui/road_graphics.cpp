@@ -322,7 +322,7 @@ namespace RoadRunner
         allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3, Qt::darkGray));
     }
 
-    JunctionGraphics::JunctionGraphics(const std::vector<std::pair<odr::Line2D, odr::Line2D>>& boundary, double elevation)
+    JunctionGraphics::JunctionGraphics(const std::vector<std::pair<odr::Line3D, odr::Line3D>>& boundary)
     {
         QPainterPath path;
 
@@ -331,7 +331,7 @@ namespace RoadRunner
 
         for (const auto& dualSides : boundary)
         {
-            odr::Line2D singleBoundary = dualSides.first;
+            odr::Line3D singleBoundary = dualSides.first;
             if (singleBoundary.empty())
             {
                 spdlog::trace("Empty single boundary passed into JunctionGraphics");
@@ -339,8 +339,7 @@ namespace RoadRunner
             }
             auto pOrigin = singleBoundary.front();
 
-            allGraphicsIndice.push_back(g_mapViewGL->AddQuads(TwoDTo3D(dualSides.first, elevation), 
-                TwoDTo3D(dualSides.second, elevation), Qt::darkGray));
+            allGraphicsIndice.push_back(g_mapViewGL->AddQuads(dualSides.first, dualSides.second, Qt::darkGray));
 
             for (int i = 0; i < dualSides.first.size() - ZebraLineWidth; i += ZebraLineWidth + ZebraLineSkip)
             {
@@ -355,12 +354,13 @@ namespace RoadRunner
                 auto pM2 = StripMidPoint(pOrigin, p3, p4);
 
                 odr::Line3D boundary3d;
-                boundary3d.push_back(odr::Vec3D{ p1[0], p1[1], elevation + 0.01 });
-                boundary3d.push_back(odr::Vec3D{ pM1[0], pM1[1], elevation + 0.01 });
-                boundary3d.push_back(odr::Vec3D{ p2[0], p2[1], elevation + 0.01 });
-                boundary3d.push_back(odr::Vec3D{ p4[0], p4[1], elevation + 0.01 });
-                boundary3d.push_back(odr::Vec3D{ pM2[0], pM2[1], elevation + 0.01 });
-                boundary3d.push_back(odr::Vec3D{ p3[0], p3[1], elevation + 0.01 });
+                auto lift = odr::Vec3D{ 0, 0, 0.01 };
+                boundary3d.push_back(odr::add(p1, lift));
+                boundary3d.push_back(odr::add(pM1, lift));
+                boundary3d.push_back(odr::add(p2, lift));
+                boundary3d.push_back(odr::add(p4, lift));
+                boundary3d.push_back(odr::add(pM2, lift));
+                boundary3d.push_back(odr::add(p3, lift));
                 allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3d, Qt::lightGray));
             }
         }
@@ -374,30 +374,18 @@ namespace RoadRunner
         }
     }
 
-    //void JunctionGraphics::hoverEnterEvent(QGraphicsSceneHoverEvent* evt)
-    //{
-    //    setBrush(Qt::NoBrush);
-    //    junctionElevation = zValue();
-    //    setZValue(128.1); // higher than highlighted linked road to properly receive hoverLeaveEvent
-    //}
-
-    //void JunctionGraphics::hoverLeaveEvent(QGraphicsSceneHoverEvent* evt)
-    //{
-    //    setBrush(DefaultBrush);
-    //    setZValue(junctionElevation);
-    //}
-
-    odr::Vec2D JunctionGraphics::StripMidPoint(const odr::Vec2D& pOrigin, const odr::Vec2D& p1, const odr::Vec2D& p2)
+    odr::Vec3D JunctionGraphics::StripMidPoint(const odr::Vec3D& pOrigin, const odr::Vec3D& p1, const odr::Vec3D& p2)
     {
         auto pM = odr::mut(0.5, odr::add(p1, p2));
         auto p1p2 = odr::sub(p2, p1);
         auto pMOffset = odr::mut(0.2, odr::Vec2D{ -p1p2[1], p1p2[0] });
-        auto p0p1 = odr::sub(p1, pOrigin);
+        auto p0p1_3 = odr::sub(p1, pOrigin);
+        auto p0p1 = odr::Vec2D{ p0p1_3[0], p0p1_3[1] };
         if (odr::dot(pMOffset, p0p1) > 0)
         {
             pMOffset = odr::negate(pMOffset);
         }
-        return odr::add(pM, pMOffset);
+        return odr::add(pM, odr::Vec3D{ pMOffset[0], pMOffset[1], 0 });
     }
 
     namespace

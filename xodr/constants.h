@@ -22,4 +22,5 @@ namespace RoadRunner
     const double epsilon = 1e-2;
 
     const double ElevationStep = 2.0;
+    const double BridgeClearance = 5.0;
 }

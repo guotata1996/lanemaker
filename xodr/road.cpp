@@ -448,7 +448,7 @@ namespace RoadRunner
     std::optional<Road::RoadsOverlap> Road::FirstOverlap(double sBegin, double sEnd) const
     {
         std::optional<Road::RoadsOverlap> rtn;
-        auto allOverlaps = AllOverlaps(sBegin, sEnd, 3.0);
+        auto allOverlaps = AllOverlaps(sBegin, sEnd, BridgeClearance);
         if (allOverlaps.empty()) return rtn;
         rtn.emplace(allOverlaps.front());
         return rtn;
