@@ -1,5 +1,6 @@
 #include <QOpenGLBuffer>
 #include <QOpenGLVertexArrayObject>
+#include <QtGui/QOpenGLExtraFunctions>
 #include <vector>
 #include <set>
 
@@ -7,9 +8,20 @@
 #include "Vertex.h"
 #include "ShaderProgram.h"
 
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
+
+namespace
+{
+    typedef CGAL::Simple_cartesian<double> K;
+    typedef K::FT FT;
+    typedef K::Point_3 Point;
+    typedef CGAL::Surface_mesh<Point> Mesh;
+}
+
 namespace RoadRunner
 {
-    class GLBufferManage
+    class GLBufferManage: public QOpenGLFunctions
     {
     public:
         GLBufferManage(unsigned int capacity);
@@ -21,8 +33,7 @@ namespace RoadRunner
         void UpdateItem(unsigned int, QColor);
         void RemoveItem(unsigned int);
 
-        unsigned int Bind(QMatrix4x4 worldToView);
-        void Unbind();
+        void Draw(QMatrix4x4 worldToView);
 
         int Useage_pct() const;
 
@@ -37,6 +48,33 @@ namespace RoadRunner
         QOpenGLBuffer				m_vbo;
 
         std::map<unsigned int, std::set<unsigned int>> idToVids;
+
+        ShaderProgram shader;
+    };
+
+    class GLBufferManageInstanced : public QOpenGLExtraFunctions
+    {
+    public:
+        GLBufferManageInstanced(unsigned int capacity);
+        void Initialize();
+
+        unsigned int AddInstance(QMatrix4x4 trans);
+        //void UpdateInstance(unsigned int, QMatrix4x4);
+        //void UpdateInstance(unsigned int, QColor);
+        void RemoveInstance(unsigned int);
+
+        void Draw(QMatrix4x4 worldToView);
+    private:
+        Mesh m_mesh;
+
+        QOpenGLVertexArrayObject    m_vao;
+
+        std::vector<Vertex>         m_vertexBufferData;
+        QOpenGLBuffer				m_vertex_vbo;
+
+        std::vector<Pose>           m_poseData;
+        QOpenGLBuffer				m_instance_vbo;
+        unsigned int                m_instanceCount;
 
         ShaderProgram shader;
     };

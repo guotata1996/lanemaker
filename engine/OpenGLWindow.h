@@ -15,7 +15,7 @@ Source code is based on Qt Example OpenGLWindow, but has been simplified a lot.
 #define OpenGLWindow_H
 
 #include <QtGui/QWindow>
-#include <QtGui/QOpenGLFunctions>
+#include <QtGui/QOpenGLExtraFunctions>
 
 QT_BEGIN_NAMESPACE
 class QOpenGLContext;
@@ -27,7 +27,7 @@ QT_END_NAMESPACE
 	the QOpenGLWidget. Thus, you can easily switch to an QOpenGLWidget class later on,
 	if you need it.
 */
-class OpenGLWindow : public QWindow, public QOpenGLFunctions {
+class OpenGLWindow : public QWindow, public QOpenGLExtraFunctions {
 	Q_OBJECT
 public:
 	explicit OpenGLWindow(QWindow *parent = nullptr);

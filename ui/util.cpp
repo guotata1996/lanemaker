@@ -73,4 +73,22 @@ namespace RoadRunner
         }
         return rtn;
     }
+
+    QString ExtractResourceToTempFile(const QString& resourcePath)
+    {
+        QFile resourceFile(resourcePath);
+        if (!resourceFile.open(QIODevice::ReadOnly)) {
+            return QString();
+        }
+
+        QTemporaryFile tempFile;
+        tempFile.setAutoRemove(false);  // Keep the file after closing
+        if (tempFile.open()) {
+            tempFile.write(resourceFile.readAll());
+            tempFile.close();
+            return tempFile.fileName();
+        }
+
+        return QString();
+    }
 }

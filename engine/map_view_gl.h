@@ -64,6 +64,7 @@ namespace RoadRunner
 
 		GLBufferManage     permanentBuffer;
 		GLBufferManage     temporaryBuffer;
+		GLBufferManageInstanced vehicleBuffer;
 
 		/*! The projection matrix, updated whenever the viewport geometry changes (in resizeGL() ). */
 		QMatrix4x4					m_projection;

@@ -2,6 +2,8 @@
 #include <string>
 #include <filesystem>
 #include <iostream>
+#include <QFile>
+#include <QTemporaryFile>
 
 namespace RoadRunner
 {
@@ -125,4 +127,6 @@ namespace RoadRunner
     };
     
     TQDM<std::vector<size_t>>::HelperRange range(size_t s);
+
+    QString ExtractResourceToTempFile(const QString& resourcePath);
 }

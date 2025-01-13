@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>shaders/simple.vert</file>
+        <file>shaders/instanced.vert</file>
+        <file>shaders/simple.frag</file>
+        <file>models/car.obj</file>
+    </qresource>
+</RCC>

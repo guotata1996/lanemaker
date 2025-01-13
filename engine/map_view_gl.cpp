@@ -21,7 +21,7 @@ namespace RoadRunner
     int g_createRoadElevationOption;
 
     MapViewGL::MapViewGL() :
-        permanentBuffer(1 << 24), temporaryBuffer(1 << 18)
+        permanentBuffer(1 << 24), temporaryBuffer(1 << 18), vehicleBuffer(1 << 12)
     {
         g_mapViewGL = this;
         g_createRoadElevationOption = 0;
@@ -115,6 +115,17 @@ namespace RoadRunner
 
         permanentBuffer.Initialize();
         temporaryBuffer.Initialize();
+        vehicleBuffer.Initialize();
+
+        QMatrix4x4 t1;
+        t1.setToIdentity();
+        t1.rotate(90, 1, 0, 0);
+        t1.translate(QVector3D(20, 0, 0));
+        vehicleBuffer.AddInstance(t1);
+        t1.translate(-20, 0, 0);
+        vehicleBuffer.AddInstance(t1);
+        t1.translate(-20, 0, 0);
+        vehicleBuffer.AddInstance(t1);
     }
 
     void MapViewGL::resizeGL(int width, int height)
@@ -141,12 +152,9 @@ namespace RoadRunner
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.1f, 0.15f, 0.3f, 1.0f);
 
-        for (auto buffer : {&permanentBuffer, &temporaryBuffer})
-        {
-            auto nVertex = buffer->Bind(m_worldToView);
-            glDrawArrays(GL_TRIANGLES, 0, nVertex);
-            buffer->Unbind();
-        }
+        permanentBuffer.Draw(m_worldToView);
+        temporaryBuffer.Draw(m_worldToView);
+        vehicleBuffer.Draw(m_worldToView);
     }
 
     void MapViewGL::mousePressEvent(QMouseEvent* event)

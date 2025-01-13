@@ -17,6 +17,8 @@ namespace RoadRunner
 
     void GLBufferManage::Initialize()
     {
+        initializeOpenGLFunctions();
+
         shader.create();
 
         m_vao.create();
@@ -298,18 +300,14 @@ namespace RoadRunner
         }
     }
 
-    unsigned int GLBufferManage::Bind(QMatrix4x4 worldToView)
+    void GLBufferManage::Draw(QMatrix4x4 worldToView)
     {
         auto shaderProgramm = shader.shaderProgram();
         shaderProgramm->bind();
         shaderProgramm->setUniformValue(shader.m_uniformIDs[0], worldToView);
-        
-        m_vao.bind();
-        return m_vertexBufferCount;
-    }
 
-    void GLBufferManage::Unbind()
-    {
+        m_vao.bind();
+        glDrawArrays(GL_TRIANGLES, 0, m_vertexBufferCount);
         m_vao.release();
         shader.shaderProgram()->release();
     }

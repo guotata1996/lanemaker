@@ -11,19 +11,20 @@ find_package(spdlog REQUIRED)
 add_subdirectory(libOpenDRIVE-master)
 # TODO: make RoadRunner a library
 
-qt5_add_resources(srcs_for_exe ui/images.qrc) 
+qt5_add_resources(srcs_for_exe ui/images.qrc)
+qt5_add_resources(srcs_for_exe engine/shaders.qrc)
 set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/roadrunner.rc")
 
 add_executable(${CMAKE_PROJECT_NAME} main.cpp ${APP_ICON_RESOURCE_WINDOWS}
     xodr/road.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp xodr/polyline.cpp
     xodr/junction.cpp xodr/junction_generation.cpp xodr/junction_boundary.cpp
     xodr/id_generator.cpp xodr/change_tracker.cpp xodr/world.cpp
-    xodr/spatial_indexer.cpp
     ui/mainwindow.cpp ui/main_widget.cpp ${srcs_for_exe}
     ui/road_graphics.cpp ui/road_drawing.cpp ui/road_creation.cpp ui/lane_creation.cpp
     ui/road_modification.cpp ui/road_destruction.cpp ui/road_overlaps.cpp
     ui/CreateRoadOptionWidget.cpp ui/action_manager.cpp ui/util.cpp ui/replay_window.cpp
-    ui/OpenGLWindow.cpp ui/map_view_gl.cpp ui/ShaderProgram.cpp ui/Transform3D.cpp ui/gl_buffer_manage.cpp
+    engine/OpenGLWindow.cpp engine/map_view_gl.cpp engine/ShaderProgram.cpp engine/spatial_indexer.cpp
+    engine/Transform3D.cpp engine/gl_buffer_manage.cpp engine/gl_buffer_manage_instanced.cpp
     traffic/vehicle.cpp traffic/vehicle_manager.cpp traffic/signal.cpp
     util/stats.cpp util/multi_segment.cpp util/label_with_link.cpp util/preference.cpp
     util/triangulation.cpp
@@ -31,7 +32,7 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp ${APP_ICON_RESOURCE_WINDOWS}
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    xodr ui util traffic
+    xodr ui engine util traffic
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/include
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/thirdparty
     cereal/include)
