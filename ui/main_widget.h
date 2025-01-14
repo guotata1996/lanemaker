@@ -25,7 +25,7 @@ class MainWidget : public QFrame
 {
     Q_OBJECT
 public:
-    explicit MainWidget(QGraphicsScene* scene, QWidget* parent = nullptr);
+    explicit MainWidget(QWidget* parent = nullptr);
 
     static MainWidget* Instance();
 

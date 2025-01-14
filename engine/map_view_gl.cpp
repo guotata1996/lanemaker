@@ -76,6 +76,11 @@ namespace RoadRunner
         return gid;
     }
 
+    void MapViewGL::AddInstance(unsigned int id, QColor color)
+    {
+        vehicleBuffer.AddInstance(id, QMatrix4x4());
+    }
+
     void MapViewGL::UpdateItem(unsigned int id, QColor color, bool temporary)
     {
         if (!temporary)
@@ -101,6 +106,16 @@ namespace RoadRunner
         IDGenerator::ForGraphics(temporary)->FreeID(std::to_string(id));
     }
 
+    void MapViewGL::UpdateInstance(unsigned int id, QMatrix4x4 trans)
+    {
+        vehicleBuffer.UpdateInstance(id, trans);
+    }
+
+    void MapViewGL::RemoveInstance(unsigned int id)
+    {
+        vehicleBuffer.RemoveInstance(id);
+    }
+
     int MapViewGL::VBufferUseage_pct() const
     {
         return permanentBuffer.Useage_pct();
@@ -116,16 +131,6 @@ namespace RoadRunner
         permanentBuffer.Initialize();
         temporaryBuffer.Initialize();
         vehicleBuffer.Initialize();
-
-        QMatrix4x4 t1;
-        t1.setToIdentity();
-        t1.rotate(90, 1, 0, 0);
-        t1.translate(QVector3D(20, 0, 0));
-        vehicleBuffer.AddInstance(t1);
-        t1.translate(-20, 0, 0);
-        vehicleBuffer.AddInstance(t1);
-        t1.translate(-20, 0, 0);
-        vehicleBuffer.AddInstance(t1);
     }
 
     void MapViewGL::resizeGL(int width, int height)

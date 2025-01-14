@@ -28,8 +28,6 @@
 
 #include "map_view_gl.h"
 
-QGraphicsScene* g_scene;
-
 MainWindow* g_mainWindow;
 
 extern UserPreference g_preference;
@@ -94,10 +92,9 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     proxy->setTransform(matrix);
     */
 
-    g_scene = scene.get();
     vehicleManager = std::make_unique<VehicleManager>(this);
     
-    mainWidget = std::make_unique<MainWidget>(g_scene);
+    mainWidget = std::make_unique<MainWidget>();
     mainWidget->toggleAntialiasing(g_preference.antiAlias);
 
     auto mainLayout = new QVBoxLayout;
@@ -357,7 +354,7 @@ void MainWindow::toggleSimulation(bool enable)
 
 void MainWindow::enableSimulation(bool available)
 {
-    toggleSimAction->setEnabled(available);
+    // toggleSimAction->setEnabled(available);
     if (toggleSimAction->isChecked() && !available)
     {
         vehicleManager->End();

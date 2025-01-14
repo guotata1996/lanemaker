@@ -58,13 +58,14 @@ namespace RoadRunner
         GLBufferManageInstanced(unsigned int capacity);
         void Initialize();
 
-        unsigned int AddInstance(QMatrix4x4 trans);
-        //void UpdateInstance(unsigned int, QMatrix4x4);
-        //void UpdateInstance(unsigned int, QColor);
+        unsigned int AddInstance(unsigned int id, QMatrix4x4 trans);
+        void UpdateInstance(unsigned int, QMatrix4x4);
         void RemoveInstance(unsigned int);
 
         void Draw(QMatrix4x4 worldToView);
     private:
+        static Pose FromMatrix(QMatrix4x4);
+
         Mesh m_mesh;
 
         QOpenGLVertexArrayObject    m_vao;
@@ -75,6 +76,8 @@ namespace RoadRunner
         std::vector<Pose>           m_poseData;
         QOpenGLBuffer				m_instance_vbo;
         unsigned int                m_instanceCount;
+
+        std::map<unsigned int, unsigned int> idToInstanceID;
 
         ShaderProgram shader;
     };

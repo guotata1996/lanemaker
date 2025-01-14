@@ -91,40 +91,64 @@ namespace RoadRunner
         m_vao.release();
     }
 
-    unsigned int GLBufferManageInstanced::AddInstance(QMatrix4x4 trans)
+    unsigned int GLBufferManageInstanced::AddInstance(unsigned int id, QMatrix4x4 trans)
     {
         m_vao.bind();
         m_instance_vbo.bind();
         trans = trans.transposed();
-
-        m_poseData[m_instanceCount].m00 = trans.row(0).x();
-        m_poseData[m_instanceCount].m01 = trans.row(0).y();
-        m_poseData[m_instanceCount].m02 = trans.row(0).z();
-        m_poseData[m_instanceCount].m03 = trans.row(0).w();
-
-        m_poseData[m_instanceCount].m10 = trans.row(1).x();
-        m_poseData[m_instanceCount].m11 = trans.row(1).y();
-        m_poseData[m_instanceCount].m12 = trans.row(1).z();
-        m_poseData[m_instanceCount].m13 = trans.row(1).w();
-
-        m_poseData[m_instanceCount].m20 = trans.row(2).x();
-        m_poseData[m_instanceCount].m21 = trans.row(2).y();
-        m_poseData[m_instanceCount].m22 = trans.row(2).z();
-        m_poseData[m_instanceCount].m23 = trans.row(2).w();
-
-        m_poseData[m_instanceCount].m30 = trans.row(3).x();
-        m_poseData[m_instanceCount].m31 = trans.row(3).y();
-        m_poseData[m_instanceCount].m32 = trans.row(3).z();
-        m_poseData[m_instanceCount].m33 = trans.row(3).w();
+        m_poseData[m_instanceCount] = FromMatrix(trans);
+        m_poseData[m_instanceCount].objectID = id;
 
         auto ptr = m_instance_vbo.mapRange(m_instanceCount * sizeof(Pose),
             sizeof(Pose), QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
         memcpy(ptr, m_poseData.data() + m_instanceCount, sizeof(Pose));
         m_instance_vbo.unmap();
         m_instance_vbo.release();
-
+        idToInstanceID.emplace(id, m_instanceCount);
         m_instanceCount++;
+        m_vao.release();
         return m_instanceCount - 1;
+    }
+
+    void GLBufferManageInstanced::UpdateInstance(unsigned int id, QMatrix4x4 trans)
+    {
+        m_vao.bind();
+        m_instance_vbo.bind();
+
+        auto instanceID = idToInstanceID.at(id);
+        m_poseData[instanceID] = FromMatrix(trans);
+        m_poseData[instanceID].objectID = id;
+
+        auto ptr = m_instance_vbo.mapRange(instanceID * sizeof(Pose),
+            sizeof(Pose), QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
+        memcpy(ptr, m_poseData.data() + instanceID, sizeof(Pose));
+        m_instance_vbo.unmap();
+        m_instance_vbo.release();
+        m_vao.release();
+    }
+
+    void GLBufferManageInstanced::RemoveInstance(unsigned int id)
+    {
+        auto instanceID = idToInstanceID.at(id);
+        idToInstanceID.erase(id);
+        if (instanceID != m_instanceCount - 1)
+        {
+            auto lastPose = m_poseData[m_instanceCount - 1];
+            assert(idToInstanceID[lastPose.objectID] == m_instanceCount - 1);
+            idToInstanceID[lastPose.objectID] = instanceID;
+            m_poseData[instanceID] = lastPose;
+
+            m_vao.bind();
+            m_instance_vbo.bind();
+
+            auto ptr = m_instance_vbo.mapRange(instanceID * sizeof(Pose),
+                sizeof(Pose), QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
+            memcpy(ptr, m_poseData.data() + instanceID, sizeof(Pose));
+            m_instance_vbo.unmap();
+            m_instance_vbo.release();
+            m_vao.release();
+        }
+        m_instanceCount--;
     }
 
     void GLBufferManageInstanced::Draw(QMatrix4x4 worldToView)
@@ -137,5 +161,32 @@ namespace RoadRunner
         glDrawArraysInstanced(GL_TRIANGLES, 0, m_vertexBufferData.size(), m_instanceCount);
         m_vao.release();
         shader.shaderProgram()->release();
+    }
+
+    Pose GLBufferManageInstanced::FromMatrix(QMatrix4x4 trans)
+    {
+        Pose rtn;
+        trans = trans.transposed();
+
+        rtn.m00 = trans.row(0).x();
+        rtn.m01 = trans.row(0).y();
+        rtn.m02 = trans.row(0).z();
+        rtn.m03 = trans.row(0).w();
+
+        rtn.m10 = trans.row(1).x();
+        rtn.m11 = trans.row(1).y();
+        rtn.m12 = trans.row(1).z();
+        rtn.m13 = trans.row(1).w();
+
+        rtn.m20 = trans.row(2).x();
+        rtn.m21 = trans.row(2).y();
+        rtn.m22 = trans.row(2).z();
+        rtn.m23 = trans.row(2).w();
+
+        rtn.m30 = trans.row(3).x();
+        rtn.m31 = trans.row(3).y();
+        rtn.m32 = trans.row(3).z();
+        rtn.m33 = trans.row(3).w();
+        return rtn;
     }
 }

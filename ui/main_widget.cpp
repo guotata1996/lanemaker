@@ -18,7 +18,7 @@ extern SectionProfileConfigWidget* g_createRoadOption;
 
 MainWidget* MainWidget::instance = nullptr;
 
-MainWidget::MainWidget(QGraphicsScene* scene, QWidget* parent)
+MainWidget::MainWidget(QWidget* parent)
     : QFrame(parent), createRoadOption(new SectionProfileConfigWidget)
 {
     instance = this;

@@ -3,15 +3,6 @@
 #include <qgraphicsitem.h>
 #include <optional>
 
-class Vehicle;
-class VehicleGraphics : public QGraphicsRectItem
-{
-public:
-    VehicleGraphics(QRectF r, std::weak_ptr<Vehicle>);
-
-    std::weak_ptr<Vehicle> vehicle;
-};
-
 class Vehicle: public std::enable_shared_from_this<Vehicle>
 {
 public:
@@ -97,7 +88,6 @@ private:
     odr::Vec3D position;
     double heading;
     
-    VehicleGraphics* graphics;
-    QGraphicsLineItem* leaderVisual;
-    QGraphicsPathItem* routeVisual;
+    //QGraphicsLineItem* leaderVisual;
+    //QGraphicsPathItem* routeVisual;
 };

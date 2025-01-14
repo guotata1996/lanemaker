@@ -2,49 +2,40 @@
 #include "OpenDriveMap.h"
 #include "constants.h"
 #include "id_generator.h"
+#include "map_view_gl.h"
 
-#include <qgraphicsscene.h>
 #include <math.h>
 #include <sstream>
 #include "spdlog/spdlog.h"
 
 
-extern QGraphicsScene* g_scene;
 const std::string NowDebugging = "";
-
-VehicleGraphics::VehicleGraphics(QRectF r, std::weak_ptr<Vehicle> v) : QGraphicsRectItem(r), vehicle(v) {};
 
 Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey destLane, double destS, double maxV) :
     AS(initialLocalS), ALane(initialLane), BS(destS), BLane(destLane),
     currLaneLength(0), tOffset(0), laneChangeDueS(0), velocity(0), MaxV(maxV), stepInJunction(0),
-    ID(IDGenerator::ForVehicle()->GenerateID(this)), goalIndex(false), routeVisual(nullptr)
+    ID(IDGenerator::ForVehicle()->GenerateID(this)), goalIndex(false)
 {
 }
 
 void Vehicle::InitGraphics()
 {
-    graphics = new VehicleGraphics(QRectF(-2.3, -0.9, 4.6, 1.8), shared_from_this());
-    graphics->setPen(Qt::NoPen);
     auto randColor = static_cast<Qt::GlobalColor>(rand() % static_cast<int>(Qt::GlobalColor::darkYellow));
     if (randColor == Qt::GlobalColor::darkGray)
     {
         // Don't use same color as lane.
         randColor = Qt::GlobalColor::darkYellow;
     }
-    graphics->setBrush(QBrush(randColor, Qt::SolidPattern));
-    graphics->hide();
-    g_scene->addItem(graphics);
+    RoadRunner::g_mapViewGL->AddInstance(std::stoi(ID), randColor);
 
-    routeVisual = new QGraphicsPathItem;
-    routeVisual->setZValue(128);
-    routeVisual->hide();
-    routeVisual->setPen(QPen(Qt::green));
-    g_scene->addItem(routeVisual);
+    //routeVisual = new QGraphicsPathItem;
+    //routeVisual->setZValue(128);
+    //routeVisual->hide();
+    //routeVisual->setPen(QPen(Qt::green));
 
-    leaderVisual = new QGraphicsLineItem();
-    leaderVisual->setZValue(128.1);
-    g_scene->addItem(leaderVisual);
-    leaderVisual->hide();
+    //leaderVisual = new QGraphicsLineItem();
+    //leaderVisual->setZValue(128.1);
+    //leaderVisual->hide();
 }
 
 bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph,
@@ -79,10 +70,7 @@ bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGr
 
 void Vehicle::Clear()
 {
-    g_scene->removeItem(graphics);
-    g_scene->removeItem(leaderVisual);
-    g_scene->removeItem(routeVisual);
-    
+    RoadRunner::g_mapViewGL->RemoveInstance(std::stoi(ID));
     IDGenerator::ForVehicle()->FreeID(ID);
 }
 
@@ -107,11 +95,11 @@ void Vehicle::EnableRouteVisual(bool enabled, const odr::OpenDriveMap& odrMap)
                 routeVisualPath.lineTo(localLine[d][0], localLine[d][1]);
             }
         }
-        routeVisual->setPath(routeVisualPath);
+        //routeVisual->setPath(routeVisualPath);
     }
 
-    routeVisual->setVisible(enabled);
-    leaderVisual->setVisible(enabled);
+    //routeVisual->setVisible(enabled);
+    //leaderVisual->setVisible(enabled);
 }
 
 bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
@@ -128,12 +116,12 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
     {
         auto myTip = TipPos();
         auto leaderTail = leader->TailPos();
-        leaderVisual->setLine(myTip[0], myTip[1], leaderTail[0], leaderTail[1]);
-        leaderVisual->setPen(QPen(Qt::black, 0.5));
+        //leaderVisual->setLine(myTip[0], myTip[1], leaderTail[0], leaderTail[1]);
+        //leaderVisual->setPen(QPen(Qt::black, 0.5));
     }
     else
     {
-        leaderVisual->setPen(Qt::NoPen);
+        //leaderVisual->setPen(Qt::NoPen);
     }
     new_velocity = vFromGibbs(dt, leader, leaderDistance);
     new_s = s + dt * new_velocity;
@@ -545,22 +533,22 @@ void Vehicle::MakeStep(double dt, const odr::OpenDriveMap& map)
     position = newPos;
 
     double gradFromLane = section.id_to_lane.at(currKey.lane_id).outer_border.get_grad(sOnRefLine + currKey.lanesection_s0);
-    double angleFromLane = 180 / M_PI * std::atan2(gradFromLane, 1);
-    auto angleFromlaneChange = 180 / M_PI * std::atan2(-laneChangeRate * (reversedTraverse ? -1 : 1), 1);
+    double angleFromLane = std::atan2(gradFromLane, 1);
+    auto angleFromlaneChange = std::atan2(-laneChangeRate * (reversedTraverse ? -1 : 1), 1);
 
     auto gradFromRefLine = road.ref_line.get_grad_xy(sOnRefLine + currKey.lanesection_s0);
-    auto angleFromRefLine = 180 / M_PI * std::atan2(gradFromRefLine[1], gradFromRefLine[0]);
+    auto angleFromRefLine = std::atan2(gradFromRefLine[1], gradFromRefLine[0]);
 
     heading = angleFromRefLine + angleFromLane + angleFromlaneChange;
-    if (reversedTraverse) heading += 180;
+    if (reversedTraverse) heading += M_PI;
 
-    graphics->setPos(QPointF(position[0], position[1]));
-    graphics->setRotation(heading);
-    auto surfaceZ = road.ref_line.elevation_profile.get_max(
-        sOnRefLine + currKey.lanesection_s0 - RoadRunner::GraphicsDivision,
-        sOnRefLine + currKey.lanesection_s0 + RoadRunner::GraphicsDivision);
-    graphics->setZValue(surfaceZ + 0.01);
-    graphics->show();
+    QMatrix4x4 transformMat;
+    transformMat.setToIdentity();
+    transformMat.translate(position[0], position[1], position[2]);
+    transformMat.rotate(QQuaternion::fromDirection(QVector3D(std::cos(heading), std::sin(heading), 0), QVector3D(0, 0, 1)));
+    RoadRunner::g_mapViewGL->UpdateInstance(std::stoi(ID), transformMat);
+
+    RoadRunner::g_mapViewGL->renderLater();
 }
 
 odr::LaneKey Vehicle::sourceLane() const
