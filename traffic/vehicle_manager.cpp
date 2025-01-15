@@ -1,6 +1,7 @@
 #include "vehicle_manager.h"
 #include "change_tracker.h"
 #include "util.h"
+#include "map_view_gl.h"
 
 #include "spdlog/spdlog.h"
 
@@ -242,4 +243,5 @@ void VehicleManager::step()
     }
 
     stepCount++;
+    RoadRunner::g_mapViewGL->renderLater();
 }

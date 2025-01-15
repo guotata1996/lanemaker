@@ -55,6 +55,8 @@ struct Pose
 	float m10, m11, m12, m13;
 	float m20, m21, m22, m23;
 	float m30, m31, m32, m33;
+
+	float r, g, b;
 	unsigned int objectID;
 };
 

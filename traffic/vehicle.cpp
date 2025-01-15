@@ -547,8 +547,6 @@ void Vehicle::MakeStep(double dt, const odr::OpenDriveMap& map)
     transformMat.translate(position[0], position[1], position[2]);
     transformMat.rotate(QQuaternion::fromDirection(QVector3D(std::cos(heading), std::sin(heading), 0), QVector3D(0, 0, 1)));
     RoadRunner::g_mapViewGL->UpdateInstance(std::stoi(ID), transformMat);
-
-    RoadRunner::g_mapViewGL->renderLater();
 }
 
 odr::LaneKey Vehicle::sourceLane() const

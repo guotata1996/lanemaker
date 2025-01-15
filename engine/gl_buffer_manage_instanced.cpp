@@ -3,11 +3,14 @@
 #include "Road.h"
 #include "util.h"
 
+#include "OBJ_Loader.h"
 #include <QOpenGLShaderProgram>
-#include <CGAL/IO/OBJ.h>
+
 
 namespace RoadRunner
 {
+    objl::Loader                m_mesh;
+
     GLBufferManageInstanced::GLBufferManageInstanced(unsigned int capacity) :
         m_poseData(capacity), m_instanceCount(0),
         m_vertex_vbo(QOpenGLBuffer::VertexBuffer),
@@ -17,21 +20,8 @@ namespace RoadRunner
         shader.m_uniformNames.append("worldToView");
 
         QString tempFilePath = RoadRunner::ExtractResourceToTempFile(":/models/car.obj");
-
-        std::ifstream input(tempFilePath.toStdString(), std::ios::binary);
-
-        if (!input) {
-            spdlog::info("Can't open the model file.");
-        }
-        else if (!CGAL::IO::read_OBJ(input, m_mesh))
-        {
-            spdlog::info("Failed to load the OBJ file.");
-        }
-        else {
-            spdlog::info("OBJ file loaded successfully.");
-            std::cout << "Number of vertices: " << m_mesh.number_of_vertices() << std::endl;
-            std::cout << "Number of faces: " << m_mesh.number_of_faces() << std::endl;
-        }
+        bool loadout = m_mesh.LoadFile(tempFilePath.toStdString());
+        assert(loadout);
     }
 
     void GLBufferManageInstanced::Initialize()
@@ -48,10 +38,21 @@ namespace RoadRunner
         // vertex buffer
         m_vertex_vbo.bind();
         m_vertex_vbo.setUsagePattern(QOpenGLBuffer::DynamicDraw); // TODO: staticdraw
-        for (const auto& face : m_mesh.faces()) {
-            for (auto vertex : CGAL::vertices_around_face(m_mesh.halfedge(face), m_mesh)) {
-                const Point& p = m_mesh.point(vertex);
-                m_vertexBufferData.push_back(Vertex(QVector3D(p.x(), p.y(), p.z()), Qt::red, 0));
+
+        for (int i = 0; i < m_mesh.LoadedMeshes.size(); i++)
+        {
+            objl::Mesh curMesh = m_mesh.LoadedMeshes[i];
+            for (int j = 0; j < curMesh.Indices.size(); j += 3)
+            {
+                auto ind1 = curMesh.Indices[j];
+                auto ind2 = curMesh.Indices[j + 1];
+                auto ind3 = curMesh.Indices[j + 2];
+                auto pos1 = curMesh.Vertices[ind1].Position;
+                auto pos2 = curMesh.Vertices[ind2].Position;
+                auto pos3 = curMesh.Vertices[ind3].Position;
+                m_vertexBufferData.push_back(Vertex(QVector3D(pos1.X, pos1.Y, pos1.Z), Qt::white, 0));
+                m_vertexBufferData.push_back(Vertex(QVector3D(pos2.X, pos2.Y, pos2.Z), Qt::white, 0));
+                m_vertexBufferData.push_back(Vertex(QVector3D(pos3.X, pos3.Y, pos3.Z), Qt::white, 0));
             }
         }
 
@@ -60,9 +61,6 @@ namespace RoadRunner
         // vertex pos
         shaderProgramm->enableAttributeArray(0);
         shaderProgramm->setAttributeBuffer(0, GL_FLOAT, 0, 3, sizeof(Vertex));
-        // vertex color
-        shaderProgramm->enableAttributeArray(1);
-        shaderProgramm->setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
         m_vertex_vbo.release();
 
         // instance buffer
@@ -70,7 +68,12 @@ namespace RoadRunner
         m_instance_vbo.setUsagePattern(QOpenGLBuffer::DynamicDraw);
         m_instance_vbo.allocate(m_poseData.data(), m_poseData.size() * sizeof(Pose));
 
-        // instance pos
+        // instance color
+        shaderProgramm->enableAttributeArray(1);
+        shaderProgramm->setAttributeBuffer(1, GL_FLOAT, offsetof(Pose, r), 3, sizeof(Pose));
+        glVertexAttribDivisor(1, 1);
+
+        // instance transform 4x4
         shaderProgramm->enableAttributeArray(2);
         shaderProgramm->setAttributeBuffer(2, GL_FLOAT, offsetof(Pose, m00), 4, sizeof(Pose));
         glVertexAttribDivisor(2, 1);
@@ -91,12 +94,15 @@ namespace RoadRunner
         m_vao.release();
     }
 
-    unsigned int GLBufferManageInstanced::AddInstance(unsigned int id, QMatrix4x4 trans)
+    unsigned int GLBufferManageInstanced::AddInstance(unsigned int id, QMatrix4x4 trans, QColor color)
     {
         m_vao.bind();
         m_instance_vbo.bind();
         trans = trans.transposed();
-        m_poseData[m_instanceCount] = FromMatrix(trans);
+        FromMatrix(m_poseData[m_instanceCount], trans);
+        m_poseData[m_instanceCount].r = color.redF();
+        m_poseData[m_instanceCount].g = color.greenF();
+        m_poseData[m_instanceCount].b = color.blueF();
         m_poseData[m_instanceCount].objectID = id;
 
         auto ptr = m_instance_vbo.mapRange(m_instanceCount * sizeof(Pose),
@@ -116,8 +122,7 @@ namespace RoadRunner
         m_instance_vbo.bind();
 
         auto instanceID = idToInstanceID.at(id);
-        m_poseData[instanceID] = FromMatrix(trans);
-        m_poseData[instanceID].objectID = id;
+        FromMatrix(m_poseData[instanceID], trans);
 
         auto ptr = m_instance_vbo.mapRange(instanceID * sizeof(Pose),
             sizeof(Pose), QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
@@ -163,9 +168,8 @@ namespace RoadRunner
         shader.shaderProgram()->release();
     }
 
-    Pose GLBufferManageInstanced::FromMatrix(QMatrix4x4 trans)
+    void GLBufferManageInstanced::FromMatrix(Pose& rtn, QMatrix4x4 trans)
     {
-        Pose rtn;
         trans = trans.transposed();
 
         rtn.m00 = trans.row(0).x();
@@ -187,6 +191,5 @@ namespace RoadRunner
         rtn.m31 = trans.row(3).y();
         rtn.m32 = trans.row(3).z();
         rtn.m33 = trans.row(3).w();
-        return rtn;
     }
 }

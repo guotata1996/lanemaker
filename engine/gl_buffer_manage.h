@@ -8,17 +8,6 @@
 #include "Vertex.h"
 #include "ShaderProgram.h"
 
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh.h>
-
-namespace
-{
-    typedef CGAL::Simple_cartesian<double> K;
-    typedef K::FT FT;
-    typedef K::Point_3 Point;
-    typedef CGAL::Surface_mesh<Point> Mesh;
-}
-
 namespace RoadRunner
 {
     class GLBufferManage: public QOpenGLFunctions
@@ -58,15 +47,13 @@ namespace RoadRunner
         GLBufferManageInstanced(unsigned int capacity);
         void Initialize();
 
-        unsigned int AddInstance(unsigned int id, QMatrix4x4 trans);
+        unsigned int AddInstance(unsigned int id, QMatrix4x4 trans, QColor color);
         void UpdateInstance(unsigned int, QMatrix4x4);
         void RemoveInstance(unsigned int);
 
         void Draw(QMatrix4x4 worldToView);
     private:
-        static Pose FromMatrix(QMatrix4x4);
-
-        Mesh m_mesh;
+        static void FromMatrix(Pose&, QMatrix4x4);
 
         QOpenGLVertexArrayObject    m_vao;
 

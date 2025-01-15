@@ -78,7 +78,7 @@ namespace RoadRunner
 
     void MapViewGL::AddInstance(unsigned int id, QColor color)
     {
-        vehicleBuffer.AddInstance(id, QMatrix4x4());
+        vehicleBuffer.AddInstance(id, QMatrix4x4(), color);
     }
 
     void MapViewGL::UpdateItem(unsigned int id, QColor color, bool temporary)
