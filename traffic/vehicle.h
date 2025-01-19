@@ -87,7 +87,8 @@ private:
 
     odr::Vec3D position;
     double heading;
+    static QVector3D DimensionLWH;
     
-    //QGraphicsLineItem* leaderVisual;
-    //QGraphicsPathItem* routeVisual;
+    std::vector<unsigned int> routeVisualIndex;
+    odr::Line3D leaderLine;
 };

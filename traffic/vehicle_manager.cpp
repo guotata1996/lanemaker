@@ -2,6 +2,7 @@
 #include "change_tracker.h"
 #include "util.h"
 #include "map_view_gl.h"
+#include "spatial_indexer.h"
 
 #include "spdlog/spdlog.h"
 

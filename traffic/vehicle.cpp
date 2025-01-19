@@ -3,6 +3,7 @@
 #include "constants.h"
 #include "id_generator.h"
 #include "map_view_gl.h"
+#include "spatial_indexer.h"
 
 #include <math.h>
 #include <sstream>
@@ -10,6 +11,8 @@
 
 
 const std::string NowDebugging = "";
+
+QVector3D Vehicle::DimensionLWH = QVector3D(4.6, 1.8, 1.6);
 
 Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey destLane, double destS, double maxV) :
     AS(initialLocalS), ALane(initialLane), BS(destS), BLane(destLane),
@@ -27,15 +30,6 @@ void Vehicle::InitGraphics()
         randColor = Qt::GlobalColor::darkYellow;
     }
     RoadRunner::g_mapViewGL->AddInstance(std::stoi(ID), randColor);
-
-    //routeVisual = new QGraphicsPathItem;
-    //routeVisual->setZValue(128);
-    //routeVisual->hide();
-    //routeVisual->setPen(QPen(Qt::green));
-
-    //leaderVisual = new QGraphicsLineItem();
-    //leaderVisual->setZValue(128.1);
-    //leaderVisual->hide();
 }
 
 bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph,
@@ -71,14 +65,20 @@ bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGr
 void Vehicle::Clear()
 {
     RoadRunner::g_mapViewGL->RemoveInstance(std::stoi(ID));
+    RoadRunner::SpatialIndexerDynamic::Instance()->UnIndex(std::stoi(ID));
     IDGenerator::ForVehicle()->FreeID(ID);
 }
 
 void Vehicle::EnableRouteVisual(bool enabled, const odr::OpenDriveMap& odrMap)
 {
+    for (auto idx: routeVisualIndex)
+    {
+        RoadRunner::g_mapViewGL->RemoveItem(idx, true);
+    }
+    routeVisualIndex.clear();
+
     if (enabled)
     {
-        QPainterPath routeVisualPath;
         for (int i = 0; i != navigation.size(); ++i)
         {
             double sBeginOnLane = i == 0 ? s : 0;
@@ -88,18 +88,18 @@ void Vehicle::EnableRouteVisual(bool enabled, const odr::OpenDriveMap& odrMap)
             auto localLine = odrMap.id_to_road.at(navigation[i].road_id).get_lane_center_line(
                 navigation[i], sBeginOnLane, sEndOnLane, 1.0);
 
-            if (localLine.empty()) continue;
-            routeVisualPath.moveTo(localLine[0][0], localLine[0][1]);
-            for (int d = 1; d != localLine.size(); ++d)
+            odr::Line3D liftedVisual;
+            for (const auto& p: localLine)
             {
-                routeVisualPath.lineTo(localLine[d][0], localLine[d][1]);
+                liftedVisual.emplace_back(odr::add(p, odr::Vec3D{ 0, 0, DimensionLWH.z() / 2}));
             }
+            routeVisualIndex.push_back(RoadRunner::g_mapViewGL->AddLine(liftedVisual, 0.3, Qt::green, true));
         }
-        //routeVisual->setPath(routeVisualPath);
+        if (!leaderLine.empty())
+        {
+            routeVisualIndex.push_back(RoadRunner::g_mapViewGL->AddLine(leaderLine, 0.3, Qt::black, true));
+        }
     }
-
-    //routeVisual->setVisible(enabled);
-    //leaderVisual->setVisible(enabled);
 }
 
 bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
@@ -112,16 +112,16 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
 
     double leaderDistance;
     auto leader = GetLeader(odrMap, vehiclesOnLane, overlapZones, signalStates, leaderDistance);
+    leaderLine.clear();
     if (leader != nullptr)
     {
         auto myTip = TipPos();
         auto leaderTail = leader->TailPos();
-        //leaderVisual->setLine(myTip[0], myTip[1], leaderTail[0], leaderTail[1]);
-        //leaderVisual->setPen(QPen(Qt::black, 0.5));
-    }
-    else
-    {
-        //leaderVisual->setPen(Qt::NoPen);
+        if (odr::euclDistance(myTip, leaderTail) > 1e-3)
+        {
+            const auto lift = odr::Vec3D{ 0, 0, DimensionLWH.z()};
+            leaderLine = { odr::add(myTip, lift), odr::add(leaderTail, lift) };
+        }
     }
     new_velocity = vFromGibbs(dt, leader, leaderDistance);
     new_s = s + dt * new_velocity;
@@ -234,13 +234,13 @@ std::vector<odr::LaneKey> Vehicle::OccupyingLanes() const
 
 odr::Vec3D Vehicle::TipPos() const
 {
-    auto offset = odr::mut(2.3, odr::Vec3D{ std::cos(heading * M_PI / 180), std::sin(heading * M_PI / 180), 0 });
+    auto offset = odr::mut(DimensionLWH.x() / 2.0, odr::Vec3D{ std::cos(heading), std::sin(heading), 0 });
     return odr::add(offset, position);
 }
 
 odr::Vec3D Vehicle::TailPos() const
 {
-    auto offset = odr::mut(-2.3, odr::Vec3D{ std::cos(heading * M_PI / 180), std::sin(heading * M_PI / 180), 0 });
+    auto offset = odr::mut(-DimensionLWH.x() / 2.0, odr::Vec3D{ std::cos(heading), std::sin(heading), 0 });
     return odr::add(offset, position);
 }
 
@@ -412,7 +412,7 @@ double Vehicle::vFromGibbs(double dt, std::shared_ptr<const Vehicle> leader, dou
     const double a = 3; // max acc
     const double b = -8;  // max dcc
     const double s0 = 4;  // static gap
-    const double li = 4.6;
+    const double li = DimensionLWH.x();
 
     double vOut = velocity + 2.5 * a * dt * (1 - velocity / MaxV) *
         std::sqrt(0.025 + velocity / MaxV);
@@ -547,6 +547,7 @@ void Vehicle::MakeStep(double dt, const odr::OpenDriveMap& map)
     transformMat.translate(position[0], position[1], position[2]);
     transformMat.rotate(QQuaternion::fromDirection(QVector3D(std::cos(heading), std::sin(heading), 0), QVector3D(0, 0, 1)));
     RoadRunner::g_mapViewGL->UpdateInstance(std::stoi(ID), transformMat);
+    RoadRunner::SpatialIndexerDynamic::Instance()->Index(std::stoi(ID), transformMat, DimensionLWH);
 }
 
 odr::LaneKey Vehicle::sourceLane() const

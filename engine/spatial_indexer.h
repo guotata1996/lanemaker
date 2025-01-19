@@ -3,6 +3,7 @@
 #include "Road.h"
 #include "id_generator.h"
 
+#include <QMatrix4x4>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 
@@ -118,5 +119,25 @@ namespace RoadRunner
         Mesh mesh;
 
         Tree tree;
+    };
+
+    class SpatialIndexerDynamic
+    {
+    public:
+        static SpatialIndexerDynamic* Instance();
+
+        // New or update
+        void Index(unsigned int id, QMatrix4x4 transform, QVector3D lwh);
+
+        // returns -1 if no intersection
+        unsigned int RayCast(odr::Vec3D origin, odr::Vec3D direction);
+
+        void UnIndex(unsigned int id);
+    private:
+        static SpatialIndexerDynamic* _instance;
+
+        std::map<unsigned int, std::vector<Triangle>> idToFaces;
+
+        static Point ToPoint_3(QVector3D v);
     };
 }

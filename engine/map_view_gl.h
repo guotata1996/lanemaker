@@ -20,6 +20,7 @@ namespace RoadRunner
 		void ResetCamera();
 
 		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, bool temporary=false);
+		unsigned int AddLine(const odr::Line3D& border, double width, QColor color, bool temporary = false);
 		unsigned int AddPoly(const odr::Line3D& boundary, QColor color, bool temporary=false);
 		unsigned int AddColumn(const odr::Line3D& boundary, double h, QColor color, bool temporary = false);
 		void AddInstance(unsigned int, QColor color);
@@ -28,7 +29,7 @@ namespace RoadRunner
 		
 		void UpdateItem(unsigned int, QColor, bool temporary = false);
 		void RemoveItem(unsigned int, bool temporary = false);
-		void UpdateInstance(unsigned int, QMatrix4x4);
+		void UpdateInstance(unsigned int, const QMatrix4x4);
 		void RemoveInstance(unsigned int);
 
 		int VBufferUseage_pct() const;

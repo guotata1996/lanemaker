@@ -23,8 +23,9 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp ${APP_ICON_RESOURCE_WINDOWS}
     ui/road_graphics.cpp ui/road_drawing.cpp ui/road_creation.cpp ui/lane_creation.cpp
     ui/road_modification.cpp ui/road_destruction.cpp ui/road_overlaps.cpp
     ui/CreateRoadOptionWidget.cpp ui/action_manager.cpp ui/util.cpp ui/replay_window.cpp
-    engine/OpenGLWindow.cpp engine/map_view_gl.cpp engine/ShaderProgram.cpp engine/spatial_indexer.cpp
+    engine/OpenGLWindow.cpp engine/map_view_gl.cpp engine/ShaderProgram.cpp 
     engine/Transform3D.cpp engine/gl_buffer_manage.cpp engine/gl_buffer_manage_instanced.cpp
+    engine/spatial_indexer.cpp engine/spatial_indexer_dynamic.cpp
     traffic/vehicle.cpp traffic/vehicle_manager.cpp traffic/signal.cpp
     util/stats.cpp util/multi_segment.cpp util/label_with_link.cpp util/preference.cpp
     util/triangulation.cpp

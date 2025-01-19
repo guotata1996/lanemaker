@@ -9,6 +9,8 @@
 #include "triangulation.h"
 #include "action_manager.h"
 #include "constants.h"
+#include "change_tracker.h"
+#include "vehicle.h"
 
 namespace RoadRunner
 {
@@ -19,6 +21,8 @@ namespace RoadRunner
     odr::Vec2D g_PointerOnGround;
     odr::Vec3D g_CameraPosition;
     int g_createRoadElevationOption;
+
+    unsigned int g_PointerVehicle;
 
     MapViewGL::MapViewGL() :
         permanentBuffer(1 << 24), temporaryBuffer(1 << 18), vehicleBuffer(1 << 12)
@@ -46,6 +50,41 @@ namespace RoadRunner
             permanentBuffer.AddQuads(gid, lBorder, rBorder, color); // TODO: check success
         }
         return gid;
+    }
+
+    unsigned int MapViewGL::AddLine(const odr::Line3D& border, double width, QColor color, bool temporary)
+    {
+        odr::Line3D lBorder, rBorder;
+        lBorder.reserve(border.size());
+        rBorder.reserve(border.size());
+
+        for (int i = 0; i != border.size(); ++i)
+        {
+            odr::Vec3D tangent;
+            if (i == 0)
+            {
+                tangent = odr::sub(border[i + 1], border[i]);
+            }
+            else if (i == border.size() - 1)
+            {
+                tangent = odr::sub(border[i], border[i - 1]);
+            }
+            else
+            {
+                auto tan1 = odr::normalize(odr::sub(border[i + 1], border[i]));
+                auto tan2 = odr::normalize(odr::sub(border[i], border[i - 1]));
+                tangent = odr::add(tan1, tan2);
+            }
+            if (odr::squaredNorm(tangent) < 0.001)
+                continue;
+            tangent = odr::normalize(tangent);
+
+            odr::Vec3D radio{ -tangent[1], tangent[0], 0 };
+            lBorder.push_back(odr::add(border[i], odr::mut(width / 2, radio)));
+            rBorder.push_back(odr::add(border[i], odr::mut(-width / 2, radio)));
+
+        }
+        return AddQuads(lBorder, rBorder, color, temporary);
     }
 
     unsigned int MapViewGL::AddPoly(const odr::Line3D& boundary, QColor color, bool temporary)
@@ -106,7 +145,7 @@ namespace RoadRunner
         IDGenerator::ForGraphics(temporary)->FreeID(std::to_string(id));
     }
 
-    void MapViewGL::UpdateInstance(unsigned int id, QMatrix4x4 trans)
+    void MapViewGL::UpdateInstance(unsigned int id, const QMatrix4x4 trans)
     {
         vehicleBuffer.UpdateInstance(id, trans);
     }
@@ -414,16 +453,16 @@ namespace RoadRunner
 
     void MapViewGL::UpdateRayHit(QPoint screen)
     {
-        // TODO: g_PointerVehicle.lock()->EnableRouteVisual(false, RoadRunner::ChangeTracker::Instance()->Map());
         auto currGroundPos = PointerOnGround(screen);
         g_PointerOnGround[0] = currGroundPos.x();
         g_PointerOnGround[1] = currGroundPos.y();
 
         auto rayDir = PointerDirection(screen);
+        auto pointerRayDir = odr::Vec3D{ rayDir.x(), rayDir.y(), rayDir.z() };
         g_CameraPosition = odr::Vec3D{ m_camera.translation().x(), m_camera.translation().y(), m_camera.translation().z() };
         RayCastQuery ray{
             g_CameraPosition,
-            odr::Vec3D{rayDir.x(), rayDir.y(), rayDir.z()}
+            pointerRayDir
         };
         auto hitInfo = SpatialIndexer::Instance()->RayCast(ray);
 
@@ -445,5 +484,24 @@ namespace RoadRunner
             g_PointerLane = hitInfo.lane;
             static_cast<Road*>(IDGenerator::ForRoad()->GetByID(g_PointerRoadID))->EnableHighlight(true);
         }
+
+        odr::Vec3D pointerOnGround3D{ g_PointerOnGround[0], g_PointerOnGround[1], 0 };
+
+        auto pointerVehicle = RoadRunner::SpatialIndexerDynamic::Instance()->RayCast(RoadRunner::g_CameraPosition, pointerRayDir);
+        if (pointerVehicle != g_PointerVehicle)
+        {
+            auto prevHighlight = IDGenerator::ForVehicle()->GetByID(std::to_string(g_PointerVehicle));
+            if (prevHighlight != nullptr)
+            {
+                static_cast<Vehicle*>(prevHighlight)->EnableRouteVisual(false, RoadRunner::ChangeTracker::Instance()->Map());
+            }
+        }
+        if (pointerVehicle != -1)
+        {
+            static_cast<Vehicle*>(IDGenerator::ForVehicle()->GetByID(std::to_string(pointerVehicle)))->EnableRouteVisual(true,
+                RoadRunner::ChangeTracker::Instance()->Map());
+        };
+
+        g_PointerVehicle = pointerVehicle;
     }
 }
