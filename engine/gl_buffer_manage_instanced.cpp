@@ -3,30 +3,42 @@
 #include "Road.h"
 #include "util.h"
 
-#include "OBJ_Loader.h"
 #include <QOpenGLShaderProgram>
+#include <QOpenGLTexture>
+#include "OBJ_Loader.h"
 
 
 namespace RoadRunner
 {
     objl::Loader                m_mesh;
+    QOpenGLTexture              m_texture(QOpenGLTexture::Target2D);
 
     GLBufferManageInstanced::GLBufferManageInstanced(unsigned int capacity) :
         m_poseData(capacity), m_instanceCount(0),
         m_vertex_vbo(QOpenGLBuffer::VertexBuffer),
         m_instance_vbo(QOpenGLBuffer::VertexBuffer),
-        shader(":/shaders/instanced.vert", ":/shaders/simple.frag")
+        shader(":/shaders/instanced.vert", ":/shaders/texture.frag")
     {
         shader.m_uniformNames.append("worldToView");
-
-        QString tempFilePath = RoadRunner::ExtractResourceToTempFile(":/models/car.obj");
-        bool loadout = m_mesh.LoadFile(tempFilePath.toStdString());
-        assert(loadout);
+        shader.m_uniformNames.append("texture");
     }
 
     void GLBufferManageInstanced::Initialize()
     {
         initializeOpenGLFunctions();
+
+        // Load car mesh
+        QString tempObjPath = RoadRunner::ExtractResourceToTempFile(":/models/jeep.obj");
+        bool loadout = m_mesh.LoadFile(tempObjPath.toStdString());
+        assert(loadout);
+        auto removed = QFile(tempObjPath).remove();
+        assert(removed);
+        // Load car texture
+        QString tempJpgPath = RoadRunner::ExtractResourceToTempFile(":/models/jeep.jpg");
+        QImage tempJpg(tempJpgPath);
+        m_texture.setData(tempJpg.mirrored());
+        removed = QFile(tempJpgPath).remove();
+        assert(removed);
 
         shader.create();
         m_vao.create();
@@ -37,7 +49,7 @@ namespace RoadRunner
 
         // vertex buffer
         m_vertex_vbo.bind();
-        m_vertex_vbo.setUsagePattern(QOpenGLBuffer::DynamicDraw); // TODO: staticdraw
+        m_vertex_vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
 
         for (int i = 0; i < m_mesh.LoadedMeshes.size(); i++)
         {
@@ -50,17 +62,23 @@ namespace RoadRunner
                 auto pos1 = curMesh.Vertices[ind1].Position;
                 auto pos2 = curMesh.Vertices[ind2].Position;
                 auto pos3 = curMesh.Vertices[ind3].Position;
-                m_vertexBufferData.push_back(Vertex(QVector3D(pos1.X, pos1.Y, pos1.Z), Qt::white, 0));
-                m_vertexBufferData.push_back(Vertex(QVector3D(pos2.X, pos2.Y, pos2.Z), Qt::white, 0));
-                m_vertexBufferData.push_back(Vertex(QVector3D(pos3.X, pos3.Y, pos3.Z), Qt::white, 0));
+                auto uv1 = curMesh.Vertices[ind1].TextureCoordinate;
+                auto uv2 = curMesh.Vertices[ind2].TextureCoordinate;
+                auto uv3 = curMesh.Vertices[ind3].TextureCoordinate;
+                m_vertexBufferData.push_back(VertexInstanced(QVector3D(pos1.X, pos1.Y, pos1.Z), QVector2D(uv1.X, uv1.Y), 0));
+                m_vertexBufferData.push_back(VertexInstanced(QVector3D(pos2.X, pos2.Y, pos2.Z), QVector2D(uv2.X, uv2.Y), 0));
+                m_vertexBufferData.push_back(VertexInstanced(QVector3D(pos3.X, pos3.Y, pos3.Z), QVector2D(uv3.X, uv3.Y), 0));
             }
         }
 
-        m_vertex_vbo.allocate(m_vertexBufferData.data(), m_vertexBufferData.size() * sizeof(Vertex));
+        m_vertex_vbo.allocate(m_vertexBufferData.data(), m_vertexBufferData.size() * sizeof(VertexInstanced));
 
         // vertex pos
         shaderProgramm->enableAttributeArray(0);
-        shaderProgramm->setAttributeBuffer(0, GL_FLOAT, 0, 3, sizeof(Vertex));
+        shaderProgramm->setAttributeBuffer(0, GL_FLOAT, 0, 3, sizeof(VertexInstanced));
+        // tex coordinate
+        shaderProgramm->enableAttributeArray(1);
+        shaderProgramm->setAttributeBuffer(1, GL_FLOAT, offsetof(VertexInstanced, u), 2, sizeof(VertexInstanced));
         m_vertex_vbo.release();
 
         // instance buffer
@@ -69,26 +87,28 @@ namespace RoadRunner
         m_instance_vbo.allocate(m_poseData.data(), m_poseData.size() * sizeof(Pose));
 
         // instance color
-        shaderProgramm->enableAttributeArray(1);
-        shaderProgramm->setAttributeBuffer(1, GL_FLOAT, offsetof(Pose, r), 3, sizeof(Pose));
-        glVertexAttribDivisor(1, 1);
-
-        // instance transform 4x4
         shaderProgramm->enableAttributeArray(2);
-        shaderProgramm->setAttributeBuffer(2, GL_FLOAT, offsetof(Pose, m00), 4, sizeof(Pose));
+        shaderProgramm->setAttributeBuffer(2, GL_FLOAT, offsetof(Pose, r), 3, sizeof(Pose));
         glVertexAttribDivisor(2, 1);
 
+        // instance transform 4x4
         shaderProgramm->enableAttributeArray(3);
-        shaderProgramm->setAttributeBuffer(3, GL_FLOAT, offsetof(Pose, m10), 4, sizeof(Pose));
+        shaderProgramm->setAttributeBuffer(3, GL_FLOAT, offsetof(Pose, m00), 4, sizeof(Pose));
         glVertexAttribDivisor(3, 1);
-        
-        shaderProgramm->enableAttributeArray(4);
-        shaderProgramm->setAttributeBuffer(4, GL_FLOAT, offsetof(Pose, m20), 4, sizeof(Pose));
-        glVertexAttribDivisor(4, 1);
 
+        shaderProgramm->enableAttributeArray(4);
+        shaderProgramm->setAttributeBuffer(4, GL_FLOAT, offsetof(Pose, m10), 4, sizeof(Pose));
+        glVertexAttribDivisor(4, 1);
+        
         shaderProgramm->enableAttributeArray(5);
-        shaderProgramm->setAttributeBuffer(5, GL_FLOAT, offsetof(Pose, m30), 4, sizeof(Pose));
+        shaderProgramm->setAttributeBuffer(5, GL_FLOAT, offsetof(Pose, m20), 4, sizeof(Pose));
         glVertexAttribDivisor(5, 1);
+
+        shaderProgramm->enableAttributeArray(6);
+        shaderProgramm->setAttributeBuffer(6, GL_FLOAT, offsetof(Pose, m30), 4, sizeof(Pose));
+        glVertexAttribDivisor(6, 1);
+
+        shaderProgramm->setUniformValue(shader.m_uniformIDs[1], 0);
 
         m_instance_vbo.release();
         m_vao.release();
@@ -163,6 +183,7 @@ namespace RoadRunner
         shaderProgramm->setUniformValue(shader.m_uniformIDs[0], worldToView);
 
         m_vao.bind();
+        m_texture.bind(0);
         glDrawArraysInstanced(GL_TRIANGLES, 0, m_vertexBufferData.size(), m_instanceCount);
         m_vao.release();
         shader.shaderProgram()->release();

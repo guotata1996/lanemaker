@@ -3,6 +3,12 @@
         <file>shaders/simple.vert</file>
         <file>shaders/instanced.vert</file>
         <file>shaders/simple.frag</file>
-        <file>models/car.obj</file>
+        <file>shaders/texture.frag</file>
+        <file>models/jeep.obj</file>
+        <file>models/jeep.jpg</file>
+        <file>models/cadillac.obj</file>
+        <file>models/cadillac.jpg</file>
+        <file>models/military.obj</file>
+        <file>models/military.jpg</file>
     </qresource>
 </RCC>

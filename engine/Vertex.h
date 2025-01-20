@@ -12,6 +12,7 @@ License    : BSD License,
 #ifndef VERTEX_H
 #define VERTEX_H
 
+#include <QVector2D>
 #include <QVector3D>
 #include <QColor>
 
@@ -44,6 +45,23 @@ struct Vertex {
 
 	float x, y, z;
 	float r, g, b;
+	unsigned int objectID;
+};
+
+struct VertexInstanced {
+	VertexInstanced() = default;
+
+	VertexInstanced(const QVector3D& coords, const QVector2D& uv, const unsigned int objID):
+		x(float(coords.x())),
+		y(float(coords.y())),
+		z(float(coords.z())),
+		u(uv.x()),
+		v(uv.y()),
+		objectID(objectID)
+	{}
+
+	float x, y, z;
+	float u, v;
 	unsigned int objectID;
 };
 

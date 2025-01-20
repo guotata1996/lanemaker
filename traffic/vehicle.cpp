@@ -23,12 +23,9 @@ Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey de
 
 void Vehicle::InitGraphics()
 {
-    auto randColor = static_cast<Qt::GlobalColor>(rand() % static_cast<int>(Qt::GlobalColor::darkYellow));
-    if (randColor == Qt::GlobalColor::darkGray)
-    {
-        // Don't use same color as lane.
-        randColor = Qt::GlobalColor::darkYellow;
-    }
+    auto minColor = static_cast<int>(Qt::GlobalColor::white); // skip black
+    auto maxColor = static_cast<int>(Qt::GlobalColor::transparent); // excluded
+    auto randColor = static_cast<Qt::GlobalColor>(rand() % (maxColor - minColor) + minColor);
     RoadRunner::g_mapViewGL->AddInstance(std::stoi(ID), randColor);
 }
 

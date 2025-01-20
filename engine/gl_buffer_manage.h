@@ -57,7 +57,7 @@ namespace RoadRunner
 
         QOpenGLVertexArrayObject    m_vao;
 
-        std::vector<Vertex>         m_vertexBufferData;
+        std::vector<VertexInstanced>m_vertexBufferData;
         QOpenGLBuffer				m_vertex_vbo;
 
         std::vector<Pose>           m_poseData;

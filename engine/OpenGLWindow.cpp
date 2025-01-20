@@ -77,7 +77,6 @@ void OpenGLWindow::exposeEvent(QExposeEvent * /*event*/) {
 
 
 void OpenGLWindow::resizeEvent(QResizeEvent * event) {
-//	qDebug() << "OpenGLWindow::resizeEvent()";
 	QWindow::resizeEvent(event);
 
 	// initialize on first call
