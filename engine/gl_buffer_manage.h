@@ -1,12 +1,20 @@
+#pragma once
+
 #include <QOpenGLBuffer>
 #include <QOpenGLVertexArrayObject>
 #include <QtGui/QOpenGLExtraFunctions>
+#include <QOpenGLTexture>
 #include <vector>
 #include <set>
 
 #include "Math.hpp"
 #include "Vertex.h"
 #include "ShaderProgram.h"
+
+namespace objl
+{
+    class Loader;
+}
 
 namespace RoadRunner
 {
@@ -44,7 +52,7 @@ namespace RoadRunner
     class GLBufferManageInstanced : public QOpenGLExtraFunctions
     {
     public:
-        GLBufferManageInstanced(unsigned int capacity);
+        GLBufferManageInstanced(QString modelPath, QString texPath, unsigned int capacity);
         void Initialize();
 
         unsigned int AddInstance(unsigned int id, QMatrix4x4 trans, QColor color);
@@ -67,5 +75,8 @@ namespace RoadRunner
         std::map<unsigned int, unsigned int> idToInstanceID;
 
         ShaderProgram shader;
+        objl::Loader*               m_mesh;
+        QOpenGLTexture              m_texture;
+        const QString               modelPath, texturePath;
     };
 }

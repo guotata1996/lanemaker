@@ -2,22 +2,21 @@
 #include "triangulation.h"
 #include "Road.h"
 #include "util.h"
-
-#include <QOpenGLShaderProgram>
-#include <QOpenGLTexture>
 #include "OBJ_Loader.h"
 
+#include <QOpenGLShaderProgram>
 
 namespace RoadRunner
 {
-    objl::Loader                m_mesh;
-    QOpenGLTexture              m_texture(QOpenGLTexture::Target2D);
-
-    GLBufferManageInstanced::GLBufferManageInstanced(unsigned int capacity) :
+    GLBufferManageInstanced::GLBufferManageInstanced(QString aModelPath, QString aTexPath, 
+        unsigned int capacity) :
         m_poseData(capacity), m_instanceCount(0),
         m_vertex_vbo(QOpenGLBuffer::VertexBuffer),
         m_instance_vbo(QOpenGLBuffer::VertexBuffer),
-        shader(":/shaders/instanced.vert", ":/shaders/texture.frag")
+        modelPath(aModelPath), texturePath(aTexPath),
+        shader(":/shaders/instanced.vert", ":/shaders/texture.frag"),
+        m_texture(QOpenGLTexture::Target2D),
+        m_mesh(new objl::Loader)
     {
         shader.m_uniformNames.append("worldToView");
         shader.m_uniformNames.append("texture");
@@ -28,13 +27,13 @@ namespace RoadRunner
         initializeOpenGLFunctions();
 
         // Load car mesh
-        QString tempObjPath = RoadRunner::ExtractResourceToTempFile(":/models/jeep.obj");
-        bool loadout = m_mesh.LoadFile(tempObjPath.toStdString());
+        QString tempObjPath = RoadRunner::ExtractResourceToTempFile(modelPath);
+        bool loadout = m_mesh->LoadFile(tempObjPath.toStdString());
         assert(loadout);
         auto removed = QFile(tempObjPath).remove();
         assert(removed);
         // Load car texture
-        QString tempJpgPath = RoadRunner::ExtractResourceToTempFile(":/models/jeep.jpg");
+        QString tempJpgPath = RoadRunner::ExtractResourceToTempFile(texturePath);
         QImage tempJpg(tempJpgPath);
         m_texture.setData(tempJpg.mirrored());
         removed = QFile(tempJpgPath).remove();
@@ -51,9 +50,9 @@ namespace RoadRunner
         m_vertex_vbo.bind();
         m_vertex_vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
 
-        for (int i = 0; i < m_mesh.LoadedMeshes.size(); i++)
+        for (int i = 0; i < m_mesh->LoadedMeshes.size(); i++)
         {
-            objl::Mesh curMesh = m_mesh.LoadedMeshes[i];
+            objl::Mesh curMesh = m_mesh->LoadedMeshes[i];
             for (int j = 0; j < curMesh.Indices.size(); j += 3)
             {
                 auto ind1 = curMesh.Indices[j];

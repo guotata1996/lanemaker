@@ -91,4 +91,6 @@ private:
     
     std::vector<unsigned int> routeVisualIndex;
     odr::Line3D leaderLine;
+
+    const unsigned int variation;
 };

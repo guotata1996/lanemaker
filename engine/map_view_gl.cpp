@@ -25,7 +25,12 @@ namespace RoadRunner
     unsigned int g_PointerVehicle;
 
     MapViewGL::MapViewGL() :
-        permanentBuffer(1 << 24), temporaryBuffer(1 << 18), vehicleBuffer(1 << 12)
+        permanentBuffer(1 << 24), temporaryBuffer(1 << 18),
+        vehicleBuffer{
+            GLBufferManageInstanced(":/models/jeep.obj", ":/models/jeep.jpg", 1 << 10),
+            GLBufferManageInstanced(":/models/cadillac.obj", ":/models/cadillac.jpg", 1 << 10),
+            GLBufferManageInstanced(":/models/military.obj", ":/models/military.jpg", 1 << 10)
+        }
     {
         g_mapViewGL = this;
         g_createRoadElevationOption = 0;
@@ -115,9 +120,9 @@ namespace RoadRunner
         return gid;
     }
 
-    void MapViewGL::AddInstance(unsigned int id, QColor color)
+    void MapViewGL::AddInstance(unsigned int id, QColor color, unsigned int variation)
     {
-        vehicleBuffer.AddInstance(id, QMatrix4x4(), color);
+        vehicleBuffer[variation].AddInstance(id, QMatrix4x4(), color);
     }
 
     void MapViewGL::UpdateItem(unsigned int id, QColor color, bool temporary)
@@ -145,14 +150,14 @@ namespace RoadRunner
         IDGenerator::ForGraphics(temporary)->FreeID(std::to_string(id));
     }
 
-    void MapViewGL::UpdateInstance(unsigned int id, const QMatrix4x4 trans)
+    void MapViewGL::UpdateInstance(unsigned int id, const QMatrix4x4 trans, unsigned int variation)
     {
-        vehicleBuffer.UpdateInstance(id, trans);
+        vehicleBuffer[variation].UpdateInstance(id, trans);
     }
 
-    void MapViewGL::RemoveInstance(unsigned int id)
+    void MapViewGL::RemoveInstance(unsigned int id, unsigned int variation)
     {
-        vehicleBuffer.RemoveInstance(id);
+        vehicleBuffer[variation].RemoveInstance(id);
     }
 
     int MapViewGL::VBufferUseage_pct() const
@@ -169,7 +174,10 @@ namespace RoadRunner
 
         permanentBuffer.Initialize();
         temporaryBuffer.Initialize();
-        vehicleBuffer.Initialize();
+        for (auto& buff : vehicleBuffer)
+        {
+            buff.Initialize();
+        }
     }
 
     void MapViewGL::resizeGL(int width, int height)
@@ -198,7 +206,10 @@ namespace RoadRunner
 
         permanentBuffer.Draw(m_worldToView);
         temporaryBuffer.Draw(m_worldToView);
-        vehicleBuffer.Draw(m_worldToView);
+        for (auto& buff : vehicleBuffer)
+        {
+            buff.Draw(m_worldToView);
+        }
     }
 
     void MapViewGL::mousePressEvent(QMouseEvent* event)

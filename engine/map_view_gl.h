@@ -12,6 +12,8 @@
 
 namespace RoadRunner
 {
+	const unsigned int NVehicleVariations = 3;
+
 	class MapViewGL : public OpenGLWindow
 	{
 		Q_OBJECT
@@ -23,20 +25,18 @@ namespace RoadRunner
 		unsigned int AddLine(const odr::Line3D& border, double width, QColor color, bool temporary = false);
 		unsigned int AddPoly(const odr::Line3D& boundary, QColor color, bool temporary=false);
 		unsigned int AddColumn(const odr::Line3D& boundary, double h, QColor color, bool temporary = false);
-		void AddInstance(unsigned int, QColor color);
+		void AddInstance(unsigned int id, QColor color, unsigned int variation);
 		void SetViewFromReplay(Transform3D t);
 		void UpdateRayHit(QPoint screen);
 		
 		void UpdateItem(unsigned int, QColor, bool temporary = false);
 		void RemoveItem(unsigned int, bool temporary = false);
-		void UpdateInstance(unsigned int, const QMatrix4x4);
-		void RemoveInstance(unsigned int);
+		void UpdateInstance(unsigned int, const QMatrix4x4, unsigned int);
+		void RemoveInstance(unsigned int, unsigned int);
 
 		int VBufferUseage_pct() const;
 		float Zoom() const;
-
-		QMatrix4x4					m_worldToView;	// cached world to view transformation matrix
-
+		
 	signals:
 		void MousePerformedAction(RoadRunner::MouseAction);
 		void KeyPerformedAction(RoadRunner::KeyPressAction);
@@ -68,7 +68,9 @@ namespace RoadRunner
 
 		GLBufferManage     permanentBuffer;
 		GLBufferManage     temporaryBuffer;
-		GLBufferManageInstanced vehicleBuffer;
+		std::array<GLBufferManageInstanced, NVehicleVariations> vehicleBuffer;
+
+		QMatrix4x4					m_worldToView;	// cached world to view transformation matrix
 
 		/*! The projection matrix, updated whenever the viewport geometry changes (in resizeGL() ). */
 		QMatrix4x4					m_projection;
