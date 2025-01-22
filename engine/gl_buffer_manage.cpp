@@ -37,11 +37,13 @@ namespace RoadRunner
         shaderProgramm->setAttributeBuffer(0, GL_FLOAT, 0, 3, sizeof(Vertex));
         shaderProgramm->enableAttributeArray(1); // array with index/id 1
         shaderProgramm->setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
+        shaderProgramm->enableAttributeArray(2);
+        shaderProgramm->setAttributeBuffer(2, GL_FLOAT, offsetof(Vertex, objectID), 1, sizeof(Vertex));
 
         m_objectInfo.setData(QImage(16384, 1, QImage::Format_Grayscale8));
-        uint8_t data[16384];
-        memset(data, static_cast<uint8_t>(248), 16384);
-        m_objectInfo.setData(QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, data);
+        uint8_t initialHighlight[16384];
+        memset(initialHighlight, static_cast<uint8_t>(0), 16384); // TODO: make a constant
+        m_objectInfo.setData(QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, initialHighlight);
 
         shaderProgramm->setUniformValue(shader.m_uniformIDs[1], 0);
 
@@ -50,7 +52,7 @@ namespace RoadRunner
         m_vbo.release();
     }
 
-    bool GLBufferManage::AddQuads(unsigned int gid, const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color)
+    bool GLBufferManage::AddQuads(unsigned int gid, unsigned int objectID, const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color)
     {
         assert(lBorder.size() == rBorder.size());
         assert(lBorder.size() >= 2);
@@ -72,23 +74,23 @@ namespace RoadRunner
             auto r0 = rBorder[i], r1 = rBorder[i + 1];
 
             auto v11 = m_vertexBufferCount++;
-            m_vertexBufferData[v11] = Vertex(QVector3D(l0[0], l0[1], l0[2]), color, gid);
+            m_vertexBufferData[v11] = Vertex(QVector3D(l0[0], l0[1], l0[2]), color, gid, objectID);
             vids.emplace(v11);
             auto v12 = m_vertexBufferCount++;
-            m_vertexBufferData[v12] = Vertex(QVector3D(r0[0], r0[1], r0[2]), color, gid);
+            m_vertexBufferData[v12] = Vertex(QVector3D(r0[0], r0[1], r0[2]), color, gid, objectID);
             vids.emplace(v12);
             auto v13 = m_vertexBufferCount++;
-            m_vertexBufferData[v13] = Vertex(QVector3D(l1[0], l1[1], l1[2]), color, gid);
+            m_vertexBufferData[v13] = Vertex(QVector3D(l1[0], l1[1], l1[2]), color, gid, objectID);
             vids.emplace(v13);
 
             auto v21 = m_vertexBufferCount++;
-            m_vertexBufferData[v21] = Vertex(QVector3D(l1[0], l1[1], l1[2]), color, gid);
+            m_vertexBufferData[v21] = Vertex(QVector3D(l1[0], l1[1], l1[2]), color, gid, objectID);
             vids.emplace(v21);
             auto v22 = m_vertexBufferCount++;
-            m_vertexBufferData[v22] = Vertex(QVector3D(r0[0], r0[1], r0[2]), color, gid);
+            m_vertexBufferData[v22] = Vertex(QVector3D(r0[0], r0[1], r0[2]), color, gid, objectID);
             vids.emplace(v22);
             auto v23 = m_vertexBufferCount++;
-            m_vertexBufferData[v23] = Vertex(QVector3D(r1[0], r1[1], r1[2]), color, gid);
+            m_vertexBufferData[v23] = Vertex(QVector3D(r1[0], r1[1], r1[2]), color, gid, objectID);
             vids.emplace(v23);
         }
         auto ptr_v = m_vbo.mapRange(vertexBufferChangeBegin * sizeof(Vertex),
@@ -108,7 +110,7 @@ namespace RoadRunner
         return true;
     }
 
-    bool GLBufferManage::AddPoly(unsigned int gid, const odr::Line3D& boundary, QColor color)
+    bool GLBufferManage::AddPoly(unsigned int gid, unsigned int objectID, const odr::Line3D& boundary, QColor color)
     {
         auto newTriangles = Triangulate_2_5d(boundary);
         auto nNewVertex = newTriangles.size() * 3;
@@ -127,17 +129,17 @@ namespace RoadRunner
             auto p1 = boundary[std::get<0>(tri)];
             auto v1 = m_vertexBufferCount++;
             vids.emplace(v1);
-            m_vertexBufferData[v1] = Vertex(QVector3D(p1[0], p1[1], p1[2]), color, gid);
+            m_vertexBufferData[v1] = Vertex(QVector3D(p1[0], p1[1], p1[2]), color, gid, objectID);
 
             auto p2 = boundary[std::get<1>(tri)];
             auto v2 = m_vertexBufferCount++;
             vids.emplace(v2);
-            m_vertexBufferData[v2] = Vertex(QVector3D(p2[0], p2[1], p2[2]), color, gid);
+            m_vertexBufferData[v2] = Vertex(QVector3D(p2[0], p2[1], p2[2]), color, gid, objectID);
 
             auto p3 = boundary[std::get<2>(tri)];
             auto v3 = m_vertexBufferCount++;
             vids.emplace(v3);
-            m_vertexBufferData[v3] = Vertex(QVector3D(p3[0], p3[1], p3[2]), color, gid);
+            m_vertexBufferData[v3] = Vertex(QVector3D(p3[0], p3[1], p3[2]), color, gid, objectID);
         }
 
         auto ptr_v = m_vbo.mapRange(vertexBufferChangeBegin * sizeof(Vertex),
@@ -156,7 +158,7 @@ namespace RoadRunner
         return true;
     }
 
-    bool GLBufferManage::AddColumn(unsigned int gid, const odr::Line3D& boundary, double h, QColor color)
+    bool GLBufferManage::AddColumn(unsigned int gid, unsigned int objectID, const odr::Line3D& boundary, double h, QColor color)
     {
         auto capTriangles = Triangulate_2_5d(boundary);
         auto nNewVertex = capTriangles.size() * 3 * 2 + boundary.size() * 3 * 2;
@@ -176,29 +178,29 @@ namespace RoadRunner
             auto p1 = boundary[std::get<0>(tri)];
             auto v1 = m_vertexBufferCount++;
             vids.emplace(v1);
-            m_vertexBufferData[v1] = Vertex(QVector3D(p1[0], p1[1], p1[2]), color, gid);
+            m_vertexBufferData[v1] = Vertex(QVector3D(p1[0], p1[1], p1[2]), color, gid, objectID);
 
             auto p2 = boundary[std::get<1>(tri)];
             auto v2 = m_vertexBufferCount++;
             vids.emplace(v2);
-            m_vertexBufferData[v2] = Vertex(QVector3D(p2[0], p2[1], p2[2]), color, gid);
+            m_vertexBufferData[v2] = Vertex(QVector3D(p2[0], p2[1], p2[2]), color, gid, objectID);
 
             auto p3 = boundary[std::get<2>(tri)];
             auto v3 = m_vertexBufferCount++;
             vids.emplace(v3);
-            m_vertexBufferData[v3] = Vertex(QVector3D(p3[0], p3[1], p3[2]), color, gid);
+            m_vertexBufferData[v3] = Vertex(QVector3D(p3[0], p3[1], p3[2]), color, gid, objectID);
 
             auto v1h = m_vertexBufferCount++;
             vids.emplace(v1h);
-            m_vertexBufferData[v1h] = Vertex(QVector3D(p1[0], p1[1], p1[2] + h), color, gid);
+            m_vertexBufferData[v1h] = Vertex(QVector3D(p1[0], p1[1], p1[2] + h), color, gid, objectID);
 
             auto v2h = m_vertexBufferCount++;
             vids.emplace(v2h);
-            m_vertexBufferData[v2h] = Vertex(QVector3D(p2[0], p2[1], p2[2] + h), color, gid);
+            m_vertexBufferData[v2h] = Vertex(QVector3D(p2[0], p2[1], p2[2] + h), color, gid, objectID);
 
             auto v3h = m_vertexBufferCount++;
             vids.emplace(v3h);
-            m_vertexBufferData[v3h] = Vertex(QVector3D(p3[0], p3[1], p3[2] + h), color, gid);
+            m_vertexBufferData[v3h] = Vertex(QVector3D(p3[0], p3[1], p3[2] + h), color, gid, objectID);
         }
 
         // side
@@ -211,27 +213,27 @@ namespace RoadRunner
 
             auto v1 = m_vertexBufferCount++;
             vids.emplace(v1);
-            m_vertexBufferData[v1] = Vertex(QVector3D(p1[0], p1[1], p1[2]), color, gid);
+            m_vertexBufferData[v1] = Vertex(QVector3D(p1[0], p1[1], p1[2]), color, gid, objectID);
 
             auto v2 = m_vertexBufferCount++;
             vids.emplace(v2);
-            m_vertexBufferData[v2] = Vertex(QVector3D(p2[0], p2[1], p2[2]), color, gid);
+            m_vertexBufferData[v2] = Vertex(QVector3D(p2[0], p2[1], p2[2]), color, gid, objectID);
 
             auto v3 = m_vertexBufferCount++;
             vids.emplace(v3);
-            m_vertexBufferData[v3] = Vertex(QVector3D(p3[0], p3[1], p3[2]), color, gid);
+            m_vertexBufferData[v3] = Vertex(QVector3D(p3[0], p3[1], p3[2]), color, gid, objectID);
 
             auto v1_1 = m_vertexBufferCount++;
             vids.emplace(v1_1);
-            m_vertexBufferData[v1_1] = Vertex(QVector3D(p3[0], p3[1], p3[2]), color, gid);
+            m_vertexBufferData[v1_1] = Vertex(QVector3D(p3[0], p3[1], p3[2]), color, gid, objectID);
 
             auto v2_1 = m_vertexBufferCount++;
             vids.emplace(v2_1);
-            m_vertexBufferData[v2_1] = Vertex(QVector3D(p2[0], p2[1], p2[2]), color, gid);
+            m_vertexBufferData[v2_1] = Vertex(QVector3D(p2[0], p2[1], p2[2]), color, gid, objectID);
 
             auto v3_1 = m_vertexBufferCount++;
             vids.emplace(v3_1);
-            m_vertexBufferData[v3_1] = Vertex(QVector3D(p4[0], p4[1], p4[2]), color, gid);
+            m_vertexBufferData[v3_1] = Vertex(QVector3D(p4[0], p4[1], p4[2]), color, gid, objectID);
         }
 
         auto ptr_v = m_vbo.mapRange(vertexBufferChangeBegin * sizeof(Vertex),
@@ -250,42 +252,48 @@ namespace RoadRunner
         return true;
     }
 
-    void GLBufferManage::UpdateItem(unsigned int id, QColor color)
+    void GLBufferManage::UpdateItem(unsigned int objectID, bool highlighted)
+    {
+        uint8_t updated[1];
+        updated[0] = highlighted ? 255 : 0;
+        m_objectInfo.setData(objectID,0,0,1,1,1,
+            QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, updated);
+    }
+
+    void GLBufferManage::UpdateObjectID(unsigned int graphicsID, unsigned int objectID)
     {
         m_vao.bind();
         m_vbo.bind();
-        for (auto vid : idToVids.at(id))
+
+        for (auto vid : idToVids.at(graphicsID))
         {
-            m_vertexBufferData[vid].r = color.redF();
-            m_vertexBufferData[vid].g = color.greenF();
-            m_vertexBufferData[vid].b = color.blueF();
+            m_vertexBufferData[vid].objectID = objectID;
 
             auto ptr_v = m_vbo.mapRange(vid * sizeof(Vertex), sizeof(Vertex),
                 QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
-            assert(ptr_v != nullptr);
             memcpy(ptr_v, m_vertexBufferData.data() + vid, sizeof(Vertex));
             m_vbo.unmap();
         }
 
-        m_vao.release();
         m_vbo.release();
+        m_vao.release();
     }
 
-    void GLBufferManage::RemoveItem(unsigned int id)
+    void GLBufferManage::RemoveItem(unsigned int gid)
     {
         if (!Road::ClearingMap)
         {
             m_vao.bind();
             m_vbo.bind();
         }
-        const auto& vidsToRemove = idToVids.at(id);
+        const auto& vidsToRemove = idToVids.at(gid);
         for (auto vid_it = vidsToRemove.rbegin(); vid_it != vidsToRemove.rend(); ++vid_it)
         {
             auto vid = *vid_it;
             if (!Road::ClearingMap && m_vertexBufferCount != 0 && m_vertexBufferCount - 1 != vid)
             {
-                assert(m_vertexBufferData[vid].objectID == id);
-                auto objectToMove = m_vertexBufferData[m_vertexBufferCount - 1].objectID;
+                assert(m_vertexBufferData[vid].graphicsID == gid);
+                auto objectToMove = m_vertexBufferData[m_vertexBufferCount - 1].graphicsID;
                 auto oldVIt = idToVids.at(objectToMove).find(m_vertexBufferCount - 1);
                 idToVids.at(objectToMove).erase(oldVIt);
 
@@ -300,7 +308,7 @@ namespace RoadRunner
             }
             m_vertexBufferCount--;
         }
-        idToVids.erase(id);
+        idToVids.erase(gid);
 
         if (!Road::ClearingMap)
         {

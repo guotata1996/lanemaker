@@ -171,12 +171,13 @@ RoadDrawingSession::CustomCursorItem::~CustomCursorItem()
 
 void RoadDrawingSession::CustomCursorItem::EnableHighlight(int level)
 {
-    QColor color = level == 0 ? Qt::white : (level == 1 ? Qt::darkRed : Qt::red);
-    RoadRunner::g_mapViewGL->UpdateItem(*graphicsIndex, color, true);
+    color = level == 0 ? Qt::white : (level == 1 ? Qt::darkRed : Qt::red);
+    SetTranslation(translation); // remove then add
 }
 
 void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
 {
+    translation = t;
     if (graphicsIndex.has_value())
     {
         RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex, true);
@@ -195,11 +196,11 @@ void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
 
     if (h == 0)
     {
-        graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, color, true);
+        graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, color);
     }
     else
     {
-        graphicsIndex = RoadRunner::g_mapViewGL->AddColumn(roundBoundary, h, color, true);
+        graphicsIndex = RoadRunner::g_mapViewGL->AddColumn(roundBoundary, h, color);
     }
 }
 

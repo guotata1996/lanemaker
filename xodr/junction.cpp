@@ -401,7 +401,7 @@ namespace RoadRunner
             }
         }
 
-        junctionGraphics = std::make_unique<JunctionGraphics>(rasterizedBoundary, Elevation());
+        junctionGraphics = std::make_unique<JunctionGraphics>(rasterizedBoundary, Elevation(), ID());
     }
 #endif
 
@@ -869,7 +869,7 @@ namespace RoadRunner
             }
             cavityBoundaries.emplace_back(std::make_pair(aSideLine, bSideLine));
         }
-        junctionGraphics = std::make_unique<JunctionGraphics>(cavityBoundaries);
+        junctionGraphics = std::make_unique<JunctionGraphics>(cavityBoundaries, ID());
         //junctionGraphics->setZValue(Elevation());
     }
 #endif

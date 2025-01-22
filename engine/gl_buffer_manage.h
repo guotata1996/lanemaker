@@ -24,11 +24,12 @@ namespace RoadRunner
         GLBufferManage(unsigned int capacity);
         void Initialize();
 
-        bool AddQuads(unsigned int objectID, const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color);
-        bool AddPoly(unsigned int objectID, const odr::Line3D& boundary, QColor color);
-        bool AddColumn(unsigned int objectID, const odr::Line3D& boundary, double h, QColor color);
-        void UpdateItem(unsigned int, QColor);
-        void RemoveItem(unsigned int);
+        bool AddQuads(unsigned int graphicsID, unsigned int objectID, const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color);
+        bool AddPoly(unsigned int graphicsID, unsigned int objectID, const odr::Line3D& boundary, QColor color);
+        bool AddColumn(unsigned int graphicsID, unsigned int objectID, const odr::Line3D& boundary, double h, QColor color);
+        void UpdateItem(unsigned int objectID, bool highlighted);
+        void UpdateObjectID(unsigned int graphicsID, unsigned int objectID);
+        void RemoveItem(unsigned int graphicsID);
 
         void Draw(QMatrix4x4 worldToView);
 

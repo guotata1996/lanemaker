@@ -52,21 +52,18 @@ namespace RoadRunner
 
         const double BrokenLength = 3;
         const double BrokenGap = 6;
+
+        unsigned int roadID;
     };
 
     class JunctionGraphics
     {
     public:
-        JunctionGraphics(const odr::Line2D& normalBoundary, double eleation);
+        JunctionGraphics(const odr::Line2D& normalBoundary, double eleation, std::string junctionID);
 
-        JunctionGraphics(const std::vector<std::pair<odr::Line3D, odr::Line3D>>& directCavities);
+        JunctionGraphics(const std::vector<std::pair<odr::Line3D, odr::Line3D>>& directCavities, std::string junctionID);
 
         ~JunctionGraphics();
-
-    protected:
-        //void hoverEnterEvent(QGraphicsSceneHoverEvent* evt) override;
-
-        //void hoverLeaveEvent(QGraphicsSceneHoverEvent* evt) override;
 
     private:
         odr::Vec3D StripMidPoint(const odr::Vec3D& pOrigin, const odr::Vec3D& p1, const odr::Vec3D& p2);
@@ -76,5 +73,7 @@ namespace RoadRunner
         const QBrush DefaultBrush = QBrush(Qt::darkGray, Qt::SolidPattern);
 
         std::vector<unsigned int> allGraphicsIndice;
+
+        const unsigned int junctionID;
     };
 }

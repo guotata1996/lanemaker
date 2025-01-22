@@ -19,7 +19,7 @@ namespace RoadRunner
     {
         if (boundaryL.size() > 1)
         {
-            graphicsIndex = g_mapViewGL->AddQuads(boundaryL, boundaryR, color, true);
+            graphicsIndex = g_mapViewGL->AddQuads(boundaryL, boundaryR, color);
         }
         else
         {
@@ -43,7 +43,7 @@ namespace RoadRunner
                 left[i] = odr::add(center[i], odr::Vec3D{ radial[0], radial[1], 0 });
                 right[i] = odr::add(center[i], odr::Vec3D{ -radial[0], -radial[1], 0 });
             }
-            graphicsIndex = g_mapViewGL->AddQuads(left, right, color, true);
+            graphicsIndex = g_mapViewGL->AddQuads(left, right, color);
         }
         else
         {
@@ -61,7 +61,8 @@ namespace RoadRunner
 
     SectionGraphics::SectionGraphics(std::shared_ptr<RoadRunner::Road> road,
         const odr::LaneSection& laneSection,
-        double sBegin, double sEnd)
+        double sBegin, double sEnd):
+        roadID(std::stoi(road->ID()))
     {
         odr::Road& gen = road->generated;
         bool biDirRoad = gen.rr_profile.HasSide(-1) && gen.rr_profile.HasSide(1);
@@ -85,7 +86,7 @@ namespace RoadRunner
                 
                 // outline for highlight
                 auto surfaceIndex = g_mapViewGL->AddQuads(innerBorder, outerBorder, 
-                    lane.type == "median" ? Qt::yellow : Qt::darkGray);
+                    lane.type == "median" ? Qt::yellow : Qt::darkGray, roadID);
                 allGraphicsIndice.push_back(surfaceIndex);
                 if (lane.type != "median")
                 {
@@ -159,7 +160,7 @@ namespace RoadRunner
                 {
                     Qt::GlobalColor color = colors[i] == "yellow" ? Qt::yellow :
                         (colors[i] == "white" ? Qt::white : Qt::lightGray);
-                    allGraphicsIndice.push_back(g_mapViewGL->AddQuads(leftLines[i], rightLines[i], color));
+                    allGraphicsIndice.push_back(g_mapViewGL->AddQuads(leftLines[i], rightLines[i], color, std::stoi(road->ID())));
                 }
             }
         }
@@ -190,7 +191,7 @@ namespace RoadRunner
                         {
                             p[2] += 0.01;
                         }
-                        allGraphicsIndice.push_back(g_mapViewGL->AddQuads(l1, l2, Qt::white));
+                        allGraphicsIndice.push_back(g_mapViewGL->AddQuads(l1, l2, Qt::white, std::stoi(road->ID())));
                     }
                     else if (id_object.second.subtype == "arrow")
                     {
@@ -211,7 +212,7 @@ namespace RoadRunner
                             {
                                 shape3[i] = odr::Vec3D{ transformed[i].x(), transformed[i].y(), pt[2] + 0.01};
                             }
-                            allGraphicsIndice.push_back(g_mapViewGL->AddPoly(shape3, Qt::white));
+                            allGraphicsIndice.push_back(g_mapViewGL->AddPoly(shape3, Qt::white, std::stoi(road->ID())));
                         }
                     }
                     else
@@ -241,11 +242,12 @@ namespace RoadRunner
 
     void SectionGraphics::EnableHighlight(bool enabled)
     {
-        QColor newColor = enabled ? Qt::lightGray : Qt::darkGray;
-        for (auto id : allHighlightGraphicsIndice)
-        {
-            g_mapViewGL->UpdateItem(id, newColor);
-        }
+        //QColor newColor = enabled ? Qt::lightGray : Qt::darkGray;
+        //for (auto id : allHighlightGraphicsIndice)
+        //{
+        //    g_mapViewGL->UpdateItem(id, enabled);
+        //}
+        g_mapViewGL->UpdateItem(roadID, enabled);
     }
 
     QPainterPath SectionGraphics::CreateRefLinePath(const odr::Line3D& lineAppox)
@@ -282,6 +284,7 @@ namespace RoadRunner
 
     void SectionGraphics::updateIndexingInfo(std::string newRoadID, int mult, double shift)
     {
+        roadID = std::stoi(newRoadID);
         for (auto index : allSpatialIndice)
         {
             uint32_t face1ID = index >> 32;
@@ -303,6 +306,12 @@ namespace RoadRunner
             std::swap(sMin, sMax);
         }
         assert(sMin < sMax);
+
+        for (auto index : allGraphicsIndice)
+        {
+            g_mapViewGL->UpdateObjectID(index, roadID);
+        }
+
     }
 
     double SectionGraphics::Length() const
@@ -311,7 +320,8 @@ namespace RoadRunner
         return sMax - sMin;
     }
     
-    JunctionGraphics::JunctionGraphics(const odr::Line2D& boundary, double elevation)
+    JunctionGraphics::JunctionGraphics(const odr::Line2D& boundary, double elevation, std::string aJunctionID):
+        junctionID(std::stoi(aJunctionID))
     {
         odr::Line3D boundary3;
         boundary3.resize(boundary.size());
@@ -319,10 +329,11 @@ namespace RoadRunner
         {
             boundary3[i] = odr::Vec3D{ boundary[i][0], boundary[i][1], elevation };
         }
-        allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3, Qt::darkGray));
+        allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3, Qt::darkGray, junctionID + 8192)); // Don't collide from roadID. TODO: hide junction
     }
 
-    JunctionGraphics::JunctionGraphics(const std::vector<std::pair<odr::Line3D, odr::Line3D>>& boundary)
+    JunctionGraphics::JunctionGraphics(const std::vector<std::pair<odr::Line3D, odr::Line3D>>& boundary, std::string aJunctionID):
+        junctionID(std::stoi(aJunctionID))
     {
         QPainterPath path;
 
@@ -339,7 +350,7 @@ namespace RoadRunner
             }
             auto pOrigin = singleBoundary.front();
 
-            allGraphicsIndice.push_back(g_mapViewGL->AddQuads(dualSides.first, dualSides.second, Qt::darkGray));
+            allGraphicsIndice.push_back(g_mapViewGL->AddQuads(dualSides.first, dualSides.second, Qt::darkGray, junctionID + 8192));
 
             for (int i = 0; i < dualSides.first.size() - ZebraLineWidth; i += ZebraLineWidth + ZebraLineSkip)
             {
@@ -361,7 +372,7 @@ namespace RoadRunner
                 boundary3d.push_back(odr::add(p4, lift));
                 boundary3d.push_back(odr::add(pM2, lift));
                 boundary3d.push_back(odr::add(p3, lift));
-                allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3d, Qt::lightGray));
+                allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3d, Qt::lightGray, junctionID + 8192));
             }
         }
     }

@@ -32,20 +32,22 @@ License    : BSD License,
 */
 struct Vertex {
 	Vertex() {}
-	Vertex(const QVector3D& coords, const QColor& col, const unsigned int objID) :
+	Vertex(const QVector3D& coords, const QColor& col, const unsigned int gid, const unsigned int objID) :
 		x(float(coords.x())),
 		y(float(coords.y())),
 		z(float(coords.z())),
 		r(float(col.redF())),
 		g(float(col.greenF())),
 		b(float(col.blueF())),
+		graphicsID(gid),
 		objectID(objID)
 	{
 	}
 
 	float x, y, z;
 	float r, g, b;
-	unsigned int objectID;
+	unsigned int graphicsID; // face
+	float objectID; // road -- INT does not work
 };
 
 struct VertexInstanced {

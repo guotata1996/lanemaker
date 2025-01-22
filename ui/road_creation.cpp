@@ -91,7 +91,7 @@ void RoadCreationSession::DirectionHandle::UpdateGraphics()
 		RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex, true);
 	}
 
-	graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, dragging ? Qt::green : Qt::darkGreen, true);
+	graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, dragging ? Qt::green : Qt::darkGreen);
 }
 
 RoadCreationSession::RoadCreationSession()

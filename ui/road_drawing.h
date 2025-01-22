@@ -43,6 +43,7 @@ protected:
 
         std::optional<unsigned int> graphicsIndex;
         QColor color;
+        odr::Vec3D translation;
     };
 
     enum SnapResult

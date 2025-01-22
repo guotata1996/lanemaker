@@ -43,22 +43,24 @@ namespace RoadRunner
         m_camera.setRotation(30, QVector3D(1, 0, 0));
     }
 
-    unsigned int MapViewGL::AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, bool temporary)
+    unsigned int MapViewGL::AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, unsigned int objID)
     {
+        bool temporary = objID == -1;
         unsigned int gid = std::stoi(IDGenerator::ForGraphics(temporary)->GenerateID(this));
         if (temporary)
         {
-            temporaryBuffer.AddQuads(gid, lBorder, rBorder, color); // TODO: check success
+            temporaryBuffer.AddQuads(gid, objID, lBorder, rBorder, color); // TODO: check success
         }
         else
         {
-            permanentBuffer.AddQuads(gid, lBorder, rBorder, color); // TODO: check success
+            permanentBuffer.AddQuads(gid, objID, lBorder, rBorder, color); // TODO: check success
         }
         return gid;
     }
 
-    unsigned int MapViewGL::AddLine(const odr::Line3D& border, double width, QColor color, bool temporary)
+    unsigned int MapViewGL::AddLine(const odr::Line3D& border, double width, QColor color, unsigned int objID)
     {
+        bool temporary = objID == -1;
         odr::Line3D lBorder, rBorder;
         lBorder.reserve(border.size());
         rBorder.reserve(border.size());
@@ -89,33 +91,35 @@ namespace RoadRunner
             rBorder.push_back(odr::add(border[i], odr::mut(-width / 2, radio)));
 
         }
-        return AddQuads(lBorder, rBorder, color, temporary);
+        return AddQuads(lBorder, rBorder, color, objID);
     }
 
-    unsigned int MapViewGL::AddPoly(const odr::Line3D& boundary, QColor color, bool temporary)
+    unsigned int MapViewGL::AddPoly(const odr::Line3D& boundary, QColor color, unsigned int objID)
     {
+        bool temporary = objID == -1;
         auto gid = std::stoi(IDGenerator::ForGraphics(temporary)->GenerateID(this));
         if (temporary)
         {
-            temporaryBuffer.AddPoly(gid, boundary, color);
+            temporaryBuffer.AddPoly(gid, objID, boundary, color);
         }
         else
         {
-            permanentBuffer.AddPoly(gid, boundary, color);
+            permanentBuffer.AddPoly(gid, objID, boundary, color);
         }
         return gid;
     }
 
-    unsigned int MapViewGL::AddColumn(const odr::Line3D& boundary, double h, QColor color, bool temporary)
+    unsigned int MapViewGL::AddColumn(const odr::Line3D& boundary, double h, QColor color, unsigned int objID)
     {
+        bool temporary = objID == -1;
         auto gid = std::stoi(IDGenerator::ForGraphics(temporary)->GenerateID(this));
         if (temporary)
         {
-            temporaryBuffer.AddColumn(gid, boundary, h, color);
+            temporaryBuffer.AddColumn(gid, objID, boundary, h, color);
         }
         else
         {
-            permanentBuffer.AddColumn(gid, boundary, h, color);
+            permanentBuffer.AddColumn(gid, objID, boundary, h, color);
         }
         return gid;
     }
@@ -125,16 +129,15 @@ namespace RoadRunner
         vehicleBuffer[variation].AddInstance(id, QMatrix4x4(), color);
     }
 
-    void MapViewGL::UpdateItem(unsigned int id, QColor color, bool temporary)
+    void MapViewGL::UpdateItem(unsigned int id, bool highlighted, bool temporary)
     {
-        if (!temporary)
-        {
-            permanentBuffer.UpdateItem(id, color);
-        }
-        else
-        {
-            temporaryBuffer.UpdateItem(id, color);
-        }
+        assert(!temporary);
+        permanentBuffer.UpdateItem(id, highlighted);
+    }
+
+    void MapViewGL::UpdateObjectID(unsigned int graphicsID, unsigned int objectID)
+    {
+        permanentBuffer.UpdateObjectID(graphicsID, objectID);
     }
 
     void MapViewGL::RemoveItem(unsigned int id, bool temporary)

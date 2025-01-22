@@ -21,15 +21,16 @@ namespace RoadRunner
 		MapViewGL();
 		void ResetCamera();
 
-		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, bool temporary=false);
-		unsigned int AddLine(const odr::Line3D& border, double width, QColor color, bool temporary = false);
-		unsigned int AddPoly(const odr::Line3D& boundary, QColor color, bool temporary=false);
-		unsigned int AddColumn(const odr::Line3D& boundary, double h, QColor color, bool temporary = false);
+		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, unsigned int objID = -1);
+		unsigned int AddLine(const odr::Line3D& border, double width, QColor color, unsigned int objID = -1);
+		unsigned int AddPoly(const odr::Line3D& boundary, QColor color, unsigned int objID = -1);
+		unsigned int AddColumn(const odr::Line3D& boundary, double h, QColor color, unsigned int objID = -1);
 		void AddInstance(unsigned int id, QColor color, unsigned int variation);
 		void SetViewFromReplay(Transform3D t);
 		void UpdateRayHit(QPoint screen);
 		
-		void UpdateItem(unsigned int, QColor, bool temporary = false);
+		void UpdateItem(unsigned int, bool highlighted, bool temporary = false);
+		void UpdateObjectID(unsigned int graphicsID, unsigned int objectID);
 		void RemoveItem(unsigned int, bool temporary = false);
 		void UpdateInstance(unsigned int, const QMatrix4x4, unsigned int);
 		void RemoveInstance(unsigned int, unsigned int);
