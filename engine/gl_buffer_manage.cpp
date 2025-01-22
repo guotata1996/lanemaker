@@ -9,9 +9,11 @@ namespace RoadRunner
     GLBufferManage::GLBufferManage(unsigned int capacity):
         m_vertexBufferData(capacity),
         m_vbo(QOpenGLBuffer::VertexBuffer),
-        shader(":/shaders/simple.vert", ":/shaders/simple.frag")
+        shader(":/shaders/simple.vert", ":/shaders/simple.frag"),
+        m_objectInfo(QOpenGLTexture::Target1D)
     {
         shader.m_uniformNames.append("worldToView");
+        shader.m_uniformNames.append("objectInfo");
         m_vertexBufferCount = 0;
     }
 
@@ -35,6 +37,13 @@ namespace RoadRunner
         shaderProgramm->setAttributeBuffer(0, GL_FLOAT, 0, 3, sizeof(Vertex));
         shaderProgramm->enableAttributeArray(1); // array with index/id 1
         shaderProgramm->setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, r), 3, sizeof(Vertex));
+
+        m_objectInfo.setData(QImage(16384, 1, QImage::Format_Grayscale8));
+        uint8_t data[16384];
+        memset(data, static_cast<uint8_t>(248), 16384);
+        m_objectInfo.setData(QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, data);
+
+        shaderProgramm->setUniformValue(shader.m_uniformIDs[1], 0);
 
         // Release (unbind) all
         m_vao.release();
@@ -305,10 +314,11 @@ namespace RoadRunner
         auto shaderProgramm = shader.shaderProgram();
         shaderProgramm->bind();
         shaderProgramm->setUniformValue(shader.m_uniformIDs[0], worldToView);
-
         m_vao.bind();
+        m_objectInfo.bind(0);
         glDrawArrays(GL_TRIANGLES, 0, m_vertexBufferCount);
         m_vao.release();
+        m_objectInfo.release();
         shader.shaderProgram()->release();
     }
 

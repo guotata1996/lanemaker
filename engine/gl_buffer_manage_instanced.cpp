@@ -10,7 +10,7 @@ namespace RoadRunner
 {
     GLBufferManageInstanced::GLBufferManageInstanced(QString aModelPath, QString aTexPath, 
         unsigned int capacity) :
-        m_poseData(capacity), m_instanceCount(0),
+        m_poseData(capacity), m_instanceCount(0), pendingSend(false),
         m_vertex_vbo(QOpenGLBuffer::VertexBuffer),
         m_instance_vbo(QOpenGLBuffer::VertexBuffer),
         modelPath(aModelPath), texturePath(aTexPath),
@@ -19,7 +19,7 @@ namespace RoadRunner
         m_mesh(new objl::Loader)
     {
         shader.m_uniformNames.append("worldToView");
-        shader.m_uniformNames.append("texture");
+        shader.m_uniformNames.append("tex");
     }
 
     void GLBufferManageInstanced::Initialize()
@@ -137,18 +137,9 @@ namespace RoadRunner
 
     void GLBufferManageInstanced::UpdateInstance(unsigned int id, QMatrix4x4 trans)
     {
-        m_vao.bind();
-        m_instance_vbo.bind();
-
         auto instanceID = idToInstanceID.at(id);
         FromMatrix(m_poseData[instanceID], trans);
-
-        auto ptr = m_instance_vbo.mapRange(instanceID * sizeof(Pose),
-            sizeof(Pose), QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
-        memcpy(ptr, m_poseData.data() + instanceID, sizeof(Pose));
-        m_instance_vbo.unmap();
-        m_instance_vbo.release();
-        m_vao.release();
+        pendingSend = true;
     }
 
     void GLBufferManageInstanced::RemoveInstance(unsigned int id)
@@ -177,11 +168,24 @@ namespace RoadRunner
 
     void GLBufferManageInstanced::Draw(QMatrix4x4 worldToView)
     {
+        m_vao.bind();
+
+        if (pendingSend)
+        {
+            pendingSend = false;
+            m_instance_vbo.bind();
+
+            auto ptr = m_instance_vbo.mapRange(0, m_instanceCount * sizeof(Pose), 
+                QOpenGLBuffer::RangeInvalidate | QOpenGLBuffer::RangeWrite);
+            memcpy(ptr, m_poseData.data(), m_instanceCount * sizeof(Pose));
+            m_instance_vbo.unmap();
+            m_instance_vbo.release();
+        }
+
         auto shaderProgramm = shader.shaderProgram();
         shaderProgramm->bind();
         shaderProgramm->setUniformValue(shader.m_uniformIDs[0], worldToView);
 
-        m_vao.bind();
         m_texture.bind(0);
         glDrawArraysInstanced(GL_TRIANGLES, 0, m_vertexBufferData.size(), m_instanceCount);
         m_vao.release();

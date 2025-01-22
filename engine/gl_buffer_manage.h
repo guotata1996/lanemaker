@@ -47,6 +47,7 @@ namespace RoadRunner
         std::map<unsigned int, std::set<unsigned int>> idToVids;
 
         ShaderProgram shader;
+        QOpenGLTexture              m_objectInfo;
     };
 
     class GLBufferManageInstanced : public QOpenGLExtraFunctions
@@ -71,6 +72,7 @@ namespace RoadRunner
         std::vector<Pose>           m_poseData;
         QOpenGLBuffer				m_instance_vbo;
         unsigned int                m_instanceCount;
+        bool                        pendingSend;  // batch copy all pose data to GPU
 
         std::map<unsigned int, unsigned int> idToInstanceID;
 
