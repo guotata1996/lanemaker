@@ -25,11 +25,11 @@ namespace RoadRunner
     unsigned int g_PointerVehicle;
 
     MapViewGL::MapViewGL() :
-        permanentBuffer(1 << 24), temporaryBuffer(1 << 18),
+        permanentBuffer(MaxRoadVertices), temporaryBuffer(MaxTemporaryVertices),
         vehicleBuffer{
-            GLBufferManageInstanced(":/models/jeep.obj", ":/models/jeep.jpg", 1 << 10),
-            GLBufferManageInstanced(":/models/cadillac.obj", ":/models/cadillac.jpg", 1 << 10),
-            GLBufferManageInstanced(":/models/military.obj", ":/models/military.jpg", 1 << 10)
+            GLBufferManageInstanced(":/models/jeep.obj", ":/models/jeep.jpg", MaxInstancesPerType),
+            GLBufferManageInstanced(":/models/cadillac.obj", ":/models/cadillac.jpg", MaxInstancesPerType),
+            GLBufferManageInstanced(":/models/military.obj", ":/models/military.jpg", MaxInstancesPerType)
         }
     {
         g_mapViewGL = this;
@@ -47,13 +47,18 @@ namespace RoadRunner
     {
         bool temporary = objID == -1;
         unsigned int gid = std::stoi(IDGenerator::ForGraphics(temporary)->GenerateID(this));
+        bool success = true;
         if (temporary)
         {
-            temporaryBuffer.AddQuads(gid, objID, lBorder, rBorder, color); // TODO: check success
+            success = temporaryBuffer.AddQuads(gid, objID, lBorder, rBorder, color);
         }
         else
         {
-            permanentBuffer.AddQuads(gid, objID, lBorder, rBorder, color); // TODO: check success
+            success = permanentBuffer.AddQuads(gid, objID, lBorder, rBorder, color);
+        }
+        if (!success)
+        {
+            throw std::logic_error("Graphics buffer out of space!");
         }
         return gid;
     }
@@ -98,13 +103,18 @@ namespace RoadRunner
     {
         bool temporary = objID == -1;
         auto gid = std::stoi(IDGenerator::ForGraphics(temporary)->GenerateID(this));
+        bool success = true;
         if (temporary)
         {
-            temporaryBuffer.AddPoly(gid, objID, boundary, color);
+            success = temporaryBuffer.AddPoly(gid, objID, boundary, color);
         }
         else
         {
-            permanentBuffer.AddPoly(gid, objID, boundary, color);
+            success = permanentBuffer.AddPoly(gid, objID, boundary, color);
+        }
+        if (!success)
+        {
+            throw std::logic_error("Graphics buffer out of space!");
         }
         return gid;
     }
@@ -113,13 +123,18 @@ namespace RoadRunner
     {
         bool temporary = objID == -1;
         auto gid = std::stoi(IDGenerator::ForGraphics(temporary)->GenerateID(this));
+        bool success = true;
         if (temporary)
         {
-            temporaryBuffer.AddColumn(gid, objID, boundary, h, color);
+            success = temporaryBuffer.AddColumn(gid, objID, boundary, h, color);
         }
         else
         {
-            permanentBuffer.AddColumn(gid, objID, boundary, h, color);
+            success = permanentBuffer.AddColumn(gid, objID, boundary, h, color);
+        }
+        if (!success)
+        {
+            throw std::logic_error("Graphics buffer out of space!");
         }
         return gid;
     }
@@ -129,9 +144,8 @@ namespace RoadRunner
         vehicleBuffer[variation].AddInstance(id, QMatrix4x4(), color);
     }
 
-    void MapViewGL::UpdateItem(unsigned int id, bool highlighted, bool temporary)
+    void MapViewGL::UpdateItem(unsigned int id, bool highlighted)
     {
-        assert(!temporary);
         permanentBuffer.UpdateItem(id, highlighted);
     }
 
@@ -467,6 +481,7 @@ namespace RoadRunner
 
     void MapViewGL::UpdateRayHit(QPoint screen)
     {
+        lastMousePos = screen; // restore Zoom()
         auto currGroundPos = PointerOnGround(screen);
         g_PointerOnGround[0] = currGroundPos.x();
         g_PointerOnGround[1] = currGroundPos.y();

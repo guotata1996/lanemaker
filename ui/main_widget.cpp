@@ -259,7 +259,9 @@ void MainWidget::Reset()
         btn->setChecked(false);
     }
     pointerModeGroup->setExclusive(true);
-    gotoDragMode();
+    // goto drag mode, but don't record
+    SetEditMode(RoadRunner::Mode_None);
+    createRoadOption->hide();
 }
 
 void MainWidget::SetModeFromReplay(int mode)

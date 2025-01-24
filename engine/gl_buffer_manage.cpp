@@ -1,6 +1,7 @@
 #include "gl_buffer_manage.h"
 #include "triangulation.h"
 #include "Road.h"
+#include "constants.h"
 
 #include <QOpenGLShaderProgram>
 
@@ -40,9 +41,9 @@ namespace RoadRunner
         shaderProgramm->enableAttributeArray(2);
         shaderProgramm->setAttributeBuffer(2, GL_FLOAT, offsetof(Vertex, objectID), 1, sizeof(Vertex));
 
-        m_objectInfo.setData(QImage(16384, 1, QImage::Format_Grayscale8));
-        uint8_t initialHighlight[16384];
-        memset(initialHighlight, static_cast<uint8_t>(0), 16384); // TODO: make a constant
+        m_objectInfo.setData(QImage(MaxObjectID, 1, QImage::Format_Grayscale8));
+        uint8_t initialHighlight[MaxObjectID];
+        memset(initialHighlight, static_cast<uint8_t>(0), MaxObjectID);
         m_objectInfo.setData(QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, initialHighlight);
 
         shaderProgramm->setUniformValue(shader.m_uniformIDs[1], 0);

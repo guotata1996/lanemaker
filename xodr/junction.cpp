@@ -15,6 +15,10 @@ namespace RoadRunner
         generated("", IDGenerator::ForJunction()->GenerateID(this), odr::JunctionType::Common)
     {
         generated.name = "Junction " + generated.id;
+        if (std::stoi(ID()) >= MaxJunctionID)
+        {
+            throw std::logic_error("Junction exceeds maximum supported number!");
+        }
     }
 
     AbstractJunction::AbstractJunction(const odr::Junction& serialized) :

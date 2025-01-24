@@ -11,6 +11,7 @@
 #include "stats.h"
 #include "junction.h"
 #include "map_view_gl.h"
+#include "constants.h"
 
 
 namespace RoadRunner
@@ -242,11 +243,6 @@ namespace RoadRunner
 
     void SectionGraphics::EnableHighlight(bool enabled)
     {
-        //QColor newColor = enabled ? Qt::lightGray : Qt::darkGray;
-        //for (auto id : allHighlightGraphicsIndice)
-        //{
-        //    g_mapViewGL->UpdateItem(id, enabled);
-        //}
         g_mapViewGL->UpdateItem(roadID, enabled);
     }
 
@@ -321,7 +317,7 @@ namespace RoadRunner
     }
     
     JunctionGraphics::JunctionGraphics(const odr::Line2D& boundary, double elevation, std::string aJunctionID):
-        junctionID(std::stoi(aJunctionID))
+        junctionID(std::stoi(aJunctionID) + MaxRoadID)
     {
         odr::Line3D boundary3;
         boundary3.resize(boundary.size());
@@ -329,11 +325,11 @@ namespace RoadRunner
         {
             boundary3[i] = odr::Vec3D{ boundary[i][0], boundary[i][1], elevation };
         }
-        allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3, Qt::darkGray, junctionID + 8192)); // Don't collide from roadID. TODO: hide junction
+        allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3, Qt::darkGray, junctionID));
     }
 
     JunctionGraphics::JunctionGraphics(const std::vector<std::pair<odr::Line3D, odr::Line3D>>& boundary, std::string aJunctionID):
-        junctionID(std::stoi(aJunctionID))
+        junctionID(std::stoi(aJunctionID) + MaxRoadID)
     {
         QPainterPath path;
 
@@ -350,7 +346,7 @@ namespace RoadRunner
             }
             auto pOrigin = singleBoundary.front();
 
-            allGraphicsIndice.push_back(g_mapViewGL->AddQuads(dualSides.first, dualSides.second, Qt::darkGray, junctionID + 8192));
+            allGraphicsIndice.push_back(g_mapViewGL->AddQuads(dualSides.first, dualSides.second, Qt::darkGray, junctionID));
 
             for (int i = 0; i < dualSides.first.size() - ZebraLineWidth; i += ZebraLineWidth + ZebraLineSkip)
             {
@@ -372,7 +368,7 @@ namespace RoadRunner
                 boundary3d.push_back(odr::add(p4, lift));
                 boundary3d.push_back(odr::add(pM2, lift));
                 boundary3d.push_back(odr::add(p3, lift));
-                allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3d, Qt::lightGray, junctionID + 8192));
+                allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3d, Qt::lightGray, junctionID));
             }
         }
     }

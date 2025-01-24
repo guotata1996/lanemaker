@@ -21,20 +21,22 @@ namespace RoadRunner
 		MapViewGL();
 		void ResetCamera();
 
+		// Returns graphics ID. If objectID is -1, it is considered temporary.
 		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, unsigned int objID = -1);
 		unsigned int AddLine(const odr::Line3D& border, double width, QColor color, unsigned int objID = -1);
 		unsigned int AddPoly(const odr::Line3D& boundary, QColor color, unsigned int objID = -1);
 		unsigned int AddColumn(const odr::Line3D& boundary, double h, QColor color, unsigned int objID = -1);
+		void UpdateItem(unsigned int objectID, bool highlighted);  // permanent objects only
+		void UpdateObjectID(unsigned int graphicsID, unsigned int objectID);  // permanent objects only
+		void RemoveItem(unsigned int graphicsID, bool temporary = false);
+
+		// Instanced rendering, for traffic.
 		void AddInstance(unsigned int id, QColor color, unsigned int variation);
-		void SetViewFromReplay(Transform3D t);
-		void UpdateRayHit(QPoint screen);
-		
-		void UpdateItem(unsigned int, bool highlighted, bool temporary = false);
-		void UpdateObjectID(unsigned int graphicsID, unsigned int objectID);
-		void RemoveItem(unsigned int, bool temporary = false);
 		void UpdateInstance(unsigned int, const QMatrix4x4, unsigned int);
 		void RemoveInstance(unsigned int, unsigned int);
 
+		void SetViewFromReplay(Transform3D t);
+		void UpdateRayHit(QPoint screen);
 		int VBufferUseage_pct() const;
 		float Zoom() const;
 		

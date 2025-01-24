@@ -23,6 +23,10 @@ namespace RoadRunner
     Road::Road(const LaneProfile& p, std::unique_ptr<odr::RoadGeometry> l) :
         generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1")
     {
+        if (std::stoi(ID()) >= MaxRoadID)
+        {
+            throw std::logic_error("Junction exceeds maximum supported number!");
+        }
         generated.rr_profile = p;
         generated.ref_line.length = l->length;
         generated.ref_line.s0_to_geometry.emplace(0, std::move(l));
@@ -32,6 +36,10 @@ namespace RoadRunner
     Road::Road(const LaneProfile& p, odr::RefLine& l) :
         generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1")
     {
+        if (std::stoi(ID()) >= MaxRoadID)
+        {
+            throw std::logic_error("Junction exceeds maximum supported number!");
+        }
         generated.rr_profile = p;
         generated.ref_line = std::move(l);
         Generate();

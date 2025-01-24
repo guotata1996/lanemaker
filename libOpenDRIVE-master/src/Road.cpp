@@ -245,11 +245,11 @@ Vec3D Road::get_surface_pt(double s, const double t, Vec3D* vn) const
 std::vector<std::pair<double, double>> Road::sample_st(double sBegin, double sEnd, double interval) const 
 {
     std::vector<std::pair<double, double>> rtn;
-    if (sEnd - sBegin < 0.01)
+    if (sEnd - sBegin < 0.02)
     {
         return rtn;
     }
-    for (auto s : odr::xrange(sBegin, sEnd - 0.02, interval)) 
+    for (auto s : odr::xrange(sBegin, sEnd - 0.01, interval)) 
     {
         auto   laneSection = get_lanesection(s);
         double tmin = lane_offset.get(s);

@@ -90,11 +90,11 @@ void Vehicle::EnableRouteVisual(bool enabled, const odr::OpenDriveMap& odrMap)
             {
                 liftedVisual.emplace_back(odr::add(p, odr::Vec3D{ 0, 0, DimensionLWH.z() / 2}));
             }
-            routeVisualIndex.push_back(RoadRunner::g_mapViewGL->AddLine(liftedVisual, 0.3, Qt::green, true));
+            routeVisualIndex.push_back(RoadRunner::g_mapViewGL->AddLine(liftedVisual, 0.3, Qt::green));
         }
         if (!leaderLine.empty())
         {
-            routeVisualIndex.push_back(RoadRunner::g_mapViewGL->AddLine(leaderLine, 0.3, Qt::black, true));
+            routeVisualIndex.push_back(RoadRunner::g_mapViewGL->AddLine(leaderLine, 0.3, Qt::black));
         }
     }
 }
