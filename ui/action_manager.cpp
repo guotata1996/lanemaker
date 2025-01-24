@@ -152,7 +152,7 @@ namespace RoadRunner
 
     void ActionManager::Replay(const MouseAction& action)
     {
-        RoadRunner::g_mapViewGL->UpdateRayHit(QPoint(action.screenX, action.screenY));
+        RoadRunner::g_mapViewGL->UpdateRayHit(QPoint(action.screenX, action.screenY), true);
         MainWidget::Instance()->OnMouseAction(action);
         RoadRunner::g_mapViewGL->renderLater();
     }

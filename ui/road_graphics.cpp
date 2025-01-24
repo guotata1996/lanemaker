@@ -96,11 +96,11 @@ namespace RoadRunner
 
                 // Draw magnetic snap area
                 const double MagneticSnapDist = 2;
-                if (sMin == 0 && gen.predecessor.type != odr::RoadLink::Type_Junction)
+                if (sMin == 0 && gen.predecessor.type == odr::RoadLink::Type_None)
                 {
                     allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, -MagneticSnapDist, 0));
                 }
-                if (sMax == road->Length() && gen.successor.type != odr::RoadLink::Type_Junction)
+                if (sMax == road->Length() && gen.successor.type == odr::RoadLink::Type_None)
                 {
                     allSpatialIndice.push_back(SpatialIndexer::Instance()->Index(gen, lane, sMax, sMax + MagneticSnapDist));
                 }

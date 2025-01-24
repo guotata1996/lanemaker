@@ -36,7 +36,7 @@ namespace RoadRunner
 		void RemoveInstance(unsigned int, unsigned int);
 
 		void SetViewFromReplay(Transform3D t);
-		void UpdateRayHit(QPoint screen);
+		void UpdateRayHit(QPoint screen, bool fromReplay=false);
 		int VBufferUseage_pct() const;
 		float Zoom() const;
 		

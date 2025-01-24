@@ -301,10 +301,10 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 				auto newEnd = flexGeo->get_end_pos();
 				auto newHdg = flexGeo->get_end_hdg();
 				directionHandle = std::make_unique<DirectionHandle>(
-					odr::Vec3D{ newEnd[0], newEnd[1], 0 }, newHdg);
+					odr::Vec3D{ newEnd[0], newEnd[1], flexEndElevation }, newHdg);
 				stagedGeometries.push_back(StagedGeometry
 					{
-						std::move(flexGeo), flexEndElevation//, flexRefLinePath, flexBoundaryPathL, flexBoundaryPathR
+						std::move(flexGeo), flexEndElevation
 					}); // Do stage
 				UpdateStagedFromGeometries();
 			}
@@ -337,7 +337,7 @@ bool RoadCreationSession::Update(const RoadRunner::KeyPressAction& act)
 				auto newEnd = stagedGeometries.back().geo->get_end_pos();
 				auto newHdg = stagedGeometries.back().geo->get_end_hdg();
 				directionHandle = std::make_unique<DirectionHandle>(
-					odr::Vec3D{ newEnd[0], newEnd[1], 0 }, newHdg);
+					odr::Vec3D{ newEnd[0], newEnd[1], stagedGeometries.back().endEleveation}, newHdg);
 			}
 			UpdateFlexGeometry();
 			UpdateStagedFromGeometries();

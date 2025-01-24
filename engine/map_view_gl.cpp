@@ -479,9 +479,12 @@ namespace RoadRunner
         renderLater();
     }
 
-    void MapViewGL::UpdateRayHit(QPoint screen)
+    void MapViewGL::UpdateRayHit(QPoint screen, bool fromReplay)
     {
-        lastMousePos = screen; // restore Zoom()
+        if (fromReplay)
+        {
+            lastMousePos = screen; // restore Zoom()
+        }
         auto currGroundPos = PointerOnGround(screen);
         g_PointerOnGround[0] = currGroundPos.x();
         g_PointerOnGround[1] = currGroundPos.y();
