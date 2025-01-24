@@ -253,10 +253,9 @@ namespace RoadRunner
         return true;
     }
 
-    void GLBufferManage::UpdateItem(unsigned int objectID, bool highlighted)
+    void GLBufferManage::UpdateItem(unsigned int objectID, RoadRunner::ObjectDisplayFlag flag)
     {
-        uint8_t updated[1];
-        updated[0] = highlighted ? 255 : 0;
+        uint8_t updated[1] = {static_cast<uint8_t>(flag)};
         m_objectInfo.setData(objectID,0,0,1,1,1,
             QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, updated);
     }

@@ -11,6 +11,7 @@
 #include "constants.h"
 #include "change_tracker.h"
 #include "vehicle.h"
+#include "junction.h"
 
 namespace RoadRunner
 {
@@ -144,9 +145,9 @@ namespace RoadRunner
         vehicleBuffer[variation].AddInstance(id, QMatrix4x4(), color);
     }
 
-    void MapViewGL::UpdateItem(unsigned int id, bool highlighted)
+    void MapViewGL::UpdateItem(unsigned int id, ObjectDisplayFlag flag)
     {
-        permanentBuffer.UpdateItem(id, highlighted);
+        permanentBuffer.UpdateItem(id, flag);
     }
 
     void MapViewGL::UpdateObjectID(unsigned int graphicsID, unsigned int objectID)
@@ -504,7 +505,10 @@ namespace RoadRunner
             if (prevHL != nullptr)
             {
                 prevHL->EnableHighlight(false);
-
+                if (prevHL->generated.junction != "-1")
+                {
+                    static_cast<Junction*>(IDGenerator::ForJunction()->GetByID(prevHL->generated.junction))->Hide(false);
+                }
             }
         }
         g_PointerRoadID.clear();
@@ -514,7 +518,12 @@ namespace RoadRunner
             g_PointerRoadID = hitInfo.roadID;
             g_PointerRoadS = hitInfo.s;
             g_PointerLane = hitInfo.lane;
-            static_cast<Road*>(IDGenerator::ForRoad()->GetByID(g_PointerRoadID))->EnableHighlight(true);
+            auto hitRoad = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(g_PointerRoadID));
+            hitRoad->EnableHighlight(true);
+            if (hitRoad->generated.junction != "-1")
+            {
+                static_cast<Junction*>(IDGenerator::ForJunction()->GetByID(hitRoad->generated.junction))->Hide(true);
+            }
         }
 
         odr::Vec3D pointerOnGround3D{ g_PointerOnGround[0], g_PointerOnGround[1], 0 };

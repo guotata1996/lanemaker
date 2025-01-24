@@ -405,7 +405,12 @@ namespace RoadRunner
             }
         }
 
-        junctionGraphics = std::make_unique<JunctionGraphics>(rasterizedBoundary, Elevation(), ID());
+        junctionGraphics = std::make_unique<JunctionGraphics>(rasterizedBoundary, Elevation() + 0.02, ID());
+    }
+
+    void Junction::Hide(bool hidden)
+    {
+        junctionGraphics->Hide(hidden);
     }
 #endif
 

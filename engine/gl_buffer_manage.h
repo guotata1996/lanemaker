@@ -18,6 +18,15 @@ namespace objl
 
 namespace RoadRunner
 {
+    enum class ObjectDisplayFlag
+    {
+        Normal = 0,
+        Highlighted = 16,
+        Hidden = 32,
+        Red = 48,
+        Green = 64
+    };
+
     class GLBufferManage: public QOpenGLFunctions
     {
     public:
@@ -27,7 +36,7 @@ namespace RoadRunner
         bool AddQuads(unsigned int graphicsID, unsigned int objectID, const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color);
         bool AddPoly(unsigned int graphicsID, unsigned int objectID, const odr::Line3D& boundary, QColor color);
         bool AddColumn(unsigned int graphicsID, unsigned int objectID, const odr::Line3D& boundary, double h, QColor color);
-        void UpdateItem(unsigned int objectID, bool highlighted);
+        void UpdateItem(unsigned int objectID, ObjectDisplayFlag);
         void UpdateObjectID(unsigned int graphicsID, unsigned int objectID);
         void RemoveItem(unsigned int graphicsID);
 

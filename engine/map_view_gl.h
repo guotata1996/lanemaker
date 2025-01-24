@@ -26,7 +26,7 @@ namespace RoadRunner
 		unsigned int AddLine(const odr::Line3D& border, double width, QColor color, unsigned int objID = -1);
 		unsigned int AddPoly(const odr::Line3D& boundary, QColor color, unsigned int objID = -1);
 		unsigned int AddColumn(const odr::Line3D& boundary, double h, QColor color, unsigned int objID = -1);
-		void UpdateItem(unsigned int objectID, bool highlighted);  // permanent objects only
+		void UpdateItem(unsigned int objectID, ObjectDisplayFlag);  // permanent objects only
 		void UpdateObjectID(unsigned int graphicsID, unsigned int objectID);  // permanent objects only
 		void RemoveItem(unsigned int graphicsID, bool temporary = false);
 

@@ -232,6 +232,8 @@ namespace RoadRunner
 
 #ifndef G_TEST
         virtual void GenerateGraphics() override;
+
+        void Hide(bool);
 #endif
     protected:
         std::vector<std::shared_ptr<Road>> connectingRoads;

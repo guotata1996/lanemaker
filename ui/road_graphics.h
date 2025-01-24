@@ -63,6 +63,8 @@ namespace RoadRunner
 
         JunctionGraphics(const std::vector<std::pair<odr::Line3D, odr::Line3D>>& directCavities, std::string junctionID);
 
+        void Hide(bool hidden);
+
         ~JunctionGraphics();
 
     private:
@@ -74,6 +76,6 @@ namespace RoadRunner
 
         std::vector<unsigned int> allGraphicsIndice;
 
-        const unsigned int junctionID;
+        const unsigned int junctionObjectID; // = junctionID + offset
     };
 }
