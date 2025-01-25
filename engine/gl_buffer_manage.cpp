@@ -1,7 +1,6 @@
 #include "gl_buffer_manage.h"
 #include "triangulation.h"
 #include "Road.h"
-#include "constants.h"
 
 #include <QOpenGLShaderProgram>
 
@@ -42,15 +41,19 @@ namespace RoadRunner
         shaderProgramm->setAttributeBuffer(2, GL_FLOAT, offsetof(Vertex, objectID), 1, sizeof(Vertex));
 
         m_objectInfo.setData(QImage(MaxObjectID, 1, QImage::Format_Grayscale8));
-        uint8_t initialHighlight[MaxObjectID];
-        memset(initialHighlight, static_cast<uint8_t>(0), MaxObjectID);
-        m_objectInfo.setData(QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, initialHighlight);
+        Reset();
 
         shaderProgramm->setUniformValue(shader.m_uniformIDs[1], 0);
 
         // Release (unbind) all
         m_vao.release();
         m_vbo.release();
+    }
+
+    void GLBufferManage::Reset()
+    {
+        memset(m_objectFlag, static_cast<uint8_t>(ObjectDisplayFlag::Normal), MaxObjectID);
+        m_objectInfo.setData(QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, m_objectFlag);
     }
 
     bool GLBufferManage::AddQuads(unsigned int gid, unsigned int objectID, const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color)
@@ -253,11 +256,20 @@ namespace RoadRunner
         return true;
     }
 
-    void GLBufferManage::UpdateItem(unsigned int objectID, RoadRunner::ObjectDisplayFlag flag)
+    void GLBufferManage::UpdateItem(unsigned int objectID, uint8_t flag)
     {
-        uint8_t updated[1] = {static_cast<uint8_t>(flag)};
+        if (objectID >= MaxObjectID)
+        {
+            throw std::logic_error("Object ID out of range!");
+        }
+        m_objectFlag[objectID] = flag;
         m_objectInfo.setData(objectID,0,0,1,1,1,
-            QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, updated);
+            QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, m_objectFlag + objectID);
+    }
+
+    uint8_t GLBufferManage::GetItemFlag(unsigned int objectID)
+    {
+        return m_objectFlag[objectID];
     }
 
     void GLBufferManage::UpdateObjectID(unsigned int graphicsID, unsigned int objectID)
@@ -315,6 +327,13 @@ namespace RoadRunner
             m_vao.release();
             m_vbo.release();
         }
+    }
+
+    void GLBufferManage::RemoveObject(unsigned int objectID)
+    {
+        m_objectFlag[objectID] = static_cast<int>(ObjectDisplayFlag::Normal);
+        m_objectInfo.setData(objectID, 0, 0, 1, 1, 1,
+            QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, m_objectFlag + objectID);
     }
 
     void GLBufferManage::Draw(QMatrix4x4 worldToView)

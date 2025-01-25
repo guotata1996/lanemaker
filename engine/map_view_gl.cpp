@@ -145,9 +145,14 @@ namespace RoadRunner
         vehicleBuffer[variation].AddInstance(id, QMatrix4x4(), color);
     }
 
-    void MapViewGL::UpdateItem(unsigned int id, ObjectDisplayFlag flag)
+    void MapViewGL::UpdateItem(unsigned int id, uint8_t flag)
     {
         permanentBuffer.UpdateItem(id, flag);
+    }
+
+    uint8_t MapViewGL::GetItemFlag(unsigned int objectID)
+    {
+        return permanentBuffer.GetItemFlag(objectID);
     }
 
     void MapViewGL::UpdateObjectID(unsigned int graphicsID, unsigned int objectID)
@@ -166,6 +171,11 @@ namespace RoadRunner
             temporaryBuffer.RemoveItem(id);
         }
         IDGenerator::ForGraphics(temporary)->FreeID(std::to_string(id));
+    }
+
+    void MapViewGL::RemoveObject(unsigned int objectID)
+    {
+        permanentBuffer.RemoveObject(objectID);
     }
 
     void MapViewGL::UpdateInstance(unsigned int id, const QMatrix4x4 trans, unsigned int variation)

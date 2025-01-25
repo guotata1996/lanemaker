@@ -181,7 +181,7 @@ namespace RoadRunner
                         auto s1 = s - w / 2;
                         auto s2 = s + w / 2;
 
-                        uint8_t side = id_object.first == std::to_string(odr::RoadLink::ContactPoint_Start) ? 1 : -1;
+                        int8_t side = id_object.first == std::to_string(odr::RoadLink::ContactPoint_Start) ? 1 : -1;
                         auto l1 = gen.get_side_border_line(side, s1, s2, false, 0.1);
                         auto l2 = gen.get_side_border_line(side, s1, s2, true, 0.1);
                         for (auto& p : l1)
@@ -199,6 +199,7 @@ namespace RoadRunner
                         auto sMid = (sMin + sMax) / 2;  // arrow always placed at mid at current section
                         auto pt = gen.get_surface_pt(sMid, id_object.second.t0);
                         auto hdg = gen.ref_line.get_hdg(sMid);
+                        auto side = std::stoi(id_object.first) < odr::ArrowIDOffset ? -1 : 1;
                         int arrowType = std::stoi(id_object.second.name);
                         QTransform arrowTransform;
                         arrowTransform.translate(pt[0], pt[1]);
@@ -211,7 +212,9 @@ namespace RoadRunner
                             shape3.resize(transformed.size());
                             for (int i = 0; i != transformed.size(); ++i)
                             {
-                                shape3[i] = odr::Vec3D{ transformed[i].x(), transformed[i].y(), pt[2] + 0.01};
+                                auto vertexS = (-side) * poly[i].x() + sMid;
+                                auto vertexH = gen.ref_line.elevation_profile.get(vertexS);
+                                shape3[i] = odr::Vec3D{ transformed[i].x(), transformed[i].y(), vertexH + 0.02};
                             }
                             allGraphicsIndice.push_back(g_mapViewGL->AddPoly(shape3, Qt::white, std::stoi(road->ID())));
                         }
@@ -243,8 +246,32 @@ namespace RoadRunner
 
     void SectionGraphics::EnableHighlight(bool enabled)
     {
-        g_mapViewGL->UpdateItem(roadID, enabled ? 
-            ObjectDisplayFlag::Highlighted : ObjectDisplayFlag::Normal);
+        uint8_t currFlag = static_cast<uint8_t>(g_mapViewGL->GetItemFlag(roadID));
+        if (enabled)
+        {
+            currFlag |= static_cast<uint8_t>(ObjectDisplayFlag::Highlighted);
+        }
+        else
+        {
+            currFlag &= ~static_cast<uint8_t>(ObjectDisplayFlag::Highlighted);
+        }
+
+        g_mapViewGL->UpdateItem(roadID, currFlag);
+    }
+
+    void SectionGraphics::Hide(bool hidden)
+    {
+        uint8_t currFlag = static_cast<uint8_t>(g_mapViewGL->GetItemFlag(roadID));
+        if (hidden)
+        {
+            currFlag |= static_cast<uint8_t>(ObjectDisplayFlag::Hidden);
+        }
+        else
+        {
+            currFlag &= ~static_cast<uint8_t>(ObjectDisplayFlag::Hidden);
+        }
+
+        g_mapViewGL->UpdateItem(roadID, currFlag);
     }
 
     QPainterPath SectionGraphics::CreateRefLinePath(const odr::Line3D& lineAppox)
@@ -380,12 +407,14 @@ namespace RoadRunner
         {
             g_mapViewGL->RemoveItem(index);
         }
+        g_mapViewGL->RemoveObject(junctionObjectID);
     }
 
     void JunctionGraphics::Hide(bool hidden)
     {
-        g_mapViewGL->UpdateItem(junctionObjectID, hidden ? 
-            ObjectDisplayFlag::Hidden : ObjectDisplayFlag::Normal);
+        auto flag = hidden ?
+            ObjectDisplayFlag::Hidden : ObjectDisplayFlag::Normal;
+        g_mapViewGL->UpdateItem(junctionObjectID, static_cast<uint8_t>(flag));
     }
 
     odr::Vec3D JunctionGraphics::StripMidPoint(const odr::Vec3D& pOrigin, const odr::Vec3D& p1, const odr::Vec3D& p2)

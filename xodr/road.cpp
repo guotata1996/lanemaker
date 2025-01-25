@@ -13,6 +13,7 @@
 #include "spdlog/spdlog.h"
 #ifndef G_TEST
 #include "road_graphics.h"
+#include "map_view_gl.h"
 #include "multi_segment.h"
 #endif
 
@@ -136,6 +137,7 @@ namespace RoadRunner
             IDGenerator::ForRoad()->FreeID(ID());
 #ifndef G_TEST
             s_to_section_graphics.clear();
+            g_mapViewGL->RemoveObject(std::stoi(ID()));
 #endif
         }
     }
@@ -462,15 +464,20 @@ namespace RoadRunner
         return rtn;
     }
 
-    void Road::EnableHighlight(bool enabled, bool bringToTop)
+    void Road::EnableHighlight(bool enabled)
     {
-        if (highlighted.has_value() && highlighted.value() == enabled) return;
-
         for (auto& s_and_graphics : s_to_section_graphics)
         {
             s_and_graphics.second->EnableHighlight(enabled);
         }
-        highlighted.emplace(enabled);
+    }
+
+    void Road::Hide(bool hidden)
+    {
+        for (auto& s_graphics : s_to_section_graphics)
+        {
+            s_graphics.second->Hide(hidden);
+        }
     }
 #endif
 

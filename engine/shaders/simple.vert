@@ -12,37 +12,27 @@ uniform mat4 worldToView;            // parameter: the camera matrix
 uniform sampler1D objectInfo;
 
 void main() {
-  // Mind multiplication order for matrixes
-  gl_Position = worldToView * vec4(position, 1.0);
   int objectID_I = int(round(objectID));
   float objFlag = objectID_I == -1 ? 0 : texelFetch(objectInfo, objectID_I, 0).r;
-  objFlag = int(round(objFlag * 16));
-  if (objFlag == 0)
+  int objFlag_I = int(round(objFlag * 16));
+
+  vec3 adjustedPosition = position;
+  if ((objFlag_I & 1) == 0)
   {
     fragColor = vec4(color, 1.0);
   }
-  else if (objFlag == 1)
+  else
   {
     fragColor = vec4(color * 1.5, 1.0);
+    adjustedPosition.z = position.z + 0.02;
   }
-  else if (objFlag == 2)
+
+  if ((objFlag_I & 2) == 0)
   {
-    // Invisible
-    gl_Position = vec4(0,0,0,0);
-  }
-  else if (objFlag == 3)
-  {
-    fragColor = vec4(color * vec3(1,0,0), 1.0);
-  }
-  else if (objFlag == 4)
-  {
-    fragColor = vec4(color * vec3(0,1,0), 1.0);
+    gl_Position = worldToView * vec4(adjustedPosition, 1.0);
   }
   else
   {
-    // Error
-    fragColor = vec4(0,0,0,1);
+    gl_Position = vec4(0,0,0,0);
   }
 }
-
-

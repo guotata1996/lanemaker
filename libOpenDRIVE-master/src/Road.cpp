@@ -1006,7 +1006,6 @@ void Road::ToggleStopLine(odr::RoadLink::ContactPoint contact, bool enable)
 
 void Road::UpdateArrowMarkings(odr::RoadLink::ContactPoint contact, std::map<int, uint8_t> laneToArrow) 
 { 
-    const int ArrowIDOffset = 100;
     // Clear out all markings on this side
     int side = contact == odr::RoadLink::ContactPoint_Start ? 1 : -1;
     for (int unsignedLaneID = 1; unsignedLaneID <= 20; ++unsignedLaneID) 

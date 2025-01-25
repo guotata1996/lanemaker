@@ -1,3 +1,5 @@
+#pragma once
+
 namespace RoadRunner
 {
     /*Protect bad (way too long) geometry from freezing UI*/

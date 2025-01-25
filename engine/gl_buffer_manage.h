@@ -10,6 +10,7 @@
 #include "Math.hpp"
 #include "Vertex.h"
 #include "ShaderProgram.h"
+#include "constants.h"
 
 namespace objl
 {
@@ -22,9 +23,7 @@ namespace RoadRunner
     {
         Normal = 0,
         Highlighted = 16,
-        Hidden = 32,
-        Red = 48,
-        Green = 64
+        Hidden = 32
     };
 
     class GLBufferManage: public QOpenGLFunctions
@@ -32,13 +31,16 @@ namespace RoadRunner
     public:
         GLBufferManage(unsigned int capacity);
         void Initialize();
+        void Reset();
 
         bool AddQuads(unsigned int graphicsID, unsigned int objectID, const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color);
         bool AddPoly(unsigned int graphicsID, unsigned int objectID, const odr::Line3D& boundary, QColor color);
         bool AddColumn(unsigned int graphicsID, unsigned int objectID, const odr::Line3D& boundary, double h, QColor color);
-        void UpdateItem(unsigned int objectID, ObjectDisplayFlag);
+        void UpdateItem(unsigned int objectID, uint8_t);
+        uint8_t GetItemFlag(unsigned int objectID);
         void UpdateObjectID(unsigned int graphicsID, unsigned int objectID);
         void RemoveItem(unsigned int graphicsID);
+        void RemoveObject(unsigned int objectID); // call after all of its items have been removed
 
         void Draw(QMatrix4x4 worldToView);
 
@@ -57,6 +59,7 @@ namespace RoadRunner
         std::map<unsigned int, std::set<unsigned int>> idToVids;
 
         ShaderProgram shader;
+        uint8_t                     m_objectFlag[MaxObjectID];
         QOpenGLTexture              m_objectInfo;
     };
 

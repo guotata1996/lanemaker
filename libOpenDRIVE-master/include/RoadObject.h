@@ -67,6 +67,8 @@ struct RoadObjectOutline : public XmlNode
     std::vector<RoadObjectCorner> outline;
 };
 
+const int ArrowIDOffset = 100;  // road object ID for arrow = ArrowIDOffset + laneID
+
 struct RoadObject : public XmlNode
 {
     RoadObject(std::string road_id,

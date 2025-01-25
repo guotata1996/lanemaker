@@ -67,7 +67,6 @@ namespace RoadRunner
         // Special markings for normal junction
         void UpdateArrowGraphics(odr::RoadLink::ContactPoint c, std::map<int, uint8_t> laneToArrow, bool stopLine);
 
-
 #ifndef G_TEST
         // Expensive, but safe
         void GenerateAllSectionGraphics();
@@ -96,7 +95,8 @@ namespace RoadRunner
         // Everything included
         std::vector<RoadsOverlap> AllOverlaps(double sBegin, double sEnd, double zThreshold) const;
 
-        void EnableHighlight(bool enabled, bool bringToTop=true);
+        void EnableHighlight(bool enabled);
+        void Hide(bool hidden);
 #endif
 
         // Member variables
@@ -118,7 +118,6 @@ namespace RoadRunner
         // When updates road, remove RoadSectionGraphics then add new
         std::map<double, std::unique_ptr<SectionGraphics>> s_to_section_graphics;
 
-        std::optional<bool> highlighted;
 #endif
 
         std::map<std::pair<odr::RoadLink::ContactPoint, int>, double> graphicsBoundaryHide;

@@ -1,10 +1,10 @@
 #pragma once
 #include <qgraphicsitem.h>
 #include <qbrush.h>
+#include <map>
 
 #include "road.h"
 #include "spatial_indexer.h"
-#include <map>
 
 namespace RoadRunner
 {
@@ -33,6 +33,7 @@ namespace RoadRunner
         ~SectionGraphics();
 
         void EnableHighlight(bool enabled);
+        void Hide(bool hidden);
 
         /*Assuming graphics remain the same.*/
         void updateIndexingInfo(std::string newRoadID, int mult, double shift);

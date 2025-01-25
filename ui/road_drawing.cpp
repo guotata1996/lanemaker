@@ -221,7 +221,7 @@ void RoadDrawingSession::UpdateEndMarkings()
         auto road = static_cast<RoadRunner::Road*>(id_obj.second);
         if (road != nullptr)
         {
-            road->EnableHighlight(false);
+            //road->EnableHighlight(false);
             dueUpdate.insert(std::make_pair(road, odr::RoadLink::ContactPoint_Start));
             dueUpdate.insert(std::make_pair(road, odr::RoadLink::ContactPoint_End));
         }

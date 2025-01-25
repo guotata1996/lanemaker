@@ -406,11 +406,16 @@ namespace RoadRunner
         }
 
         junctionGraphics = std::make_unique<JunctionGraphics>(rasterizedBoundary, Elevation() + 0.02, ID());
+        Hide(false); // show cover, hide connecting roads
     }
 
     void Junction::Hide(bool hidden)
     {
         junctionGraphics->Hide(hidden);
+        for (auto& road : connectingRoads)
+        {
+            road->Hide(!hidden);
+        }
     }
 #endif
 
