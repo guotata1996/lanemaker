@@ -2,6 +2,8 @@
 #include "world.h"
 #include "constants.h"
 
+#include <spdlog/spdlog.h>
+
 namespace RoadRunner
 {
     extern int g_createRoadElevationOption;

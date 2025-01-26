@@ -1,5 +1,4 @@
 #include "junction.h"
-#include <sstream>
 
 #include "id_generator.h"
 #include "constants.h"
@@ -8,6 +7,9 @@
 #ifndef G_TEST
     #include "road_graphics.h"
 #endif
+
+#include <sstream>
+#include <spdlog/spdlog.h>
 
 namespace RoadRunner
 {

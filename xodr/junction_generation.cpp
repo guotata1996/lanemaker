@@ -4,6 +4,7 @@
 
 #include <cmath> // floor, ceil
 #include <map>
+#include <spdlog/spdlog.h>
 
 namespace RoadRunner
 {

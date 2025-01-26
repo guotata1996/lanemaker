@@ -2,7 +2,6 @@
 
 #include <map>
 #include <optional>
-#include "spdlog/spdlog.h"
 
 #include "OpenDriveMap.h"
 #include "id_generator.h"

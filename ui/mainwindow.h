@@ -67,7 +67,7 @@ public slots:
 
 private slots:
     void updateHint();
-    //void setFPS(QString);
+    void setFPS(QString);
 
     void newMap();
 
@@ -87,7 +87,7 @@ private slots:
 
     void toggleSimulation(bool);
 
-    void enableSimulation(bool);
+    void stopSimulation();
 
     void onReplayDone(bool);
 

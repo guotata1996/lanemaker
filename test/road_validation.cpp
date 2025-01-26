@@ -11,6 +11,7 @@
 #else
     #include "road_graphics.h"
 #endif
+#include <spdlog/spdlog.h>
 
 using namespace odr;
 using namespace RoadRunner;

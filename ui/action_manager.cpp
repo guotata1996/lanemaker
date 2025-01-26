@@ -13,6 +13,7 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/string.hpp>
 #include <qscrollbar.h>
+#include <spdlog/spdlog.h>
 
 
 extern MainWindow* g_mainWindow;

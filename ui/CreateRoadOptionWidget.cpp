@@ -5,9 +5,6 @@
 #include <qevent.h>
 #include <qpainter.h>
 
-#include <spdlog/spdlog.h>
-#include <sstream>
-
 SectionProfileConfigWidget* g_createRoadOption;
 
 CreateRoadOptionWidget::CreateRoadOptionWidget():

@@ -3,6 +3,7 @@
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Arr_non_caching_segment_traits_2.h>
 #include <CGAL/Arrangement_with_history_2.h>
+#include <spdlog/spdlog.h>
 
 typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
 typedef CGAL::Arr_non_caching_segment_traits_2<Kernel>  Traits_2;

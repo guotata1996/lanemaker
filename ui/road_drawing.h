@@ -7,7 +7,7 @@
 #include "Transform3D.h"
 #include <vector>
 #include <map>
-
+#include <spdlog/spdlog.h>
 
 class RoadDrawingSession
 {

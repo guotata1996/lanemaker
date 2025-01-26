@@ -1,18 +1,15 @@
 // Copyright (C) 2016 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
+#include <QtWidgets>
+
 #include "main_widget.h"
 #include "map_view_gl.h"
 #include "mainwindow.h"
 #include "action_manager.h"
 #include "road_drawing.h"
 #include "change_tracker.h"
-
 #include "CreateRoadOptionWidget.h"
-#include "spdlog/spdlog.h"
-
-#include <QtWidgets>
-#include <QtMath>
 
 extern SectionProfileConfigWidget* g_createRoadOption;
 
@@ -122,7 +119,6 @@ void MainWidget::gotoCreateRoadMode(bool checked)
     SetEditMode(RoadRunner::Mode_Create);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Create);
     createRoadOption->GotoRoadMode();
-    emit InReadOnlyMode(false);
 }
 
 void MainWidget::gotoCreateLaneMode(bool checked)
@@ -131,7 +127,6 @@ void MainWidget::gotoCreateLaneMode(bool checked)
     SetEditMode(RoadRunner::Mode_CreateLanes);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_CreateLanes);
     createRoadOption->GotoLaneMode();
-    emit InReadOnlyMode(false);
 }
 
 void MainWidget::gotoDestroyMode(bool checked)
@@ -140,7 +135,6 @@ void MainWidget::gotoDestroyMode(bool checked)
     SetEditMode(RoadRunner::Mode_Destroy);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Destroy);
     createRoadOption->hide();
-    emit InReadOnlyMode(false);
 }
 
 void MainWidget::gotoModifyMode(bool checked)
@@ -149,7 +143,6 @@ void MainWidget::gotoModifyMode(bool checked)
     SetEditMode(RoadRunner::Mode_Modify);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Modify);
     createRoadOption->GotoRoadMode();
-    emit InReadOnlyMode(false);
 }
 
 void MainWidget::gotoDragMode(bool checked)
@@ -158,7 +151,6 @@ void MainWidget::gotoDragMode(bool checked)
     SetEditMode(RoadRunner::Mode_None);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_None);
     createRoadOption->hide();
-    emit InReadOnlyMode(true);
 }
 
 void MainWidget::OnMouseAction(RoadRunner::MouseAction evt)
@@ -283,6 +275,19 @@ void MainWidget::SetModeFromReplay(int mode)
     default:
         dragModeButton->setChecked(true);
         break;
+    }
+}
+
+void MainWidget::GoToSimulationMode(bool enabled)
+{
+    if (enabled)
+    {
+        dragModeButton->setChecked(true);
+        //gotoDragMode();
+    }
+    for (auto btn : pointerModeGroup->buttons())
+    {
+        btn->setEnabled(!enabled);
     }
 }
 

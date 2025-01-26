@@ -2,8 +2,9 @@
 #include <QOpenGLShaderProgram>
 #include <QMouseEvent>
 #include <QKeyEvent>
-
 #include <spdlog/spdlog.h>
+
+#include "main_widget.h"
 #include "id_generator.h"
 #include "spatial_indexer.h"
 #include "triangulation.h"
@@ -22,7 +23,6 @@ namespace RoadRunner
     odr::Vec2D g_PointerOnGround;
     odr::Vec3D g_CameraPosition;
     int g_createRoadElevationOption;
-
     unsigned int g_PointerVehicle;
 
     MapViewGL::MapViewGL() :
@@ -242,6 +242,7 @@ namespace RoadRunner
 
     void MapViewGL::paintGL()
     {
+        MainWidget::Instance()->Painted();
         // update cached world2view matrix
         m_worldToView = m_projection * m_camera.toMatrix() * m_transform.toMatrix();
 

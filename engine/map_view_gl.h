@@ -97,4 +97,5 @@ namespace RoadRunner
 	extern odr::Vec2D g_PointerOnGround;
 	extern odr::Vec3D g_CameraPosition;
 	extern int g_createRoadElevationOption;
+	extern unsigned int g_PointerVehicle;
 }

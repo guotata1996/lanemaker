@@ -35,14 +35,14 @@ public:
 
     void SetModeFromReplay(int mode);
 
+    void GoToSimulationMode(bool enabled); // force into drag mode
+
     RoadRunner::MapViewGL* mapViewGL;
 
 signals:
     void HoveringChanged(QString);
 
     void FPSChanged(QString);
-
-    void InReadOnlyMode(bool);
 
 public slots:
     void toggleAntialiasing(bool);

@@ -103,15 +103,15 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(redoAction, &QAction::triggered, this, &MainWindow::redo);
     connect(verifyAction, &QAction::triggered, this, &MainWindow::verifyMap);
     connect(toggleSimAction, &QAction::toggled, this, &MainWindow::toggleSimulation);
+    connect(toggleSimAction, &QAction::toggled, this, [=](bool enabled) {
+        undoAction->setEnabled(!enabled); redoAction->setEnabled(!enabled); });
     connect(pauseResumeSimulation, &QAction::toggled, vehicleManager.get(), &VehicleManager::TogglePause);
     connect(saveReplayAction, &QAction::triggered, this, &MainWindow::saveActionHistory);
     connect(debugReplayAction, &QAction::triggered, this, &MainWindow::debugActionHistory);
     connect(controlledReplayAction, &QAction::triggered, this, &MainWindow::playActionHistory);
     connect(replayWindow.get(), &ReplayWindow::Restart, this, &MainWindow::reset);
-    //connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
-    //connect(mainWidget.get(), &MainWidget::InReadOnlyMode, this, &MainWindow::enableSimulation);
+    connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
     connect(preferenceWindow.get(), &PreferenceWindow::ToggleAA, mainWidget.get(), &MainWidget::toggleAntialiasing);
-    //connect(testButton, &QPushButton::clicked, []() {spdlog::info("Test btn press"); });
 
     connect(mainWidget->mapViewGL, &RoadRunner::MapViewGL::MousePerformedAction, this, &MainWindow::updateHint);
 
@@ -150,7 +150,7 @@ void MainWindow::reset()
     /*Road destruction order be random, which could cause temporary invalid state.*/
     //spdlog::set_level(spdlog::level::critical);
 
-    enableSimulation(false);
+    stopSimulation();
     mainWidget->Reset();
     RoadRunner::ChangeTracker::Instance()->Clear();
     RoadRunner::ActionManager::Instance()->Reset();
@@ -242,7 +242,6 @@ void MainWindow::setBackgroundPicture()
 
 void MainWindow::undo()
 {
-    enableSimulation(false);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::ActionType::Action_Undo);
     if (!RoadRunner::ChangeTracker::Instance()->Undo())
     {
@@ -252,7 +251,6 @@ void MainWindow::undo()
 
 void MainWindow::redo()
 {
-    enableSimulation(false);
     RoadRunner::ActionManager::Instance()->Record(RoadRunner::ActionType::Action_Redo);
     if (!RoadRunner::ChangeTracker::Instance()->Redo())
     {
@@ -325,29 +323,28 @@ void MainWindow::toggleSimulation(bool enable)
     if (enable)
     {
         vehicleManager->Begin();
-        pauseResumeSimulation->setEnabled(true);
     }
     else
     {
         vehicleManager->End();
-        pauseResumeSimulation->setEnabled(false);
     }
+    pauseResumeSimulation->setEnabled(enable);
+    mainWidget->GoToSimulationMode(enable);
 }
 
-void MainWindow::enableSimulation(bool available)
+void MainWindow::stopSimulation()
 {
-    // toggleSimAction->setEnabled(available);
-    if (toggleSimAction->isChecked() && !available)
+    if (toggleSimAction->isChecked())
     {
         vehicleManager->End();
         toggleSimAction->setChecked(false);
     }
 }
 
-//void MainWindow::setFPS(QString msg)
-//{
-//    fpsStatus->showMessage(msg);
-//}
+void MainWindow::setFPS(QString msg)
+{
+    fpsStatus->showMessage(msg);
+}
 
 void MainWindow::updateHint()
 {
@@ -355,13 +352,18 @@ void MainWindow::updateHint()
         .arg(RoadRunner::g_PointerOnGround[0])
         .arg(RoadRunner::g_PointerOnGround[1]);
     auto roadInfo = RoadRunner::g_PointerRoadID.empty() ?
-        QString("VBuffer: %1")
+        QString("VBuffer: %1%")
         .arg(mainWidget->mapViewGL->VBufferUseage_pct()) :
-        QString("Road %1 @%2 Lane %3 | V:%4")
+        QString("Road %1 @%2 Lane %3")
         .arg(RoadRunner::g_PointerRoadID.c_str())
         .arg(RoadRunner::g_PointerRoadS, 6, 'f', 3)
         .arg(RoadRunner::g_PointerLane);
     groundInfo.append(roadInfo);
+    if (RoadRunner::g_PointerVehicle != -1)
+    {
+        groundInfo.append(QString("  Vehicle: %1").arg(RoadRunner::g_PointerVehicle));
+    }
+
     hintStatus->showMessage(groundInfo);
 }
 

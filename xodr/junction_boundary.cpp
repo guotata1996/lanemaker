@@ -6,6 +6,7 @@
 #include <CGAL/Cartesian.h>
 
 #include <optional>
+#include <spdlog/spdlog.h>
 
 using namespace CGAL;
 typedef Cartesian<double>  Kernel;

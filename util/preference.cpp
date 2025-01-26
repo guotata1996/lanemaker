@@ -9,8 +9,6 @@
 #include <cereal/types/string.hpp>
 #include <cereal/archives/json.hpp>
 
-#include <spdlog/spdlog.h>
-
 UserPreference g_preference;
 
 PreferenceWindow::PreferenceWindow(QWidget* parent)
