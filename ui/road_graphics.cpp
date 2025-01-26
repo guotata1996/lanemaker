@@ -1,10 +1,6 @@
 #include "road_graphics.h"
 
-#include <QGraphicsSceneMouseEvent>
-#include <qgraphicsscene.h>
 #include <qvector2d.h>
-#include <QPainter>
-#include <QStyleOptionGraphicsItem>
 #include <math.h>
 
 #include "spdlog/spdlog.h"
@@ -271,6 +267,20 @@ namespace RoadRunner
             currFlag &= ~static_cast<uint8_t>(ObjectDisplayFlag::Hidden);
         }
 
+        g_mapViewGL->UpdateItem(roadID, currFlag);
+    }
+
+    void SectionGraphics::ShowGreenLight(bool green)
+    {
+        uint8_t currFlag = static_cast<uint8_t>(g_mapViewGL->GetItemFlag(roadID));
+        if (green)
+        {
+            currFlag |= static_cast<uint8_t>(ObjectDisplayFlag::GreenLight);
+        }
+        else
+        {
+            currFlag &= ~static_cast<uint8_t>(ObjectDisplayFlag::GreenLight);
+        }
         g_mapViewGL->UpdateItem(roadID, currFlag);
     }
 

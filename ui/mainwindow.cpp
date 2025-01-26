@@ -1,6 +1,4 @@
 #include "mainwindow.h"
-#include <qgraphicsscene.h>
-#include <qgraphicsitem.h>
 #include <QVBoxLayout>
 #include <QMenuBar>
 #include <QFileDialog>
@@ -22,9 +20,6 @@
 #include "preference.h"
 
 #include "spdlog/spdlog.h"
-
-#include <QPushButton>
-#include <QGraphicsProxyWidget>
 
 #include "map_view_gl.h"
 
@@ -79,18 +74,6 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     replayWindow = std::make_unique<ReplayWindow>(this);
 #endif
     preferenceWindow = std::make_unique<PreferenceWindow>(this);
-
-    scene = std::make_unique<QGraphicsScene>(this);
-
-    // Overlay button example 
-    /*
-    QPushButton* testButton = new QPushButton("Test button");
-    QGraphicsProxyWidget* proxy = scene->addWidget(testButton);
-    proxy->setGeometry(QRectF(100, 100, 200, 300));
-    QTransform matrix;
-    matrix.scale(1, -1);
-    proxy->setTransform(matrix);
-    */
 
     vehicleManager = std::make_unique<VehicleManager>(this);
     

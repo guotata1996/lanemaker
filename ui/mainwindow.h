@@ -40,8 +40,6 @@ private:
 
     QSize PreferredSize() const;
 
-    std::unique_ptr<QGraphicsScene> scene;
-
     std::unique_ptr<QStatusBar> hintStatus;
     std::unique_ptr<QStatusBar> fpsStatus;
 

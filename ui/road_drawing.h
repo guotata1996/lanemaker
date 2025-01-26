@@ -4,10 +4,7 @@
 #include "action_defs.h"
 #include "road_graphics.h"
 
-#include "qgraphicsview.h"
-#include "qgraphicsitem.h"
 #include "Transform3D.h"
-#include <QPainterPath>
 #include <vector>
 #include <map>
 

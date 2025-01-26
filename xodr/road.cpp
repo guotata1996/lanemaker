@@ -479,6 +479,14 @@ namespace RoadRunner
             s_graphics.second->Hide(hidden);
         }
     }
+
+    void Road::ShowGreenLight(bool green)
+    {
+        for (auto& s_graphics : s_to_section_graphics)
+        {
+            s_graphics.second->ShowGreenLight(green);
+        }
+    }
 #endif
 
 } // namespace

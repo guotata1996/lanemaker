@@ -6,7 +6,6 @@
 #include "constants.h"
 #include "road_overlaps.h"
 
-#include <QGraphicsSceneMouseEvent>
 #include <math.h>
 
 extern SectionProfileConfigWidget* g_createRoadOption;

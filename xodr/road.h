@@ -97,6 +97,7 @@ namespace RoadRunner
 
         void EnableHighlight(bool enabled);
         void Hide(bool hidden);
+        void ShowGreenLight(bool green);
 #endif
 
         // Member variables

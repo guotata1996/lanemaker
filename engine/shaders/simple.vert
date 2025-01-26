@@ -17,18 +17,28 @@ void main() {
   int objFlag_I = int(round(objFlag * 16));
 
   vec3 adjustedPosition = position;
+  
   if ((objFlag_I & 1) == 0)
   {
     fragColor = vec4(color, 1.0);
   }
   else
   {
+    // highlight
     fragColor = vec4(color * 1.5, 1.0);
+    adjustedPosition.z = position.z + 0.02;
+  }
+  
+  if ((objFlag_I & 4) != 0)
+  {
+    // green
+    fragColor = vec4(fragColor * vec4(0.5, 2, 0.5, 1));
     adjustedPosition.z = position.z + 0.02;
   }
 
   if ((objFlag_I & 2) == 0)
   {
+    // hidden
     gl_Position = worldToView * vec4(adjustedPosition, 1.0);
   }
   else

@@ -23,7 +23,8 @@ namespace RoadRunner
     {
         Normal = 0,
         Highlighted = 16,
-        Hidden = 32
+        Hidden = 32,
+        GreenLight = 64
     };
 
     class GLBufferManage: public QOpenGLFunctions

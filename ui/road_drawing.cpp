@@ -1,6 +1,5 @@
 #include "road_drawing.h"
 
-#include <QGraphicsPathItem>
 #include <qevent.h>
 
 #include "Geometries/Line.h"

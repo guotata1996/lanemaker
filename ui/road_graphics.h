@@ -34,6 +34,7 @@ namespace RoadRunner
 
         void EnableHighlight(bool enabled);
         void Hide(bool hidden);
+        void ShowGreenLight(bool green);
 
         /*Assuming graphics remain the same.*/
         void updateIndexingInfo(std::string newRoadID, int mult, double shift);

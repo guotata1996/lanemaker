@@ -3,7 +3,6 @@
 #include "junction.h"
 #include "map_view_gl.h"
 
-#include <QGraphicsPathItem>
 #include <qevent.h>
 
 
