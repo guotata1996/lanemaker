@@ -37,6 +37,10 @@ namespace RoadRunner
 		void UpdateInstance(unsigned int, const QMatrix4x4, unsigned int);
 		void RemoveInstance(unsigned int, unsigned int);
 
+		// Background
+		unsigned int AddBackgroundLine(const odr::Line3D& line, double width, QColor color);
+		void RemoveBackground(unsigned int);
+
 		void SetViewFromReplay(Transform3D t);
 		void UpdateRayHit(QPoint screen, bool fromReplay=false);
 		int VBufferUseage_pct() const;
@@ -61,6 +65,8 @@ namespace RoadRunner
 		void keyPressEvent(QKeyEvent* event) override;
 
 	private:
+		static void LineToQuads(const odr::Line3D& border, double width, odr::Line3D& outLSide, odr::Line3D& outRSide);
+
 		QPoint lastMousePos;
 		std::optional<QVector3D> dragRotFixedRay;
 		bool dragPan = false;
@@ -73,6 +79,7 @@ namespace RoadRunner
 
 		GLBufferManage     permanentBuffer;
 		GLBufferManage     temporaryBuffer;
+		GLBufferManage     backgroundBuffer;
 		std::array<GLBufferManageInstanced, NVehicleVariations> vehicleBuffer;
 
 		QMatrix4x4					m_worldToView;	// cached world to view transformation matrix

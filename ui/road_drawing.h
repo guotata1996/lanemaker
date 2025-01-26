@@ -39,11 +39,13 @@ protected:
         void SetTranslation(odr::Vec3D);
 
     private:
-        static double InitialRadius;
+        void DrawGroundGrids();
 
-        std::optional<unsigned int> graphicsIndex;
+        std::vector<unsigned int> graphicsIndex;
         QColor color;
         odr::Vec3D translation;
+
+        std::vector<unsigned int> groundGridIdx;
     };
 
     enum SnapResult

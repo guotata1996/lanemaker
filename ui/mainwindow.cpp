@@ -371,13 +371,13 @@ void MainWindow::updateHint()
     auto groundInfo = QString("(%1, %2) ")
         .arg(RoadRunner::g_PointerOnGround[0])
         .arg(RoadRunner::g_PointerOnGround[1]);
-    auto roadInfo = RoadRunner::g_PointerRoadID.empty() ? 
-        "" :
+    auto roadInfo = RoadRunner::g_PointerRoadID.empty() ?
+        QString("VBuffer: %1")
+        .arg(mainWidget->mapViewGL->VBufferUseage_pct()) :
         QString("Road %1 @%2 Lane %3 | V:%4")
         .arg(RoadRunner::g_PointerRoadID.c_str())
         .arg(RoadRunner::g_PointerRoadS, 6, 'f', 3)
-        .arg(RoadRunner::g_PointerLane)
-        .arg(mainWidget->mapViewGL->VBufferUseage_pct());
+        .arg(RoadRunner::g_PointerLane);
     groundInfo.append(roadInfo);
     hintStatus->showMessage(groundInfo);
 }

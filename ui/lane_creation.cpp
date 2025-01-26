@@ -688,10 +688,11 @@ odr::Vec2D LanesCreationSession::JoinAtEndDir() const
 
 RoadRunner::type_t LanesCreationSession::PreviewRightOffsetX2() const
 {
-    return rOffsetX2;
+    return extendFromStart.expired() ? RoadCreationSession::PreviewRightOffsetX2() : rOffsetX2;
 }
 
 RoadRunner::type_t LanesCreationSession::PreviewLeftOffsetX2() const
 {
-    return lLanes == 0 ? -rOffsetX2 : lOffsetX2;
+    return extendFromStart.expired() ? RoadCreationSession::PreviewLeftOffsetX2() :
+        (lLanes == 0 ? -rOffsetX2 : lOffsetX2);
 }

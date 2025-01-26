@@ -551,7 +551,7 @@ void RoadCreationSession::GenerateHintLines(const odr::RefLine& refLine,
 		{
 			auto s = flexLen / (Division - 1) * i;
 			auto p = refLine.get_xyz(s);
-			centerPath.push_back(p);
+			centerPath.push_back(odr::add(p, odr::Vec3D{0, 0, 0.03})); // not obstructed by surface
 		}
 
 		// right boundary

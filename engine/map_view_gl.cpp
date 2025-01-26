@@ -27,6 +27,7 @@ namespace RoadRunner
 
     MapViewGL::MapViewGL() :
         permanentBuffer(MaxRoadVertices), temporaryBuffer(MaxTemporaryVertices),
+        backgroundBuffer(1 << 12),
         vehicleBuffer{
             GLBufferManageInstanced(":/models/jeep.obj", ":/models/jeep.jpg", MaxInstancesPerType),
             GLBufferManageInstanced(":/models/cadillac.obj", ":/models/cadillac.jpg", MaxInstancesPerType),
@@ -64,10 +65,8 @@ namespace RoadRunner
         return gid;
     }
 
-    unsigned int MapViewGL::AddLine(const odr::Line3D& border, double width, QColor color, unsigned int objID)
+    void MapViewGL::LineToQuads(const odr::Line3D& border, double width, odr::Line3D& lBorder, odr::Line3D& rBorder)
     {
-        bool temporary = objID == -1;
-        odr::Line3D lBorder, rBorder;
         lBorder.reserve(border.size());
         rBorder.reserve(border.size());
 
@@ -97,6 +96,13 @@ namespace RoadRunner
             rBorder.push_back(odr::add(border[i], odr::mut(-width / 2, radio)));
 
         }
+    }
+
+    unsigned int MapViewGL::AddLine(const odr::Line3D& border, double width, QColor color, unsigned int objID)
+    {
+        bool temporary = objID == -1;
+        odr::Line3D lBorder, rBorder;
+        LineToQuads(border, width, lBorder, rBorder);
         return AddQuads(lBorder, rBorder, color, objID);
     }
 
@@ -188,6 +194,20 @@ namespace RoadRunner
         vehicleBuffer[variation].RemoveInstance(id);
     }
 
+    unsigned int MapViewGL::AddBackgroundLine(const odr::Line3D& line, double width, QColor color)
+    {
+        odr::Line3D lBorder, rBorder;
+        LineToQuads(line, width, lBorder, rBorder);
+        auto gid = std::stoi(IDGenerator::ForGraphics(true)->GenerateID(this));
+        backgroundBuffer.AddQuads(gid, 0, lBorder, rBorder, color);
+        return gid;
+    }
+
+    void MapViewGL::RemoveBackground(unsigned int gid)
+    {
+        backgroundBuffer.RemoveItem(gid);
+    }
+
     int MapViewGL::VBufferUseage_pct() const
     {
         return permanentBuffer.Useage_pct();
@@ -195,13 +215,12 @@ namespace RoadRunner
 
     void MapViewGL::initializeGL()
     {
-        // tell OpenGL to show only faces whose normal vector points towards us
+        // draw both sides of faces
         glDisable(GL_CULL_FACE);
-        // enable depth testing, important for the grid and for the drawing order of several objects
-        glEnable(GL_DEPTH_TEST);
 
         permanentBuffer.Initialize();
         temporaryBuffer.Initialize();
+        backgroundBuffer.Initialize();
         for (auto& buff : vehicleBuffer)
         {
             buff.Initialize();
@@ -232,6 +251,9 @@ namespace RoadRunner
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.1f, 0.15f, 0.3f, 1.0f);
 
+        glDisable(GL_DEPTH_TEST);
+        backgroundBuffer.Draw(m_worldToView);
+        glEnable(GL_DEPTH_TEST);
         permanentBuffer.Draw(m_worldToView);
         temporaryBuffer.Draw(m_worldToView);
         for (auto& buff : vehicleBuffer)

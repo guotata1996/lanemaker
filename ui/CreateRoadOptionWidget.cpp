@@ -24,9 +24,8 @@ void CreateRoadOptionWidget::Reset()
     SetOption(RoadRunner::LanePlan{ 1, 1 }, RoadRunner::LanePlan{ -1, 1 });
 }
 
-void CreateRoadOptionWidget::SetMode(bool aRodeMode)
+void CreateRoadOptionWidget::SetMode(bool roadMode)
 {
-    roadMode = aRodeMode;
     if (!roadMode)
     {
         activeRightSetting.laneCount = std::max((int8_t)1, activeRightSetting.laneCount);
@@ -95,8 +94,8 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
         painter.drawLine(TickX, YCenter - TickHeight / 2, TickX, YCenter + TickHeight / 2);
     }
 
-    auto lOffsetx2 = roadMode ? activeLeftSetting.offsetx2 : 0;
-    auto rOffsetx2 = roadMode ? activeRightSetting.offsetx2 : 0;
+    auto lOffsetx2 = activeLeftSetting.offsetx2;
+    auto rOffsetx2 = activeRightSetting.offsetx2;
 
     lOuterResult = XCenter - static_cast<float>(lOffsetx2 + activeLeftSetting.laneCount * 2) * TickInterval;
     lInnerResult = XCenter - static_cast<float>(lOffsetx2) * TickInterval;
@@ -161,12 +160,6 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
 
 void CreateRoadOptionWidget::mousePressEvent(QMouseEvent* evt)
 {
-    if (!roadMode)
-    {
-        // Only adjustable through button in lane mode
-        return;
-    }
-
     if (evt->button() == Qt::MouseButton::LeftButton)
     {
         if (lOuterResult < evt->x() && evt->x() < lInnerResult)

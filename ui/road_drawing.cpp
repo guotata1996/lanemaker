@@ -159,13 +159,18 @@ bool RoadDrawingSession::IsProfileChangePoint(const std::shared_ptr<RoadRunner::
 
 RoadDrawingSession::CustomCursorItem::CustomCursorItem(): color(Qt::white)
 {
+    DrawGroundGrids();
 }
 
 RoadDrawingSession::CustomCursorItem::~CustomCursorItem()
 {
-    if (graphicsIndex.has_value())
+    for (auto idx: graphicsIndex)
     {
-        RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex, true);
+        RoadRunner::g_mapViewGL->RemoveItem(idx, true);
+    }
+    for (auto idx : groundGridIdx)
+    {
+        RoadRunner::g_mapViewGL->RemoveItem(idx, true);
     }
 }
 
@@ -178,31 +183,60 @@ void RoadDrawingSession::CustomCursorItem::EnableHighlight(int level)
 void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
 {
     translation = t;
-    if (graphicsIndex.has_value())
+    for (auto idx : graphicsIndex)
     {
-        RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex, true);
+        RoadRunner::g_mapViewGL->RemoveItem(idx, true);
     }
+    graphicsIndex.clear();
+
     auto centerOnXY = odr::Vec3D{ t[0], t[1], 0 };
     auto h = t[2];
-    
-    odr::Line3D roundBoundary;
-    for (int i = 0; i < 24; ++i)
     {
-        double angle = 2 * M_PI / 24 * i;
-        auto offset = odr::Vec3D{ std::cos(angle), std::sin(angle), 0.01 };
-        auto pos = odr::add(centerOnXY, offset);
-        roundBoundary.push_back(pos);
+        odr::Line3D diskBoundary;
+        for (int i = 0; i < 24; ++i)
+        {
+            double angle = 2 * M_PI / 24 * i;
+            auto offset = odr::Vec3D{ std::cos(angle), std::sin(angle), h + 0.05 };
+            auto pos = odr::add(centerOnXY, offset);
+            diskBoundary.push_back(pos);
+        }
+        graphicsIndex.push_back(RoadRunner::g_mapViewGL->AddPoly(diskBoundary, color));
     }
 
-    if (h == 0)
+    if (h != 0)
     {
-        graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, color);
-    }
-    else
-    {
-        graphicsIndex = RoadRunner::g_mapViewGL->AddColumn(roundBoundary, h, color);
+        odr::Line3D pillarBoundary;
+        for (int i = 0; i < 12; ++i)
+        {
+            double angle = 2 * M_PI / 12 * i;
+            auto offset = odr::Vec3D{ std::cos(angle), std::sin(angle), 0 };
+            auto pos = odr::add(centerOnXY, odr::mut(0.2, offset));
+            pillarBoundary.push_back(pos);
+        }
+        auto pillarColor = h > 0 ? Qt::cyan : Qt::darkYellow;
+        graphicsIndex.push_back(RoadRunner::g_mapViewGL->AddColumn(pillarBoundary, h, pillarColor));
     }
 }
+
+void RoadDrawingSession::CustomCursorItem::DrawGroundGrids()
+{
+    // Draw static ground grids
+    for (int x = -50; x <= 50; ++x)
+    {
+        odr::Line3D l;
+        l.push_back(odr::Vec3D{ -2500, x * 50.0, -0.05 });
+        l.push_back(odr::Vec3D{ 2500, x * 50.0, -0.05 });
+        groundGridIdx.push_back(RoadRunner::g_mapViewGL->AddLine(l, 0.25, Qt::black));
+    }
+    for (int y = -50; y <= 50; ++y)
+    {
+        odr::Line3D l;
+        l.push_back(odr::Vec3D{ y * 50.0, -2500, -0.05 });
+        l.push_back(odr::Vec3D{ y * 50.0, 2500, -0.05 });
+        groundGridIdx.push_back(RoadRunner::g_mapViewGL->AddLine(l, 0.25, Qt::black));
+    }
+}
+
 
 void RoadDrawingSession::UpdateEndMarkings()
 {
@@ -287,4 +321,3 @@ void RoadDrawingSession::UpdateEndMarkings()
         road->UpdateArrowGraphics(road_contact.second, laneToArrow, needStopLine);
     }
 }
-double RoadDrawingSession::CustomCursorItem::InitialRadius = 2;

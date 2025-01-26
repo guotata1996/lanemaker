@@ -52,7 +52,6 @@ protected:
     int dragLimit; // absolute value
 
     bool changedExternally = false;
-    bool roadMode;
 
     const QImage rightLogo, leftLogo;
 };
