@@ -75,8 +75,6 @@ private slots:
 
     void loadFromFile();
 
-    void setBackgroundPicture();
-
     void verifyMap();
 
     void saveActionHistory();

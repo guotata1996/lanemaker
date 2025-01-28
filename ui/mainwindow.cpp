@@ -41,7 +41,6 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     auto newAction = file->addAction("New");
     auto loadAction = file->addAction("Open");
     auto saveAction = file->addAction("Save");
-    auto setBackgroundAction = file->addAction("Background");
     auto preferenceAction = file->addAction("Preference");
     menu->addMenu(file);
 
@@ -97,7 +96,6 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(newAction, &QAction::triggered, this, &MainWindow::newMap);
     connect(saveAction, &QAction::triggered, this, &MainWindow::saveToFile);
     connect(loadAction, &QAction::triggered, this, &MainWindow::loadFromFile);
-    connect(setBackgroundAction, &QAction::triggered, this, &MainWindow::setBackgroundPicture);
     connect(preferenceAction, &QAction::triggered, preferenceWindow.get(), &PreferenceWindow::open);
     connect(undoAction, &QAction::triggered, this, &MainWindow::undo);
     connect(redoAction, &QAction::triggered, this, &MainWindow::redo);
@@ -219,24 +217,6 @@ void MainWindow::loadFromFile()
         RoadRunner::ActionManager::Instance()->Record(buffer.str());
 
         RoadRunner::g_mapViewGL->renderNow();
-    }
-}
-
-void MainWindow::setBackgroundPicture()
-{
-    QString fileName = QFileDialog::getOpenFileName(this, "Open Image File", RoadRunner::DefaultSaveFolder().string().c_str());
-
-    if (!fileName.isEmpty())
-    {
-        QImage image(fileName);
-
-        if (image.isNull())
-        {
-            spdlog::warn("Error Loading image");
-            return;
-        }
-
-        // TODO
     }
 }
 
@@ -371,6 +351,7 @@ void MainWindow::closeEvent(QCloseEvent* e)
 {
     testReplay();
     reset();
+    mainWidget->mapViewGL->CleanupResources();
     QWidget::closeEvent(e);
 }
 

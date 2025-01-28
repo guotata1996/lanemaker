@@ -64,8 +64,7 @@ protected:
 	*/
 	virtual void paintGL() = 0;
 
-
-	QOpenGLContext *m_context;
+	std::unique_ptr<QOpenGLContext> m_context;
 
 private:
 	/*! Helper function to initialize the OpenGL context. */

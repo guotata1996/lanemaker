@@ -19,6 +19,7 @@ namespace RoadRunner
 		Q_OBJECT
 	public:
 		MapViewGL();
+		void CleanupResources();
 		void ResetCamera();
 
 		// Returns graphics ID. If objectID is -1, it is considered temporary.
@@ -77,9 +78,9 @@ namespace RoadRunner
 
 		QVector2D PointerOnGround(QPoint cursor) const;
 
-		GLBufferManage     permanentBuffer;
-		GLBufferManage     temporaryBuffer;
-		GLBufferManage     backgroundBuffer;
+		std::unique_ptr<GLBufferManage>     permanentBuffer;
+		std::unique_ptr<GLBufferManage>     temporaryBuffer;
+		std::unique_ptr<GLBufferManage>     backgroundBuffer;
 		std::array<GLBufferManageInstanced, NVehicleVariations> vehicleBuffer;
 
 		QMatrix4x4					m_worldToView;	// cached world to view transformation matrix

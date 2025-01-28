@@ -9,8 +9,7 @@ namespace RoadRunner
     GLBufferManage::GLBufferManage(unsigned int capacity):
         m_vertexBufferData(capacity),
         m_vbo(QOpenGLBuffer::VertexBuffer),
-        shader(":/shaders/simple.vert", ":/shaders/simple.frag"),
-        m_objectInfo(QOpenGLTexture::Target1D)
+        shader(":/shaders/simple.vert", ":/shaders/simple.frag")
     {
         shader.m_uniformNames.append("worldToView");
         shader.m_uniformNames.append("objectInfo");
@@ -40,7 +39,8 @@ namespace RoadRunner
         shaderProgramm->enableAttributeArray(2);
         shaderProgramm->setAttributeBuffer(2, GL_FLOAT, offsetof(Vertex, objectID), 1, sizeof(Vertex));
 
-        m_objectInfo.setData(QImage(MaxObjectID, 1, QImage::Format_Grayscale8));
+        m_objectInfo = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target1D);
+        m_objectInfo->setData(QImage(MaxObjectID, 1, QImage::Format_Grayscale8));
         Reset();
 
         shaderProgramm->setUniformValue(shader.m_uniformIDs[1], 0);
@@ -53,7 +53,12 @@ namespace RoadRunner
     void GLBufferManage::Reset()
     {
         memset(m_objectFlag, static_cast<uint8_t>(ObjectDisplayFlag::Normal), MaxObjectID);
-        m_objectInfo.setData(QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, m_objectFlag);
+        m_objectInfo->setData(QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, m_objectFlag);
+    }
+
+    void GLBufferManage::CleanupResources()
+    {
+        m_objectInfo.reset();
     }
 
     bool GLBufferManage::AddQuads(unsigned int gid, unsigned int objectID, const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color)
@@ -263,7 +268,7 @@ namespace RoadRunner
             throw std::logic_error("Object ID out of range!");
         }
         m_objectFlag[objectID] = flag;
-        m_objectInfo.setData(objectID,0,0,1,1,1,
+        m_objectInfo->setData(objectID,0,0,1,1,1,
             QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, m_objectFlag + objectID);
     }
 
@@ -332,7 +337,7 @@ namespace RoadRunner
     void GLBufferManage::RemoveObject(unsigned int objectID)
     {
         m_objectFlag[objectID] = static_cast<int>(ObjectDisplayFlag::Normal);
-        m_objectInfo.setData(objectID, 0, 0, 1, 1, 1,
+        m_objectInfo->setData(objectID, 0, 0, 1, 1, 1,
             QOpenGLTexture::PixelFormat::Red, QOpenGLTexture::PixelType::UInt8, m_objectFlag + objectID);
     }
 
@@ -342,10 +347,10 @@ namespace RoadRunner
         shaderProgramm->bind();
         shaderProgramm->setUniformValue(shader.m_uniformIDs[0], worldToView);
         m_vao.bind();
-        m_objectInfo.bind(0);
+        m_objectInfo->bind(0);
         glDrawArrays(GL_TRIANGLES, 0, m_vertexBufferCount);
         m_vao.release();
-        m_objectInfo.release();
+        m_objectInfo->release();
         shader.shaderProgram()->release();
     }
 

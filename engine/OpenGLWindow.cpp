@@ -90,7 +90,7 @@ void OpenGLWindow::resizeEvent(QResizeEvent * event) {
 void OpenGLWindow::initOpenGL() {
 	Q_ASSERT(m_context == nullptr);
 
-	m_context = new QOpenGLContext(this);
+	m_context = std::make_unique<QOpenGLContext>(this);
 	m_context->setFormat(requestedFormat());
 	m_context->create();
 

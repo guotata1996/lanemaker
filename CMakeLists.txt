@@ -47,6 +47,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_17)
 
+# prevent CGAL warnings from crashing release builds
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE CGAL_DEBUG)
+
 
 # ====================================
 # Google Test

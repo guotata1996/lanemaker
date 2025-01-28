@@ -15,7 +15,6 @@ namespace RoadRunner
         m_instance_vbo(QOpenGLBuffer::VertexBuffer),
         modelPath(aModelPath), texturePath(aTexPath),
         shader(":/shaders/instanced.vert", ":/shaders/texture.frag"),
-        m_texture(QOpenGLTexture::Target2D),
         m_mesh(new objl::Loader)
     {
         shader.m_uniformNames.append("worldToView");
@@ -35,7 +34,8 @@ namespace RoadRunner
         // Load car texture
         QString tempJpgPath = RoadRunner::ExtractResourceToTempFile(texturePath);
         QImage tempJpg(tempJpgPath);
-        m_texture.setData(tempJpg.mirrored());
+        m_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D);
+        m_texture->setData(tempJpg.mirrored());
         removed = QFile(tempJpgPath).remove();
         assert(removed);
 
@@ -113,6 +113,11 @@ namespace RoadRunner
         m_vao.release();
     }
 
+    void GLBufferManageInstanced::CleanupResources()
+    {
+        m_texture.reset();
+    }
+
     unsigned int GLBufferManageInstanced::AddInstance(unsigned int id, QMatrix4x4 trans, QColor color)
     {
         m_vao.bind();
@@ -186,7 +191,7 @@ namespace RoadRunner
         shaderProgramm->bind();
         shaderProgramm->setUniformValue(shader.m_uniformIDs[0], worldToView);
 
-        m_texture.bind(0);
+        m_texture->bind(0);
         glDrawArraysInstanced(GL_TRIANGLES, 0, m_vertexBufferData.size(), m_instanceCount);
         m_vao.release();
         shader.shaderProgram()->release();

@@ -26,8 +26,9 @@ namespace RoadRunner
     unsigned int g_PointerVehicle;
 
     MapViewGL::MapViewGL() :
-        permanentBuffer(MaxRoadVertices), temporaryBuffer(MaxTemporaryVertices),
-        backgroundBuffer(1 << 12),
+        permanentBuffer(std::make_unique<GLBufferManage>(MaxRoadVertices)), 
+        temporaryBuffer(std::make_unique<GLBufferManage>(MaxTemporaryVertices)),
+        backgroundBuffer(std::make_unique<GLBufferManage>(1 << 12)),
         vehicleBuffer{
             GLBufferManageInstanced(":/models/jeep.obj", ":/models/jeep.jpg", MaxInstancesPerType),
             GLBufferManageInstanced(":/models/cadillac.obj", ":/models/cadillac.jpg", MaxInstancesPerType),
@@ -37,6 +38,19 @@ namespace RoadRunner
         g_mapViewGL = this;
         g_createRoadElevationOption = 0;
         ResetCamera();
+    }
+
+    void MapViewGL::CleanupResources()
+    {
+        m_context->makeCurrent(this);
+        
+        permanentBuffer->CleanupResources();
+        temporaryBuffer->CleanupResources();
+        backgroundBuffer->CleanupResources();
+        for (auto& buffer : vehicleBuffer)
+        {
+            buffer.CleanupResources();
+        }
     }
 
     void MapViewGL::ResetCamera()
@@ -52,11 +66,11 @@ namespace RoadRunner
         bool success = true;
         if (temporary)
         {
-            success = temporaryBuffer.AddQuads(gid, objID, lBorder, rBorder, color);
+            success = temporaryBuffer->AddQuads(gid, objID, lBorder, rBorder, color);
         }
         else
         {
-            success = permanentBuffer.AddQuads(gid, objID, lBorder, rBorder, color);
+            success = permanentBuffer->AddQuads(gid, objID, lBorder, rBorder, color);
         }
         if (!success)
         {
@@ -113,11 +127,11 @@ namespace RoadRunner
         bool success = true;
         if (temporary)
         {
-            success = temporaryBuffer.AddPoly(gid, objID, boundary, color);
+            success = temporaryBuffer->AddPoly(gid, objID, boundary, color);
         }
         else
         {
-            success = permanentBuffer.AddPoly(gid, objID, boundary, color);
+            success = permanentBuffer->AddPoly(gid, objID, boundary, color);
         }
         if (!success)
         {
@@ -133,11 +147,11 @@ namespace RoadRunner
         bool success = true;
         if (temporary)
         {
-            success = temporaryBuffer.AddColumn(gid, objID, boundary, h, color);
+            success = temporaryBuffer->AddColumn(gid, objID, boundary, h, color);
         }
         else
         {
-            success = permanentBuffer.AddColumn(gid, objID, boundary, h, color);
+            success = permanentBuffer->AddColumn(gid, objID, boundary, h, color);
         }
         if (!success)
         {
@@ -153,35 +167,35 @@ namespace RoadRunner
 
     void MapViewGL::UpdateItem(unsigned int id, uint8_t flag)
     {
-        permanentBuffer.UpdateItem(id, flag);
+        permanentBuffer->UpdateItem(id, flag);
     }
 
     uint8_t MapViewGL::GetItemFlag(unsigned int objectID)
     {
-        return permanentBuffer.GetItemFlag(objectID);
+        return permanentBuffer->GetItemFlag(objectID);
     }
 
     void MapViewGL::UpdateObjectID(unsigned int graphicsID, unsigned int objectID)
     {
-        permanentBuffer.UpdateObjectID(graphicsID, objectID);
+        permanentBuffer->UpdateObjectID(graphicsID, objectID);
     }
 
     void MapViewGL::RemoveItem(unsigned int id, bool temporary)
     {
         if (!temporary)
         {
-            permanentBuffer.RemoveItem(id);
+            permanentBuffer->RemoveItem(id);
         }
         else
         {
-            temporaryBuffer.RemoveItem(id);
+            temporaryBuffer->RemoveItem(id);
         }
         IDGenerator::ForGraphics(temporary)->FreeID(std::to_string(id));
     }
 
     void MapViewGL::RemoveObject(unsigned int objectID)
     {
-        permanentBuffer.RemoveObject(objectID);
+        permanentBuffer->RemoveObject(objectID);
     }
 
     void MapViewGL::UpdateInstance(unsigned int id, const QMatrix4x4 trans, unsigned int variation)
@@ -199,18 +213,18 @@ namespace RoadRunner
         odr::Line3D lBorder, rBorder;
         LineToQuads(line, width, lBorder, rBorder);
         auto gid = std::stoi(IDGenerator::ForGraphics(true)->GenerateID(this));
-        backgroundBuffer.AddQuads(gid, 0, lBorder, rBorder, color);
+        backgroundBuffer->AddQuads(gid, 0, lBorder, rBorder, color);
         return gid;
     }
 
     void MapViewGL::RemoveBackground(unsigned int gid)
     {
-        backgroundBuffer.RemoveItem(gid);
+        backgroundBuffer->RemoveItem(gid);
     }
 
     int MapViewGL::VBufferUseage_pct() const
     {
-        return permanentBuffer.Useage_pct();
+        return permanentBuffer->Useage_pct();
     }
 
     void MapViewGL::initializeGL()
@@ -218,9 +232,9 @@ namespace RoadRunner
         // draw both sides of faces
         glDisable(GL_CULL_FACE);
 
-        permanentBuffer.Initialize();
-        temporaryBuffer.Initialize();
-        backgroundBuffer.Initialize();
+        permanentBuffer->Initialize();
+        temporaryBuffer->Initialize();
+        backgroundBuffer->Initialize();
         for (auto& buff : vehicleBuffer)
         {
             buff.Initialize();
@@ -253,10 +267,10 @@ namespace RoadRunner
         glClearColor(0.1f, 0.15f, 0.3f, 1.0f);
 
         glDisable(GL_DEPTH_TEST);
-        backgroundBuffer.Draw(m_worldToView);
+        backgroundBuffer->Draw(m_worldToView);
         glEnable(GL_DEPTH_TEST);
-        permanentBuffer.Draw(m_worldToView);
-        temporaryBuffer.Draw(m_worldToView);
+        permanentBuffer->Draw(m_worldToView);
+        temporaryBuffer->Draw(m_worldToView);
         for (auto& buff : vehicleBuffer)
         {
             buff.Draw(m_worldToView);

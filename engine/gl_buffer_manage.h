@@ -33,6 +33,7 @@ namespace RoadRunner
         GLBufferManage(unsigned int capacity);
         void Initialize();
         void Reset();
+        void CleanupResources();
 
         bool AddQuads(unsigned int graphicsID, unsigned int objectID, const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color);
         bool AddPoly(unsigned int graphicsID, unsigned int objectID, const odr::Line3D& boundary, QColor color);
@@ -61,7 +62,7 @@ namespace RoadRunner
 
         ShaderProgram shader;
         uint8_t                     m_objectFlag[MaxObjectID];
-        QOpenGLTexture              m_objectInfo;
+        std::unique_ptr<QOpenGLTexture> m_objectInfo;
     };
 
     class GLBufferManageInstanced : public QOpenGLExtraFunctions
@@ -69,6 +70,7 @@ namespace RoadRunner
     public:
         GLBufferManageInstanced(QString modelPath, QString texPath, unsigned int capacity);
         void Initialize();
+        void CleanupResources();
 
         unsigned int AddInstance(unsigned int id, QMatrix4x4 trans, QColor color);
         void UpdateInstance(unsigned int, QMatrix4x4);
@@ -92,7 +94,7 @@ namespace RoadRunner
 
         ShaderProgram shader;
         objl::Loader*               m_mesh;
-        QOpenGLTexture              m_texture;
+        std::unique_ptr<QOpenGLTexture> m_texture;
         const QString               modelPath, texturePath;
     };
 }
