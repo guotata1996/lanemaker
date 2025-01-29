@@ -11,10 +11,6 @@
 #include "map_view_gl.h"
 
 extern SectionProfileConfigWidget* g_createRoadOption;
-namespace RoadRunner
-{
-    extern int g_createRoadElevationOption;
-}
 
 LanesCreationSession::LanesCreationSession() :
     lLanes(0), rLanes(0), rOffsetX2(0), lOffsetX2(0)
@@ -256,7 +252,7 @@ bool LanesCreationSession::ValidateSnap() const
     {
         return false;
     }
-    return IsElevationConsistWithExtend();
+    return true;
 }
 
 RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(odr::Vec2D& point)

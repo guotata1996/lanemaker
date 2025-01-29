@@ -22,7 +22,8 @@ Source code is based on Qt Example OpenGLWindow, but has been simplified a lot.
 
 OpenGLWindow::OpenGLWindow(QWindow *parent) :
 	QWindow(parent),
-	m_context(nullptr)
+	m_context(nullptr),
+	quitEventReceived(false)
 {
 	setSurfaceType(QWindow::OpenGLSurface);
 }
@@ -40,7 +41,7 @@ void OpenGLWindow::renderNow() {
 		return;
 
 	// initialize on first call
-	if (m_context == nullptr)
+	if (m_context == nullptr && !quitEventReceived)
 		initOpenGL();
 
 	m_context->makeCurrent(this);
@@ -80,7 +81,7 @@ void OpenGLWindow::resizeEvent(QResizeEvent * event) {
 	QWindow::resizeEvent(event);
 
 	// initialize on first call
-	if (m_context == nullptr)
+	if (m_context == nullptr && !quitEventReceived)
 		initOpenGL();
 
 	resizeGL(width(), height());

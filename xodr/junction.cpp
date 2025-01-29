@@ -723,8 +723,8 @@ namespace RoadRunner
             generated.id_to_connection.emplace(conn.id, conn);
         }
 
-        generated.boundary = CalcCavity();
 #ifndef G_TEST
+        generated.boundary = CalcCavity();
         GenerateGraphics();
 
         for (auto linkedInfo : formedFrom)
@@ -860,25 +860,30 @@ namespace RoadRunner
         {
             auto segmentOnA = generated.boundary[i];
             auto segmentOnB = generated.boundary[j];
+            auto roadA = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(segmentOnA.road));
+            auto roadB = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(segmentOnB.road));
+            segmentOnA.sBegin = std::max(0.0, std::min(roadA->Length(), segmentOnA.sBegin));
+            segmentOnA.sEnd = std::max(0.0, std::min(roadA->Length(), segmentOnA.sEnd));
+            segmentOnB.sBegin = std::max(0.0, std::min(roadB->Length(), segmentOnB.sBegin));
+            segmentOnB.sEnd = std::max(0.0, std::min(roadB->Length(), segmentOnB.sEnd));
 
             odr::Line3D aSideLine, bSideLine;
             int npoints = std::ceil(std::max(std::abs(segmentOnA.sBegin - segmentOnA.sEnd),
                 std::abs(segmentOnB.sBegin - segmentOnB.sEnd)) / Resolution);
             {
-                auto roadA = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(segmentOnA.road));
-                for (int i = 0; i <= npoints; ++i)
+                
+                for (int p = 0; p <= npoints; ++p)
                 {
-                    double frac = static_cast<double>(i) / npoints;
+                    double frac = static_cast<double>(p) / npoints;
                     double s = frac * segmentOnA.sEnd + (1 - frac) * segmentOnA.sBegin;
                     aSideLine.push_back(roadA->generated.get_boundary_xyz(segmentOnA.side, s));
                 }
             }
 
             {
-                auto roadB = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(segmentOnB.road));
-                for (int i = 0; i <= npoints; ++i)
+                for (int p = 0; p <= npoints; ++p)
                 {
-                    double frac = static_cast<double>(i) / npoints;
+                    double frac = static_cast<double>(p) / npoints;
                     double s = frac * segmentOnB.sEnd + (1 - frac) * segmentOnB.sBegin;
                     bSideLine.push_back(roadB->generated.get_boundary_xyz(segmentOnB.side, s));
                 }

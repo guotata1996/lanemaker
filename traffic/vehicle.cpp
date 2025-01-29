@@ -204,7 +204,11 @@ bool Vehicle::PlanStep(double dt, const odr::OpenDriveMap& odrMap,
             assert(std::abs(tOffset) < LCCompleteThreshold);
             auto erasedNavigation = navigation.front();
             navigation.erase(navigation.begin());
-            assert(!navigation.empty());
+            if (navigation.empty())
+            {
+                spdlog::warn("Vehicle {} fails to reach goal", ID);
+                return false;
+            }
 
             new_s = 0;
 

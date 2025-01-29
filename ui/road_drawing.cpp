@@ -134,11 +134,6 @@ void RoadDrawingSession::EndPickingProfile()
     RoadRunner::g_mapViewGL->setCursor(Qt::ArrowCursor);
 }
 
-bool RoadDrawingSession::IsElevationConsistWithExtend()
-{
-    return true;
-}
-
 bool RoadDrawingSession::IsProfileChangePoint(const std::shared_ptr<RoadRunner::Road>& road, double s)
 {
     bool leftOffsetChange = false, rightOffsetChange = false;

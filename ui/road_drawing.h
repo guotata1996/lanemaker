@@ -63,7 +63,6 @@ protected:
     void EndPickingProfile();
     bool PickProfileMode() const { return !beginPickingRoad.expired(); }
 
-    static bool IsElevationConsistWithExtend();
     static bool IsProfileChangePoint(const std::shared_ptr<RoadRunner::Road>&, double s);
 
     static void UpdateEndMarkings();
@@ -103,6 +102,7 @@ protected:
 
     virtual odr::Vec2D ExtendFromDir() const;
     virtual odr::Vec2D JoinAtEndDir() const;
+    double CursorElevation() const;
 
     odr::RefLine ResultRefLine() const;
 

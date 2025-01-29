@@ -161,6 +161,19 @@ odr::Vec2D RoadCreationSession::JoinAtEndDir() const
 	return joinAtEndS == 0 ? grad : odr::negate(grad);
 }
 
+double RoadCreationSession::CursorElevation() const
+{
+	if (startPos.has_value() && !joinAtEnd.expired())
+	{
+		return joinAtEnd.lock()->generated.get_xyz(joinAtEndS, 0, 0)[2];
+	}
+	if (!startPos.has_value() && !extendFromStart.expired())
+	{
+		return extendFromStart.lock()->generated.get_xyz(extendFromStartS, 0, 0)[2];
+	}
+	return RoadRunner::ElevationStep * RoadRunner::g_createRoadElevationOption;
+}
+
 RoadDrawingSession::SnapResult RoadCreationSession::SnapFirstPointToExisting(odr::Vec2D& point)
 {
 	auto g_pointerRoad = GetPointerRoad();
@@ -170,16 +183,14 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapFirstPointToExisting(odr
 	double snapS = RoadRunner::g_PointerRoadS;
 	bool onExisting = false;
 	if (RoadRunner::g_PointerRoadS < snapThreshold &&
-		dynamic_cast<RoadRunner::DirectJunction*>(g_pointerRoad->predecessorJunction.get()) == nullptr &&
-		IsElevationConsistWithExtend())
+		dynamic_cast<RoadRunner::DirectJunction*>(g_pointerRoad->predecessorJunction.get()) == nullptr)
 	{
 		snapS = 0;
 		extendFromStart = g_pointerRoad;
 		extendFromStartS = 0;
 	}
 	else if (RoadRunner::g_PointerRoadS > g_pointerRoad->Length() - snapThreshold &&
-		dynamic_cast<RoadRunner::DirectJunction*>(g_pointerRoad->successorJunction.get()) == nullptr &&
-		IsElevationConsistWithExtend())
+		dynamic_cast<RoadRunner::DirectJunction*>(g_pointerRoad->successorJunction.get()) == nullptr)
 	{
 		snapS = g_pointerRoad->Length();
 		extendFromStart = g_pointerRoad;
@@ -206,15 +217,13 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapLastPointToExisting(odr:
 	double snapS;
 	const double snapThreshold = SnapDistFromScale();
 	if (RoadRunner::g_PointerRoadS < snapThreshold &&
-		dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad->predecessorJunction.get()) == nullptr &&
-		IsElevationConsistWithExtend())
+		dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad->predecessorJunction.get()) == nullptr)
 	{
 		snapS = 0;
 		joinAtEnd = g_PointerRoad;
 	}
 	else if (RoadRunner::g_PointerRoadS > g_PointerRoad->Length() - snapThreshold &&
-		dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad->successorJunction.get()) == nullptr &&
-		IsElevationConsistWithExtend())
+		dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad->successorJunction.get()) == nullptr)
 	{
 		snapS = g_PointerRoad->Length();
 		joinAtEnd = g_PointerRoad;
@@ -246,7 +255,7 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 
 	auto scenePos = RoadRunner::g_PointerOnGround;
 	auto snapLevel = SnapCursor(scenePos);
-	cursorItem->SetTranslation({ scenePos[0], scenePos[1], RoadRunner::ElevationStep * RoadRunner::g_createRoadElevationOption });
+	cursorItem->SetTranslation({ scenePos[0], scenePos[1], CursorElevation() });
 	cursorItem->EnableHighlight(snapLevel);
 
 	RoadRunner::LanePlan currLeftPlan{ PreviewLeftOffsetX2(), g_createRoadOption->LeftResult().laneCount };
@@ -285,15 +294,8 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 		{
 			if (!startPos.has_value())
 			{
+				startElevation = CursorElevation();
 				startPos.emplace(scenePos);
-				if (extendFromStart.expired())
-				{
-					startElevation = RoadRunner::ElevationStep * RoadRunner::g_createRoadElevationOption;
-				}
-				else
-				{
-					startElevation = extendFromStart.lock()->generated.get_xyz(extendFromStartS, 0, 0)[2];
-				}
 			}
 			else if (flexGeo != nullptr)
 			{
@@ -607,13 +609,12 @@ void RoadCreationSession::UpdateFlexGeometry()
 		if (joinAtEnd.expired())
 		{
 			flexGeo = RoadRunner::FitArcOrLine(localStartPos, localStartDir, scenePos);
-			flexEndElevation = RoadRunner::ElevationStep * RoadRunner::g_createRoadElevationOption;
 		}
 		else
 		{
 			flexGeo = RoadRunner::ConnectRays(localStartPos, localStartDir, scenePos, JoinAtEndDir());
-			flexEndElevation = joinAtEnd.lock()->generated.get_xyz(joinAtEndS, 0, 0)[2];
 		}
+		flexEndElevation = CursorElevation();
 
 		if (flexGeo->length > 0)
 		{

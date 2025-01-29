@@ -6,11 +6,6 @@
 
 namespace RoadRunner
 {
-    extern int g_createRoadElevationOption;
-}
-
-namespace RoadRunner
-{
     bool CreateJunctionAtZOverlap(std::shared_ptr<RoadRunner::Road> newRoad, double newPartBegin, double newPartEnd)
     {
         const double RoadMinLength = 5; // Discard if any leftover road is too short

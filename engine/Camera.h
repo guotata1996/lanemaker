@@ -49,9 +49,10 @@ public:
 		return m_world;
 	}
 
-	bool isRotationValid() const
+	/* Never look upward or backward*/
+	bool isRotationAllowed() const
 	{
-		return 0.1 < up().z() && up().z() < 0.9;
+		return 0 <= up().z() && up().z() < 0.9;
 	}
 };
 

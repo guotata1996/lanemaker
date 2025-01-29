@@ -177,11 +177,11 @@ void RoadDestroySession::UpdateHint()
             auto borders = target->generated.get_both_dirs_poly(fromS, toS, 0.25);
             for (auto& lBorder : borders.first)
             {
-                lBorder[2] += 0.02;
+                lBorder[2] += 0.05;
             }
             for (auto& rBorder : borders.second)
             {
-                rBorder[2] += 0.02;
+                rBorder[2] += 0.05;
             }
             hintPolygonLeft = borders.first;
             hintPolygonRight = borders.second;

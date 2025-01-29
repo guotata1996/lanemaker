@@ -65,6 +65,9 @@ protected:
 	virtual void paintGL() = 0;
 
 	std::unique_ptr<QOpenGLContext> m_context;
+	
+	/*! OpenGL resoures are recycled. No more paints. */
+	bool quitEventReceived;
 
 private:
 	/*! Helper function to initialize the OpenGL context. */

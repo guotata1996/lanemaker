@@ -227,6 +227,10 @@ void MainWindow::undo()
     {
         spdlog::warn("Cannot undo");
     }
+    else
+    {
+        RoadRunner::g_mapViewGL->renderNow();
+    }
 }
 
 void MainWindow::redo()
@@ -235,6 +239,10 @@ void MainWindow::redo()
     if (!RoadRunner::ChangeTracker::Instance()->Redo())
     {
         spdlog::warn("Cannot redo");
+    }
+    else
+    {
+        RoadRunner::g_mapViewGL->renderNow();
     }
 }
 

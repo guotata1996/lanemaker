@@ -51,6 +51,8 @@ namespace RoadRunner
         {
             buffer.CleanupResources();
         }
+
+        quitEventReceived = true;
     }
 
     void MapViewGL::ResetCamera()
@@ -256,6 +258,10 @@ namespace RoadRunner
 
     void MapViewGL::paintGL()
     {
+        if (quitEventReceived)
+        {
+            return;
+        }
         MainWidget::Instance()->Painted();
         // update cached world2view matrix
         m_worldToView = m_projection * m_camera.toMatrix() * m_transform.toMatrix();
@@ -320,7 +326,7 @@ namespace RoadRunner
             }
             
             int i;
-            const int MaxIter = 500;
+            const int MaxIter = 250;
             const auto backupRotation = m_camera.rotation();
             for (i = 0; i != MaxIter; ++i)
             {
@@ -359,12 +365,22 @@ namespace RoadRunner
                 }                
             }
 
-            if (i == MaxIter)
+            auto rotated = backupRotation.conjugate()* m_camera.rotation();
+            auto rotatedAngle = 2 * std::acos(rotated.scalar());
+            if (i == MaxIter || rotatedAngle > 0.3)
             {
-                spdlog::trace("Camera Angle Adj reach max iteration");
+                spdlog::trace("Precise camera iteration failed. Use backup plan.");
                 m_camera.setRotation(backupRotation);
+                auto dx = static_cast<float>(event->pos().x() - lastMousePos.x());
+                auto dy = static_cast<float>(event->pos().y() - lastMousePos.y());
+                dx = dx / width() * 480;
+                dy = dy / height() * 120;
+                
+                m_camera.rotate(dx, QVector3D(0, 0, 1));
+                m_camera.rotate(dy, m_camera.right());
             }
-            else if (!m_camera.isRotationValid())
+            
+            if (!m_camera.isRotationAllowed())
             {
                 m_camera.setRotation(backupRotation);
             }
