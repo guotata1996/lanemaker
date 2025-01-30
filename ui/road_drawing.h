@@ -39,7 +39,7 @@ protected:
         void DrawGroundGrids();
 
         std::vector<unsigned int> graphicsIndex;
-        QColor color;
+        int highlightLevel;
         odr::Vec3D translation;
 
         std::vector<unsigned int> groundGridIdx;
@@ -81,14 +81,10 @@ private:
 class RoadCreationSession : public RoadDrawingSession
 {
 public:
-    RoadCreationSession();
-
     virtual bool Update(const RoadRunner::MouseAction&) override;
     virtual bool Update(const RoadRunner::KeyPressAction&) override;
 
     virtual bool Complete() override;
-
-    virtual ~RoadCreationSession();
 
 protected:
     // Record extend / join

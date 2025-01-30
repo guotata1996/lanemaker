@@ -98,8 +98,16 @@ namespace RoadRunner
             prev--;
             auto prev_slope = (prev->second - x_y->second) / (prev->first - x_y->first);
             auto next_slope = (next->second - x_y->second) / (next->first - x_y->first);
-            auto slope = std::sqrt(std::max(prev_slope * next_slope, 0.0));
-            keySlopes.emplace(x_y->first, slope);
+            double keySlope = 0;
+            if (prev_slope > 0 == next_slope > 0) 
+            {
+                keySlope = std::sqrt(prev_slope * next_slope);
+                if (prev_slope < 0) 
+                {
+                    keySlope = -keySlope;
+                }
+            }
+            keySlopes.emplace(x_y->first, keySlope);
         }
 
         odr::CubicSpline rtn;

@@ -862,6 +862,8 @@ namespace RoadRunner
             auto segmentOnB = generated.boundary[j];
             auto roadA = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(segmentOnA.road));
             auto roadB = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(segmentOnB.road));
+            
+            // RoadRunnerTODO: why can sbegin/sEnd exceed road Length when loading from xodr?
             segmentOnA.sBegin = std::max(0.0, std::min(roadA->Length(), segmentOnA.sBegin));
             segmentOnA.sEnd = std::max(0.0, std::min(roadA->Length(), segmentOnA.sEnd));
             segmentOnB.sBegin = std::max(0.0, std::min(roadB->Length(), segmentOnB.sBegin));
@@ -871,21 +873,25 @@ namespace RoadRunner
             int npoints = std::ceil(std::max(std::abs(segmentOnA.sBegin - segmentOnA.sEnd),
                 std::abs(segmentOnB.sBegin - segmentOnB.sEnd)) / Resolution);
             {
-                
                 for (int p = 0; p <= npoints; ++p)
                 {
-                    double frac = static_cast<double>(p) / npoints;
-                    double s = frac * segmentOnA.sEnd + (1 - frac) * segmentOnA.sBegin;
-                    aSideLine.push_back(roadA->generated.get_boundary_xyz(segmentOnA.side, s));
-                }
-            }
+                    double fracA = static_cast<double>(p) / npoints;
+                    double sA = fracA * segmentOnA.sEnd + (1 - fracA) * segmentOnA.sBegin;
+                    auto pA = roadA->generated.get_boundary_xyz(segmentOnA.side, sA);
 
-            {
-                for (int p = 0; p <= npoints; ++p)
-                {
-                    double frac = static_cast<double>(p) / npoints;
-                    double s = frac * segmentOnB.sEnd + (1 - frac) * segmentOnB.sBegin;
-                    bSideLine.push_back(roadB->generated.get_boundary_xyz(segmentOnB.side, s));
+                    double fracB = static_cast<double>(p) / npoints;
+                    double sB = fracB * segmentOnB.sEnd + (1 - fracB) * segmentOnB.sBegin;
+                    auto pB = roadB->generated.get_boundary_xyz(segmentOnB.side, sB);
+
+                    if (std::abs(pA[2] - pB[2]) < ElevationStep)
+                    {
+                        bSideLine.push_back(pA);
+                        aSideLine.push_back(pB);
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
             cavityBoundaries.emplace_back(std::make_pair(aSideLine, bSideLine));

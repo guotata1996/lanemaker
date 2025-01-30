@@ -11,7 +11,8 @@ namespace RoadRunner
     /*Consecutive ctrl points can either duplicate (by dbl-clicking), or placed further than this threshold.*/
     const double DupCtrlPointsDist = 0.1;
 
-    const double SnapRadiusPx = 3;        
+    /*Snap radius when viewpoint is 100m away*/
+    const double SnapRadiusStd = 3;        
     
     /*Space for connecting road curvature*/
     const double JunctionTrimMax = 6;

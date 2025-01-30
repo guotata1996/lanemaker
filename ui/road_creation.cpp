@@ -93,11 +93,6 @@ void RoadCreationSession::DirectionHandle::UpdateGraphics()
 	graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, dragging ? Qt::green : Qt::darkGreen);
 }
 
-RoadCreationSession::RoadCreationSession()
-{
-
-}
-
 RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point)
 {
 	// Snap to existing road
@@ -137,13 +132,12 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point
 		}
 		
 		auto start2Point = odr::sub(point, localStartPos);
-		auto projLength = odr::dot(start2Point, localStartDir);
-		projLength = std::max(0.0, projLength);
-		auto projected = odr::add(localStartPos, odr::mut(projLength, localStartDir));
-		if (odr::euclDistance(point, projected) < SnapDistFromScale())
+		auto biasAngle = odr::angle(start2Point, localStartDir);
+		if (std::abs(biasAngle) < 0.10)
 		{
-			point = projected;
-			return RoadDrawingSession::Snap_Line;
+			auto projLength = odr::dot(start2Point, localStartDir);
+			projLength = std::max(0.0, projLength);
+			point = odr::add(localStartPos, odr::mut(projLength, localStartDir));
 		}
 	}
 	return RoadDrawingSession::Snap_Nothing;
@@ -533,10 +527,6 @@ bool RoadCreationSession::Complete()
 	return success;
 }
 
-RoadCreationSession::~RoadCreationSession()
-{
-}
-
 void RoadCreationSession::GenerateHintLines(const odr::RefLine& refLine,
 	odr::Line3D& centerPath, odr::Line3D& boundaryPathR, odr::Line3D& boundaryPathL)
 {
@@ -630,7 +620,7 @@ void RoadCreationSession::UpdateFlexGeometry()
 			flexRefLine.elevation_profile = elevationProfile;
 			GenerateHintLines(flexRefLine, flexRefLinePath, flexBoundaryPathR, flexBoundaryPathL);
 
-			flexRefLinePreview.emplace(flexRefLinePath, 0.3, Qt::green);
+			flexRefLinePreview.emplace(flexRefLinePath, 0.3, Qt::darkGreen);
 			flexBoundaryPreview.emplace(flexBoundaryPathR, flexBoundaryPathL, Qt::gray);
 		}
 	}
@@ -644,7 +634,7 @@ void RoadCreationSession::UpdateStagedFromGeometries()
 	{
 		auto resultRefLine = ResultRefLine();
 		GenerateHintLines(resultRefLine, stagedRefLinePath, stagedBoundaryPathR, stagedBoundaryPathL);
-		stagedRefLinePreview.emplace(stagedRefLinePath, 0.25, Qt::green);
+		stagedRefLinePreview.emplace(stagedRefLinePath, 0.25, Qt::darkGreen);
 		stagedBoundaryPreview.emplace(stagedBoundaryPathR, stagedBoundaryPathL, Qt::gray);
 	}
 	else

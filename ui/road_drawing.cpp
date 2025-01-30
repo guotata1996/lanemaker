@@ -81,7 +81,7 @@ void RoadDrawingSession::SetHighlightTo(std::shared_ptr<RoadRunner::Road> target
 
 float RoadDrawingSession::SnapDistFromScale() const
 {
-    return RoadRunner::SnapRadiusPx / std::min(1.0f, RoadRunner::g_mapViewGL->Zoom());
+    return RoadRunner::SnapRadiusStd / std::min(1.0f, RoadRunner::g_mapViewGL->Zoom());
 }
 
 double RoadDrawingSession::GetAdjustedS(bool* onSegmentBoundary) const
@@ -126,6 +126,9 @@ void RoadDrawingSession::ContinuePickingProfile()
         rightProfile.offsetx2 = -rightProfile.offsetx2;
     }
     g_createRoadOption->SetOption(leftProfile, rightProfile);
+
+    auto elevation = pickFromRoad->generated.ref_line.elevation_profile.get(RoadRunner::g_PointerRoadS);
+    RoadRunner::g_createRoadElevationOption = std::round(elevation / RoadRunner::ElevationStep);
 }
 
 void RoadDrawingSession::EndPickingProfile()
@@ -151,7 +154,7 @@ bool RoadDrawingSession::IsProfileChangePoint(const std::shared_ptr<RoadRunner::
     return leftOffsetChange || rightOffsetChange;
 }
 
-RoadDrawingSession::CustomCursorItem::CustomCursorItem(): color(Qt::white)
+RoadDrawingSession::CustomCursorItem::CustomCursorItem(): highlightLevel(0)
 {
     DrawGroundGrids();
 }
@@ -170,7 +173,7 @@ RoadDrawingSession::CustomCursorItem::~CustomCursorItem()
 
 void RoadDrawingSession::CustomCursorItem::EnableHighlight(int level)
 {
-    color = level == 0 ? Qt::white : (level == 1 ? Qt::darkRed : Qt::red);
+    highlightLevel = level;
     SetTranslation(translation); // remove then add
 }
 
@@ -194,6 +197,10 @@ void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
             auto pos = odr::add(centerOnXY, offset);
             diskBoundary.push_back(pos);
         }
+        QColor color = highlightLevel == 0 ?
+            (h == 0 ? Qt::cyan : Qt::white) : 
+            (highlightLevel == 1 ? Qt::darkRed : Qt::red);
+
         graphicsIndex.push_back(RoadRunner::g_mapViewGL->AddPoly(diskBoundary, color));
     }
 
@@ -207,7 +214,7 @@ void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
             auto pos = odr::add(centerOnXY, odr::mut(0.2, offset));
             pillarBoundary.push_back(pos);
         }
-        auto pillarColor = h > 0 ? Qt::cyan : Qt::darkYellow;
+        auto pillarColor = h > 0 ? Qt::green : Qt::darkYellow;
         graphicsIndex.push_back(RoadRunner::g_mapViewGL->AddColumn(pillarBoundary, h, pillarColor));
     }
 }

@@ -461,7 +461,6 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
         }
         else
         {
-            // TODO: disable profile editing widget after first ctrl point placed
             spdlog::warn("Modification to config during ctrl points placement is ingnored!");
         }
     }
@@ -473,7 +472,7 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
     }
 
     bool snappedToSegBoundary = false;
-    double g_roadS = GetAdjustedS(&snappedToSegBoundary);
+    const double g_roadS = GetAdjustedS(&snappedToSegBoundary);
 
     const auto& g_roadProfile = g_road->generated.rr_profile;
     const auto rightProfile = g_roadProfile.ProfileAt(g_roadS, -1);
@@ -639,7 +638,6 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
 
             if (bestError < 1e9)
             {
-                //spdlog::info("Skip {} on {} @ {}", bestSkip, g_road->ID(), g_roadS);
                 point[0] = bestSnapPos.x();
                 point[1] = bestSnapPos.y();
                 joinAtEnd = g_road;

@@ -76,6 +76,7 @@ void VehicleManager::End()
         s.second->Terminate();
     }
     allSignals.clear();
+    RoadRunner::g_mapViewGL->renderLater();
 }
 
 void VehicleManager::TogglePause()
