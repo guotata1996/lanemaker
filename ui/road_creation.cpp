@@ -53,14 +53,7 @@ double RoadCreationSession::DirectionHandle::Rotation() const
 
 bool RoadCreationSession::DirectionHandle::rayHitLocal(odr::Vec2D& outPos) const
 {
-	double cameraZ = RoadRunner::g_CameraPosition[2];
-	double portion = (cameraZ - center[2]) / cameraZ;
-	odr::Vec2D cameraXY{ RoadRunner::g_CameraPosition[0], RoadRunner::g_CameraPosition[1] };
-	auto offsetAtGround = odr::sub(RoadRunner::g_PointerOnGround, cameraXY);
-	auto offsetAtLevel = odr::mut(portion, offsetAtGround);
-	odr::Vec2D centerXY{ center[0], center[1] };
-	outPos = odr::sub(odr::add(cameraXY, offsetAtLevel), centerXY);
-
+	outPos = odr::sub(CursorAtHeight(center[2]), odr::Vec2D{ center[0], center[1] });
 	auto offsetMagnitude = odr::norm(outPos);
 	return InnerRadius < offsetMagnitude && offsetMagnitude < OuterRadius;
 }
@@ -95,6 +88,14 @@ void RoadCreationSession::DirectionHandle::UpdateGraphics()
 
 RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point)
 {
+	double zLevel = 0;
+	auto g_road = GetPointerRoad();
+	if (g_road != nullptr)
+	{
+		zLevel = g_road->generated.ref_line.elevation_profile.get(GetAdjustedS());
+	}
+	point = CursorAtHeight(zLevel);
+
 	// Snap to existing road
 	if (!startPos.has_value())
 	{
@@ -247,9 +248,9 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 		currHandleDir = directionHandle->Rotation();
 	}
 
-	auto scenePos = RoadRunner::g_PointerOnGround;
-	auto snapLevel = SnapCursor(scenePos);
-	cursorItem->SetTranslation({ scenePos[0], scenePos[1], CursorElevation() });
+	odr::Vec2D snappedPos;
+	auto snapLevel = SnapCursor(snappedPos);
+	cursorItem->SetTranslation({ snappedPos[0], snappedPos[1], CursorElevation() });
 	cursorItem->EnableHighlight(snapLevel);
 
 	RoadRunner::LanePlan currLeftPlan{ PreviewLeftOffsetX2(), g_createRoadOption->LeftResult().laneCount };
@@ -289,7 +290,7 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 			if (!startPos.has_value())
 			{
 				startElevation = CursorElevation();
-				startPos.emplace(scenePos);
+				startPos.emplace(snappedPos);
 			}
 			else if (flexGeo != nullptr)
 			{
@@ -569,8 +570,8 @@ void RoadCreationSession::GenerateHintLines(const odr::RefLine& refLine,
 
 void RoadCreationSession::UpdateFlexGeometry()
 {
-	auto scenePos = RoadRunner::g_PointerOnGround;
-	SnapCursor(scenePos);
+	odr::Vec2D snappedPos;
+	SnapCursor(snappedPos);
 
 	flexRefLinePreview.reset();
 	flexBoundaryPreview.reset();
@@ -584,7 +585,7 @@ void RoadCreationSession::UpdateFlexGeometry()
 		if (stagedGeometries.empty())
 		{
 			localStartPos = startPos.value();
-			localStartDir = extendFromStart.expired() ? odr::sub(scenePos, localStartPos) : ExtendFromDir();
+			localStartDir = extendFromStart.expired() ? odr::sub(snappedPos, localStartPos) : ExtendFromDir();
 			localStartZ = startElevation;
 		}
 		else
@@ -598,11 +599,11 @@ void RoadCreationSession::UpdateFlexGeometry()
 
 		if (joinAtEnd.expired())
 		{
-			flexGeo = RoadRunner::FitArcOrLine(localStartPos, localStartDir, scenePos);
+			flexGeo = RoadRunner::FitArcOrLine(localStartPos, localStartDir, snappedPos);
 		}
 		else
 		{
-			flexGeo = RoadRunner::ConnectRays(localStartPos, localStartDir, scenePos, JoinAtEndDir());
+			flexGeo = RoadRunner::ConnectRays(localStartPos, localStartDir, snappedPos, JoinAtEndDir());
 		}
 		flexEndElevation = CursorElevation();
 

@@ -53,6 +53,7 @@ protected:
     };
 
     static std::shared_ptr<RoadRunner::Road> GetPointerRoad();
+    static odr::Vec2D CursorAtHeight(double);
 
     float SnapDistFromScale() const;
 

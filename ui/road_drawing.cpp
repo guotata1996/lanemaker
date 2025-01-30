@@ -24,6 +24,16 @@ std::shared_ptr<RoadRunner::Road> RoadDrawingSession::GetPointerRoad()
     return static_cast<RoadRunner::Road*>(g_road)->shared_from_this();
 }
 
+odr::Vec2D RoadDrawingSession::CursorAtHeight(double zLevel)
+{
+    double cameraZ = RoadRunner::g_CameraPosition[2];
+    double portion = (cameraZ - zLevel) / cameraZ;
+    odr::Vec2D cameraXY{ RoadRunner::g_CameraPosition[0], RoadRunner::g_CameraPosition[1] };
+    auto offsetAtGround = odr::sub(RoadRunner::g_PointerOnGround, cameraXY);
+    auto offsetAtLevel = odr::mut(portion, offsetAtGround);
+    return odr::add(cameraXY, offsetAtLevel);
+}
+
 RoadDrawingSession::RoadDrawingSession() :
     world(World::Instance())
 {
