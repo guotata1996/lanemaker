@@ -168,6 +168,10 @@ void MainWidget::OnMouseAction(RoadRunner::MouseAction evt)
         }
 #ifndef _DEBUG
     }
+    catch (CGAL::Failure_exception e)
+    {
+        spdlog::warn(e.what());
+    }
     catch (std::exception e)
     {
         elegantlyHandleException(e);
@@ -197,6 +201,10 @@ void MainWidget::OnKeyPress(RoadRunner::KeyPressAction evt)
             break;
         }
 #ifndef _DEBUG
+    }
+    catch (CGAL::Failure_exception e)
+    {
+        spdlog::warn(e.what());
     }
     catch (std::exception e)
     {

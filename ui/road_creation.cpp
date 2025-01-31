@@ -615,6 +615,13 @@ void RoadCreationSession::UpdateFlexGeometry()
 			auto elevationProfile = RoadRunner::CubicSplineGenerator::FromControlPoints(
 				std::map<double, double>{{0, localStartZ}, { flexGeo->length, flexEndElevation }}
 			);
+			double avgGrade = (flexEndElevation - localStartZ) / flexGeo->length;
+			double gradFrac = std::min(1.0, std::abs(avgGrade) / 0.15); // 15% is considered too steep
+			const QColor flatColor = Qt::gray;
+			const QColor steepColor = avgGrade > 0 ? Qt::darkMagenta : Qt::darkCyan;
+			QColor gradColor(flatColor.red() * (1 - gradFrac) + steepColor.red() * gradFrac,
+				flatColor.green() * (1 - gradFrac) + steepColor.green() * gradFrac,
+				flatColor.blue() * (1 - gradFrac) + steepColor.blue() * gradFrac);
 
 			std::vector<std::unique_ptr<odr::RoadGeometry>> allGeo;
 			allGeo.emplace_back(flexGeo->clone());
@@ -625,7 +632,7 @@ void RoadCreationSession::UpdateFlexGeometry()
 			GenerateHintLines(flexRefLine, flexRefLinePath, flexBoundaryPathR, flexBoundaryPathL);
 
 			flexRefLinePreview.emplace(flexRefLinePath, 0.3, Qt::darkGreen);
-			flexBoundaryPreview.emplace(flexBoundaryPathR, flexBoundaryPathL, Qt::gray);
+			flexBoundaryPreview.emplace(flexBoundaryPathR, flexBoundaryPathL, gradColor);
 		}
 	}
 }

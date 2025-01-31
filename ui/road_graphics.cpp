@@ -58,10 +58,11 @@ namespace RoadRunner
 
     SectionGraphics::SectionGraphics(std::shared_ptr<RoadRunner::Road> road,
         const odr::LaneSection& laneSection,
-        double sBegin, double sEnd):
-        roadID(std::stoi(road->ID()))
+        double sBegin, double sEnd)
     {
         odr::Road& gen = road->generated;
+        auto roadID = std::stoi(road->ID());
+
         bool biDirRoad = gen.rr_profile.HasSide(-1) && gen.rr_profile.HasSide(1);
         sMin = std::min(sBegin, sEnd);
         sMax = std::max(sBegin, sEnd);
@@ -240,50 +241,6 @@ namespace RoadRunner
         }
     }
 
-    void SectionGraphics::EnableHighlight(bool enabled)
-    {
-        uint8_t currFlag = static_cast<uint8_t>(g_mapViewGL->GetItemFlag(roadID));
-        if (enabled)
-        {
-            currFlag |= static_cast<uint8_t>(ObjectDisplayFlag::Highlighted);
-        }
-        else
-        {
-            currFlag &= ~static_cast<uint8_t>(ObjectDisplayFlag::Highlighted);
-        }
-
-        g_mapViewGL->UpdateItem(roadID, currFlag);
-    }
-
-    void SectionGraphics::Hide(bool hidden)
-    {
-        uint8_t currFlag = static_cast<uint8_t>(g_mapViewGL->GetItemFlag(roadID));
-        if (hidden)
-        {
-            currFlag |= static_cast<uint8_t>(ObjectDisplayFlag::Hidden);
-        }
-        else
-        {
-            currFlag &= ~static_cast<uint8_t>(ObjectDisplayFlag::Hidden);
-        }
-
-        g_mapViewGL->UpdateItem(roadID, currFlag);
-    }
-
-    void SectionGraphics::ShowGreenLight(bool green)
-    {
-        uint8_t currFlag = static_cast<uint8_t>(g_mapViewGL->GetItemFlag(roadID));
-        if (green)
-        {
-            currFlag |= static_cast<uint8_t>(ObjectDisplayFlag::GreenLight);
-        }
-        else
-        {
-            currFlag &= ~static_cast<uint8_t>(ObjectDisplayFlag::GreenLight);
-        }
-        g_mapViewGL->UpdateItem(roadID, currFlag);
-    }
-
     QPainterPath SectionGraphics::CreateRefLinePath(const odr::Line3D& lineAppox)
     {
         QPainterPath refLinePath;
@@ -318,7 +275,6 @@ namespace RoadRunner
 
     void SectionGraphics::updateIndexingInfo(std::string newRoadID, int mult, double shift)
     {
-        roadID = std::stoi(newRoadID);
         for (auto index : allSpatialIndice)
         {
             uint32_t face1ID = index >> 32;
@@ -332,7 +288,7 @@ namespace RoadRunner
                 face.sEnd = face.sEnd * mult + shift;
             }
         }
-        //refLineHint->setPath(sBegin < sEnd ? refLinePath : refLinePathReversed);
+
         sMin = sMin * mult + shift;
         sMax = sMax * mult + shift;
         if (mult < 0)
@@ -341,6 +297,7 @@ namespace RoadRunner
         }
         assert(sMin < sMax);
 
+        auto roadID = std::stoi(newRoadID);
         for (auto index : allGraphicsIndice)
         {
             g_mapViewGL->UpdateObjectID(index, roadID);

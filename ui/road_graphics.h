@@ -32,10 +32,6 @@ namespace RoadRunner
 
         ~SectionGraphics();
 
-        void EnableHighlight(bool enabled);
-        void Hide(bool hidden);
-        void ShowGreenLight(bool green);
-
         /*Assuming graphics remain the same.*/
         void updateIndexingInfo(std::string newRoadID, int mult, double shift);
 
@@ -54,8 +50,6 @@ namespace RoadRunner
 
         const double BrokenLength = 3;
         const double BrokenGap = 6;
-
-        unsigned int roadID;
     };
 
     class JunctionGraphics

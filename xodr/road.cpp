@@ -466,26 +466,50 @@ namespace RoadRunner
 
     void Road::EnableHighlight(bool enabled)
     {
-        for (auto& s_and_graphics : s_to_section_graphics)
+        auto id = std::stoi(ID());
+        uint8_t currFlag = static_cast<uint8_t>(g_mapViewGL->GetItemFlag(id));
+        if (enabled)
         {
-            s_and_graphics.second->EnableHighlight(enabled);
+            currFlag |= static_cast<uint8_t>(ObjectDisplayFlag::Highlighted);
         }
+        else
+        {
+            currFlag &= ~static_cast<uint8_t>(ObjectDisplayFlag::Highlighted);
+        }
+
+        g_mapViewGL->UpdateItem(id, currFlag);
     }
 
     void Road::Hide(bool hidden)
     {
-        for (auto& s_graphics : s_to_section_graphics)
+        auto id = std::stoi(ID());
+        uint8_t currFlag = static_cast<uint8_t>(g_mapViewGL->GetItemFlag(id));
+        if (hidden)
         {
-            s_graphics.second->Hide(hidden);
+            currFlag |= static_cast<uint8_t>(ObjectDisplayFlag::Hidden);
         }
+        else
+        {
+            currFlag &= ~static_cast<uint8_t>(ObjectDisplayFlag::Hidden);
+        }
+
+        g_mapViewGL->UpdateItem(id, currFlag);
     }
 
     void Road::ShowGreenLight(bool green)
     {
-        for (auto& s_graphics : s_to_section_graphics)
+        auto id = std::stoi(ID());
+        uint8_t currFlag = static_cast<uint8_t>(g_mapViewGL->GetItemFlag(id));
+        if (green)
         {
-            s_graphics.second->ShowGreenLight(green);
+            currFlag |= static_cast<uint8_t>(ObjectDisplayFlag::GreenLight);
         }
+        else
+        {
+            currFlag &= ~static_cast<uint8_t>(ObjectDisplayFlag::GreenLight);
+        }
+
+        g_mapViewGL->UpdateItem(id, currFlag);
     }
 #endif
 
