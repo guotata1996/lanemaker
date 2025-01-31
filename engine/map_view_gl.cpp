@@ -250,8 +250,8 @@ namespace RoadRunner
         m_projection.perspective(
             /* vertical angle */ 60.0f,
             /* aspect ratio */   width / float(height),
-            /* near */           0.1f,
-            /* far */            1000.0f
+            /* near */           5.0f,
+            /* far */            2000.0f
         );
         // Mind: to not use 0.0 for near plane, otherwise depth buffering and depth testing won't work!
     }

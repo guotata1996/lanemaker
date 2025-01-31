@@ -134,11 +134,14 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point
 		
 		auto start2Point = odr::sub(point, localStartPos);
 		auto biasAngle = odr::angle(start2Point, localStartDir);
-		if (std::abs(biasAngle) < 0.10)
+
+		auto projLength = odr::dot(start2Point, localStartDir);
+		projLength = std::max(0.0, projLength);
+		auto projected = odr::add(localStartPos, odr::mut(projLength, localStartDir));
+		auto biasLength = odr::euclDistance(point, projected);
+		if (std::abs(biasAngle) < 0.06 && biasLength < SnapDistFromScale())
 		{
-			auto projLength = odr::dot(start2Point, localStartDir);
-			projLength = std::max(0.0, projLength);
-			point = odr::add(localStartPos, odr::mut(projLength, localStartDir));
+			point = projected;
 		}
 	}
 	return RoadDrawingSession::Snap_Nothing;

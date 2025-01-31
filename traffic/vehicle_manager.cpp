@@ -154,7 +154,7 @@ void VehicleManager::Spawn()
         }
 
         double totalLength = std::accumulate(allWeights.begin(), allWeights.end(), 0);
-        int nPair = std::ceil(totalLength / 50);
+        int nPair = std::ceil(totalLength / 100);
         std::cout << "Spawning vehicles ";
 
         for (auto i: RoadRunner::TQDM(RoadRunner::range(nPair)))
