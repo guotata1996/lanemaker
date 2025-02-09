@@ -1,4 +1,5 @@
 #include "OpenDriveMap.h"
+#include "road_graphics.h"
 
 #include <QVector3d>
 #include <optional>
@@ -89,8 +90,8 @@ private:
     double heading;
     static QVector3D DimensionLWH;
     
-    std::vector<unsigned int> routeVisualIndex;
+    RoadRunner::TemporaryGraphics routeVisual;
     odr::Line3D leaderLine;
 
-    const unsigned int variation;
+    std::optional<RoadRunner::InstancedGraphics> graphics;
 };

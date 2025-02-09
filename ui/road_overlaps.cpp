@@ -104,7 +104,7 @@ namespace RoadRunner
 
             if (!canCreateJunction)
             {
-                spdlog::warn("Existing junction is too close! Please switch to bridge/tunnel mode.");
+                spdlog::warn("Cannot create junction due to existing one nearby!");
                 return false;
             }
 

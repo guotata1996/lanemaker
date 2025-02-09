@@ -13,18 +13,56 @@ namespace RoadRunner
         std::vector<QPolygonF> ArrowShape(int arrowType);
     }
 
-    class TemporaryGraphics
+    // TODO: g_mapViewGL->AddXXX is Only accessable through AbstractGraphicsItem
+    class AbstractGraphicsItem
     {
     public:
-        TemporaryGraphics(const odr::Line3D& boundaryL, const odr::Line3D& boundaryR, QColor color);
-        TemporaryGraphics(const odr::Line3D& center, double width, QColor color);
+        virtual void AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color);
+        virtual void AddLine(const odr::Line3D& border, double width, QColor color);
+        virtual void AddPoly(const odr::Line3D& boundary, QColor color, double h = 0);
 
-        ~TemporaryGraphics();
-    private:
-        unsigned int graphicsIndex;
+        void Clear();
+
+        ~AbstractGraphicsItem();
+
+    protected:
+        AbstractGraphicsItem() = default;
+
+        std::vector<int> graphicsIndex;
+
+        unsigned int objectID;
     };
 
-    class SectionGraphics
+    class TemporaryGraphics: public AbstractGraphicsItem
+    {
+    public:
+        TemporaryGraphics();
+    };
+
+    class PermanentGraphics: public AbstractGraphicsItem
+    {
+    public:
+        PermanentGraphics(unsigned int objectID);
+
+        void UpdateObjectID(unsigned int objectID);
+        void RemoveObject();
+        void UpdateObject(uint8_t);
+    };
+
+    class HintLineGraphics: protected TemporaryGraphics
+    {
+    public:
+        HintLineGraphics(const odr::Line3D& boundaryL, const odr::Line3D& boundaryR, QColor color);
+        HintLineGraphics(const odr::Line3D& center, double width, QColor color);
+    };
+
+    class HintPolyGraphics : protected TemporaryGraphics
+    {
+    public:
+        HintPolyGraphics(const odr::Line3D& boundary, QColor color, double height = 0);
+    };
+
+    class SectionGraphics: protected PermanentGraphics
     {
     public:
         SectionGraphics(std::shared_ptr<RoadRunner::Road> road, const odr::LaneSection& laneSection,
@@ -39,11 +77,7 @@ namespace RoadRunner
 
         double sMin, sMax;
         
-        double sectionElevation;
-
         std::vector<FaceIndex_t> allSpatialIndice;
-        std::vector<unsigned int> allGraphicsIndice;
-        std::vector<unsigned int> allHighlightGraphicsIndice;
 
     private:
         static QPainterPath CreateRefLinePath(const odr::Line3D& center);
@@ -52,7 +86,7 @@ namespace RoadRunner
         const double BrokenGap = 6;
     };
 
-    class JunctionGraphics
+    class JunctionGraphics: protected PermanentGraphics
     {
     public:
         JunctionGraphics(const odr::Line2D& normalBoundary, double eleation, std::string junctionID);
@@ -65,13 +99,26 @@ namespace RoadRunner
 
     private:
         odr::Vec3D StripMidPoint(const odr::Vec3D& pOrigin, const odr::Vec3D& p1, const odr::Vec3D& p2);
+    };
 
-        double junctionElevation = 0;
+    struct InstanceData
+    {
+        unsigned int variation;
+        QColor color;
 
-        const QBrush DefaultBrush = QBrush(Qt::darkGray, Qt::SolidPattern);
+        static InstanceData GetRandom();
+    };
 
-        std::vector<unsigned int> allGraphicsIndice;
+    class InstancedGraphics
+    {
+    public:
+        InstancedGraphics(unsigned int objectID, InstanceData);
 
-        const unsigned int junctionObjectID; // = junctionID + offset
+        ~InstancedGraphics();
+
+        void SetTransform(QMatrix4x4 trans);
+    private:
+        unsigned int objectID;
+        unsigned int variation;
     };
 }

@@ -12,53 +12,95 @@
 
 namespace RoadRunner
 {
-    TemporaryGraphics::TemporaryGraphics(const odr::Line3D& boundaryL, const odr::Line3D& boundaryR, QColor color)
+    AbstractGraphicsItem::~AbstractGraphicsItem()
     {
-        if (boundaryL.size() > 1)
+        Clear();
+    }
+
+    void AbstractGraphicsItem::AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color)
+    {
+        if (lBorder.size() > 1)
+            graphicsIndex.push_back(g_mapViewGL->AddQuads(lBorder, rBorder, color, objectID));
+    }
+
+    void AbstractGraphicsItem::AddLine(const odr::Line3D& border, double width, QColor color)
+    {
+        if (border.size() > 1)
+            graphicsIndex.push_back(g_mapViewGL->AddLine(border, width, color, objectID));
+    }
+
+    void AbstractGraphicsItem::AddPoly(const odr::Line3D& boundary, QColor color, double h)
+    {
+        if (boundary.size() < 3)
         {
-            graphicsIndex = g_mapViewGL->AddQuads(boundaryL, boundaryR, color);
+            return;
+        }
+        if (h == 0)
+        {
+            graphicsIndex.push_back(g_mapViewGL->AddPoly(boundary, color, objectID ));
         }
         else
         {
-            graphicsIndex = -1;
+            graphicsIndex.push_back(g_mapViewGL->AddColumn(boundary, h, color, objectID));
         }
     }
 
-    TemporaryGraphics::TemporaryGraphics(const odr::Line3D& center, double width, QColor color)
+    void AbstractGraphicsItem::Clear()
     {
-        if (center.size() > 1)
+        for (auto idx : graphicsIndex)
         {
-            odr::Line3D left(center.size());
-            odr::Line3D right(center.size());
-            for (int i = 0; i != center.size(); ++i)
-            {
-                auto prev = i == 0 ? center[i] : center[i - 1];
-                auto next = i == center.size() - 1 ? center[i] : center[i + 1];
-                auto tan = odr::sub(next, prev);
-                odr::Vec2D radial{ -tan[1], tan[0] };
-                radial = odr::mut(width, odr::normalize(radial));
-                left[i] = odr::add(center[i], odr::Vec3D{ radial[0], radial[1], 0 });
-                right[i] = odr::add(center[i], odr::Vec3D{ -radial[0], -radial[1], 0 });
-            }
-            graphicsIndex = g_mapViewGL->AddQuads(left, right, color);
+            g_mapViewGL->RemoveItem(idx, objectID == -1);
         }
-        else
+        graphicsIndex.clear();
+    }
+
+    TemporaryGraphics::TemporaryGraphics()
+    {
+        objectID = -1;
+    }
+
+    PermanentGraphics::PermanentGraphics(unsigned int objID)
+    {
+        objectID = objID;
+    }
+
+    void PermanentGraphics::UpdateObjectID(unsigned int objID)
+    {
+        objectID = objID;
+        for (auto index : graphicsIndex)
         {
-            graphicsIndex = -1;
+            g_mapViewGL->UpdateObjectID(index, objectID);
         }
     }
 
-    TemporaryGraphics::~TemporaryGraphics()
+    void PermanentGraphics::RemoveObject()
     {
-        if (graphicsIndex != -1)
-        {
-            g_mapViewGL->RemoveItem(graphicsIndex, true);
-        }
+        g_mapViewGL->RemoveObject(objectID);
+    }
+
+    void PermanentGraphics::UpdateObject(uint8_t flag)
+    {
+        g_mapViewGL->UpdateObject(objectID, flag);
+    }
+
+    HintLineGraphics::HintLineGraphics(const odr::Line3D& boundaryL, const odr::Line3D& boundaryR, QColor color)
+    {
+        AddQuads(boundaryL, boundaryR, color);
+    }
+
+    HintLineGraphics::HintLineGraphics(const odr::Line3D& center, double width, QColor color)
+    {
+        AddLine(center, width, color);
+    }
+
+    HintPolyGraphics::HintPolyGraphics(const odr::Line3D& boundary, QColor color, double height)
+    {
+        AddPoly(boundary, color, height);
     }
 
     SectionGraphics::SectionGraphics(std::shared_ptr<RoadRunner::Road> road,
         const odr::LaneSection& laneSection,
-        double sBegin, double sEnd)
+        double sBegin, double sEnd): PermanentGraphics(std::stoi(road->ID()))
     {
         odr::Road& gen = road->generated;
         auto roadID = std::stoi(road->ID());
@@ -66,6 +108,7 @@ namespace RoadRunner
         bool biDirRoad = gen.rr_profile.HasSide(-1) && gen.rr_profile.HasSide(1);
         sMin = std::min(sBegin, sEnd);
         sMax = std::max(sBegin, sEnd);
+
         for (const auto& id2Lane : laneSection.id_to_lane)
         {
             const auto& lane = id2Lane.second;
@@ -83,13 +126,7 @@ namespace RoadRunner
                 }
                 
                 // outline for highlight
-                auto surfaceIndex = g_mapViewGL->AddQuads(innerBorder, outerBorder, 
-                    lane.type == "median" ? Qt::yellow : Qt::darkGray, roadID);
-                allGraphicsIndice.push_back(surfaceIndex);
-                if (lane.type != "median")
-                {
-                    allHighlightGraphicsIndice.push_back(surfaceIndex);
-                }
+                AddQuads(innerBorder, outerBorder, lane.type == "median" ? Qt::yellow : Qt::darkGray);
 
                 // Draw magnetic snap area
                 const double MagneticSnapDist = 2;
@@ -158,7 +195,7 @@ namespace RoadRunner
                 {
                     Qt::GlobalColor color = colors[i] == "yellow" ? Qt::yellow :
                         (colors[i] == "white" ? Qt::white : Qt::lightGray);
-                    allGraphicsIndice.push_back(g_mapViewGL->AddQuads(leftLines[i], rightLines[i], color, std::stoi(road->ID())));
+                    AddQuads(leftLines[i], rightLines[i], color);
                 }
             }
         }
@@ -189,7 +226,7 @@ namespace RoadRunner
                         {
                             p[2] += 0.01;
                         }
-                        allGraphicsIndice.push_back(g_mapViewGL->AddQuads(l1, l2, Qt::white, std::stoi(road->ID())));
+                        AddQuads(l1, l2, Qt::white);
                     }
                     else if (id_object.second.subtype == "arrow")
                     {
@@ -213,7 +250,7 @@ namespace RoadRunner
                                 auto vertexH = gen.ref_line.elevation_profile.get(vertexS);
                                 shape3[i] = odr::Vec3D{ transformed[i].x(), transformed[i].y(), vertexH + 0.02};
                             }
-                            allGraphicsIndice.push_back(g_mapViewGL->AddPoly(shape3, Qt::white, std::stoi(road->ID())));
+                            AddPoly(shape3, Qt::white);
                         }
                     }
                     else
@@ -234,10 +271,6 @@ namespace RoadRunner
             {
                 SpatialIndexer::Instance()->UnIndex(index);
             }
-        }
-        for (auto index : allGraphicsIndice)
-        {
-            g_mapViewGL->RemoveItem(index);
         }
     }
 
@@ -298,11 +331,7 @@ namespace RoadRunner
         assert(sMin < sMax);
 
         auto roadID = std::stoi(newRoadID);
-        for (auto index : allGraphicsIndice)
-        {
-            g_mapViewGL->UpdateObjectID(index, roadID);
-        }
-
+        UpdateObjectID(roadID);
     }
 
     double SectionGraphics::Length() const
@@ -312,7 +341,7 @@ namespace RoadRunner
     }
     
     JunctionGraphics::JunctionGraphics(const odr::Line2D& boundary, double elevation, std::string junctionID):
-        junctionObjectID(std::stoi(junctionID) + MaxRoadID)
+        PermanentGraphics(std::stoi(junctionID) + MaxRoadID)
     {
         odr::Line3D boundary3;
         boundary3.resize(boundary.size());
@@ -320,11 +349,11 @@ namespace RoadRunner
         {
             boundary3[i] = odr::Vec3D{ boundary[i][0], boundary[i][1], elevation };
         }
-        allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3, Qt::darkGray, junctionObjectID));
+        AddPoly(boundary3, Qt::darkGray);
     }
 
     JunctionGraphics::JunctionGraphics(const std::vector<std::pair<odr::Line3D, odr::Line3D>>& boundary, std::string aJunctionID):
-        junctionObjectID(std::stoi(aJunctionID) + MaxRoadID)
+        PermanentGraphics(std::stoi(aJunctionID) + MaxRoadID)
     {
         QPainterPath path;
 
@@ -341,7 +370,7 @@ namespace RoadRunner
             }
             auto pOrigin = singleBoundary.front();
 
-            allGraphicsIndice.push_back(g_mapViewGL->AddQuads(dualSides.first, dualSides.second, Qt::darkGray, junctionObjectID));
+            AddQuads(dualSides.first, dualSides.second, Qt::darkGray);
 
             for (int i = 0; i < dualSides.first.size() - ZebraLineWidth; i += ZebraLineWidth + ZebraLineSkip)
             {
@@ -363,25 +392,21 @@ namespace RoadRunner
                 boundary3d.push_back(odr::add(p4, lift));
                 boundary3d.push_back(odr::add(pM2, lift));
                 boundary3d.push_back(odr::add(p3, lift));
-                allGraphicsIndice.push_back(g_mapViewGL->AddPoly(boundary3d, Qt::lightGray, junctionObjectID));
+                AddPoly(boundary3d, Qt::lightGray);
             }
         }
     }
 
     JunctionGraphics::~JunctionGraphics()
     {
-        for (auto index : allGraphicsIndice)
-        {
-            g_mapViewGL->RemoveItem(index);
-        }
-        g_mapViewGL->RemoveObject(junctionObjectID);
+        RemoveObject();
     }
 
     void JunctionGraphics::Hide(bool hidden)
     {
         auto flag = hidden ?
             ObjectDisplayFlag::Hidden : ObjectDisplayFlag::Normal;
-        g_mapViewGL->UpdateItem(junctionObjectID, static_cast<uint8_t>(flag));
+        UpdateObject(static_cast<uint8_t>(flag));
     }
 
     odr::Vec3D JunctionGraphics::StripMidPoint(const odr::Vec3D& pOrigin, const odr::Vec3D& p1, const odr::Vec3D& p2)
@@ -396,6 +421,31 @@ namespace RoadRunner
             pMOffset = odr::negate(pMOffset);
         }
         return odr::add(pM, odr::Vec3D{ pMOffset[0], pMOffset[1], 0 });
+    }
+
+    InstanceData InstanceData::GetRandom()
+    {
+        auto variation = rand() % RoadRunner::NVehicleVariations;
+        auto minColor = static_cast<int>(Qt::GlobalColor::white); // skip black
+        auto maxColor = static_cast<int>(Qt::GlobalColor::transparent); // excluded
+        auto randColor = static_cast<Qt::GlobalColor>(rand() % (maxColor - minColor) + minColor);
+        return InstanceData{ variation, randColor };
+    }
+
+    InstancedGraphics::InstancedGraphics(unsigned int objID, InstanceData instanceData):
+        objectID(objID), variation(instanceData.variation)
+    {
+        RoadRunner::g_mapViewGL->AddInstance(objID, instanceData.color, instanceData.variation);
+    }
+
+    InstancedGraphics::~InstancedGraphics()
+    {
+        RoadRunner::g_mapViewGL->RemoveInstance(objectID, variation);
+    }
+
+    void InstancedGraphics::SetTransform(QMatrix4x4 trans)
+    {
+        RoadRunner::g_mapViewGL->UpdateInstance(objectID, trans, variation);
     }
 
     namespace

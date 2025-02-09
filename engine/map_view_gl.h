@@ -14,33 +14,27 @@ namespace RoadRunner
 {
 	const unsigned int NVehicleVariations = 3;
 
+	class AbstractGraphicsItem;
+	class PermanentGraphics;
+	class InstancedGraphics;
+
 	class MapViewGL : public OpenGLWindow
 	{
+		friend class AbstractGraphicsItem;
+		friend class PermanentGraphics;
+		friend class InstancedGraphics;
+
 		Q_OBJECT
 	public:
 		MapViewGL();
 		void CleanupResources();
 		void ResetCamera();
 
-		// Returns graphics ID. If objectID is -1, it is considered temporary.
-		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, unsigned int objID = -1);
-		unsigned int AddLine(const odr::Line3D& border, double width, QColor color, unsigned int objID = -1);
-		unsigned int AddPoly(const odr::Line3D& boundary, QColor color, unsigned int objID = -1);
-		unsigned int AddColumn(const odr::Line3D& boundary, double h, QColor color, unsigned int objID = -1);
-		void UpdateItem(unsigned int objectID, uint8_t);  // permanent objects only
-		uint8_t GetItemFlag(unsigned int objectID);
-		void UpdateObjectID(unsigned int graphicsID, unsigned int objectID);  // permanent objects only
-		void RemoveItem(unsigned int graphicsID, bool temporary = false);
+		// permanent objects only
+		void UpdateObject(unsigned int objectID, uint8_t flag);
+		void UpdateObjectID(unsigned int graphicsID, unsigned int objectID);
+		uint8_t GetObjectFlag(unsigned int objectID);
 		void RemoveObject(unsigned int objectID);
-
-		// Instanced rendering, for traffic.
-		void AddInstance(unsigned int id, QColor color, unsigned int variation);
-		void UpdateInstance(unsigned int, const QMatrix4x4, unsigned int);
-		void RemoveInstance(unsigned int, unsigned int);
-
-		// Background
-		unsigned int AddBackgroundLine(const odr::Line3D& line, double width, QColor color);
-		void RemoveBackground(unsigned int);
 
 		void SetViewFromReplay(Transform3D t);
 		void UpdateRayHit(QPoint screen, bool fromReplay=false);
@@ -55,6 +49,22 @@ namespace RoadRunner
 		void initializeGL() override;
 		void resizeGL(int width, int height) override;
 		void paintGL() override;
+
+		// Returns graphics ID. If objectID is -1, it is considered temporary.
+		unsigned int AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, unsigned int objID = -1);
+		unsigned int AddLine(const odr::Line3D& border, double width, QColor color, unsigned int objID = -1);
+		unsigned int AddPoly(const odr::Line3D& boundary, QColor color, unsigned int objID = -1);
+		unsigned int AddColumn(const odr::Line3D& boundary, double h, QColor color, unsigned int objID = -1);
+		void RemoveItem(unsigned int graphicsID, bool temporary = false);
+
+		// Instanced rendering, for traffic.
+		void AddInstance(unsigned int id, QColor color, unsigned int variation);
+		void UpdateInstance(unsigned int, const QMatrix4x4, unsigned int);
+		void RemoveInstance(unsigned int, unsigned int);
+
+		// Background
+		unsigned int AddBackgroundLine(const odr::Line3D& line, double width, QColor color);
+		void RemoveBackground(unsigned int);
 
 		void mousePressEvent(QMouseEvent* event) override;
 		void mouseDoubleClickEvent(QMouseEvent* event) override;

@@ -26,7 +26,7 @@ public:
     void SetHighlightTo(std::shared_ptr<RoadRunner::Road>);
 
 protected:
-    class CustomCursorItem
+    class CustomCursorItem: RoadRunner::TemporaryGraphics
     {
     public:
         CustomCursorItem();
@@ -38,11 +38,10 @@ protected:
     private:
         void DrawGroundGrids();
 
-        std::vector<unsigned int> graphicsIndex;
         int highlightLevel;
         odr::Vec3D translation;
 
-        std::vector<unsigned int> groundGridIdx;
+        TemporaryGraphics groundGrids;
     };
 
     enum SnapResult
@@ -111,7 +110,7 @@ private:
     {
     public:
         DirectionHandle(odr::Vec3D center, double angle);
-        ~DirectionHandle();
+        //~DirectionHandle();
 
         bool Update(const RoadRunner::MouseAction& act);
         double Rotation() const;
@@ -126,7 +125,7 @@ private:
         double dragging = false;
         double deltaRotation;
 
-        std::optional<unsigned int> graphicsIndex;
+        std::optional<RoadRunner::HintPolyGraphics> graphicsItem;
         const double InnerRadius = 4;
         const double OuterRadius = 6;
     };
@@ -156,10 +155,10 @@ private:
 
     std::unique_ptr<DirectionHandle> directionHandle;
 
-    std::optional<RoadRunner::TemporaryGraphics> stagedRefLinePreview;
-    std::optional<RoadRunner::TemporaryGraphics> stagedBoundaryPreview;
-    std::optional<RoadRunner::TemporaryGraphics> flexRefLinePreview;
-    std::optional<RoadRunner::TemporaryGraphics> flexBoundaryPreview;
+    std::optional<RoadRunner::HintLineGraphics> stagedRefLinePreview;
+    std::optional<RoadRunner::HintLineGraphics> stagedBoundaryPreview;
+    std::optional<RoadRunner::HintLineGraphics> flexRefLinePreview;
+    std::optional<RoadRunner::HintLineGraphics> flexBoundaryPreview;
 };
 
 
@@ -210,7 +209,7 @@ public:
 protected:
     odr::Line3D hintPolygonLeft, hintPolygonRight;
 
-    std::optional<RoadRunner::TemporaryGraphics> hintItemLeft, hintItemRight;
+    std::optional<RoadRunner::HintLineGraphics> hintItemLeft, hintItemRight;
 
     std::weak_ptr<RoadRunner::Road> targetRoad;
     std::unique_ptr<double> s1, s2;

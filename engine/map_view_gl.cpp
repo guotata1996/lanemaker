@@ -111,7 +111,6 @@ namespace RoadRunner
             odr::Vec3D radio{ -tangent[1], tangent[0], 0 };
             lBorder.push_back(odr::add(border[i], odr::mut(width / 2, radio)));
             rBorder.push_back(odr::add(border[i], odr::mut(-width / 2, radio)));
-
         }
     }
 
@@ -170,12 +169,12 @@ namespace RoadRunner
         vehicleBuffer[variation].AddInstance(id, QMatrix4x4(), color);
     }
 
-    void MapViewGL::UpdateItem(unsigned int id, uint8_t flag)
+    void MapViewGL::UpdateObject(unsigned int id, uint8_t flag)
     {
         permanentBuffer->UpdateItem(id, flag);
     }
 
-    uint8_t MapViewGL::GetItemFlag(unsigned int objectID)
+    uint8_t MapViewGL::GetObjectFlag(unsigned int objectID)
     {
         return permanentBuffer->GetItemFlag(objectID);
     }

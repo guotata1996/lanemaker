@@ -16,14 +16,6 @@ RoadCreationSession::DirectionHandle::DirectionHandle(odr::Vec3D _center, double
 	UpdateGraphics();
 }
 
-RoadCreationSession::DirectionHandle::~DirectionHandle()
-{
-	if (graphicsIndex.has_value())
-	{
-		RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex, true);
-	}
-}
-
 bool RoadCreationSession::DirectionHandle::Update(const RoadRunner::MouseAction& act)
 {
 	odr::Vec2D hitPos;
@@ -78,12 +70,11 @@ void RoadCreationSession::DirectionHandle::UpdateGraphics()
 		odr::Vec3D r{ std::cos(*angle_inner), std::sin(*angle_inner), 0 };
 		roundBoundary.push_back(odr::add(liftedCenter, odr::mut(InnerRadius, r)));
 	}
-	if (graphicsIndex.has_value())
+	if (graphicsItem.has_value())
 	{
-		RoadRunner::g_mapViewGL->RemoveItem(*graphicsIndex, true);
+		graphicsItem.reset();
 	}
-
-	graphicsIndex = RoadRunner::g_mapViewGL->AddPoly(roundBoundary, dragging ? Qt::green : Qt::darkGreen);
+	graphicsItem.emplace(roundBoundary, dragging ? Qt::green : Qt::darkGreen);
 }
 
 RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point)

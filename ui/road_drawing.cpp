@@ -171,14 +171,7 @@ RoadDrawingSession::CustomCursorItem::CustomCursorItem(): highlightLevel(0)
 
 RoadDrawingSession::CustomCursorItem::~CustomCursorItem()
 {
-    for (auto idx: graphicsIndex)
-    {
-        RoadRunner::g_mapViewGL->RemoveItem(idx, true);
-    }
-    for (auto idx : groundGridIdx)
-    {
-        RoadRunner::g_mapViewGL->RemoveItem(idx, true);
-    }
+
 }
 
 void RoadDrawingSession::CustomCursorItem::EnableHighlight(int level)
@@ -190,11 +183,8 @@ void RoadDrawingSession::CustomCursorItem::EnableHighlight(int level)
 void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
 {
     translation = t;
-    for (auto idx : graphicsIndex)
-    {
-        RoadRunner::g_mapViewGL->RemoveItem(idx, true);
-    }
-    graphicsIndex.clear();
+
+    Clear();
 
     auto centerOnXY = odr::Vec3D{ t[0], t[1], 0 };
     auto h = t[2];
@@ -211,7 +201,7 @@ void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
             (h == 0 ? Qt::cyan : Qt::white) : 
             (highlightLevel == 1 ? Qt::darkRed : Qt::red);
 
-        graphicsIndex.push_back(RoadRunner::g_mapViewGL->AddPoly(diskBoundary, color));
+        AddPoly(diskBoundary, color);
     }
 
     if (h != 0)
@@ -225,7 +215,7 @@ void RoadDrawingSession::CustomCursorItem::SetTranslation(odr::Vec3D t)
             pillarBoundary.push_back(pos);
         }
         auto pillarColor = h > 0 ? Qt::green : Qt::darkYellow;
-        graphicsIndex.push_back(RoadRunner::g_mapViewGL->AddColumn(pillarBoundary, h, pillarColor));
+        AddPoly(pillarBoundary, pillarColor, h);
     }
 }
 
@@ -237,14 +227,14 @@ void RoadDrawingSession::CustomCursorItem::DrawGroundGrids()
         odr::Line3D l;
         l.push_back(odr::Vec3D{ -2500, x * 50.0, -0.05 });
         l.push_back(odr::Vec3D{ 2500, x * 50.0, -0.05 });
-        groundGridIdx.push_back(RoadRunner::g_mapViewGL->AddLine(l, 0.25, Qt::black));
+        groundGrids.AddLine(l, 0.25, Qt::black);
     }
     for (int y = -50; y <= 50; ++y)
     {
         odr::Line3D l;
         l.push_back(odr::Vec3D{ y * 50.0, -2500, -0.05 });
         l.push_back(odr::Vec3D{ y * 50.0, 2500, -0.05 });
-        groundGridIdx.push_back(RoadRunner::g_mapViewGL->AddLine(l, 0.25, Qt::black));
+        groundGrids.AddLine(l, 0.25, Qt::black);
     }
 }
 
