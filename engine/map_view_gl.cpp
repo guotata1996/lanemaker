@@ -64,7 +64,8 @@ namespace RoadRunner
     unsigned int MapViewGL::AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, unsigned int objID)
     {
         bool temporary = objID == -1;
-        unsigned int gid = std::stoi(IDGenerator::ForGraphics(temporary)->GenerateID(this));
+        unsigned int gid = std::stoi(IDGenerator::ForType(temporary ? IDType::Graphics_Temporary : IDType::Graphics)
+            ->GenerateID(this));
         bool success = true;
         if (temporary)
         {
@@ -103,7 +104,7 @@ namespace RoadRunner
                 auto tan2 = odr::normalize(odr::sub(border[i], border[i - 1]));
                 tangent = odr::add(tan1, tan2);
             }
-            if (odr::squaredNorm(tangent) < 0.001)
+            if (odr::squaredNorm(tangent) == 0)
                 continue;
             tangent = odr::normalize(tangent);
 
@@ -125,7 +126,8 @@ namespace RoadRunner
     unsigned int MapViewGL::AddPoly(const odr::Line3D& boundary, QColor color, unsigned int objID)
     {
         bool temporary = objID == -1;
-        auto gid = std::stoi(IDGenerator::ForGraphics(temporary)->GenerateID(this));
+        auto gid = std::stoi(IDGenerator::ForType(temporary ? IDType::Graphics_Temporary : IDType::Graphics)
+            ->GenerateID(this));
         bool success = true;
         if (temporary)
         {
@@ -145,7 +147,8 @@ namespace RoadRunner
     unsigned int MapViewGL::AddColumn(const odr::Line3D& boundary, double h, QColor color, unsigned int objID)
     {
         bool temporary = objID == -1;
-        auto gid = std::stoi(IDGenerator::ForGraphics(temporary)->GenerateID(this));
+        auto gid = std::stoi(IDGenerator::ForType(temporary ? IDType::Graphics_Temporary : IDType::Graphics)
+            ->GenerateID(this));
         bool success = true;
         if (temporary)
         {
@@ -192,7 +195,7 @@ namespace RoadRunner
         {
             temporaryBuffer->RemoveItem(id);
         }
-        IDGenerator::ForGraphics(temporary)->FreeID(std::to_string(id));
+        IDGenerator::ForType(temporary ? IDType::Graphics_Temporary : IDType::Graphics)->FreeID(std::to_string(id));
     }
 
     void MapViewGL::RemoveObject(unsigned int objectID)
@@ -214,7 +217,7 @@ namespace RoadRunner
     {
         odr::Line3D lBorder, rBorder;
         LineToQuads(line, width, lBorder, rBorder);
-        auto gid = std::stoi(IDGenerator::ForGraphics(true)->GenerateID(this));
+        auto gid = std::stoi(IDGenerator::ForType(IDType::Graphics_Temporary)->GenerateID(this));
         backgroundBuffer->AddQuads(gid, 0, lBorder, rBorder, color);
         return gid;
     }
@@ -564,13 +567,13 @@ namespace RoadRunner
 
         if (hitInfo.roadID != g_PointerRoadID && !g_PointerRoadID.empty())
         {
-            auto prevHL = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(g_PointerRoadID));
+            auto prevHL = IDGenerator::ForType(IDType::Road)->GetByID<Road>(g_PointerRoadID);
             if (prevHL != nullptr)
             {
                 prevHL->EnableHighlight(false);
                 if (prevHL->generated.junction != "-1")
                 {
-                    static_cast<Junction*>(IDGenerator::ForJunction()->GetByID(prevHL->generated.junction))->Hide(false);
+                    (IDGenerator::ForType(IDType::Junction)->GetByID<Junction>(prevHL->generated.junction))->Hide(false);
                 }
             }
         }
@@ -581,11 +584,11 @@ namespace RoadRunner
             g_PointerRoadID = hitInfo.roadID;
             g_PointerRoadS = hitInfo.s;
             g_PointerLane = hitInfo.lane;
-            auto hitRoad = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(g_PointerRoadID));
+            auto hitRoad = IDGenerator::ForType(IDType::Road)->GetByID<Road>(g_PointerRoadID);
             hitRoad->EnableHighlight(true);
             if (hitRoad->generated.junction != "-1")
             {
-                static_cast<Junction*>(IDGenerator::ForJunction()->GetByID(hitRoad->generated.junction))->Hide(true);
+                IDGenerator::ForType(IDType::Junction)->GetByID<Junction>(hitRoad->generated.junction)->Hide(true);
             }
         }
 
@@ -594,15 +597,15 @@ namespace RoadRunner
         auto pointerVehicle = RoadRunner::SpatialIndexerDynamic::Instance()->RayCast(RoadRunner::g_CameraPosition, pointerRayDir);
         if (pointerVehicle != g_PointerVehicle)
         {
-            auto prevHighlight = IDGenerator::ForVehicle()->GetByID(std::to_string(g_PointerVehicle));
+            auto prevHighlight = IDGenerator::ForType(IDType::Vehicle)->GetByID<Vehicle>(std::to_string(g_PointerVehicle));
             if (prevHighlight != nullptr)
             {
-                static_cast<Vehicle*>(prevHighlight)->EnableRouteVisual(false, RoadRunner::ChangeTracker::Instance()->Map());
+                prevHighlight->EnableRouteVisual(false, RoadRunner::ChangeTracker::Instance()->Map());
             }
         }
         if (pointerVehicle != -1)
         {
-            static_cast<Vehicle*>(IDGenerator::ForVehicle()->GetByID(std::to_string(pointerVehicle)))->EnableRouteVisual(true,
+            IDGenerator::ForType(IDType::Vehicle)->GetByID<Vehicle>(std::to_string(pointerVehicle))->EnableRouteVisual(true,
                 RoadRunner::ChangeTracker::Instance()->Map());
         };
 

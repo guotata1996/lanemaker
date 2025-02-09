@@ -104,14 +104,14 @@ namespace RoadRunner
 
     void ChangeTracker::StartRecordEdit()
     {
-        IDGenerator::ForRoad()->ClearChangeList();
-        IDGenerator::ForJunction()->ClearChangeList();
+        IDGenerator::ForType(IDType::Road)->ClearChangeList();
+        IDGenerator::ForType(IDType::Junction)->ClearChangeList();
     }
 
     void ChangeTracker::FinishRecordEdit(bool abort)
     {
-        auto roadChanges = IDGenerator::ForRoad()->ConsumeChanges();
-        auto junctionChanges = IDGenerator::ForJunction()->ConsumeChanges();
+        auto roadChanges = IDGenerator::ForType(IDType::Road)->ConsumeChanges();
+        auto junctionChanges = IDGenerator::ForType(IDType::Junction)->ConsumeChanges();
         if (roadChanges.empty() && junctionChanges.empty())
         {
             return;
@@ -288,7 +288,7 @@ namespace RoadRunner
                 if (odrRoad.junction == "-1")
                 {
                     auto createdID = odrRoad.id;
-                    auto roadPtr = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(createdID))->shared_from_this();
+                    auto roadPtr = IDGenerator::ForType(IDType::Road)->GetByID<Road>(createdID)->shared_from_this();
                     World::Instance()->allRoads.erase(roadPtr);
 
                     if (roadPtr->successorJunction != nullptr)
@@ -323,15 +323,14 @@ namespace RoadRunner
 
                 auto& odrJunction = change.after.get();
                 auto createdID = odrJunction.id;
-                auto junctionPtrUntyped = IDGenerator::ForJunction()->GetByID(createdID);
+                auto junctionPtr = IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::AbstractJunction>(createdID);
 
-                if (junctionPtrUntyped == nullptr)
+                if (junctionPtr == nullptr)
                 {
                     // Junction could have already been destroyed after deleting all connecting roads
                     continue;
                 }                
 
-                auto junctionPtr = static_cast<RoadRunner::AbstractJunction*>(junctionPtrUntyped);
                 auto commonJunctionPtr = dynamic_cast<RoadRunner::Junction*>(junctionPtr);
                 if (commonJunctionPtr != nullptr)
                 {
@@ -409,7 +408,7 @@ namespace RoadRunner
             if (odrRoad.successor.type == odr::RoadLink::Type_Junction &&
                 odrRoad.successor.id != "-1")
             {
-                auto juncPtr = static_cast<RoadRunner::AbstractJunction*>(IDGenerator::ForJunction()->GetByID(odrRoad.successor.id));
+                auto juncPtr = IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::AbstractJunction>(odrRoad.successor.id);
                 if (juncPtr == nullptr)
                 {
                     auto odrJunction = tornDownJunctions.at(odrRoad.successor.id);
@@ -428,7 +427,7 @@ namespace RoadRunner
             if (odrRoad.predecessor.type == odr::RoadLink::Type_Junction &&
                 odrRoad.predecessor.id != "-1")
             {
-                auto juncPtr = static_cast<RoadRunner::AbstractJunction*>(IDGenerator::ForJunction()->GetByID(odrRoad.predecessor.id));
+                auto juncPtr = (IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::AbstractJunction>(odrRoad.predecessor.id));
                 std::shared_ptr<RoadRunner::AbstractJunction> juncPtrShared;
                 if (juncPtr == nullptr)
                 {

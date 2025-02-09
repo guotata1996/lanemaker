@@ -128,8 +128,8 @@ namespace RoadRunner
 
             if (joinExistingJunction)
             {
-                auto junctionPtr = IDGenerator::ForJunction()->GetByID(road2->generated.junction);
-                auto junction = static_cast<RoadRunner::Junction*>(junctionPtr)->shared_from_this();
+                auto junctionPtr = IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::Junction>(road2->generated.junction);
+                auto junction = junctionPtr->shared_from_this();
                 road2.reset(); // since road2 is a connecting road inside junction, must reset to free its ID
                 if (newRoadBeforeJunction != nullptr)
                 {

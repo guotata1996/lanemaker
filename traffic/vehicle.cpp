@@ -17,7 +17,7 @@ QVector3D Vehicle::DimensionLWH = QVector3D(4.6, 1.8, 1.6);
 Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey destLane, double destS, double maxV) :
     AS(initialLocalS), ALane(initialLane), BS(destS), BLane(destLane),
     currLaneLength(0), tOffset(0), laneChangeDueS(0), velocity(0), MaxV(maxV), stepInJunction(0),
-    ID(IDGenerator::ForVehicle()->GenerateID(this)), goalIndex(false), variation(rand() % RoadRunner::NVehicleVariations)
+    ID(IDGenerator::ForType(IDType::Vehicle)->GenerateID(this)), goalIndex(false), variation(rand() % RoadRunner::NVehicleVariations)
 {
 }
 
@@ -63,7 +63,7 @@ void Vehicle::Clear()
 {
     RoadRunner::g_mapViewGL->RemoveInstance(std::stoi(ID), variation);
     RoadRunner::SpatialIndexerDynamic::Instance()->UnIndex(std::stoi(ID));
-    IDGenerator::ForVehicle()->FreeID(ID);
+    IDGenerator::ForType(IDType::Vehicle)->FreeID(ID);
 }
 
 void Vehicle::EnableRouteVisual(bool enabled, const odr::OpenDriveMap& odrMap)

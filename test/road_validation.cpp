@@ -388,7 +388,7 @@ namespace RoadRunnerTest
             auto successorStopLineObjectIt = road.id_to_object.find(std::to_string(odr::RoadLink::ContactPoint_End));
             if (road.successor.type == odr::RoadLink::Type_Junction)
             {
-                auto nextJunc = static_cast<RoadRunner::AbstractJunction*>(IDGenerator::ForJunction()->GetByID(road.successor.id));
+                auto nextJunc = IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::AbstractJunction>(road.successor.id);
                 if (nextJunc->generated.type == odr::JunctionType::Common)
                 {
                     successorIsCommon = true;
@@ -409,7 +409,7 @@ namespace RoadRunnerTest
             auto predecessorStopLineObjectIt = road.id_to_object.find(std::to_string(odr::RoadLink::ContactPoint_Start));
             if (road.predecessor.type == odr::RoadLink::Type_Junction)
             {
-                auto predJunc = static_cast<RoadRunner::AbstractJunction*>(IDGenerator::ForJunction()->GetByID(road.predecessor.id));
+                auto predJunc = (IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::AbstractJunction>(road.predecessor.id));
                 if (predJunc->generated.type == odr::JunctionType::Common)
                 {
                     predecessorIsCommon = true;

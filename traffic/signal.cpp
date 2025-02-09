@@ -86,7 +86,7 @@ namespace RoadRunner
 
         for (auto lanesInPhase : phaseToLanes[currPhase])
         {
-            static_cast<Road*>(IDGenerator::ForRoad()->GetByID(lanesInPhase.road_id))->ShowGreenLight(enable);
+            IDGenerator::ForType(IDType::Road)->GetByID<Road>(lanesInPhase.road_id)->ShowGreenLight(enable);
         }
     }
 }

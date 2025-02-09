@@ -19,9 +19,9 @@ std::shared_ptr<RoadRunner::Road> RoadDrawingSession::GetPointerRoad()
     {
         return std::shared_ptr<RoadRunner::Road>();
     }
-    auto g_road = IDGenerator::ForRoad()->GetByID(RoadRunner::g_PointerRoadID);
+    auto g_road = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(RoadRunner::g_PointerRoadID);
     if (g_road == nullptr) return std::shared_ptr<RoadRunner::Road>();
-    return static_cast<RoadRunner::Road*>(g_road)->shared_from_this();
+    return g_road->shared_from_this();
 }
 
 odr::Vec2D RoadDrawingSession::CursorAtHeight(double zLevel)
@@ -252,7 +252,7 @@ void RoadDrawingSession::CustomCursorItem::DrawGroundGrids()
 void RoadDrawingSession::UpdateEndMarkings()
 {
     std::set<std::pair< RoadRunner::Road*, odr::RoadLink::ContactPoint>> dueUpdate;
-    for (auto id_obj : IDGenerator::ForJunction()->PeekChanges())
+    for (auto id_obj : IDGenerator::ForType(IDType::Junction)->PeekChanges())
     {
         auto junction = static_cast<RoadRunner::AbstractJunction*>(id_obj.second);
         if (junction != nullptr)
@@ -261,7 +261,7 @@ void RoadDrawingSession::UpdateEndMarkings()
             dueUpdate.insert(connected.begin(), connected.end());
         }
     }
-    for (auto id_obj : IDGenerator::ForRoad()->PeekChanges())
+    for (auto id_obj : IDGenerator::ForType(IDType::Road)->PeekChanges())
     {
         auto road = static_cast<RoadRunner::Road*>(id_obj.second);
         if (road != nullptr)

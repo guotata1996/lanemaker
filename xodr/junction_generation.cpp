@@ -566,13 +566,13 @@ namespace RoadRunner
 
     void clearLinkage(std::string junctionID, std::string regularRoad)
     {
-        auto road = IDGenerator::ForRoad()->GetByID(regularRoad);
+        auto road = IDGenerator::ForType(IDType::Road)->GetByID<Road>(regularRoad);
         if (road == nullptr)
         {
             return;
         }
 
-        odr::Road& affectedRoad = static_cast<Road*>(road)->generated;
+        odr::Road& affectedRoad = road->generated;
         if (affectedRoad.successor.type == odr::RoadLink::Type_Junction &&
             affectedRoad.successor.id == junctionID)
         {

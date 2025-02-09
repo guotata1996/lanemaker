@@ -14,7 +14,7 @@
 namespace RoadRunner
 {
     AbstractJunction::AbstractJunction() :
-        generated("", IDGenerator::ForJunction()->GenerateID(this), odr::JunctionType::Common)
+        generated("", IDGenerator::ForType(IDType::Junction)->GenerateID(this), odr::JunctionType::Common)
     {
         generated.name = "Junction " + generated.id;
         if (std::stoi(ID()) >= MaxJunctionID)
@@ -26,7 +26,7 @@ namespace RoadRunner
     AbstractJunction::AbstractJunction(const odr::Junction& serialized) :
         generated(serialized)
     {
-        IDGenerator::ForJunction()->TakeID(ID(), this);
+        IDGenerator::ForType(IDType::Junction)->TakeID(ID(), this);
     }
 
     int AbstractJunction::Attach(ConnectionInfo conn)
@@ -132,7 +132,7 @@ namespace RoadRunner
             }
 
             clearLinkage(ID(), onlyRoad->ID());
-            IDGenerator::ForRoad()->NotifyChange(onlyRoad->ID());
+            IDGenerator::ForType(IDType::Road)->NotifyChange(onlyRoad->ID());
             formedFrom.clear();
             // Junction will then be destroyed
         }
@@ -268,7 +268,7 @@ namespace RoadRunner
 
         if (!ID().empty())
         {
-            IDGenerator::ForJunction()->FreeID(ID());
+            IDGenerator::ForType(IDType::Junction)->FreeID(ID());
         }
     }
 
@@ -280,7 +280,7 @@ namespace RoadRunner
         for (const auto& id2Connection : generated.id_to_connection)
         {
             auto connectingRoadID = id2Connection.second.connecting_road;
-            auto roadPtr = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(connectingRoadID));
+            auto roadPtr = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(connectingRoadID);
             connectingRoads.push_back(roadPtr->shared_from_this());
         }
     }
@@ -343,7 +343,7 @@ namespace RoadRunner
 #endif
         GenerateSignalPhase();
 
-        IDGenerator::ForJunction()->NotifyChange(ID());
+        IDGenerator::ForType(IDType::Junction)->NotifyChange(ID());
 
         return generationError;
     }
@@ -386,7 +386,7 @@ namespace RoadRunner
         odr::Line2D rasterizedBoundary;
         for (auto segment : generated.boundary)
         {
-            auto road = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(segment.road))->generated;
+            auto road = IDGenerator::ForType(IDType::Road)->GetByID<Road>(segment.road)->generated;
             if (segment.type == odr::BoundarySegmentType::Lane)
             {
                 int nPoints = std::ceil(std::abs(segment.sBegin - segment.sEnd) / Resolution);
@@ -433,7 +433,7 @@ namespace RoadRunner
                     if (ll.from == incomingLane)
                     {
                         auto connRoadID = id_conn.second.connecting_road;
-                        auto connectingRoad = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(connRoadID));
+                        auto connectingRoad = (IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(connRoadID));
                         auto startGrad = connectingRoad->generated.ref_line.get_grad_xy(0);
                         auto endGrad = connectingRoad->generated.ref_line.get_grad_xy(connectingRoad->Length());
                         auto turnAngle = odr::angle(startGrad, endGrad);
@@ -598,7 +598,7 @@ namespace RoadRunner
         generated.type = odr::JunctionType::Direct;
         auto interfaceProviderID = serialized.id_to_connection.cbegin()->second.incoming_road;
         
-        auto interfaceProvider = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(interfaceProviderID));
+        auto interfaceProvider = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(interfaceProviderID);
         odr::RoadLink::ContactPoint interfaceContact;
         if (interfaceProvider->generated.predecessor.type == odr::RoadLink::Type_Junction &&
             interfaceProvider->generated.predecessor.id == ID())
@@ -653,7 +653,7 @@ namespace RoadRunner
                     throw std::logic_error("DirectJunction::CreateFrom Invalid contact point");
                 }
                 clearLinkage(ID(), connectedRoad->ID());
-                IDGenerator::ForRoad()->NotifyChange(connectedRoad->ID());
+                IDGenerator::ForType(IDType::Road)->NotifyChange(connectedRoad->ID());
             }
             formedFrom.clear();
             // Junction will then be destroyed
@@ -673,7 +673,7 @@ namespace RoadRunner
                 connectedRoad->successorJunction = shared_from_this();
                 connectedRoad->generated.successor = odr::RoadLink(ID(), odr::RoadLink::Type_Junction);
             }
-            IDGenerator::ForRoad()->NotifyChange(connectedRoad->ID());
+            IDGenerator::ForType(IDType::Road)->NotifyChange(connectedRoad->ID());
         }
 
         generated.id_to_connection.clear();
@@ -737,7 +737,7 @@ namespace RoadRunner
         }
 #endif
 
-        IDGenerator::ForJunction()->NotifyChange(ID());
+        IDGenerator::ForType(IDType::Junction)->NotifyChange(ID());
 
         return JunctionError::Junction_NoError;
     }
@@ -745,7 +745,7 @@ namespace RoadRunner
     void DirectJunction::AttachNoRegenerate(ConnectionInfo conn)
     {
         auto road = conn.road.lock();
-        auto interfaceProvider = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(generated.id_to_connection.begin()->second.incoming_road));
+        auto interfaceProvider = IDGenerator::ForType(IDType::Road)->GetByID<Road>(generated.id_to_connection.begin()->second.incoming_road);
         bool isInterfaceProvider = interfaceProvider->ID() == conn.road.lock()->ID();
         bool connIsSide = road->generated.rr_profile.HasSide(-1) && road->generated.rr_profile.HasSide(1);
         if (!isInterfaceProvider && 
@@ -860,8 +860,8 @@ namespace RoadRunner
         {
             auto segmentOnA = generated.boundary[i];
             auto segmentOnB = generated.boundary[j];
-            auto roadA = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(segmentOnA.road));
-            auto roadB = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(segmentOnB.road));
+            auto roadA = IDGenerator::ForType(IDType::Road)->GetByID<Road>(segmentOnA.road);
+            auto roadB = IDGenerator::ForType(IDType::Road)->GetByID<Road>(segmentOnB.road);
             
             // RoadRunnerTODO: why can sbegin/sEnd exceed road Length when loading from xodr?
             segmentOnA.sBegin = std::max(0.0, std::min(roadA->Length(), segmentOnA.sBegin));

@@ -29,8 +29,7 @@ size_t RandomSelect(const std::vector<double>& probs)
 
 int VehicleManager::FPS = 30;
 
-VehicleManager::VehicleManager(QObject* parent): QObject(parent),
-    idGen(IDGenerator::ForVehicle())
+VehicleManager::VehicleManager(QObject* parent): QObject(parent)
 {
     timer = new QTimer(this);
     timer->setInterval(FPS);

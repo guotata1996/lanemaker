@@ -52,7 +52,7 @@ namespace RoadRunnerTest
             ExpectOrAssert(odrLink.second.interface_provider_contact == odr::JunctionConnection::ContactPoint_None);
 
             connectingIDFromOdr.insert(odrLink.second.connecting_road);
-            auto incomingRRRoad = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(odrLink.second.incoming_road));
+            auto incomingRRRoad = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(odrLink.second.incoming_road);
             bool incomingContactEnd = incomingRRRoad->successorJunction == junction->shared_from_this();
             bool incomingContactStart = incomingRRRoad->predecessorJunction == junction->shared_from_this();
             ExpectOrAssert(incomingContactEnd || incomingContactStart);
@@ -68,9 +68,9 @@ namespace RoadRunnerTest
                 ExpectOrAssert(junction->formedFrom.find(info) != junction->formedFrom.end());
             }
 
-            auto connectingRRRoad = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(odrLink.second.connecting_road));
+            auto connectingRRRoad = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(odrLink.second.connecting_road);
             auto outgoingRoadID = connectingRRRoad->generated.predecessor.id;
-            auto outgoingRRRoad = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(outgoingRoadID));
+            auto outgoingRRRoad = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(outgoingRoadID);
             bool outgoingContactEnd = outgoingRRRoad->successorJunction == junction->shared_from_this();
             bool outgoingContactStart = outgoingRRRoad->predecessorJunction == junction->shared_from_this();
             ExpectOrAssert(outgoingContactEnd || outgoingContactStart);
@@ -211,7 +211,7 @@ namespace RoadRunnerTest
             ExpectOrAssert(id2Conn.second.contact_point != odr::JunctionConnection::ContactPoint_None);
             ExpectOrAssert(id2Conn.second.interface_provider_contact != odr::JunctionConnection::ContactPoint_None);
 
-            auto incoming = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(id2Conn.second.incoming_road));
+            auto incoming = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(id2Conn.second.incoming_road);
             double sOnIncoming, sOnConnecting;
             ExpectOrAssert(incoming->predecessorJunction.get() == junction
                 || incoming->successorJunction.get() == junction);
@@ -225,7 +225,7 @@ namespace RoadRunnerTest
                 sOnIncoming = incoming->Length();
             }
 
-            auto connecting = static_cast<RoadRunner::Road*>(IDGenerator::ForRoad()->GetByID(id2Conn.second.connecting_road));
+            auto connecting = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(id2Conn.second.connecting_road);
             ExpectOrAssert(id2Conn.second.contact_point != odr::JunctionConnection::ContactPoint_None);
             if (id2Conn.second.contact_point == odr::JunctionConnection::ContactPoint_Start)
             {

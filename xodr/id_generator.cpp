@@ -1,85 +1,28 @@
 #include "id_generator.h"
 #include <cassert>
-#include <spdlog/spdlog.h>
+#include <array>
 
-IDGenerator* IDGenerator::_junction = nullptr;
-IDGenerator* IDGenerator::_face = nullptr;
-IDGenerator* IDGenerator::_road = nullptr;
-IDGenerator* IDGenerator::_vehicle = nullptr;
-IDGenerator* IDGenerator::_graphics = nullptr;
-IDGenerator* IDGenerator::_graphics_temp = nullptr;
+std::array<std::unique_ptr<IDGenerator>, static_cast<size_t>(IDType::Count)> idStore;
 
 
-IDGenerator::IDGenerator(std::string aType): type(aType)
+std::unique_ptr<IDGenerator>& IDGenerator::ForType(IDType t)
 {
-    
-}
-
-IDGenerator* IDGenerator::ForJunction()
-{
-    if (_junction == nullptr)
+    if (idStore[static_cast<size_t>(t)] == nullptr)
     {
-        _junction = new IDGenerator("Junc");
+        idStore[static_cast<size_t>(t)] = std::make_unique<IDGenerator>();
     }
-    return _junction;
-}
-
-IDGenerator* IDGenerator::ForRoad()
-{
-    if (_road == nullptr)
-    {
-        _road = new IDGenerator("Road");
-    }
-    return _road;
-}
-
-IDGenerator* IDGenerator::ForFace()
-{
-    if (_face == nullptr)
-    {
-        _face = new IDGenerator("Face");
-    }
-    return _face;
-}
-
-IDGenerator* IDGenerator::ForVehicle()
-{
-    if (_vehicle == nullptr)
-    {
-        _vehicle = new IDGenerator("Vehicle");
-    }
-    return _vehicle;
-}
-
-IDGenerator* IDGenerator::ForGraphics(bool temporary)
-{
-    if (temporary)
-    {
-        if (_graphics_temp == nullptr)
-        {
-            _graphics_temp = new IDGenerator("Graphics Temporary");
-        }
-        return _graphics_temp;
-    }
-    else
-    {
-        if (_graphics == nullptr)
-        {
-            _graphics = new IDGenerator("Graphics");
-        }
-        return _graphics;
-    }
+    return idStore[static_cast<size_t>(t)];
 }
 
 void IDGenerator::Reset()
 {
-    IDGenerator::ForRoad()->reset();
-    IDGenerator::ForJunction()->reset();
-    IDGenerator::ForVehicle()->reset();
-
-    IDGenerator::ForFace()->reset();
-    IDGenerator::ForGraphics(true)->reset();
-    IDGenerator::ForGraphics(false)->reset();
+    for (auto& gen : idStore)
+    {
+        if (gen != nullptr)
+        {
+            gen->reset();
+        }
+    }
 }
 
 size_t IDGenerator::size() const
@@ -110,7 +53,6 @@ std::string IDGenerator::GenerateID(void* object)
     }
 
     assignTo.emplace(newID, object);
-    spdlog::trace("Geneated {} ID: {}", type, newID);
     changeList[newID] = object;
     return std::to_string(newID);
 }
@@ -132,10 +74,8 @@ bool IDGenerator::FreeID(const std::string& sid)
     if (assigned.size() <= id || !assignTo.at(id))
     {
         // ID does not exist
-        spdlog::warn("Can't free non-exist {} ID: {}", type, sid);
-        return false;
+        assert(false);
     }
-    spdlog::trace("Free {} ID: {}", type, sid);
     assigned[id] = false;
     assignTo.erase(id);
     changeList[id] = nullptr;
@@ -160,12 +100,6 @@ void IDGenerator::TakeID(std::string sid, void* object)
     assert(assignTo.find(id) == assignTo.end());
     assigned[id] = true;
     assignTo.emplace(id, object);
-}
-
-void* IDGenerator::GetByID(std::string sid)
-{
-    auto id = static_cast<size_t>(std::atoi(sid.c_str()));
-    return assignTo.find(id) == assignTo.end() ? nullptr : assignTo.at(id);
 }
 
 void IDGenerator::ClearChangeList()

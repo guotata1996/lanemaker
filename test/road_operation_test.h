@@ -95,7 +95,7 @@ namespace RoadRunnerTest
         // Destroy remainig
         rRight.reset();
         rLeft.reset();
-        EXPECT_EQ(IDGenerator::ForJunction()->size(), 0);
-        EXPECT_EQ(IDGenerator::ForRoad()->size(), 0);
+        EXPECT_EQ(IDGenerator::ForType(IDType::Junction)->size(), 0);
+        EXPECT_EQ(IDGenerator::ForType(IDType::Road)->size(), 0);
     }
 }

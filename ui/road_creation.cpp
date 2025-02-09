@@ -456,7 +456,7 @@ bool RoadCreationSession::Complete()
 					auto errorCode = junction->CreateFrom(junctionInfo);
 					if (errorCode == RoadRunner::Junction_NoError)
 					{
-						IDGenerator::ForRoad()->NotifyChange(toExtend->ID());
+						IDGenerator::ForType(IDType::Road)->NotifyChange(toExtend->ID());
 						break;
 					}
 				}
@@ -503,7 +503,7 @@ bool RoadCreationSession::Complete()
 				auto errorCode = junction->CreateFrom(junctionInfo);
 				if (errorCode == RoadRunner::Junction_NoError)
 				{
-					IDGenerator::ForRoad()->NotifyChange(toJoin->ID());
+					IDGenerator::ForType(IDType::Road)->NotifyChange(toJoin->ID());
 					break;
 				}
 			}

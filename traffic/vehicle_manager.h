@@ -42,7 +42,5 @@ private:
 
     QTimer* timer;
 
-    IDGenerator* idGen;
-
     unsigned long stepCount;
 };

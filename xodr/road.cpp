@@ -22,7 +22,7 @@ namespace RoadRunner
     bool Road::ClearingMap = false;
 
     Road::Road(const LaneProfile& p, std::unique_ptr<odr::RoadGeometry> l) :
-        generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1")
+        generated(IDGenerator::ForType(IDType::Road)->GenerateID(this), 0, "-1")
     {
         if (std::stoi(ID()) >= MaxRoadID)
         {
@@ -35,7 +35,7 @@ namespace RoadRunner
     }
 
     Road::Road(const LaneProfile& p, odr::RefLine& l) :
-        generated(IDGenerator::ForRoad()->GenerateID(this), 0, "-1")
+        generated(IDGenerator::ForType(IDType::Road)->GenerateID(this), 0, "-1")
     {
         if (std::stoi(ID()) >= MaxRoadID)
         {
@@ -49,7 +49,7 @@ namespace RoadRunner
     Road::Road(const odr::Road& serialized):
         generated(serialized)
     {
-        IDGenerator::ForRoad()->TakeID(ID(), this);
+        IDGenerator::ForType(IDType::Road)->TakeID(ID(), this);
     }
 
     void Road::Generate(bool notifyJunctions)
@@ -60,7 +60,7 @@ namespace RoadRunner
         generated.PlaceMarkings();
         generated.DeriveLaneBorders();
 
-        IDGenerator::ForRoad()->NotifyChange(ID());
+        IDGenerator::ForType(IDType::Road)->NotifyChange(ID());
 
         if (notifyJunctions)
         {
@@ -134,7 +134,7 @@ namespace RoadRunner
         if (!ID().empty())
         {
             spdlog::trace("del road {}", ID());
-            IDGenerator::ForRoad()->FreeID(ID());
+            IDGenerator::ForType(IDType::Road)->FreeID(ID());
 #ifndef G_TEST
             s_to_section_graphics.clear();
             g_mapViewGL->RemoveObject(std::stoi(ID()));
@@ -336,12 +336,12 @@ namespace RoadRunner
                     }
                 }
 
-                auto collidingRoad = static_cast<Road*>(IDGenerator::ForRoad()->GetByID(overlap.roadID))->shared_from_this();
+                auto collidingRoad = IDGenerator::ForType(IDType::Road)->GetByID<Road>(overlap.roadID)->shared_from_this();
 
                 if (collidingRoad->generated.junction != "-1")
                 {
-                    auto junctionPtr = IDGenerator::ForJunction()->GetByID(collidingRoad->generated.junction);
-                    auto junction = static_cast<RoadRunner::Junction*>(junctionPtr)->shared_from_this();
+                    auto junctionPtr = IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::Junction>(collidingRoad->generated.junction);
+                    auto junction = junctionPtr->shared_from_this();
                     if (predecessorJunction == junction && st.first == 0)
                     {
                         // Already joined this junction
