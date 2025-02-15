@@ -1,3 +1,5 @@
+![Ubuntu Build](https://github.com/guotata1996/RoadRunner/actions/workflows/cmake-Ubuntu-2404.yml/badge.svg)
+
 # Dev setup
 
 ## Prerequisites
@@ -23,7 +25,7 @@ git submodule init && git submodule update
 ### Ubuntu
 ```
 cd RoadRunner
-mkdir build
+mkdir build && cd build
 cmake ..
 make
 ```
