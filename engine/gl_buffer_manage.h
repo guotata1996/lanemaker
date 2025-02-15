@@ -6,6 +6,7 @@
 #include <QOpenGLTexture>
 #include <vector>
 #include <set>
+#include <memory>
 
 #include "Math.hpp"
 #include "Vertex.h"

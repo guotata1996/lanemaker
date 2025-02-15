@@ -70,9 +70,11 @@ namespace RoadRunner
 		void mouseDoubleClickEvent(QMouseEvent* event) override;
 		void mouseMoveEvent(QMouseEvent* event) override;
 		void mouseReleaseEvent(QMouseEvent* event) override;
-
 		void wheelEvent(QWheelEvent* event) override;
-
+		
+#ifdef __linux__
+		public:
+#endif
 		void keyPressEvent(QKeyEvent* event) override;
 
 	private:

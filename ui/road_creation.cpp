@@ -530,7 +530,7 @@ void RoadCreationSession::GenerateHintLines(const odr::RefLine& refLine,
 	boundaryPathL.clear();
 	if (refLine.length > 1e-2)
 	{
-		const int Division = std::min(125, static_cast<int>(std::ceil(refLine.length / 4)) + 1);
+		const int Division = std::max(12, std::min(125, static_cast<int>(std::ceil(refLine.length / 4)) + 1));
 		auto flexLen = refLine.length;
 			
 		for (int i = 0; i != Division; ++i)

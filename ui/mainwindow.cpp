@@ -363,25 +363,12 @@ void MainWindow::closeEvent(QCloseEvent* e)
     QWidget::closeEvent(e);
 }
 
+#ifdef __linux__
 void MainWindow::keyPressEvent(QKeyEvent* e)
 {
-    if (e->key() == Qt::Key_F1)
-    {
-        preferenceWindow->open();
-    }
-    else if (e->key() == Qt::Key_S)
-    {
-        if (pauseResumeSimulation->isEnabled())
-        {
-            pauseResumeSimulation->toggle();
-        }
-        else if (toggleSimAction->isEnabled())
-        {
-            toggleSimAction->toggle();
-        }
-    }
-    QWidget::keyPressEvent(e);
+    mainWidget->mapViewGL->keyPressEvent(e);
 }
+#endif
 
 void MainWindow::testReplay()
 {

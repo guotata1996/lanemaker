@@ -32,7 +32,9 @@ protected:
 
     void closeEvent(QCloseEvent* event) override;
 
+#ifdef __linux__
     void keyPressEvent(QKeyEvent*) override;
+#endif
 
 private:
     const int MinWidth = 640;

@@ -93,7 +93,6 @@ void VehicleManager::TogglePause()
 void VehicleManager::Spawn()
 {
     auto& latestMap = RoadRunner::ChangeTracker::Instance()->Map();
-    auto& latestRoutingGraph = latestMap.get_routing_graph();
 
     auto setRoutes = latestMap.get_routes();
     if (!setRoutes.empty())

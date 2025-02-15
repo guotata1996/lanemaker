@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Junction.h"
+#include "Lane.h"
 
 #include <map>
 #include <set>

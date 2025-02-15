@@ -1,6 +1,6 @@
 #include "gl_buffer_manage.h"
 #include "triangulation.h"
-#include "Road.h"
+#include "road.h"
 
 #include <QOpenGLShaderProgram>
 

@@ -1,7 +1,7 @@
 #include "OpenDriveMap.h"
 #include "road_graphics.h"
 
-#include <QVector3d>
+#include <QVector3D>
 #include <optional>
 
 class Vehicle: public std::enable_shared_from_this<Vehicle>
