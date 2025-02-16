@@ -55,17 +55,17 @@ target_link_libraries(OpenDrive PRIVATE spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32
 add_executable(test-xodr test.cpp)
 target_link_libraries(test-xodr OpenDrive)
 
-install(
-    TARGETS OpenDrive test-xodr
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION "include")
-install(FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/pugixml/pugixml.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/pugixml/pugiconfig.hpp DESTINATION "include/pugixml/")
+# install(
+#     TARGETS OpenDrive test-xodr
+#     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+#     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+#     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+#     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+# )
+# install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION "include")
+# install(FILES
+#     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/pugixml/pugixml.hpp
+#     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/pugixml/pugiconfig.hpp DESTINATION "include/pugixml/")
 
-install(TARGETS OpenDrive EXPORT OpenDriveConfig)
-install(EXPORT OpenDriveConfig NAMESPACE OpenDrive:: DESTINATION cmake)
+# install(TARGETS OpenDrive EXPORT OpenDriveConfig)
+# install(EXPORT OpenDriveConfig NAMESPACE OpenDrive:: DESTINATION cmake)

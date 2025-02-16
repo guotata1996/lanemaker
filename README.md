@@ -26,6 +26,7 @@ git submodule init && git submodule update
 ```
 cd RoadRunner
 mkdir build && cd build
-cmake ..
-make
+cmake [--DCMAKE_BUILD_TYPE=Release] ..
+make -j2
+cpack -G DEB
 ```
