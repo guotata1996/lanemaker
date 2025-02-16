@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <title>RoadRunner Homepage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color:gainsboro;
+        }
+        .tab-bar {
+            display: flex;
+            background-color: #333;
+            overflow: hidden;
+        }
+        .tab-bar button {
+            background-color: inherit;
+            color: white;
+            padding: 14px 20px;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .tab-bar button:hover {
+            background-color: #555;
+        }
+        .tab-bar button.active {
+            background-color: #777;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top_banner {
+            font-size: 54px;
+            position:absolute; 
+            top: 40px; color:white; 
+            left:40%
+        }
+
+        .top_banner_h2 {
+            font-size: 20px;
+            position:absolute; 
+            top: 160px; color:white; 
+            left:50%
+        }
+
+        .round-text-box {
+            width: 88%;
+            background:oldlace;
+            padding: 20px;
+            margin-top: 40px;
+            margin-left: 6%;
+            border-radius: 12px;
+            font-size: x-large;
+        }
+
+        .card_container {
+            display: flex;
+            gap: 50px;
+            margin: 50px
+        }
+        .card_column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            word-wrap: break-word;
+        }
+
+        figure figcaption {
+            color:blue;
+            text-align: center;
+            font-size: xx-large;
+        }
+    </style>
+</head>
+<body>
+    <div class="tab-bar">
+        <button class="tab-link active" onclick="openTab(event, 'tab1')">Intro</button>
+        <button class="tab-link" onclick="openTab(event, 'tab2')">Features</button>
+        <button class="tab-link" onclick="openTab(event, 'tab3')">Manual</button>
+        <button class="tab-link" onclick="openTab(event, 'tab4')">Gallery</button>
+        <button class="tab-link" onclick="openTab(event, 'tab5')">Dev Story</button>
+    </div>
+    
+    <div id="tab1" class="tab-content active">
+        <img src="header_background.png">
+        <p class="top_banner">RoadRunner</p>
+        <p class="top_banner_h2">Lightweight road editor & simulator</p>
+        
+        <div class="round-text-box">
+            <p>
+                A free 3D editor for creating
+                <a href="https://www.asam.net/standards/detail/opendrive/">ASAM OpenDRIVE</a>-format road network,
+                and running traffic simulation on top of it. </p>
+            <p>
+                Inspired by the famous title <a href="https://www.paradoxinteractive.com/games/cities-skylines/about">Cities:Skylines</a>, 
+                this work is focused on replicating its most fun part: traffic planning.
+            </p>
+            <p>
+                Named after the all-rounder <a href="https://www.mathworks.com/products/roadrunner.html"> MathWorks RoadRunner</a>, 
+                this software is intended for casual users and hobbyists, 
+                providing solid core functionalities and easy experience, leaving behind steep learning curve and money investment.
+            </p>
+
+            <div style="display: flex; gap: 30px; align-items: center; font-size: large;">
+                <iframe width="500" height="340" src="https://www.youtube.com/embed/tsDGT2ElVuM"></iframe>
+                <div style="display: flex; flex-direction: column; border: 2px solid lightseagreen; padding: 10px; text-align: center;">
+                    <div style="display: flex; flex-direction: row; gap:50px; color:darkslategray;">
+                        <div style="display: flex; flex-direction: column">
+                            <a href="https://github.com/user-attachments/files/18813708/RoadRunner.zip">
+                                <img src="download_win.png" alt="Download">
+                            </a>
+                            Requires <a href="https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#visual-studio-2015-2017-2019-and-2022"> VC++ Redistributable</a>
+                        </div>
+                        <div style="display: flex; flex-direction: column">
+                            <a href="https://github.com/user-attachments/files/18813714/roadrunner_0.9.0_amd64.zip">
+                                <img src="download_ubuntu.png">
+                            </a>
+                            Debian built for <br> Ubuntu 24.04 LTS
+                        </div>
+                    </div>
+                    <br> Dedicated GPU recommended for scaled simulation <br>
+                    <a href="https://github.com/guotata1996/RoadRunner">
+                        <img src="repo_icon.png">
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="round-text-box" style="border: 2px dashed blue; font-size: large;">
+            <b>Special Thanks to</b>
+            <ul>
+                <li><a href="https://odrviewer.io/">OpenDRIVE online viewer</a> for familiarizing me with OpenDRIVE in an intuitive way.</li>
+                <li><a href="https://github.com/pageldev/libOpenDRIVE">libOpenDRIVE</a> as an important open-source library behind the scene.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="tab2" class="tab-content">
+        <img src="header_background.png">
+        <p class="top_banner">RoadRunner</p>
+        <p class="top_banner_h2">Lightweight road editor & simulator</p>
+        
+        <div class="card_container">
+            <div class="card_column">
+                <div class="card" style="background-color: BlanchedAlmond;">
+                    <h3>OpenDRIVE integration</h3>
+                    <div style="display: flex;">
+                        <img src="features/integration.png" width="60%">
+                        <p>
+                        Powered by the industrial-standard, you can conveniently export your work to popular simulators and game engines, such as SUMO and Unity. 
+                        </p>
+                    </div>
+                </div>
+                <div class="card" style="background-color: Lavender;">
+                    <h3>Smart geometry</h3>
+                    <img src="features/smart_geo.jpg" width="60%">
+                    <br> Arcs and Spires are preferred over cubic spline due to smoother change in curvature. <br>
+                    An iterative algorithm is implemented to connect two endpoints with a spire given their position and tangent, 
+                    and falls back to cubic spline if the constraint is too hard to satisfy. <br>
+                    Normally, very little to no hand-tuning is needed to achieve a satisfactory road geometry.
+                </div>
+                <div class="card" style="background-color: LightCyan;">
+                    <h3>Lightweight engine</h3>
+                    <div style="display: flex;">
+                        <img src="features/qt_opengl.png" width="40%">
+                        <p>
+                        Implemented straight up from Qt + OpenGL using tailored render pipelines, the 3D view is significantly more efficient than Qt's default 2D graphics.<br>
+                        One can work on a fairly large scene with basic integrated graphics.
+                        </p>
+                    </div>
+                </div>
+                <div class="card" style="background-color: LightSteelBlue;">
+                    <h3>Large-scale traffic simulation</h3>
+                    <img src="features/large_simulation.jpg" width="70%">
+                    <br>
+                    Instead of wandering randomly at junctions, each vehicle has its own destination set and route planned out at the moment they are spawned. 
+                    All destination choices are random but can be seeded as well. <br>
+                    This configuration makes it easier to evolve to a true city simulation, where cars go between home, workplace and commercial facilities.
+                </div>
+            </div>
+            <div class="card_column">
+                <div class="card" style="background-color: MediumAquaMarine;">
+                    <h3>Auto junction & signal</h3>
+                    <img src="features/auto_signal.jpg" width="50%">
+                    <br>Connecting roads are hidden lanes that connect all (incoming, outgoing) combinations of a junction.
+                    Even a simple 4-way junction made up of simple dual-lane road needs 4*4=16 such connections, so there are a lot of those! <br>
+                    To avoid rendering artifacts caused by overlaps, they are covered by a separate junction boundary layer unless you hover the mouse onto them.
+                </div>
+                <div class="card" style="background-color: MistyRose;">
+                    <h3>Hwy ramp made easy</h3>
+                    <img src="features/ramp.png" width="50%">
+                    <br>One of the biggest complaints of the original <i>Cities:Skylines</i> was you can't make a real highway ramp on city roads.<br>
+                    Although this problem has been gradually solved by various MODs, it's never been as convenient as using the dedicated mode provided by RoadRunner.<br>
+                    Lane/ramp mode allows you to create highway entrances/exits as well as road split/merge points in an intuitive, unified manner.
+                </div>
+                <div class="card" style="background-color: Turquoise;">
+                    <h3>Undo/redo</h3>
+                    <div style="display: flex;">
+                        <img src="features/undo_logo.png" width="25%">
+                        <p>
+                        What if you accidentally pulled two roads together and resulted in a weird junction? Or if you wished to remove a lane but accidentally added one instead? <br>
+                        One-click undo and redo will make your life so much easier so that you don't need to clean up this mess yourself.
+                        </p>
+                    </div>
+                </div>
+                <div class="card" style="background-color: DarkKhaki;">
+                    <h3>Driving behavior at junctions</h3>
+                    <img src="features/alternating_merge.jpg" width="60%">
+                    <br>Traffic light phases are automatically generated to avoid conflicts from different directions. <br>
+                    When traffic merges at highway entrance, alternate/zipper merge is performed to make sure traffic from either direction won't be blocked. 
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab3" class="tab-content"> 
+        <img src="header_background.png">
+        <p class="top_banner">RoadRunner</p>
+        <p class="top_banner_h2">Lightweight road editor & simulator</p>
+        <div class="round-text-box">
+            <h1> Input </h1>
+            <div style="display: flex; gap: 5%;">
+                <img src="manual/mouse.png" height="230px" style="object-fit: cover;">
+                <img src="manual/keyboard.png" height="230px" style="object-fit: cover;">
+            </div>
+            <h1> Menu </h1>
+            <ul>
+                <li>File
+                    <ul>  
+                        <li> <b>New</b>&nbsp Reset the application to initial state. All unsaved changes will be lost.</li>
+                        <li> <b>Open</b>&nbsp Load a .xodr map. Only those exported from RoadRunner are supported.</li>
+                        <li> <b>Save</b>&nbsp Save the current map in .xodr format.</li>
+                        <li> <b>Preference</b>&nbsp Application-wide options and About.</li>
+                    </ul>
+                </li>
+                <br>
+                <li> Edit
+                    <ul>  
+                        <li> <b>Undo</b>&nbsp Cancel last edit. </li>
+                        <li> <b>Redo</b>&nbsp Revert last undo. </li>
+                        <li> <b>Verify Now</b>&nbsp [For developers only]
+                            <br>Checks interal state and reports any inconsistency, i.e. bug. 
+                            <br>If "Always Verify" is set to ON inside Preference, this check will run upon each edit. </li>
+                    </ul>
+                </li>
+                <br>
+                <li> Replay [For developers only]
+                    <ul>
+                        <li> <b>Save</b>&nbsp Save actions since startup (including loaded map) to a .dat file.</li>
+                        <li> <b>Debug</b>&nbsp Load saved actions (.dat) and start playing at the highest rate.</li>
+                        <li> <b>Watch</b>&nbsp Load saved actions (.dat). In the new dialog, hit play &gt button to play/pause, 1 to step, and &lt to start over. 
+                            Double-click on a list entry to toggle break point. 
+                            <br>Playback will be in real-time, i.e. will last (roughly) how long it took to record.
+                    </ul>
+                </li>
+                <br>
+                <li> Simulation
+                    <ul> 
+                        <li> <b>Toggle Simulation</b>&nbsp Randomly spawns cars, each following random route. This may take a while on large maps.</li>
+                        <li> <b>Paused</b>&nbsp Pause or resume simulation.</li>
+                    </ul>
+                </li>
+
+            </ul>
+            <h1> Modes </h1>
+            <ul>
+                <li>
+                    <img src="manual/road_mode.png"> <b>Road mode</b>&nbsp Create roads with auto-generated transitions and junctions.
+                </li>
+                <li>
+                    <img src="manual/lane_mode.png"> <b>Lane/Ramp mode</b>&nbsp Manually make junctions and highway ramps.
+                </li>
+                <li>
+                    <img src="manual/modify_mode.png"> <b>Modify mode</b>&nbsp Two clicks on the same road, then apply a new profile to the segment. 
+                    Double-click to select entire length.
+                </li>
+                <li>
+                    <img src="manual/destroy_mode.png"> <b>Destroy mode</b>&nbsp Two clicks on the same road, then destroy the segment. 
+                    Double-click to destroy entire length.
+                </li>
+                <li>
+                    <img src="manual/view_mode.png"> <b>View mode</b>&nbsp No editing is allowed; allows traffic simulation.
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="tab4" class="tab-content w3-content w3-display-container" style="margin-left: 6%;">
+        <p>
+            <figure class="mySlides">
+                <figcaption>I-95 Exit 41. Waltham, MA</figcaption>
+                <img src="gallery/95_exit.png">
+            </figure>
+            <figure class="mySlides">
+                <figcaption>Bridge carrying I-90 over I-95. Weston, MA</figcaption>
+                <img src="gallery/95_90.png">
+            </figure>
+            <figure class="mySlides">
+                <figcaption>Lupu Bridge Approach Ramp (North). Shanghai, China</figcaption>
+                <img src="gallery/lupu.png">
+            </figure>
+            <img class="mySlides" src="gallery/signal_1.png">
+            <figure class="mySlides">
+                <figcaption>I-90 / I-95 exchange, looking East. Weston, MA</figcaption>
+                <img src="gallery/95_90_b.png">
+            </figure>
+            <figure class="mySlides">
+                <figcaption>N. Zhongshan Rd underpass. Shanghai, China.</figcaption>
+                <img src="gallery/underpass.png">
+            </figure>
+            <figure class="mySlides">
+                <figcaption>2010 World Expo Site. Shanghai, China.</figcaption>
+                <img src="gallery/expo.png">
+            </figure>
+            <figure class="mySlides">
+                <figcaption>Nanpu Bridge. Shanghai, China</figcaption>
+                <img src="gallery/nanpu.png">
+            </figure>
+            <img class="mySlides" src="gallery/signal_2.png">
+            <img class="mySlides" src="gallery/town.png">
+            <button class="w3-button w3-display-topleft" style="scale: 2;" onclick="plusDivs(-1)">&#10094;</button>
+            <button class="w3-button w3-display-topright" style="scale: 2;" onclick="plusDivs(+1)">&#10095;</button>
+        </p>
+    </div>
+
+    <div id="tab5" class="tab-content"> 
+        <img src="header_background.png">
+        <p class="top_banner">RoadRunner</p>
+        <p class="top_banner_h2">Lightweight road editor & simulator</p>
+        <div class="round-text-box">
+            <p> The idea of making a road editing tool came from the time when I was learning Unity during my graduate study. <br>
+                Tired of all kinds of FPS or platformer games as Unity bootcamp projects, I really wanted to try making something
+                different. I'm a big fan of Simcity games, and was especially motivated by the huge success of Cities:Skylines.
+                It would be super cool if I could program something like that, I always spoke to myself.
+            </p>
+            <p> I launched the first project in late 2018, named <i>RoadBuilder</i>. Soon I found it's a much bigger kind of challenge
+                than popular entry-level games, due to the nature that most of its content was player-defined: there's no pre-built scene or content,
+                while I need to provide the player with robust and convenient editing tools. In this sense, the game engine itself is less useful than usual:
+                <b> rather than leveraging Unity, I'm largely building an engine within it.</b> <br>
+                On the other hand, performance is always a concern for this kind of game, and without proper optimization, one can easily end up with
+                thousands and thousands of game objects, gradually overwhelming the hardware as the map expands.
+            </p>
+            <p>As a newbie in Unity and game development, I underestimated these challenges at that time. The 1-year development ended
+                up with an editor that appeared useable, but one never knows when it will crash or freeze due to random bugs. Even if you got lucky
+                and triggered no issues, it's guaranteed the frame rate will become intolerable within 30 minutes, 
+                if you don't have the most powerful graphics card.
+            </p>
+            <img src="roadbuilder/build.gif" width="50%">
+            <img src="roadbuilder/traffic.gif" width="45%">
+            <p>After four years in the industry as a simulation engineer, I believe I've got enough experience and skills to stand up to the challenge.
+                This time, I chose the combination of C++ due to its unbeatable performance, and Qt for more straightforward UI development. Instead of
+                reinventing the wheel, I followed ASAM OpenDRIVE and found an <a href="https://github.com/pageldev/libOpenDRIVE">extremely useful xodr library</a>
+                to start playing with.
+             </p>
+             <p>Then the journey of RoadRunner began as year 2024 arrived...</p>
+        </div>
+        <figure>
+            <figcaption>RoadRunner Dev RoadMap (Until Jan 25)</figcaption>
+            <img src="dev_history.drawio.png" width="100%">
+        </figure>
+    </div>
+    
+    <script>
+        function openTab(event, tabId) {
+            let tabs = document.querySelectorAll('.tab-content');
+            let buttons = document.querySelectorAll('.tab-link');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            buttons.forEach(button => button.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        var slideIndex = 1;
+        showDivs(slideIndex);
+        
+        function plusDivs(n) {
+          showDivs(slideIndex += n);
+        }
+        
+        function showDivs(n) {
+          var i;
+          var x = document.getElementsByClassName("mySlides");
+          if (n > x.length) {slideIndex = 1}
+          if (n < 1) {slideIndex = x.length}
+          for (i = 0; i < x.length; i++) {
+            x[i].style.display = "none";  
+          }
+          x[slideIndex-1].style.display = "block";  
+        }
+    </script>
+</body>
+</html>
