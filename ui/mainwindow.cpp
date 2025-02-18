@@ -29,7 +29,7 @@ extern UserPreference g_preference;
 
 MainWindow::MainWindow(QWidget* parent): QWidget(parent)
 {
-    setWindowTitle(tr("Road Runner"));
+    setWindowTitle(tr("Lane Maker"));
     setMinimumWidth(MinWidth);
     setMinimumHeight(MinHeight);
     resize(PreferredSize());

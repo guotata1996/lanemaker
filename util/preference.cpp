@@ -54,7 +54,7 @@ void PreferenceWindow::showEvent(QShowEvent* e)
         layout->addWidget(antiAliasChoice, 2, 1);
 
         auto iconLabel = new QLabel;
-        iconLabel->setPixmap(QPixmap(":/icons/lanemaker.png"));
+        iconLabel->setPixmap(QPixmap(":/icons/lanemaker.jpg"));
         layout->addWidget(iconLabel, 3, 0, 2, 2, Qt::AlignHCenter);
 
         layout->addWidget(new QLabel(QString("Build: %1").arg(__DATE__)), 5, 1);
