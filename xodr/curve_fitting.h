@@ -3,7 +3,7 @@
 #include "Geometries/RoadGeometry.h"
 #include "Geometries/Arc.h"
 
-namespace RoadRunner
+namespace LM
 {
     std::unique_ptr<odr::RoadGeometry> ConnectRays(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
         const odr::Vec2D& endPos, const odr::Vec2D& endHdg);

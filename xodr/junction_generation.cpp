@@ -6,7 +6,7 @@
 #include <map>
 #include <spdlog/spdlog.h>
 
-namespace RoadRunner
+namespace LM
 {
     void RoadEndpoint::FromConnInfo(const ConnectionInfo& roadAndS, RoadEndpoint& incoming, RoadEndpoint& outgoing)
     {
@@ -179,7 +179,7 @@ namespace RoadRunner
             for (auto outgoingRoad : outgoingEndpoints)
             {
                 double turnAngle = odr::angle(incomingRoad.forward, outgoingRoad.forward);
-                auto turningSemantics = RoadRunner::Turn_No;
+                auto turningSemantics = LM::Turn_No;
                 if (incomingRoad.road == outgoingRoad.road && incomingRoad.contact == outgoingRoad.contact)
                 {
                     turningSemantics = TurningSemantics::Turn_U;
@@ -278,8 +278,8 @@ namespace RoadRunner
 
             odr::Vec2D incomingRight{ turningGroup.fromForward[1], -turningGroup.fromForward[0] };
             double incomingCenterS =
-                RoadRunner::LaneWidth * turningGroup.fromLaneIDBase +
-                RoadRunner::LaneWidth * turningGroup.nLanes / 2;
+                LM::LaneWidth * turningGroup.fromLaneIDBase +
+                LM::LaneWidth * turningGroup.nLanes / 2;
             odr::Vec2D incomingCenter = odr::add(
                 turningGroup.fromOrigin,
                 odr::mut(incomingCenterS, incomingRight));
@@ -287,8 +287,8 @@ namespace RoadRunner
             // Assume outgoing always start from leftmost lane for now
             odr::Vec2D outgoingRight{ turningGroup.toForward[1], -turningGroup.toForward[0] };
             double outgoingCenetrS =
-                RoadRunner::LaneWidth * turningGroup.toLaneIDBase +
-                RoadRunner::LaneWidth * turningGroup.nLanes / 2;
+                LM::LaneWidth * turningGroup.toLaneIDBase +
+                LM::LaneWidth * turningGroup.nLanes / 2;
             odr::Vec2D outgoingCenter = odr::add(
                 turningGroup.toOrigin,
                 odr::mut(outgoingCenetrS, outgoingRight));
@@ -303,7 +303,7 @@ namespace RoadRunner
                 continue;
             }
 
-            RoadRunner::LaneProfile connectingProfile(0, 0, turningGroup.nLanes, turningGroup.nLanes);
+            LM::LaneProfile connectingProfile(0, 0, turningGroup.nLanes, turningGroup.nLanes);
 
             auto connecting = std::make_shared<Road>(connectingProfile, std::move(connectingRefLine));
             connecting->Generate();

@@ -7,7 +7,7 @@
 #include <set>
 #include <vector>
 
-namespace RoadRunner
+namespace LM
 {
     class Signal
     {

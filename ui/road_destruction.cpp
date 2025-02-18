@@ -6,7 +6,7 @@
 #include <qevent.h>
 
 
-bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
+bool RoadDestroySession::Update(const LM::MouseAction& evt)
 {
     auto g_road = GetPointerRoad();
     if (g_road != nullptr)
@@ -19,7 +19,7 @@ bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
     }
     else
     {
-        auto groundPos = RoadRunner::g_PointerOnGround;
+        auto groundPos = LM::g_PointerOnGround;
         cursorItem->SetTranslation({groundPos[0], groundPos[1], 0});
         cursorItem->EnableHighlight(RoadDrawingSession::Snap_Nothing);
     }
@@ -62,7 +62,7 @@ bool RoadDestroySession::Update(const RoadRunner::MouseAction& evt)
     return true;
 }
 
-bool RoadDestroySession::Update(const RoadRunner::KeyPressAction& evt)
+bool RoadDestroySession::Update(const LM::KeyPressAction& evt)
 {
     if (evt.key == Qt::Key_Escape)
     {
@@ -106,19 +106,19 @@ bool RoadDestroySession::Complete()
     }
     else if (from == 0)
     {
-        auto secondHalf = RoadRunner::Road::SplitRoad(target, to);
+        auto secondHalf = LM::Road::SplitRoad(target, to);
         auto nRemoved = world->allRoads.erase(target);
         if (nRemoved != 1) throw std::logic_error("Road to destroy is not found in world!");
         world->allRoads.insert(secondHalf);
     }
     else if (to == target->Length())
     {
-        RoadRunner::Road::SplitRoad(target, from);
+        LM::Road::SplitRoad(target, from);
     }
     else
     {
-        auto third = RoadRunner::Road::SplitRoad(target, to);
-        RoadRunner::Road::SplitRoad(target, from);
+        auto third = LM::Road::SplitRoad(target, to);
+        LM::Road::SplitRoad(target, from);
 
         world->allRoads.insert(third);
     }
@@ -126,10 +126,10 @@ bool RoadDestroySession::Complete()
     // Check if removal negatively affects any related junction
     target.reset();
     if (predJunction != nullptr &&
-        predJunction->generationError != RoadRunner::Junction_NoError
+        predJunction->generationError != LM::Junction_NoError
         ||
         succJunction != nullptr &&
-        succJunction->generationError != RoadRunner::Junction_NoError)
+        succJunction->generationError != LM::Junction_NoError)
     {
         spdlog::warn("Abort: Removal of this road causes a junction to be invalid!");
         return false;

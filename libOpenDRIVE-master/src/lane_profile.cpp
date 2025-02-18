@@ -5,7 +5,7 @@
 
 #include "spdlog/spdlog.h"
 
-namespace RoadRunner
+namespace LM
 {
     double to_odr_unit(type_s l) { return (double)l / 100; }
 

@@ -11,7 +11,7 @@ QT_END_NAMESPACE
 class MainWidget;
 class VehicleManager;
 
-namespace RoadRunner
+namespace LM
 {
     class MapViewGL;
 }

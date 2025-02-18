@@ -11,7 +11,7 @@
 #include <sstream>
 #include <spdlog/spdlog.h>
 
-namespace RoadRunner
+namespace LM
 {
     AbstractJunction::AbstractJunction() :
         generated("", IDGenerator::ForType(IDType::Junction)->GenerateID(this), odr::JunctionType::Common)
@@ -39,7 +39,7 @@ namespace RoadRunner
         auto connRoad = conn.road.lock();
         double connS = conn.contact == odr::RoadLink::ContactPoint_Start ?
             0 : connRoad->Length();
-        RoadRunner::CubicSplineGenerator::OverwriteSection(
+        LM::CubicSplineGenerator::OverwriteSection(
             connRoad->RefLine().elevation_profile, connRoad->Length(), connS, connS, Elevation());
 #ifndef G_TEST
         connRoad->GenerateOrUpdateSectionGraphicsBetween(0.0, connRoad->Length());
@@ -156,13 +156,13 @@ namespace RoadRunner
         auto myPtr = shared_from_this();
         if (road->successorJunction == myPtr)
         {
-            formedFrom.erase(RoadRunner::ConnectionInfo(road, odr::RoadLink::ContactPoint_End));
+            formedFrom.erase(LM::ConnectionInfo(road, odr::RoadLink::ContactPoint_End));
             road->successorJunction.reset();
         }
 
         if (road->predecessorJunction == myPtr)
         {
-            formedFrom.erase(RoadRunner::ConnectionInfo(road, odr::RoadLink::ContactPoint_Start));
+            formedFrom.erase(LM::ConnectionInfo(road, odr::RoadLink::ContactPoint_Start));
             road->predecessorJunction.reset();
         }
     }
@@ -280,7 +280,7 @@ namespace RoadRunner
         for (const auto& id2Connection : generated.id_to_connection)
         {
             auto connectingRoadID = id2Connection.second.connecting_road;
-            auto roadPtr = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(connectingRoadID);
+            auto roadPtr = IDGenerator::ForType(IDType::Road)->GetByID<LM::Road>(connectingRoadID);
             connectingRoads.push_back(roadPtr->shared_from_this());
         }
     }
@@ -327,7 +327,7 @@ namespace RoadRunner
 #ifndef G_TEST
         for (auto& connecting : connectingRoads)
         {
-            if (connecting->Length() < RoadRunner::SingleDrawMaxLength)
+            if (connecting->Length() < LM::SingleDrawMaxLength)
             {
                 connecting->GenerateAllSectionGraphics();
             }
@@ -372,7 +372,7 @@ namespace RoadRunner
         if (roadAIn > 0 != roadBOut > 0 || roadAOut > 0 != roadBIn > 0)
         {
             // RoadJoin_DirNoOutlet
-            // RoadRunnerTODO: limit can be loosen
+            // LMTODO: limit can be loosen
             return false;
         }
         return true;
@@ -433,7 +433,7 @@ namespace RoadRunner
                     if (ll.from == incomingLane)
                     {
                         auto connRoadID = id_conn.second.connecting_road;
-                        auto connectingRoad = (IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(connRoadID));
+                        auto connectingRoad = (IDGenerator::ForType(IDType::Road)->GetByID<LM::Road>(connRoadID));
                         auto startGrad = connectingRoad->generated.ref_line.get_grad_xy(0);
                         auto endGrad = connectingRoad->generated.ref_line.get_grad_xy(connectingRoad->Length());
                         auto turnAngle = odr::angle(startGrad, endGrad);
@@ -598,7 +598,7 @@ namespace RoadRunner
         generated.type = odr::JunctionType::Direct;
         auto interfaceProviderID = serialized.id_to_connection.cbegin()->second.incoming_road;
         
-        auto interfaceProvider = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(interfaceProviderID);
+        auto interfaceProvider = IDGenerator::ForType(IDType::Road)->GetByID<LM::Road>(interfaceProviderID);
         odr::RoadLink::ContactPoint interfaceContact;
         if (interfaceProvider->generated.predecessor.type == odr::RoadLink::Type_Junction &&
             interfaceProvider->generated.predecessor.id == ID())
@@ -822,7 +822,7 @@ namespace RoadRunner
     }
     uint8_t DirectJunction::GetTurningSemanticsForIncoming(std::string incomingRoad, int incomingLane) const
     {
-        uint8_t rtn = RoadRunner::DeadEnd;
+        uint8_t rtn = LM::DeadEnd;
         for (auto id_conn : generated.id_to_connection)
         {
             if (id_conn.second.incoming_road == incomingRoad)
@@ -863,7 +863,7 @@ namespace RoadRunner
             auto roadA = IDGenerator::ForType(IDType::Road)->GetByID<Road>(segmentOnA.road);
             auto roadB = IDGenerator::ForType(IDType::Road)->GetByID<Road>(segmentOnB.road);
             
-            // RoadRunnerTODO: why can sbegin/sEnd exceed road Length when loading from xodr?
+            // LMTODO: why can sbegin/sEnd exceed road Length when loading from xodr?
             segmentOnA.sBegin = std::max(0.0, std::min(roadA->Length(), segmentOnA.sBegin));
             segmentOnA.sEnd = std::max(0.0, std::min(roadA->Length(), segmentOnA.sEnd));
             segmentOnB.sBegin = std::max(0.0, std::min(roadB->Length(), segmentOnB.sBegin));
@@ -962,4 +962,4 @@ namespace RoadRunner
         }
         return ss.str();
     }
-} // namespace RoadRunner
+} // namespace LM

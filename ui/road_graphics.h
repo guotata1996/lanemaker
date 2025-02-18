@@ -6,7 +6,7 @@
 #include "road.h"
 #include "spatial_indexer.h"
 
-namespace RoadRunner
+namespace LM
 {
     namespace
     {
@@ -65,7 +65,7 @@ namespace RoadRunner
     class SectionGraphics: protected PermanentGraphics
     {
     public:
-        SectionGraphics(std::shared_ptr<RoadRunner::Road> road, const odr::LaneSection& laneSection,
+        SectionGraphics(std::shared_ptr<LM::Road> road, const odr::LaneSection& laneSection,
             double s_begin, double s_end);
 
         ~SectionGraphics();

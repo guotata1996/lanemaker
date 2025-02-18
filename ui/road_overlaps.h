@@ -1,6 +1,6 @@
 #include "junction.h"
 
-namespace RoadRunner
+namespace LM
 {
-    bool CreateJunctionAtZOverlap(std::shared_ptr<RoadRunner::Road>, double, double);
+    bool CreateJunctionAtZOverlap(std::shared_ptr<LM::Road>, double, double);
 }

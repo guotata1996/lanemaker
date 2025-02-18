@@ -11,12 +11,12 @@ namespace odr
     class OpenDriveMap;
 }
 
-namespace RoadRunnerTest
+namespace LTest
 {
 class Validation;
 }
 
-namespace RoadRunner
+namespace LM
 {
     typedef int8_t   type_t;
     typedef uint32_t type_s;
@@ -52,7 +52,7 @@ namespace RoadRunner
     class LaneProfile
     {
         friend class odr::OpenDriveMap;
-        friend class RoadRunnerTest::Validation;
+        friend class LTest::Validation;
     public:
         LaneProfile() = default;
 

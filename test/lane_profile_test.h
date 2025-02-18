@@ -6,9 +6,9 @@
 
 #include "Geometries/Line.h"
 
-namespace RoadRunnerTest
+namespace LTest
 {
-    void GenerateAndVerify(const RoadRunner::LaneProfile& configs, double refLineLength)
+    void GenerateAndVerify(const LM::LaneProfile& configs, double refLineLength)
     {
 #ifdef G_TEST
         const testing::TestInfo* const test_info =
@@ -22,7 +22,7 @@ namespace RoadRunnerTest
         std::string outName("output");
 #endif
         auto refLine = std::make_unique<odr::Line>(0, 0, 0, 0, refLineLength);
-        RoadRunner::Road road(configs, std::move(refLine));
+        LM::Road road(configs, std::move(refLine));
         const odr::Road& gen = road.generated;
 
 #ifndef G_TEST
@@ -45,16 +45,16 @@ namespace RoadRunnerTest
 
     TEST(LaneProfile, RightSideOnly)
     {
-        RoadRunner::LaneProfile profile(0, 0, 1, 0);
-        profile.OverwriteSection(30.0, 100.0, 100.0, RoadRunner::LanePlan{ 0, 0 }, RoadRunner::LanePlan{-1, 1});
+        LM::LaneProfile profile(0, 0, 1, 0);
+        profile.OverwriteSection(30.0, 100.0, 100.0, LM::LanePlan{ 0, 0 }, LM::LanePlan{-1, 1});
 
         GenerateAndVerify(profile, 100);
     }
 
     TEST(LaneProfile, LeftSideOnly)
     {
-        RoadRunner::LaneProfile profile(1, 0, 0, 0);
-        profile.OverwriteSection(0.0, 30.0, 100.0, RoadRunner::LanePlan{ 1, 1 }, RoadRunner::LanePlan{ 0, 0 });
+        LM::LaneProfile profile(1, 0, 0, 0);
+        profile.OverwriteSection(0.0, 30.0, 100.0, LM::LanePlan{ 1, 1 }, LM::LanePlan{ 0, 0 });
 
         GenerateAndVerify(profile, 100);
     }

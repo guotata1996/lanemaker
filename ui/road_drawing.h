@@ -15,18 +15,18 @@ public:
     RoadDrawingSession();
 
     /*return false if force complete*/
-    virtual bool Update(const RoadRunner::MouseAction&);
-    virtual bool Update(const RoadRunner::KeyPressAction&);
+    virtual bool Update(const LM::MouseAction&);
+    virtual bool Update(const LM::KeyPressAction&);
 
     /*return false to abort change*/
     virtual bool Complete() = 0;
 
     virtual ~RoadDrawingSession();
 
-    void SetHighlightTo(std::shared_ptr<RoadRunner::Road>);
+    void SetHighlightTo(std::shared_ptr<LM::Road>);
 
 protected:
-    class CustomCursorItem: RoadRunner::TemporaryGraphics
+    class CustomCursorItem: LM::TemporaryGraphics
     {
     public:
         CustomCursorItem();
@@ -51,7 +51,7 @@ protected:
         Snap_Point
     };
 
-    static std::shared_ptr<RoadRunner::Road> GetPointerRoad();
+    static std::shared_ptr<LM::Road> GetPointerRoad();
     static odr::Vec2D CursorAtHeight(double);
 
     float SnapDistFromScale() const;
@@ -63,7 +63,7 @@ protected:
     void EndPickingProfile();
     bool PickProfileMode() const { return !beginPickingRoad.expired(); }
 
-    static bool IsProfileChangePoint(const std::shared_ptr<RoadRunner::Road>&, double s);
+    static bool IsProfileChangePoint(const std::shared_ptr<LM::Road>&, double s);
 
     static void UpdateEndMarkings();
 
@@ -72,17 +72,17 @@ protected:
     std::unique_ptr<CustomCursorItem> cursorItem;
 
 private:
-    std::weak_ptr<RoadRunner::Road> highlighted;
+    std::weak_ptr<LM::Road> highlighted;
 
     double beginPickingS;
-    std::weak_ptr<RoadRunner::Road> beginPickingRoad;
+    std::weak_ptr<LM::Road> beginPickingRoad;
 };
 
 class RoadCreationSession : public RoadDrawingSession
 {
 public:
-    virtual bool Update(const RoadRunner::MouseAction&) override;
-    virtual bool Update(const RoadRunner::KeyPressAction&) override;
+    virtual bool Update(const LM::MouseAction&) override;
+    virtual bool Update(const LM::KeyPressAction&) override;
 
     virtual bool Complete() override;
 
@@ -91,9 +91,9 @@ protected:
     virtual SnapResult SnapFirstPointToExisting(odr::Vec2D&);
     virtual SnapResult SnapLastPointToExisting(odr::Vec2D&);
 
-    std::weak_ptr<RoadRunner::Road> extendFromStart;
+    std::weak_ptr<LM::Road> extendFromStart;
     double extendFromStartS;
-    std::weak_ptr<RoadRunner::Road> joinAtEnd;
+    std::weak_ptr<LM::Road> joinAtEnd;
     double joinAtEndS;
 
     virtual odr::Vec2D ExtendFromDir() const;
@@ -102,8 +102,8 @@ protected:
 
     odr::RefLine ResultRefLine() const;
 
-    virtual RoadRunner::type_t PreviewRightOffsetX2() const;
-    virtual RoadRunner::type_t PreviewLeftOffsetX2() const;
+    virtual LM::type_t PreviewRightOffsetX2() const;
+    virtual LM::type_t PreviewLeftOffsetX2() const;
 
 private:
     class DirectionHandle
@@ -112,7 +112,7 @@ private:
         DirectionHandle(odr::Vec3D center, double angle);
         //~DirectionHandle();
 
-        bool Update(const RoadRunner::MouseAction& act);
+        bool Update(const LM::MouseAction& act);
         double Rotation() const;
 
     private:
@@ -125,7 +125,7 @@ private:
         double dragging = false;
         double deltaRotation;
 
-        std::optional<RoadRunner::HintPolyGraphics> graphicsItem;
+        std::optional<LM::HintPolyGraphics> graphicsItem;
         const double InnerRadius = 4;
         const double OuterRadius = 6;
     };
@@ -140,7 +140,7 @@ private:
     void UpdateFlexGeometry();
 
     std::vector<StagedGeometry> stagedGeometries;
-    RoadRunner::LanePlan stagedLeftPlan, stagedRightPlan;
+    LM::LanePlan stagedLeftPlan, stagedRightPlan;
 
     std::optional<odr::Vec2D> startPos; // Can be on blank or extend from
     double startElevation;
@@ -155,10 +155,10 @@ private:
 
     std::unique_ptr<DirectionHandle> directionHandle;
 
-    std::optional<RoadRunner::HintLineGraphics> stagedRefLinePreview;
-    std::optional<RoadRunner::HintLineGraphics> stagedBoundaryPreview;
-    std::optional<RoadRunner::HintLineGraphics> flexRefLinePreview;
-    std::optional<RoadRunner::HintLineGraphics> flexBoundaryPreview;
+    std::optional<LM::HintLineGraphics> stagedRefLinePreview;
+    std::optional<LM::HintLineGraphics> stagedBoundaryPreview;
+    std::optional<LM::HintLineGraphics> flexRefLinePreview;
+    std::optional<LM::HintLineGraphics> flexBoundaryPreview;
 };
 
 
@@ -175,15 +175,15 @@ protected:
     virtual odr::Vec2D ExtendFromDir() const override;
     virtual odr::Vec2D JoinAtEndDir() const override;
 
-    virtual RoadRunner::type_t PreviewRightOffsetX2() const override;
-    virtual RoadRunner::type_t PreviewLeftOffsetX2() const override;
+    virtual LM::type_t PreviewRightOffsetX2() const override;
+    virtual LM::type_t PreviewLeftOffsetX2() const override;
 
 private:
     bool ValidateSnap() const;
 
-    RoadRunner::type_t rLanes; // If lLanes == 0, becomes required lanes
-    RoadRunner::type_t lLanes; // If 0, single-directional
-    RoadRunner::type_t rOffsetX2, lOffsetX2;
+    LM::type_t rLanes; // If lLanes == 0, becomes required lanes
+    LM::type_t lLanes; // If 0, single-directional
+    LM::type_t rOffsetX2, lOffsetX2;
 
     // Offset of ramp w.r.t interface provider
     // Only != 0 when single-direction ramp
@@ -201,17 +201,17 @@ private:
 class RoadDestroySession : public RoadDrawingSession
 {
 public:
-    virtual bool Update(const RoadRunner::MouseAction&) override;
-    virtual bool Update(const RoadRunner::KeyPressAction&) override;
+    virtual bool Update(const LM::MouseAction&) override;
+    virtual bool Update(const LM::KeyPressAction&) override;
 
     virtual bool Complete() override;
 
 protected:
     odr::Line3D hintPolygonLeft, hintPolygonRight;
 
-    std::optional<RoadRunner::HintLineGraphics> hintItemLeft, hintItemRight;
+    std::optional<LM::HintLineGraphics> hintItemLeft, hintItemRight;
 
-    std::weak_ptr<RoadRunner::Road> targetRoad;
+    std::weak_ptr<LM::Road> targetRoad;
     std::unique_ptr<double> s1, s2;
 
 private:
@@ -223,7 +223,7 @@ class RoadModificationSession : public RoadDestroySession
 public:
     RoadModificationSession();
 
-    virtual bool Update(const RoadRunner::MouseAction&) override;
+    virtual bool Update(const LM::MouseAction&) override;
 
     virtual bool Complete() override;
 };

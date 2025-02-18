@@ -16,7 +16,7 @@ RoadCreationSession::DirectionHandle::DirectionHandle(odr::Vec3D _center, double
 	UpdateGraphics();
 }
 
-bool RoadCreationSession::DirectionHandle::Update(const RoadRunner::MouseAction& act)
+bool RoadCreationSession::DirectionHandle::Update(const LM::MouseAction& act)
 {
 	odr::Vec2D hitPos;
 	auto hit = rayHitLocal(hitPos);
@@ -160,7 +160,7 @@ double RoadCreationSession::CursorElevation() const
 	{
 		return extendFromStart.lock()->generated.get_xyz(extendFromStartS, 0, 0)[2];
 	}
-	return RoadRunner::ElevationStep * RoadRunner::g_createRoadElevationOption;
+	return LM::ElevationStep * LM::g_createRoadElevationOption;
 }
 
 RoadDrawingSession::SnapResult RoadCreationSession::SnapFirstPointToExisting(odr::Vec2D& point)
@@ -169,17 +169,17 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapFirstPointToExisting(odr
 	if (g_pointerRoad == nullptr) return RoadDrawingSession::Snap_Nothing;
 
 	const double snapThreshold = SnapDistFromScale();
-	double snapS = RoadRunner::g_PointerRoadS;
+	double snapS = LM::g_PointerRoadS;
 	bool onExisting = false;
-	if (RoadRunner::g_PointerRoadS < snapThreshold &&
-		dynamic_cast<RoadRunner::DirectJunction*>(g_pointerRoad->predecessorJunction.get()) == nullptr)
+	if (LM::g_PointerRoadS < snapThreshold &&
+		dynamic_cast<LM::DirectJunction*>(g_pointerRoad->predecessorJunction.get()) == nullptr)
 	{
 		snapS = 0;
 		extendFromStart = g_pointerRoad;
 		extendFromStartS = 0;
 	}
-	else if (RoadRunner::g_PointerRoadS > g_pointerRoad->Length() - snapThreshold &&
-		dynamic_cast<RoadRunner::DirectJunction*>(g_pointerRoad->successorJunction.get()) == nullptr)
+	else if (LM::g_PointerRoadS > g_pointerRoad->Length() - snapThreshold &&
+		dynamic_cast<LM::DirectJunction*>(g_pointerRoad->successorJunction.get()) == nullptr)
 	{
 		snapS = g_pointerRoad->Length();
 		extendFromStart = g_pointerRoad;
@@ -205,14 +205,14 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapLastPointToExisting(odr:
 	// Join to existing
 	double snapS;
 	const double snapThreshold = SnapDistFromScale();
-	if (RoadRunner::g_PointerRoadS < snapThreshold &&
-		dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad->predecessorJunction.get()) == nullptr)
+	if (LM::g_PointerRoadS < snapThreshold &&
+		dynamic_cast<LM::DirectJunction*>(g_PointerRoad->predecessorJunction.get()) == nullptr)
 	{
 		snapS = 0;
 		joinAtEnd = g_PointerRoad;
 	}
-	else if (RoadRunner::g_PointerRoadS > g_PointerRoad->Length() - snapThreshold &&
-		dynamic_cast<RoadRunner::DirectJunction*>(g_PointerRoad->successorJunction.get()) == nullptr)
+	else if (LM::g_PointerRoadS > g_PointerRoad->Length() - snapThreshold &&
+		dynamic_cast<LM::DirectJunction*>(g_PointerRoad->successorJunction.get()) == nullptr)
 	{
 		snapS = g_PointerRoad->Length();
 		joinAtEnd = g_PointerRoad;
@@ -227,7 +227,7 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapLastPointToExisting(odr:
 	return onExisting ? RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Nothing;
 }
 
-bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
+bool RoadCreationSession::Update(const LM::MouseAction& act)
 {
 	RoadDrawingSession::Update(act);
 	auto g_PointerRoad = GetPointerRoad();
@@ -247,8 +247,8 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 	cursorItem->SetTranslation({ snappedPos[0], snappedPos[1], CursorElevation() });
 	cursorItem->EnableHighlight(snapLevel);
 
-	RoadRunner::LanePlan currLeftPlan{ PreviewLeftOffsetX2(), g_createRoadOption->LeftResult().laneCount };
-	RoadRunner::LanePlan currRightPlan{ PreviewRightOffsetX2(), g_createRoadOption->RightResult().laneCount };
+	LM::LanePlan currLeftPlan{ PreviewLeftOffsetX2(), g_createRoadOption->LeftResult().laneCount };
+	LM::LanePlan currRightPlan{ PreviewRightOffsetX2(), g_createRoadOption->RightResult().laneCount };
 	if (currLeftPlan != stagedLeftPlan || currRightPlan != stagedRightPlan)
 	{
 		UpdateStagedFromGeometries();
@@ -267,7 +267,7 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 			auto endPos = toRefit.geo->get_end_pos();
 			auto targetHdg = currHandleDir;
 			auto endHdg = odr::Vec2D{ std::cos(targetHdg), std::sin(targetHdg) };
-			auto adjustedFit = RoadRunner::ConnectRays(refitStartPos, startHdg, endPos, endHdg);
+			auto adjustedFit = LM::ConnectRays(refitStartPos, startHdg, endPos, endHdg);
 
 			toRefit.geo = std::move(adjustedFit);
 
@@ -310,7 +310,7 @@ bool RoadCreationSession::Update(const RoadRunner::MouseAction& act)
 	return true;
 }
 
-bool RoadCreationSession::Update(const RoadRunner::KeyPressAction& act)
+bool RoadCreationSession::Update(const LM::KeyPressAction& act)
 {
 	if (act.key == Qt::Key_Escape)
 	{
@@ -364,17 +364,17 @@ odr::RefLine RoadCreationSession::ResultRefLine() const
 	}
 	if (!stagedGeometries.empty())
 	{
-		refLine.elevation_profile = RoadRunner::CubicSplineGenerator::FromControlPoints(zControlPoints);
+		refLine.elevation_profile = LM::CubicSplineGenerator::FromControlPoints(zControlPoints);
 	}
 	return refLine;
 }
 
-RoadRunner::type_t RoadCreationSession::PreviewRightOffsetX2() const
+LM::type_t RoadCreationSession::PreviewRightOffsetX2() const
 {
 	return g_createRoadOption->RightResult().offsetx2;
 }
 
-RoadRunner::type_t RoadCreationSession::PreviewLeftOffsetX2() const
+LM::type_t RoadCreationSession::PreviewLeftOffsetX2() const
 {
 	return g_createRoadOption->LeftResult().offsetx2;
 }
@@ -400,17 +400,17 @@ bool RoadCreationSession::Complete()
 		spdlog::warn("Too few control points");
 		return true;
 	}
-	if (refLine.length > RoadRunner::SingleDrawMaxLength)
+	if (refLine.length > LM::SingleDrawMaxLength)
 	{
 		spdlog::warn("Invalid shape or Road to create is too long");
 		return true;
 	}
 
-	RoadRunner::LaneProfile config(
+	LM::LaneProfile config(
 		g_createRoadOption->LeftResult().laneCount, g_createRoadOption->LeftResult().offsetx2,
 		g_createRoadOption->RightResult().laneCount, g_createRoadOption->RightResult().offsetx2);
 	
-	auto newRoad = std::make_shared<RoadRunner::Road>(config, refLine);
+	auto newRoad = std::make_shared<LM::Road>(config, refLine);
 	newRoad->GenerateAllSectionGraphics();
 	
 	bool standaloneRoad = true;
@@ -420,32 +420,32 @@ bool RoadCreationSession::Complete()
 	{
 		auto toExtend = extendFromStart.lock();
 		auto joinPointElevation = toExtend->RefLine().elevation_profile.get(extendFromStartS);
-		RoadRunner::CubicSplineGenerator::OverwriteSection(
+		LM::CubicSplineGenerator::OverwriteSection(
 			newRoad->RefLine().elevation_profile, newRoad->Length(), 0, 0, joinPointElevation);
 		newPartBegin += toExtend->Length();
 		newPartEnd += toExtend->Length();
-		int joinResult = RoadRunner::Road::JoinRoads(toExtend,
+		int joinResult = LM::Road::JoinRoads(toExtend,
 			extendFromStartS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End,
 			newRoad, odr::RoadLink::ContactPoint_Start);
 		switch (joinResult)
 		{
-		case RoadRunner::RoadJoin_SelfLoop:
+		case LM::RoadJoin_SelfLoop:
 			spdlog::warn("Self-loop is not supported!");
 			return false;
-		case RoadRunner::RoadJoin_DirNoOutlet:
+		case LM::RoadJoin_DirNoOutlet:
 			{
-				if (newRoad->Length() > RoadRunner::JunctionTrimMax)
+				if (newRoad->Length() > LM::JunctionTrimMax)
 				{
 					// Make a junction instead of extending if direction mismatch
-					newRoad = RoadRunner::Road::SplitRoad(newRoad, RoadRunner::JunctionTrimMax);
-					std::vector<RoadRunner::ConnectionInfo> junctionInfo =
+					newRoad = LM::Road::SplitRoad(newRoad, LM::JunctionTrimMax);
+					std::vector<LM::ConnectionInfo> junctionInfo =
 					{
-						RoadRunner::ConnectionInfo{toExtend, odr::RoadLink::ContactPoint_End},
-						RoadRunner::ConnectionInfo{newRoad, odr::RoadLink::ContactPoint_Start}
+						LM::ConnectionInfo{toExtend, odr::RoadLink::ContactPoint_End},
+						LM::ConnectionInfo{newRoad, odr::RoadLink::ContactPoint_Start}
 					};
-					auto junction = std::make_shared<RoadRunner::Junction>();
+					auto junction = std::make_shared<LM::Junction>();
 					auto errorCode = junction->CreateFrom(junctionInfo);
-					if (errorCode == RoadRunner::Junction_NoError)
+					if (errorCode == LM::Junction_NoError)
 					{
 						IDGenerator::ForType(IDType::Road)->NotifyChange(toExtend->ID());
 						break;
@@ -468,31 +468,31 @@ bool RoadCreationSession::Complete()
 		auto copyOfToJoin = toJoin;
 
 		auto joinPointElevation = toJoin->RefLine().elevation_profile.get(joinAtEndS);
-		RoadRunner::CubicSplineGenerator::OverwriteSection(
+		LM::CubicSplineGenerator::OverwriteSection(
 			newRoad->RefLine().elevation_profile, newRoad->Length(),
 			newRoad->Length(), newRoad->Length(), joinPointElevation);
 
-		int joinResult = RoadRunner::Road::JoinRoads(
+		int joinResult = LM::Road::JoinRoads(
 			newRoad, odr::RoadLink::ContactPoint_End,
 			toJoin, joinAtEndS == 0 ? odr::RoadLink::ContactPoint_Start : odr::RoadLink::ContactPoint_End);
 		switch (joinResult)
 		{
-		case RoadRunner::RoadJoin_SelfLoop:
+		case LM::RoadJoin_SelfLoop:
 			spdlog::warn("Self-loop is not supported!");
 			return false;
-		case RoadRunner::RoadJoin_DirNoOutlet:
-			if (newRoad->Length() > RoadRunner::JunctionTrimMin)
+		case LM::RoadJoin_DirNoOutlet:
+			if (newRoad->Length() > LM::JunctionTrimMin)
 			{
 				// Make a junction instead of extending if direction mismatch
-				RoadRunner::Road::SplitRoad(newRoad, newRoad->Length() - RoadRunner::JunctionTrimMin);
-				std::vector<RoadRunner::ConnectionInfo> junctionInfo =
+				LM::Road::SplitRoad(newRoad, newRoad->Length() - LM::JunctionTrimMin);
+				std::vector<LM::ConnectionInfo> junctionInfo =
 				{
-					RoadRunner::ConnectionInfo{toJoin, odr::RoadLink::ContactPoint_Start},
-					RoadRunner::ConnectionInfo{newRoad, odr::RoadLink::ContactPoint_End}
+					LM::ConnectionInfo{toJoin, odr::RoadLink::ContactPoint_Start},
+					LM::ConnectionInfo{newRoad, odr::RoadLink::ContactPoint_End}
 				};
-				auto junction = std::make_shared<RoadRunner::Junction>();
+				auto junction = std::make_shared<LM::Junction>();
 				auto errorCode = junction->CreateFrom(junctionInfo);
-				if (errorCode == RoadRunner::Junction_NoError)
+				if (errorCode == LM::Junction_NoError)
 				{
 					IDGenerator::ForType(IDType::Road)->NotifyChange(toJoin->ID());
 					break;
@@ -541,8 +541,8 @@ void RoadCreationSession::GenerateHintLines(const odr::RefLine& refLine,
 		}
 
 		// right boundary
-		RoadRunner::type_t offsetX2 = g_createRoadOption->RightResult().laneCount != 0 ? PreviewRightOffsetX2() : PreviewLeftOffsetX2();
-		double t = (offsetX2 - g_createRoadOption->RightResult().laneCount * 2) * RoadRunner::LaneWidth / 2;
+		LM::type_t offsetX2 = g_createRoadOption->RightResult().laneCount != 0 ? PreviewRightOffsetX2() : PreviewLeftOffsetX2();
+		double t = (offsetX2 - g_createRoadOption->RightResult().laneCount * 2) * LM::LaneWidth / 2;
 		for (int i = 0; i != Division; ++i)
 		{
 			auto s = flexLen / (Division - 1) * i;
@@ -552,7 +552,7 @@ void RoadCreationSession::GenerateHintLines(const odr::RefLine& refLine,
 
 		// left boundary
 		offsetX2 = g_createRoadOption->LeftResult().laneCount != 0 ? PreviewLeftOffsetX2() : PreviewRightOffsetX2();
-		t = (offsetX2 + g_createRoadOption->LeftResult().laneCount * 2) * RoadRunner::LaneWidth / 2;
+		t = (offsetX2 + g_createRoadOption->LeftResult().laneCount * 2) * LM::LaneWidth / 2;
 		for (int i = 0; i != Division; ++i)
 		{
 			auto s = flexLen / (Division - 1) * i;
@@ -593,17 +593,17 @@ void RoadCreationSession::UpdateFlexGeometry()
 
 		if (joinAtEnd.expired())
 		{
-			flexGeo = RoadRunner::FitArcOrLine(localStartPos, localStartDir, snappedPos);
+			flexGeo = LM::FitArcOrLine(localStartPos, localStartDir, snappedPos);
 		}
 		else
 		{
-			flexGeo = RoadRunner::ConnectRays(localStartPos, localStartDir, snappedPos, JoinAtEndDir());
+			flexGeo = LM::ConnectRays(localStartPos, localStartDir, snappedPos, JoinAtEndDir());
 		}
 		flexEndElevation = CursorElevation();
 
 		if (flexGeo->length > 0)
 		{
-			auto elevationProfile = RoadRunner::CubicSplineGenerator::FromControlPoints(
+			auto elevationProfile = LM::CubicSplineGenerator::FromControlPoints(
 				std::map<double, double>{{0, localStartZ}, { flexGeo->length, flexEndElevation }}
 			);
 			double avgGrade = (flexEndElevation - localStartZ) / flexGeo->length;

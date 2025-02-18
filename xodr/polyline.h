@@ -1,6 +1,6 @@
 #include "Road.h"
 
-namespace RoadRunner
+namespace LM
 {
     bool borderIntersect(const odr::Road& roadA, const int sideA,
         const odr::Road& roadB, const int sideB, double& outSA, double& outSB,

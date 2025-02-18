@@ -27,7 +27,7 @@ MainWidget::MainWidget(QWidget* parent)
     format.setVersion(3, 3);
     format.setDepthBufferSize(16);
 
-    mapViewGL = new RoadRunner::MapViewGL;
+    mapViewGL = new LM::MapViewGL;
     mapViewGL->setFormat(format);
 
     QWidget* container = QWidget::createWindowContainer(mapViewGL, this);
@@ -103,8 +103,8 @@ MainWidget::MainWidget(QWidget* parent)
     connect(destroyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDestroyMode);
     connect(modifyModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoModifyMode);
     connect(dragModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDragMode);
-    connect(mapViewGL, &RoadRunner::MapViewGL::MousePerformedAction, this, &MainWidget::OnMouseAction);
-    connect(mapViewGL, &RoadRunner::MapViewGL::KeyPerformedAction, this, &MainWidget::OnKeyPress);
+    connect(mapViewGL, &LM::MapViewGL::MousePerformedAction, this, &MainWidget::OnMouseAction);
+    connect(mapViewGL, &LM::MapViewGL::KeyPerformedAction, this, &MainWidget::OnKeyPress);
     Reset();
 }
 
@@ -116,44 +116,44 @@ MainWidget* MainWidget::Instance()
 void MainWidget::gotoCreateRoadMode(bool checked)
 {
     if (!checked) return;
-    SetEditMode(RoadRunner::Mode_Create);
-    RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Create);
+    SetEditMode(LM::Mode_Create);
+    LM::ActionManager::Instance()->Record(LM::Mode_Create);
     createRoadOption->GotoRoadMode();
 }
 
 void MainWidget::gotoCreateLaneMode(bool checked)
 {
     if (!checked) return;
-    SetEditMode(RoadRunner::Mode_CreateLanes);
-    RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_CreateLanes);
+    SetEditMode(LM::Mode_CreateLanes);
+    LM::ActionManager::Instance()->Record(LM::Mode_CreateLanes);
     createRoadOption->GotoLaneMode();
 }
 
 void MainWidget::gotoDestroyMode(bool checked)
 {
     if (!checked) return;
-    SetEditMode(RoadRunner::Mode_Destroy);
-    RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Destroy);
+    SetEditMode(LM::Mode_Destroy);
+    LM::ActionManager::Instance()->Record(LM::Mode_Destroy);
     createRoadOption->hide();
 }
 
 void MainWidget::gotoModifyMode(bool checked)
 {
     if (!checked) return;
-    SetEditMode(RoadRunner::Mode_Modify);
-    RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_Modify);
+    SetEditMode(LM::Mode_Modify);
+    LM::ActionManager::Instance()->Record(LM::Mode_Modify);
     createRoadOption->GotoRoadMode();
 }
 
 void MainWidget::gotoDragMode(bool checked)
 {
     if (!checked) return;
-    SetEditMode(RoadRunner::Mode_None);
-    RoadRunner::ActionManager::Instance()->Record(RoadRunner::Mode_None);
+    SetEditMode(LM::Mode_None);
+    LM::ActionManager::Instance()->Record(LM::Mode_None);
     createRoadOption->hide();
 }
 
-void MainWidget::OnMouseAction(RoadRunner::MouseAction evt)
+void MainWidget::OnMouseAction(LM::MouseAction evt)
 {
 #ifndef _DEBUG
     try
@@ -179,7 +179,7 @@ void MainWidget::OnMouseAction(RoadRunner::MouseAction evt)
 #endif
 }
 
-void MainWidget::OnKeyPress(RoadRunner::KeyPressAction evt)
+void MainWidget::OnKeyPress(LM::KeyPressAction evt)
 {
 #ifndef _DEBUG
     try
@@ -215,9 +215,9 @@ void MainWidget::OnKeyPress(RoadRunner::KeyPressAction evt)
 
 void MainWidget::confirmEdit()
 {
-    RoadRunner::ChangeTracker::Instance()->StartRecordEdit();
+    LM::ChangeTracker::Instance()->StartRecordEdit();
     bool cleanState = drawingSession->Complete();
-    RoadRunner::ChangeTracker::Instance()->FinishRecordEdit(!cleanState);
+    LM::ChangeTracker::Instance()->FinishRecordEdit(!cleanState);
     quitEdit();
 }
 
@@ -260,7 +260,7 @@ void MainWidget::Reset()
     }
     pointerModeGroup->setExclusive(true);
     // goto drag mode, but don't record
-    SetEditMode(RoadRunner::Mode_None);
+    SetEditMode(LM::Mode_None);
     createRoadOption->hide();
 }
 
@@ -268,16 +268,16 @@ void MainWidget::SetModeFromReplay(int mode)
 {
     switch (mode)
     {
-    case RoadRunner::Mode_Create:
+    case LM::Mode_Create:
         createModeButton->setChecked(true);
         break;
-    case RoadRunner::Mode_CreateLanes:
+    case LM::Mode_CreateLanes:
         createLaneModeButton->setChecked(true);
         break;
-    case RoadRunner::Mode_Modify:
+    case LM::Mode_Modify:
         modifyModeButton->setChecked(true);
         break;
-    case RoadRunner::Mode_Destroy:
+    case LM::Mode_Destroy:
         destroyModeButton->setChecked(true);
         break;
     default:
@@ -299,7 +299,7 @@ void MainWidget::GoToSimulationMode(bool enabled)
     }
 }
 
-void MainWidget::SetEditMode(RoadRunner::EditMode aMode)
+void MainWidget::SetEditMode(LM::EditMode aMode)
 {
     editMode = aMode;
 
@@ -310,16 +310,16 @@ void MainWidget::SetEditMode(RoadRunner::EditMode aMode)
     }
     switch (aMode)
     {
-    case RoadRunner::Mode_Create:
+    case LM::Mode_Create:
         drawingSession = new RoadCreationSession();
         break;
-    case RoadRunner::Mode_CreateLanes:
+    case LM::Mode_CreateLanes:
         drawingSession = new LanesCreationSession();
         break;
-    case RoadRunner::Mode_Destroy:
+    case LM::Mode_Destroy:
         drawingSession = new RoadDestroySession();
         break;
-    case RoadRunner::Mode_Modify:
+    case LM::Mode_Modify:
         drawingSession = new RoadModificationSession();
         break;
     default:
@@ -329,8 +329,8 @@ void MainWidget::SetEditMode(RoadRunner::EditMode aMode)
 
 void MainWidget::elegantlyHandleException(std::exception e)
 {
-    RoadRunner::ActionManager::Instance()->MarkException();
-    auto msg = std::string(e.what()) + "\nReplayable at " + RoadRunner::ActionManager::Instance()->AutosavePath();
+    LM::ActionManager::Instance()->MarkException();
+    auto msg = std::string(e.what()) + "\nReplayable at " + LM::ActionManager::Instance()->AutosavePath();
     auto quit = QMessageBox::question(this, "Quit now?",
         QString::fromStdString(msg), QMessageBox::Yes | QMessageBox::No);
     if (quit == QMessageBox::Yes)

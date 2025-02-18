@@ -14,7 +14,7 @@ QT_END_NAMESPACE
 
 class MapView;
 class RoadDrawingSession;
-namespace RoadRunner
+namespace LM
 {
     class MapViewGL;
 }
@@ -37,7 +37,7 @@ public:
 
     void GoToSimulationMode(bool enabled); // force into drag mode
 
-    RoadRunner::MapViewGL* mapViewGL;
+    LM::MapViewGL* mapViewGL;
 
 signals:
     void HoveringChanged(QString);
@@ -46,8 +46,8 @@ signals:
 
 public slots:
     void toggleAntialiasing(bool);
-    void OnMouseAction(RoadRunner::MouseAction);
-    void OnKeyPress(RoadRunner::KeyPressAction);
+    void OnMouseAction(LM::MouseAction);
+    void OnKeyPress(LM::KeyPressAction);
 
 private slots:
     void gotoCreateRoadMode(bool);
@@ -59,14 +59,14 @@ private slots:
 private:
     static MainWidget* instance;
 
-    void SetEditMode(RoadRunner::EditMode aMode);
+    void SetEditMode(LM::EditMode aMode);
 
     void confirmEdit();
     void quitEdit();
 
     void elegantlyHandleException(std::exception);
 
-    RoadRunner::EditMode editMode = RoadRunner::Mode_None;
+    LM::EditMode editMode = LM::Mode_None;
     RoadDrawingSession* drawingSession = nullptr;
 
     QButtonGroup* pointerModeGroup;

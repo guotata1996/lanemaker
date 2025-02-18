@@ -10,7 +10,7 @@
 #include <QMatrix4x4>
 #include <optional>
 
-namespace RoadRunner
+namespace LM
 {
 	const unsigned int NVehicleVariations = 3;
 
@@ -42,8 +42,8 @@ namespace RoadRunner
 		float Zoom() const;
 		
 	signals:
-		void MousePerformedAction(RoadRunner::MouseAction);
-		void KeyPerformedAction(RoadRunner::KeyPressAction);
+		void MousePerformedAction(LM::MouseAction);
+		void KeyPerformedAction(LM::KeyPressAction);
 
 	protected:
 		void initializeGL() override;

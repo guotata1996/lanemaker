@@ -1,7 +1,7 @@
 #include <vector>
 #include <map>
 
-namespace RoadRunner
+namespace LM
 {
     class MultiSegment
     {

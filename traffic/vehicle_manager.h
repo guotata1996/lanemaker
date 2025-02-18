@@ -28,7 +28,7 @@ private:
 
     std::map<std::string, std::shared_ptr<Vehicle>> allVehicles;
 
-    std::map<std::string, std::shared_ptr<RoadRunner::Signal>> allSignals;
+    std::map<std::string, std::shared_ptr<LM::Signal>> allSignals;
 
     std::unordered_map<odr::LaneKey, std::map<double, std::shared_ptr<Vehicle>>> vehiclesOnLane;
 

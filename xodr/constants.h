@@ -1,6 +1,6 @@
 #pragma once
 
-namespace RoadRunner
+namespace LM
 {
     /*Protect bad (way too long) geometry from freezing UI*/
     const double SingleDrawMaxLength = 500;

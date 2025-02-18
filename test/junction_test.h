@@ -6,7 +6,7 @@
 #include <math.h>
 #include "Geometries/Arc.h"
 
-namespace RoadRunnerTest
+namespace LTest
 {
     struct Seed_SingleJunction
         : public testing::TestWithParam<int> {};
@@ -16,12 +16,12 @@ namespace RoadRunnerTest
         srand(seed);
         const int NumRoads = RandomIntBetween(3, 6);
         const double SeparationAngle = M_PI * 2 / NumRoads;
-        const RoadRunner::type_s RoadLength = 30 * 100;
-        const double RoadLengthD = RoadRunner::to_odr_unit(RoadLength);
+        const LM::type_s RoadLength = 30 * 100;
+        const double RoadLengthD = LM::to_odr_unit(RoadLength);
         const odr::Vec2D nearEnd{ 25, 0 };
         const odr::Vec2D farEnd{ 55, 0 };
 
-        std::vector< std::shared_ptr<RoadRunner::Road>> generatedRoads;
+        std::vector< std::shared_ptr<LM::Road>> generatedRoads;
         std::vector< bool > incomings;
 
         int totalOuts = 0;
@@ -36,7 +36,7 @@ namespace RoadRunnerTest
             totalOuts += incoming ? leftLanes : rightLanes;
             numIncominglanes.push_back(incoming ? rightLanes : leftLanes);
 
-            RoadRunner::LaneProfile cfg(leftLanes, leftOffset, rightLanes, rightOffset);
+            LM::LaneProfile cfg(leftLanes, leftOffset, rightLanes, rightOffset);
 
             odr::Vec2D refLineOrigin = incoming ? farEnd : nearEnd;
             refLineOrigin = odr::rotateCCW(refLineOrigin, SeparationAngle * i);
@@ -44,25 +44,25 @@ namespace RoadRunnerTest
             if (incoming) hdg += M_PI;
             auto refLine = std::make_unique<odr::Line>(0, refLineOrigin[0], refLineOrigin[1], hdg, RoadLengthD);
 
-            generatedRoads.push_back(std::make_shared<RoadRunner::Road>(cfg, std::move(refLine)));
+            generatedRoads.push_back(std::make_shared<LM::Road>(cfg, std::move(refLine)));
             generatedRoads.back()->Generate();
             incomings.push_back(incoming);
         }
 
-        std::vector< RoadRunner::ConnectionInfo> connectionInfo;
+        std::vector< LM::ConnectionInfo> connectionInfo;
         for (int i = 0; i != NumRoads; ++i)
         {
-            connectionInfo.push_back(RoadRunner::ConnectionInfo{
+            connectionInfo.push_back(LM::ConnectionInfo{
                 generatedRoads[i], incomings[i] ? odr::RoadLink::ContactPoint_End : odr::RoadLink::ContactPoint_Start });
         }
 
-        auto j1 = std::make_shared<RoadRunner::Junction>();
+        auto j1 = std::make_shared<LM::Junction>();
         j1->CreateFrom(connectionInfo);
 
         int mostIncomingLanes = *std::max_element(numIncominglanes.begin(), numIncominglanes.end());
         if (mostIncomingLanes > totalOuts)
         {
-            EXPECT_EQ(j1->generationError, RoadRunner::JunctionError::Junction_TooManyIncomingLanes);
+            EXPECT_EQ(j1->generationError, LM::JunctionError::Junction_TooManyIncomingLanes);
         }
         else
         {
@@ -72,21 +72,21 @@ namespace RoadRunnerTest
 
     TEST(SingleJunction, BothEnds)
     {
-        RoadRunner::LaneProfile commonProfile(2, 0, 2, 0);
+        LM::LaneProfile commonProfile(2, 0, 2, 0);
         auto circleRRef = std::make_unique<odr::Arc>(0, 20, 0, 0, 2 * M_PI * 20 * 0.75, 1 / 20.0);
-        auto circleR = std::make_shared<RoadRunner::Road>(commonProfile, std::move(circleRRef));
+        auto circleR = std::make_shared<LM::Road>(commonProfile, std::move(circleRRef));
         auto circleLRef = std::make_unique<odr::Arc>(0, 0, -20, M_PI_2 * 3, 2 * M_PI * 20 * 0.75, -1 / 20.0);
-        auto circleL = std::make_shared<RoadRunner::Road>(commonProfile, std::move(circleLRef));
+        auto circleL = std::make_shared<LM::Road>(commonProfile, std::move(circleLRef));
        
-        std::vector< RoadRunner::ConnectionInfo> connectionInfo
+        std::vector< LM::ConnectionInfo> connectionInfo
         {
-            RoadRunner::ConnectionInfo{circleL, odr::RoadLink::ContactPoint_Start},
-            RoadRunner::ConnectionInfo{circleL, odr::RoadLink::ContactPoint_End},
-            RoadRunner::ConnectionInfo{circleR, odr::RoadLink::ContactPoint_Start},
-            RoadRunner::ConnectionInfo{circleR, odr::RoadLink::ContactPoint_End}
+            LM::ConnectionInfo{circleL, odr::RoadLink::ContactPoint_Start},
+            LM::ConnectionInfo{circleL, odr::RoadLink::ContactPoint_End},
+            LM::ConnectionInfo{circleR, odr::RoadLink::ContactPoint_Start},
+            LM::ConnectionInfo{circleR, odr::RoadLink::ContactPoint_End}
         };
 
-        auto j1 = std::make_shared<RoadRunner::Junction>();
+        auto j1 = std::make_shared<LM::Junction>();
         j1->CreateFrom(connectionInfo);
 
         Validation::VerifyJunction(j1.get());

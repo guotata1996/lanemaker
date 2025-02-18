@@ -9,7 +9,7 @@ extern SectionProfileConfigWidget* g_createRoadOption;
 RoadModificationSession::RoadModificationSession()
 {}
 
-bool RoadModificationSession::Update(const RoadRunner::MouseAction& evt)
+bool RoadModificationSession::Update(const LM::MouseAction& evt)
 {
     RoadDrawingSession::Update(evt);
     return RoadDestroySession::Update(evt);
@@ -21,10 +21,10 @@ bool RoadModificationSession::Complete()
 
     auto target = targetRoad.lock();
     if (std::min(*s1, *s2) == 0 &&
-        dynamic_cast<RoadRunner::DirectJunction*>(target->predecessorJunction.get()) != nullptr
+        dynamic_cast<LM::DirectJunction*>(target->predecessorJunction.get()) != nullptr
         ||
         std::max(*s1, *s2) == target->Length() &&
-        dynamic_cast<RoadRunner::DirectJunction*>(target->successorJunction.get()) != nullptr)
+        dynamic_cast<LM::DirectJunction*>(target->successorJunction.get()) != nullptr)
     {
         spdlog::warn("Cannot modify section adjacent to Direct junction. Please delete instead.");
         return true;
@@ -50,17 +50,17 @@ bool RoadModificationSession::Complete()
         }
 
         // Form direct junction
-        std::shared_ptr<RoadRunner::Road> before, toModify, after;
+        std::shared_ptr<LM::Road> before, toModify, after;
         if (sEnd != target->Length())
         {
-            after = RoadRunner::Road::SplitRoad(target, sEnd);
+            after = LM::Road::SplitRoad(target, sEnd);
             World::Instance()->allRoads.insert(after);
             toModify = target;
         }
 
         if (sBegin != 0)
         {
-            toModify = RoadRunner::Road::SplitRoad(target, sBegin);
+            toModify = LM::Road::SplitRoad(target, sBegin);
             World::Instance()->allRoads.insert(toModify);
             before = target;
         }
@@ -78,19 +78,19 @@ bool RoadModificationSession::Complete()
                 return false;
             }
 
-            auto toModifyInfo = RoadRunner::ConnectionInfo(toModify, odr::RoadLink::ContactPoint_Start);
-            auto beforeInfo = RoadRunner::ConnectionInfo(before, odr::RoadLink::ContactPoint_End);
+            auto toModifyInfo = LM::ConnectionInfo(toModify, odr::RoadLink::ContactPoint_Start);
+            auto beforeInfo = LM::ConnectionInfo(before, odr::RoadLink::ContactPoint_End);
 
             if (currBeginLeft.laneCount <= g_createRoadOption->LeftResult().laneCount
                 && currBeginRight.laneCount <= g_createRoadOption->RightResult().laneCount)
             {
-                auto junc = std::make_shared< RoadRunner::DirectJunction>(toModifyInfo);
+                auto junc = std::make_shared< LM::DirectJunction>(toModifyInfo);
                 junc->Attach(beforeInfo);
             }
             else if (currBeginLeft.laneCount >= g_createRoadOption->LeftResult().laneCount
                 && currBeginRight.laneCount >= g_createRoadOption->RightResult().laneCount)
             {
-                auto junc = std::make_shared< RoadRunner::DirectJunction>(beforeInfo);
+                auto junc = std::make_shared< LM::DirectJunction>(beforeInfo);
                 junc->Attach(toModifyInfo);
             }
             else
@@ -111,19 +111,19 @@ bool RoadModificationSession::Complete()
                 return false;
             }
 
-            auto toModifyInfo = RoadRunner::ConnectionInfo(toModify, odr::RoadLink::ContactPoint_End);
-            auto afterInfo = RoadRunner::ConnectionInfo(after, odr::RoadLink::ContactPoint_Start);
+            auto toModifyInfo = LM::ConnectionInfo(toModify, odr::RoadLink::ContactPoint_End);
+            auto afterInfo = LM::ConnectionInfo(after, odr::RoadLink::ContactPoint_Start);
 
             if (currEndLeft.laneCount <= g_createRoadOption->LeftResult().laneCount
                 && currEndRight.laneCount <= g_createRoadOption->RightResult().laneCount)
             {
-                auto junc = std::make_shared< RoadRunner::DirectJunction>(toModifyInfo);
+                auto junc = std::make_shared< LM::DirectJunction>(toModifyInfo);
                 junc->Attach(afterInfo);
             }
             else if (currEndLeft.laneCount >= g_createRoadOption->LeftResult().laneCount
                 && currEndRight.laneCount >= g_createRoadOption->RightResult().laneCount)
             {
-                auto junc = std::make_shared< RoadRunner::DirectJunction>(afterInfo);
+                auto junc = std::make_shared< LM::DirectJunction>(afterInfo);
                 junc->Attach(toModifyInfo);
             }
             else

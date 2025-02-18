@@ -15,7 +15,7 @@
 #include <iterator> // CompareFiles
 #include <algorithm> // CompareFiles
 
-namespace RoadRunnerTest
+namespace LTest
 {
 #ifndef G_TEST
     void Validation::ValidateMap()
@@ -27,7 +27,7 @@ namespace RoadRunnerTest
         // Each junction geometry okay
         for (auto idAndJunction : IDGenerator::ForType(IDType::Junction)->assignTo)
         {
-            auto junc = static_cast<RoadRunner::AbstractJunction*>(idAndJunction.second);
+            auto junc = static_cast<LM::AbstractJunction*>(idAndJunction.second);
             VerifyJunction(junc);
         }
 
@@ -43,7 +43,7 @@ namespace RoadRunnerTest
     // road IDs match among IDGenerator | world | odrMap
     void Validation::RoadIDSetMatch()
     {
-        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->Map();
+        const auto& serializedMap = LM::ChangeTracker::Instance()->Map();
         auto world = World::Instance();
 
         std::set<std::string> roadIDsFromSerialized;
@@ -53,7 +53,7 @@ namespace RoadRunnerTest
         {
             assert(idAndRoad.first == idAndRoad.second.id);
             roadIDsFromSerialized.insert(idAndRoad.first);
-            auto roadPtr = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(idAndRoad.first);
+            auto roadPtr = IDGenerator::ForType(IDType::Road)->GetByID<LM::Road>(idAndRoad.first);
             assert(roadPtr != nullptr);
             if (idAndRoad.second.junction == "-1")
             {
@@ -79,13 +79,13 @@ namespace RoadRunnerTest
     // Junction IDs match between IDGenerator | odrMap
     void Validation::JunctionIDSetMatch()
     {
-        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->Map();
+        const auto& serializedMap = LM::ChangeTracker::Instance()->Map();
         std::set<std::string> junctionIDsFromSerialized;
         for (auto idAndJunction : serializedMap.id_to_junction)
         {
             assert(idAndJunction.first == idAndJunction.second.id);
             junctionIDsFromSerialized.insert(idAndJunction.first);
-            auto juncPtr = IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::AbstractJunction>(idAndJunction.first);
+            auto juncPtr = IDGenerator::ForType(IDType::Junction)->GetByID<LM::AbstractJunction>(idAndJunction.first);
             assert(juncPtr != nullptr);
         }
 
@@ -99,10 +99,10 @@ namespace RoadRunnerTest
 
     void Validation::VerifyRoadJunctionPtr()
     {
-        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->Map();
+        const auto& serializedMap = LM::ChangeTracker::Instance()->Map();
         for (const auto& idAndRoad : serializedMap.id_to_road)
         {
-            auto roadPtr = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(idAndRoad.first);
+            auto roadPtr = IDGenerator::ForType(IDType::Road)->GetByID<LM::Road>(idAndRoad.first);
             auto serializedRoad = idAndRoad.second;
             if (serializedRoad.predecessor.type == odr::RoadLink::Type_Junction)
             {
@@ -115,8 +115,8 @@ namespace RoadRunnerTest
         }
         for (const auto& idAndJunction : serializedMap.id_to_junction)
         {
-            auto junctionPtr = (IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::AbstractJunction>(idAndJunction.first));
-            auto commonPtr = dynamic_cast<RoadRunner::Junction*>(junctionPtr);
+            auto junctionPtr = (IDGenerator::ForType(IDType::Junction)->GetByID<LM::AbstractJunction>(idAndJunction.first));
+            auto commonPtr = dynamic_cast<LM::Junction*>(junctionPtr);
 
             if (commonPtr == nullptr)
             {
@@ -142,7 +142,7 @@ namespace RoadRunnerTest
 
     void Validation::VerifyRoutingGraph()
     {
-        const auto& serializedMap = RoadRunner::ChangeTracker::Instance()->Map();
+        const auto& serializedMap = LM::ChangeTracker::Instance()->Map();
         const auto& routingGraph = serializedMap.get_routing_graph();
         for (auto& lane_successor : routingGraph.lane_key_to_successors)
         {

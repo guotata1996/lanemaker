@@ -1,6 +1,6 @@
 #include "spatial_indexer.h"
 
-namespace RoadRunner
+namespace LM
 {
     SpatialIndexer* SpatialIndexer::_instance = nullptr;
 

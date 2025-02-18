@@ -1,7 +1,7 @@
 #include "multi_segment.h"
 #include <cassert>
 
-namespace RoadRunner
+namespace LM
 {
     MultiSegment::MultiSegment(double aIgnoreGap):
         IgnoreGap(aIgnoreGap)

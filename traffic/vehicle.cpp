@@ -23,7 +23,7 @@ Vehicle::Vehicle(odr::LaneKey initialLane, double initialLocalS, odr::LaneKey de
 
 void Vehicle::InitGraphics()
 {
-    graphics.emplace(std::stoi(ID), RoadRunner::InstanceData::GetRandom());
+    graphics.emplace(std::stoi(ID), LM::InstanceData::GetRandom());
 }
 
 bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGraph& routingGraph,
@@ -59,7 +59,7 @@ bool Vehicle::GotoNextGoal(const odr::OpenDriveMap& odrMap, const odr::RoutingGr
 void Vehicle::Clear()
 {
     graphics.reset();
-    RoadRunner::SpatialIndexerDynamic::Instance()->UnIndex(std::stoi(ID));
+    LM::SpatialIndexerDynamic::Instance()->UnIndex(std::stoi(ID));
     IDGenerator::ForType(IDType::Vehicle)->FreeID(ID);
 }
 
@@ -544,7 +544,7 @@ void Vehicle::MakeStep(double dt, const odr::OpenDriveMap& map)
     transformMat.translate(position[0], position[1], position[2]);
     transformMat.rotate(QQuaternion::fromDirection(QVector3D(std::cos(heading), std::sin(heading), grad), QVector3D(0, 0, 1)));
     graphics->SetTransform(transformMat);
-    RoadRunner::SpatialIndexerDynamic::Instance()->Index(std::stoi(ID), transformMat, DimensionLWH);
+    LM::SpatialIndexerDynamic::Instance()->Index(std::stoi(ID), transformMat, DimensionLWH);
 }
 
 odr::LaneKey Vehicle::sourceLane() const

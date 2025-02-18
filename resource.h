@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by RoadRunner.rc
+// Used by LM.rc
 
 // Next default values for new objects
 // 

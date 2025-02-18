@@ -17,7 +17,7 @@ PreferenceWindow::PreferenceWindow(QWidget* parent)
     setWindowTitle("Preference");
     setMinimumWidth(400);
 
-    auto defaultSave = RoadRunner::DefaultSaveFolder() / "preference.json";
+    auto defaultSave = LM::DefaultSaveFolder() / "preference.json";
     if (std::filesystem::exists(defaultSave))
     {
         std::ifstream inFile(defaultSave);
@@ -54,13 +54,13 @@ void PreferenceWindow::showEvent(QShowEvent* e)
         layout->addWidget(antiAliasChoice, 2, 1);
 
         auto iconLabel = new QLabel;
-        iconLabel->setPixmap(QPixmap(":/icons/roadrunner.png"));
+        iconLabel->setPixmap(QPixmap(":/icons/lanemaker.png"));
         layout->addWidget(iconLabel, 3, 0, 2, 2, Qt::AlignHCenter);
 
         layout->addWidget(new QLabel(QString("Build: %1").arg(__DATE__)), 5, 1);
-        layout->addWidget(new LabelWithLink(QUrl("https://github.com/guotata1996/RoadRunner_Rel"), "Release page / Tutorial"), 
+        layout->addWidget(new LabelWithLink(QUrl("https://github.com/guotata1996/lanemaker"), "GitHub Repository"), 
             6, 0, 1, 2);
-        layout->addWidget(new LabelWithLink(QUrl("https://guotata1996.github.io/"), "Author Homepage"),
+        layout->addWidget(new LabelWithLink(QUrl("https://guotata1996.github.io/lanemaker"), "Project Homepage"),
             7, 0, 1, 2);
 
         setLayout(layout);
@@ -80,7 +80,7 @@ void PreferenceWindow::showEvent(QShowEvent* e)
 
 void PreferenceWindow::closeEvent(QCloseEvent* e)
 {
-    auto defaultSave = RoadRunner::DefaultSaveFolder() / "preference.json";
+    auto defaultSave = LM::DefaultSaveFolder() / "preference.json";
     std::ofstream outFile(defaultSave);
     cereal::JSONOutputArchive oarchive(outFile);
     oarchive(g_preference);

@@ -14,15 +14,15 @@ public:
 
     void Reset();
 
-    void SetOption(const RoadRunner::LanePlan&, const RoadRunner::LanePlan&);
+    void SetOption(const LM::LanePlan&, const LM::LanePlan&);
 
     void SetMode(bool rodeMode);
 
-    RoadRunner::LanePlan activeLeftSetting;
-    RoadRunner::LanePlan activeRightSetting;
+    LM::LanePlan activeLeftSetting;
+    LM::LanePlan activeRightSetting;
 
 signals:
-    void OptionChangedByUser(RoadRunner::LanePlan left, RoadRunner::LanePlan right);
+    void OptionChangedByUser(LM::LanePlan left, LM::LanePlan right);
 
 protected:
     void showEvent(QShowEvent* event) override;
@@ -66,18 +66,18 @@ public:
     void Reset();
 
     /*picking from existing*/
-    void SetOption(const RoadRunner::LanePlan&, const RoadRunner::LanePlan&);
+    void SetOption(const LM::LanePlan&, const LM::LanePlan&);
 
     void GotoRoadMode();
     void GotoLaneMode();
 
-    RoadRunner::LanePlan LeftResult() const { return visual->activeLeftSetting; }
-    RoadRunner::LanePlan RightResult() const { return visual->activeRightSetting; }
+    LM::LanePlan LeftResult() const { return visual->activeLeftSetting; }
+    LM::LanePlan RightResult() const { return visual->activeRightSetting; }
 
     virtual QSize sizeHint() const override;
 
 private slots:
-    void OnOptionChange(RoadRunner::LanePlan left, RoadRunner::LanePlan right);
+    void OnOptionChange(LM::LanePlan left, LM::LanePlan right);
 
 private:
     CreateRoadOptionWidget* visual;

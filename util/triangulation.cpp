@@ -10,7 +10,7 @@ typedef CGAL::Constrained_Delaunay_triangulation_2<K> CDT;
 typedef CGAL::Polygon_2<K> Polygon_2;
 
 #include <spdlog/spdlog.h>
-namespace RoadRunner
+namespace LM
 {
     bool RayLiesInside(const Polygon_2& poly, const bool ccw, int from, int to)
     {

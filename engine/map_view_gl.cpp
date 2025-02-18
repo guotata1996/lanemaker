@@ -14,7 +14,7 @@
 #include "vehicle.h"
 #include "junction.h"
 
-namespace RoadRunner
+namespace LM
 {
     MapViewGL* g_mapViewGL;
     std::string g_PointerRoadID;
@@ -300,7 +300,7 @@ namespace RoadRunner
         }
         else
         {
-            RoadRunner::ActionManager::Instance()->Record(event);
+            LM::ActionManager::Instance()->Record(event);
             emit(MousePerformedAction(event));
         }
     }
@@ -309,7 +309,7 @@ namespace RoadRunner
     {
         if (evt->button() == Qt::LeftButton)
         {
-            RoadRunner::ActionManager::Instance()->Record(evt);
+            LM::ActionManager::Instance()->Record(evt);
             emit(MousePerformedAction(evt));
         }
     }
@@ -403,7 +403,7 @@ namespace RoadRunner
         }
         else
         {
-            RoadRunner::ActionManager::Instance()->Record(event);
+            LM::ActionManager::Instance()->Record(event);
             emit(MousePerformedAction(event));
         }
         renderLater();
@@ -419,7 +419,7 @@ namespace RoadRunner
         }
         else
         {
-            RoadRunner::ActionManager::Instance()->Record(event);
+            LM::ActionManager::Instance()->Record(event);
             emit(MousePerformedAction(event));
         }
     }
@@ -485,11 +485,11 @@ namespace RoadRunner
 
         if (changeViewPoint)
         {
-            RoadRunner::ActionManager::Instance()->Record(m_camera);
+            LM::ActionManager::Instance()->Record(m_camera);
         }
         else
         {
-            RoadRunner::ActionManager::Instance()->Record(event);
+            LM::ActionManager::Instance()->Record(event);
             emit(KeyPerformedAction(event));
         }
         // update cached world2view matrix
@@ -593,19 +593,19 @@ namespace RoadRunner
 
         odr::Vec3D pointerOnGround3D{ g_PointerOnGround[0], g_PointerOnGround[1], 0 };
 
-        auto pointerVehicle = RoadRunner::SpatialIndexerDynamic::Instance()->RayCast(RoadRunner::g_CameraPosition, pointerRayDir);
+        auto pointerVehicle = LM::SpatialIndexerDynamic::Instance()->RayCast(LM::g_CameraPosition, pointerRayDir);
         if (pointerVehicle != g_PointerVehicle)
         {
             auto prevHighlight = IDGenerator::ForType(IDType::Vehicle)->GetByID<Vehicle>(std::to_string(g_PointerVehicle));
             if (prevHighlight != nullptr)
             {
-                prevHighlight->EnableRouteVisual(false, RoadRunner::ChangeTracker::Instance()->Map());
+                prevHighlight->EnableRouteVisual(false, LM::ChangeTracker::Instance()->Map());
             }
         }
         if (pointerVehicle != -1)
         {
             IDGenerator::ForType(IDType::Vehicle)->GetByID<Vehicle>(std::to_string(pointerVehicle))->EnableRouteVisual(true,
-                RoadRunner::ChangeTracker::Instance()->Map());
+                LM::ChangeTracker::Instance()->Map());
         };
 
         g_PointerVehicle = pointerVehicle;

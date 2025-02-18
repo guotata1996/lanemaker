@@ -47,7 +47,7 @@ namespace
     };
 }
 
-namespace RoadRunner
+namespace LM
 {
     typedef uint64_t FaceIndex_t;
 

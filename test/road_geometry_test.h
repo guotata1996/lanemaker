@@ -11,7 +11,7 @@
 
 extern const std::map<int, std::pair<int, int>> posAngleCombo;
 
-namespace RoadRunnerTest
+namespace LTest
 {
     constexpr int NGeometry = 5;
     const std::unique_ptr< odr::RoadGeometry> TestingGeo[NGeometry]
@@ -45,8 +45,8 @@ namespace RoadRunnerTest
                 auto g2 = rev->get_grad(probeSRev);
                 double pd = odr::euclDistance(p1, p2);
                 double gd = odr::euclDistance(g1, odr::negate(g2));
-                EXPECT_LT(pd, RoadRunner::epsilon);
-                EXPECT_LT(gd, RoadRunner::epsilon);
+                EXPECT_LT(pd, LM::epsilon);
+                EXPECT_LT(gd, LM::epsilon);
             }
         }
     }
@@ -73,8 +73,8 @@ namespace RoadRunnerTest
                     auto g2 = clone->get_grad(checkSOnClone);
                     auto h2 = std::atan2(g2[1], g2[0]);
                     double pd = odr::euclDistance(p1, p2);
-                    EXPECT_LT(pd, RoadRunner::epsilon);
-                    EXPECT_NEAR(h1, h2, RoadRunner::epsilon);
+                    EXPECT_LT(pd, LM::epsilon);
+                    EXPECT_NEAR(h1, h2, LM::epsilon);
                 }
             }
         }
@@ -102,41 +102,41 @@ namespace RoadRunnerTest
                     auto g2 = clone->get_grad(checkSOnClone);
                     auto h2 = std::atan2(g2[1], g2[0]);
                     double pd = odr::euclDistance(p1, p2);
-                    EXPECT_LT(pd, RoadRunner::epsilon);
-                    EXPECT_NEAR(h1, h2, RoadRunner::epsilon);
+                    EXPECT_LT(pd, LM::epsilon);
+                    EXPECT_NEAR(h1, h2, LM::epsilon);
                 }
             }
         }
     }
 
-    std::shared_ptr<RoadRunner::Road> GenerateComplexRoad()
+    std::shared_ptr<LM::Road> GenerateComplexRoad()
     {
         auto refLine1 = std::make_unique<odr::Line>(0, 0, 0, M_PI_2, 40);
-        RoadRunner::LaneProfile config(2, 0, 2, 0);
-        auto r1 = std::make_shared<RoadRunner::Road>(config, std::move(refLine1)); // (0, 40)
+        LM::LaneProfile config(2, 0, 2, 0);
+        auto r1 = std::make_shared<LM::Road>(config, std::move(refLine1)); // (0, 40)
 
         {
             auto refLine2 = std::make_unique<odr::Arc>(0, 0, 50, M_PI_2, 60, -1 / 20.0); // about (40, 50)
-            auto r2 = std::make_shared<RoadRunner::Road>(config, std::move(refLine2));
-            int err = RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r2, odr::RoadLink::ContactPoint_Start);
+            auto r2 = std::make_shared<LM::Road>(config, std::move(refLine2));
+            int err = LM::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r2, odr::RoadLink::ContactPoint_Start);
         }
 
         {
             auto refLine3 = std::make_unique<odr::Spiral>(0, 90, 10, M_PI / 8, 50, 1 / 60.0, 1 / 30.0);
-            auto r3 = std::make_shared<RoadRunner::Road>(config, std::move(refLine3));
-            int err = RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r3, odr::RoadLink::ContactPoint_Start);
+            auto r3 = std::make_shared<LM::Road>(config, std::move(refLine3));
+            int err = LM::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r3, odr::RoadLink::ContactPoint_Start);
         }
 
         {
             auto refLine4 = std::make_unique<odr::Line>(0, 50, 80, 0, 30);
-            auto r4 = std::make_shared<RoadRunner::Road>(config, std::move(refLine4));
-            int err = RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r4, odr::RoadLink::ContactPoint_End);
+            auto r4 = std::make_shared<LM::Road>(config, std::move(refLine4));
+            int err = LM::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, r4, odr::RoadLink::ContactPoint_End);
         }
 
         return r1;
     }
 
-    void VerifyReverseMatch(std::shared_ptr<RoadRunner::Road> &r1)
+    void VerifyReverseMatch(std::shared_ptr<LM::Road> &r1)
     {
         std::map<double, odr::Vec2D> originalSToPos;
         std::map<double, double> originalSToHdg;
@@ -161,8 +161,8 @@ namespace RoadRunnerTest
             auto realGrad = r1->generated.ref_line.get_grad_xy(sOnReverse);
             double realHdg = std::atan2(realGrad[1], realGrad[0]);
             double pd = odr::euclDistance(expectedPos, realPos);
-            EXPECT_LT(pd, RoadRunner::epsilon) << " Eval error at " << s;
-            EXPECT_NEAR(expectedHdg, realHdg, RoadRunner::epsilon) << " Eval error at " << s;
+            EXPECT_LT(pd, LM::epsilon) << " Eval error at " << s;
+            EXPECT_NEAR(expectedHdg, realHdg, LM::epsilon) << " Eval error at " << s;
         }
     }
 
@@ -184,7 +184,7 @@ namespace RoadRunnerTest
         auto splitIndex = GetParam();
         double splitS = static_cast<double>(splitIndex) / Subdivision * r1->Length();
 
-        std::shared_ptr<RoadRunner::Road> r2 = std::move(RoadRunner::Road::SplitRoad(r1, splitS));
+        std::shared_ptr<LM::Road> r2 = std::move(LM::Road::SplitRoad(r1, splitS));
         for (const auto& sAndPos : originalSToPos)
         {
             double s = sAndPos.first;
@@ -208,8 +208,8 @@ namespace RoadRunnerTest
             double realHdg = std::atan2(realGrad[1], realGrad[0]);
 
             double pd = odr::euclDistance(expectedPos, realPos);
-            EXPECT_LT(pd, RoadRunner::epsilon) << " Eval error at " << s << " From r" << rIndex << " :" << r1->Length();
-            EXPECT_NEAR(expectedHdg, realHdg, RoadRunner::epsilon) << " Eval error at " << s;
+            EXPECT_LT(pd, LM::epsilon) << " Eval error at " << s << " From r" << rIndex << " :" << r1->Length();
+            EXPECT_NEAR(expectedHdg, realHdg, LM::epsilon) << " Eval error at " << s;
         }
 
         VerifyReverseMatch(r1);
@@ -226,6 +226,6 @@ namespace RoadRunnerTest
 
     TEST(RoadGeometry, FitSpiral)
     {
-        RoadRunner::TestSpiralFitting();
+        LM::TestSpiralFitting();
     }
 }

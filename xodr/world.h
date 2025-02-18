@@ -6,7 +6,7 @@
 class World
 {
 public:
-    std::set<std::shared_ptr<RoadRunner::Road>> allRoads;
+    std::set<std::shared_ptr<LM::Road>> allRoads;
     static World* Instance();
     
 private:

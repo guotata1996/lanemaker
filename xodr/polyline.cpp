@@ -13,7 +13,7 @@ typedef CGAL::Arrangement_with_history_2<Traits_2>      Arrangement;
 typedef Arrangement::Halfedge_around_vertex_circulator  Halfedge_circulator;
 typedef Kernel::FT                                      FT;
 
-namespace RoadRunner
+namespace LM
 {
     std::string Serialize(Point p)
     {

@@ -38,8 +38,8 @@ VehicleManager::VehicleManager(QObject* parent): QObject(parent)
 
 void VehicleManager::Begin()
 {
-    routingGraph = RoadRunner::ChangeTracker::Instance()->Map().get_routing_graph();
-    overlapZones = RoadRunner::ChangeTracker::Instance()->Map().get_overlap_zones();
+    routingGraph = LM::ChangeTracker::Instance()->Map().get_routing_graph();
+    overlapZones = LM::ChangeTracker::Instance()->Map().get_overlap_zones();
     for (auto self_overlaps : overlapZones)
     {
         spdlog::trace("{} overlaps with:", self_overlaps.first.to_string());
@@ -49,11 +49,11 @@ void VehicleManager::Begin()
         }
     }
     Spawn();
-    for (auto id_junction : RoadRunner::ChangeTracker::Instance()->Map().id_to_junction)
+    for (auto id_junction : LM::ChangeTracker::Instance()->Map().id_to_junction)
     {
         if (id_junction.second.type == odr::JunctionType::Common)
         {
-            allSignals.emplace(id_junction.first, std::make_shared<RoadRunner::Signal>(id_junction.second));
+            allSignals.emplace(id_junction.first, std::make_shared<LM::Signal>(id_junction.second));
         }
     }
 
@@ -75,7 +75,7 @@ void VehicleManager::End()
         s.second->Terminate();
     }
     allSignals.clear();
-    RoadRunner::g_mapViewGL->renderLater();
+    LM::g_mapViewGL->renderLater();
 }
 
 void VehicleManager::TogglePause()
@@ -92,7 +92,7 @@ void VehicleManager::TogglePause()
 
 void VehicleManager::Spawn()
 {
-    auto& latestMap = RoadRunner::ChangeTracker::Instance()->Map();
+    auto& latestMap = LM::ChangeTracker::Instance()->Map();
 
     auto setRoutes = latestMap.get_routes();
     if (!setRoutes.empty())
@@ -105,7 +105,7 @@ void VehicleManager::Spawn()
             auto endS = std::get<3>(start_end);
             auto vehicle = std::make_shared<Vehicle>(startKey, startS, endKey, endS, 
                 allVehicles.size() % 2 == 1 ? 12 : 20);
-            if (vehicle->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->Map(),
+            if (vehicle->GotoNextGoal(LM::ChangeTracker::Instance()->Map(),
                 routingGraph, numVehiclesOnLane))
             {
                 vehicle->InitGraphics();
@@ -155,7 +155,7 @@ void VehicleManager::Spawn()
         int nPair = std::ceil(totalLength / 100);
         std::cout << "Spawning vehicles ";
 
-        for (auto i: RoadRunner::TQDM(RoadRunner::range(nPair)))
+        for (auto i: LM::TQDM(LM::range(nPair)))
         {
             auto startIndex = RandomSelect(allWeights);
             auto endIndex = RandomSelect(allWeights);
@@ -176,7 +176,7 @@ void VehicleManager::Spawn()
             auto maxV = 10 + rand01() * 10;
             auto vehicle = std::make_shared<Vehicle>(startKey, startS, endKey, endS, maxV);
 
-            if (vehicle->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->Map(),
+            if (vehicle->GotoNextGoal(LM::ChangeTracker::Instance()->Map(),
                 routingGraph, numVehiclesOnLane))
             {
                 vehicle->InitGraphics();
@@ -209,7 +209,7 @@ void VehicleManager::step()
     for (auto& id_v: allVehicles)
     {
         auto vehicle = id_v.second;
-        bool isActive = vehicle->PlanStep(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->Map(),
+        bool isActive = vehicle->PlanStep(1.0 / FPS, LM::ChangeTracker::Instance()->Map(),
             vehiclesOnLane, overlapZones, signalStateOfLane);
         if (!isActive)
         {
@@ -223,12 +223,12 @@ void VehicleManager::step()
         auto id = id_v.first;
         if (inactives.find(id) == inactives.end())
         {
-            id_v.second->MakeStep(1.0 / FPS, RoadRunner::ChangeTracker::Instance()->Map());
+            id_v.second->MakeStep(1.0 / FPS, LM::ChangeTracker::Instance()->Map());
         }
         else
         {
             // try reassign goal
-            if (!allVehicles.at(id)->GotoNextGoal(RoadRunner::ChangeTracker::Instance()->Map(),
+            if (!allVehicles.at(id)->GotoNextGoal(LM::ChangeTracker::Instance()->Map(),
                 routingGraph, numVehiclesOnLane))
             {
                 allVehicles.at(id)->Clear();
@@ -243,5 +243,5 @@ void VehicleManager::step()
     }
 
     stepCount++;
-    RoadRunner::g_mapViewGL->renderLater();
+    LM::g_mapViewGL->renderLater();
 }

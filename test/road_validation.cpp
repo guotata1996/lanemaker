@@ -14,9 +14,9 @@
 #include <spdlog/spdlog.h>
 
 using namespace odr;
-using namespace RoadRunner;
+using namespace LM;
 
-namespace RoadRunnerTest
+namespace LTest
 {
     void Validation::VerifySingleRoad(const odr::Road& road)
     {
@@ -58,7 +58,7 @@ namespace RoadRunnerTest
                     else if (idToLane.second.type == "driving")
                     {
                         EXPECT_LT(-epsilon, width);
-                        EXPECT_LT(width, RoadRunner::LaneWidth + epsilon);
+                        EXPECT_LT(width, LM::LaneWidth + epsilon);
                     }
 #endif
                 }
@@ -227,7 +227,7 @@ namespace RoadRunnerTest
             probe++)
         {
             type_s s = sToSectionIt->first;
-            double odr_s = RoadRunner::to_odr_unit(s);
+            double odr_s = LM::to_odr_unit(s);
             auto config = sToSectionIt->second;
             while (*probe < odr_s)
             {
@@ -235,7 +235,7 @@ namespace RoadRunnerTest
                 probe++;
             }
             double rightRim = gen.lane_offset.get(*probe);
-            double expectedRightRim = RoadRunner::to_odr_unit(config.offsetx2);
+            double expectedRightRim = LM::to_odr_unit(config.offsetx2);
             bool rightRimSatisfy = std::abs(rightRim - expectedRightRim) < epsilon;
             odr::LaneSection probeSection = inverse_s_to_laneSection.lower_bound(-*probe)->second;
             auto rightMost = probeSection.id_to_lane.begin();
@@ -244,7 +244,7 @@ namespace RoadRunnerTest
             for (int laneID = -1; laneID >= rightMost->first; laneID--)
             {
                 odr::Lane lane = probeSection.id_to_lane.at(laneID);
-                if (std::abs(lane.lane_width.get(*probe) - RoadRunner::LaneWidth) < epsilon)
+                if (std::abs(lane.lane_width.get(*probe) - LM::LaneWidth) < epsilon)
                 {
                     fullLanes++;
                 }
@@ -296,7 +296,7 @@ namespace RoadRunnerTest
                 probe++)
             {
                 type_s s = sToSectionIt->first;
-                double odr_s = RoadRunner::to_odr_unit(s);
+                double odr_s = LM::to_odr_unit(s);
                 auto config = sToSectionIt->second;
                 while (*probe > odr_s)
                 {
@@ -307,7 +307,7 @@ namespace RoadRunnerTest
                 odr::LaneSection probeSection = inverse_s_to_laneSection.lower_bound(-*probe)->second;
                 double medianWidth = hasMedianLane ? probeSection.id_to_lane.at(1).lane_width.get(*probe) : 0;
                 double leftRim = rightRim + medianWidth;
-                double expectedLeftRim = RoadRunner::to_odr_unit(config.offsetx2);
+                double expectedLeftRim = LM::to_odr_unit(config.offsetx2);
                 bool leftRimSatisfy = std::abs(leftRim - expectedLeftRim) < epsilon;
 
                 auto leftMost = probeSection.id_to_lane.rbegin();
@@ -316,7 +316,7 @@ namespace RoadRunnerTest
                 for (int laneID = hasMedianLane ? 2 : 1; laneID <= leftMost->first; laneID++)
                 {
                     odr::Lane lane = probeSection.id_to_lane.at(laneID);
-                    if (std::abs(lane.lane_width.get(*probe) - RoadRunner::LaneWidth) < epsilon)
+                    if (std::abs(lane.lane_width.get(*probe) - LM::LaneWidth) < epsilon)
                     {
                         fullLanes++;
                     }
@@ -361,7 +361,7 @@ namespace RoadRunnerTest
     }
 
 #ifndef G_TEST
-    void Validation::VerifySingleRoadGraphics(const RoadRunner::Road& road)
+    void Validation::VerifySingleRoadGraphics(const LM::Road& road)
     {
         std::vector<double> sMins;
         std::vector<double> sMaxs;
@@ -388,7 +388,7 @@ namespace RoadRunnerTest
             auto successorStopLineObjectIt = road.id_to_object.find(std::to_string(odr::RoadLink::ContactPoint_End));
             if (road.successor.type == odr::RoadLink::Type_Junction)
             {
-                auto nextJunc = IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::AbstractJunction>(road.successor.id);
+                auto nextJunc = IDGenerator::ForType(IDType::Junction)->GetByID<LM::AbstractJunction>(road.successor.id);
                 if (nextJunc->generated.type == odr::JunctionType::Common)
                 {
                     successorIsCommon = true;
@@ -409,7 +409,7 @@ namespace RoadRunnerTest
             auto predecessorStopLineObjectIt = road.id_to_object.find(std::to_string(odr::RoadLink::ContactPoint_Start));
             if (road.predecessor.type == odr::RoadLink::Type_Junction)
             {
-                auto predJunc = (IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::AbstractJunction>(road.predecessor.id));
+                auto predJunc = (IDGenerator::ForType(IDType::Junction)->GetByID<LM::AbstractJunction>(road.predecessor.id));
                 if (predJunc->generated.type == odr::JunctionType::Common)
                 {
                     predecessorIsCommon = true;

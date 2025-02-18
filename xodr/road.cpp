@@ -17,7 +17,7 @@
 #include "multi_segment.h"
 #endif
 
-namespace RoadRunner
+namespace LM
 {
     bool Road::ClearingMap = false;
 
@@ -340,7 +340,7 @@ namespace RoadRunner
 
                 if (collidingRoad->generated.junction != "-1")
                 {
-                    auto junctionPtr = IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::Junction>(collidingRoad->generated.junction);
+                    auto junctionPtr = IDGenerator::ForType(IDType::Junction)->GetByID<LM::Junction>(collidingRoad->generated.junction);
                     auto junction = junctionPtr->shared_from_this();
                     if (predecessorJunction == junction && st.first == 0)
                     {

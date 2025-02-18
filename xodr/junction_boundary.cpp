@@ -11,7 +11,7 @@
 using namespace CGAL;
 typedef Cartesian<double>  Kernel;
 
-namespace RoadRunner
+namespace LM
 {
     struct ContactInfoWithCoordinate
     {
@@ -582,7 +582,7 @@ namespace RoadRunner
 
         auto roadA = infoA.road.lock();
         auto roadB = infoB.road.lock();
-        return RoadRunner::borderIntersect(roadA->generated, aSide, roadB->generated, bSide,
+        return LM::borderIntersect(roadA->generated, aSide, roadB->generated, bSide,
             outSA, outSB, infoA.contact, infoB.contact);
     }
 };

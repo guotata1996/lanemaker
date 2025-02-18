@@ -5,7 +5,7 @@
 #include <sstream>
 #include <optional>
 
-namespace RoadRunner
+namespace LM
 {
     std::filesystem::path DefaultSaveFolder()
     {
@@ -14,10 +14,10 @@ namespace RoadRunner
 #ifdef _WIN32
         fullPath = std::getenv("HOMEDRIVE");
         fullPath /= std::getenv("HOMEPATH");
-        fullPath /= "RoadRunnerData";
+        fullPath /= "LaneMakerData";
 #elif __linux__
         fullPath = std::getenv("HOME");
-        fullPath /= "RoadRunnerData";
+        fullPath /= "LaneMakerData";
 #else
 #endif
         bool success = true;

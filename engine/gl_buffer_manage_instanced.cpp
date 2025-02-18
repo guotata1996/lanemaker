@@ -6,7 +6,7 @@
 
 #include <QOpenGLShaderProgram>
 
-namespace RoadRunner
+namespace LM
 {
     GLBufferManageInstanced::GLBufferManageInstanced(QString aModelPath, QString aTexPath, 
         unsigned int capacity) :
@@ -26,13 +26,13 @@ namespace RoadRunner
         initializeOpenGLFunctions();
 
         // Load car mesh
-        QString tempObjPath = RoadRunner::ExtractResourceToTempFile(modelPath);
+        QString tempObjPath = LM::ExtractResourceToTempFile(modelPath);
         bool loadout = m_mesh->LoadFile(tempObjPath.toStdString());
         assert(loadout);
         auto removed = QFile(tempObjPath).remove();
         assert(removed);
         // Load car texture
-        QString tempJpgPath = RoadRunner::ExtractResourceToTempFile(texturePath);
+        QString tempJpgPath = LM::ExtractResourceToTempFile(texturePath);
         QImage tempJpg(tempJpgPath);
         m_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D);
         m_texture->setData(tempJpg.mirrored());

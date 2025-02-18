@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1...3.23)
-project(RoadRunner VERSION 0.9.0)
+project(LaneMaker VERSION 0.9.0)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
@@ -9,11 +9,10 @@ find_package(Qt5 REQUIRED COMPONENTS Widgets Core Gui)
 find_package(spdlog REQUIRED)
 
 add_subdirectory(libOpenDRIVE-master)
-# TODO: make RoadRunner a library
 
 qt5_add_resources(srcs_for_exe ui/images.qrc)
 qt5_add_resources(srcs_for_exe engine/shaders.qrc)
-set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/roadrunner.rc")
+set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/lanemaker.rc")
 
 add_executable(${CMAKE_PROJECT_NAME} main.cpp ${APP_ICON_RESOURCE_WINDOWS}
     xodr/road.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp xodr/polyline.cpp
@@ -71,7 +70,7 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 add_executable(
-  RoadRunnerTest
+  LaneMakerTest
   test/test.cc test/randomization_utils.cpp 
   test/validation.cpp test/junction_validation.cpp test/road_validation.cpp
   xodr/road.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp xodr/polyline.cpp
@@ -79,26 +78,26 @@ add_executable(
   xodr/id_generator.cpp xodr/world.cpp
 )
 
-target_include_directories(RoadRunnerTest PRIVATE
+target_include_directories(LaneMakerTest PRIVATE
     xodr
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/include
     ${CMAKE_SOURCE_DIR}/libOpenDRIVE-master/thirdparty
 )
 
 target_link_libraries(
-  RoadRunnerTest
+  LaneMakerTest
   GTest::gtest_main
   CGAL::CGAL
   OpenDrive
   spdlog::spdlog
 )
 
-target_compile_features(RoadRunnerTest PRIVATE cxx_std_17)
+target_compile_features(LaneMakerTest PRIVATE cxx_std_17)
 
 include(GoogleTest)
-gtest_discover_tests(RoadRunnerTest)
+gtest_discover_tests(LaneMakerTest)
 
-target_compile_definitions(RoadRunnerTest PRIVATE G_TEST)
+target_compile_definitions(LaneMakerTest PRIVATE G_TEST)
 
 # ====================================
 # Pack DEBIAN
@@ -107,7 +106,7 @@ target_compile_definitions(RoadRunnerTest PRIVATE G_TEST)
 set(CPACK_PACKAGE_NAME ${CMAKE_PROJECT_NAME}
     CACHE STRING "The resulting package name"
 )
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "RoadRunner Release"
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "LaneMaker Release"
     CACHE STRING "Package description for the package metadata"
 )
 set(CPACK_PACKAGE_VENDOR "guotata1996")
@@ -140,4 +139,4 @@ set(CPACK_DEB_COMPONENT_INSTALL YES)
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "qtbase5-dev, libspdlog-dev, libcgal-dev(<=5.6.2)")
 
 include(CPack)
-install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION bin RENAME roadrunner)
+install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION bin RENAME lanemaker)

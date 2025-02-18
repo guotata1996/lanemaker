@@ -1,7 +1,7 @@
 #include "road_profile.h"
 #include <cassert>
 
-namespace RoadRunner
+namespace LM
 {
     double CubicSplineGenerator::Precision = 1e-3;
 

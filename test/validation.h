@@ -5,14 +5,14 @@
 namespace odr {
     class Road; class CubicSpline; class Lane;
 }
-namespace RoadRunner {
+namespace LM {
     class Road;
     class AbstractJunction;
     class Junction;
     class DirectJunction;
 }
 
-namespace RoadRunnerTest
+namespace LTest
 {
     class Validation
     {
@@ -20,11 +20,11 @@ namespace RoadRunnerTest
 #ifndef G_TEST
         static void ValidateMap();
 
-        static void VerifySingleRoadGraphics(const RoadRunner::Road& road);
+        static void VerifySingleRoadGraphics(const LM::Road& road);
 #endif
         static void VerifySingleRoad(const odr::Road& road);
 
-        static void VerifyJunction(RoadRunner::AbstractJunction* junction);
+        static void VerifyJunction(LM::AbstractJunction* junction);
 
         static bool CompareFiles(const std::string& p1, const std::string& p2);
 
@@ -50,9 +50,9 @@ namespace RoadRunnerTest
 
         static void VerifyProfileIntegrity(const odr::Road& road);
 
-        static void VerifyCommonJunction(const RoadRunner::Junction* junction);
+        static void VerifyCommonJunction(const LM::Junction* junction);
 
-        static void VerifyDirectJunction(const RoadRunner::DirectJunction* junction);
+        static void VerifyDirectJunction(const LM::DirectJunction* junction);
 
         static void VerifyRoadMarking(const odr::Road& road);
 

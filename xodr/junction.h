@@ -7,9 +7,9 @@
 #include <vector>
 #include <optional>
 
-namespace RoadRunnerTest { class Validation; }
+namespace LTest { class Validation; }
 
-namespace RoadRunner
+namespace LM
 {
     class ChangeTracker;
     class JunctionGraphics;
@@ -157,7 +157,7 @@ namespace RoadRunner
 
     class AbstractJunction : public std::enable_shared_from_this<AbstractJunction>
     {
-        friend class RoadRunnerTest::Validation;
+        friend class LTest::Validation;
         friend class ChangeTracker;
     public:
         AbstractJunction();
@@ -212,7 +212,7 @@ namespace RoadRunner
     // TODO: inherit same class as Road to manage ID
     class Junction: public AbstractJunction
     {
-        friend class RoadRunnerTest::Validation;
+        friend class LTest::Validation;
         friend class ChangeTracker;
     public:
         Junction();

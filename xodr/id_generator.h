@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-namespace RoadRunnerTest{class Validation; }
+namespace LTest{class Validation; }
 
 
 enum class IDType
@@ -21,7 +21,7 @@ enum class IDType
 
 class IDGenerator
 {
-    friend class RoadRunnerTest::Validation;
+    friend class LTest::Validation;
 public:
     IDGenerator() = default;
     IDGenerator(IDGenerator&) = delete;

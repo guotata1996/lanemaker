@@ -156,7 +156,7 @@ public:
     std::map<double, SpeedRecord>     s_to_speed;
     std::map<std::string, RoadObject> id_to_object; // "1","2" used for pred/succ stop lines
     std::map<std::string, RoadSignal> id_to_signal;
-    RoadRunner::LaneProfile           rr_profile;
+    LM::LaneProfile           rr_profile;
 
     std::map<std::pair<odr::RoadLink::ContactPoint, int>, double> boundaryHide;
 };

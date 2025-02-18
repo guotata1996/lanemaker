@@ -594,7 +594,7 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
                     auto s = sectionNode.attribute("type_s").as_uint();
                     auto laneCount = sectionNode.attribute("laneCount").as_int();
                     auto offsetX2 = sectionNode.attribute("offsetX2").as_int();
-                    RoadRunner::LanePlan profile{offsetX2, laneCount};
+                    LM::LanePlan profile{offsetX2, laneCount};
                     road.rr_profile.leftPlans.emplace(s, profile);
                 }
             }
@@ -607,7 +607,7 @@ bool OpenDriveMap::LoadString(const std::string& xodr_str,
                     auto s = sectionNode.attribute("type_s").as_uint();
                     auto laneCount = sectionNode.attribute("laneCount").as_int();
                     auto offsetX2 = sectionNode.attribute("offsetX2").as_int();
-                    RoadRunner::LanePlan profile{offsetX2, laneCount};
+                    LM::LanePlan profile{offsetX2, laneCount};
                     road.rr_profile.rightPlans.emplace(s, profile);
                 }
             }

@@ -4,15 +4,15 @@
 
 #include <spdlog/spdlog.h>
 
-namespace RoadRunner
+namespace LM
 {
-    bool CreateJunctionAtZOverlap(std::shared_ptr<RoadRunner::Road> newRoad, double newPartBegin, double newPartEnd)
+    bool CreateJunctionAtZOverlap(std::shared_ptr<LM::Road> newRoad, double newPartBegin, double newPartEnd)
     {
         const double RoadMinLength = 5; // Discard if any leftover road is too short
 
         while (true)
         {
-            std::optional<RoadRunner::Road::RoadsOverlap> overlap = newRoad->FirstOverlap(newPartBegin, newPartEnd);
+            std::optional<LM::Road::RoadsOverlap> overlap = newRoad->FirstOverlap(newPartBegin, newPartEnd);
 
             if (!overlap.has_value())
             {
@@ -109,16 +109,16 @@ namespace RoadRunner
             }
 
             // Can create junction
-            std::shared_ptr<RoadRunner::Road> newRoadBeforeJunction, newRoadPastJunction;
+            std::shared_ptr<LM::Road> newRoadBeforeJunction, newRoadPastJunction;
 
             if (sEnd1 != newRoad->Length())
             {
-                newRoadPastJunction = RoadRunner::Road::SplitRoad(newRoad, sEnd1);
+                newRoadPastJunction = LM::Road::SplitRoad(newRoad, sEnd1);
                 World::Instance()->allRoads.insert(newRoadPastJunction);
             }
             if (sBegin1 != 0)
             {
-                RoadRunner::Road::SplitRoad(newRoad, sBegin1);
+                LM::Road::SplitRoad(newRoad, sBegin1);
                 newRoadBeforeJunction = newRoad;
             }
             else
@@ -128,21 +128,21 @@ namespace RoadRunner
 
             if (joinExistingJunction)
             {
-                auto junctionPtr = IDGenerator::ForType(IDType::Junction)->GetByID<RoadRunner::Junction>(road2->generated.junction);
+                auto junctionPtr = IDGenerator::ForType(IDType::Junction)->GetByID<LM::Junction>(road2->generated.junction);
                 auto junction = junctionPtr->shared_from_this();
                 road2.reset(); // since road2 is a connecting road inside junction, must reset to free its ID
                 if (newRoadBeforeJunction != nullptr)
                 {
-                    auto errorCode = junction->Attach(RoadRunner::ConnectionInfo{ newRoadBeforeJunction, odr::RoadLink::ContactPoint_End });
-                    if (errorCode != RoadRunner::Junction_NoError)
+                    auto errorCode = junction->Attach(LM::ConnectionInfo{ newRoadBeforeJunction, odr::RoadLink::ContactPoint_End });
+                    if (errorCode != LM::Junction_NoError)
                     {
                         return false;
                     }
                 }
                 else if (newRoadPastJunction != nullptr)
                 {
-                    auto errorCode = junction->Attach(RoadRunner::ConnectionInfo{ newRoadPastJunction, odr::RoadLink::ContactPoint_Start });
-                    if (errorCode != RoadRunner::Junction_NoError)
+                    auto errorCode = junction->Attach(LM::ConnectionInfo{ newRoadPastJunction, odr::RoadLink::ContactPoint_Start });
+                    if (errorCode != LM::Junction_NoError)
                     {
                         return false;
                     }
@@ -163,15 +163,15 @@ namespace RoadRunner
                 // Elevation is preserved from existing road
                 auto junctionElevation = road2->RefLine().elevation_profile.get((sBegin2 + sEnd2) / 2);
 
-                std::shared_ptr<RoadRunner::Road> road2BeforeJunction, road2PastJunction;
+                std::shared_ptr<LM::Road> road2BeforeJunction, road2PastJunction;
                 if (sEnd2 != road2->Length())
                 {
-                    road2PastJunction = RoadRunner::Road::SplitRoad(road2, sEnd2);
+                    road2PastJunction = LM::Road::SplitRoad(road2, sEnd2);
                     World::Instance()->allRoads.insert(road2PastJunction);
                 }
                 if (sBegin2 != 0)
                 {
-                    RoadRunner::Road::SplitRoad(road2, sBegin2);
+                    LM::Road::SplitRoad(road2, sBegin2);
                     road2BeforeJunction = road2;
                 }
                 else
@@ -179,23 +179,23 @@ namespace RoadRunner
                     World::Instance()->allRoads.erase(road2);
                 }
 
-                std::vector<RoadRunner::ConnectionInfo> junctionInfo;
+                std::vector<LM::ConnectionInfo> junctionInfo;
 
                 if (newRoadBeforeJunction != nullptr)
                 {
-                    junctionInfo.push_back(RoadRunner::ConnectionInfo{ newRoadBeforeJunction, odr::RoadLink::ContactPoint_End });
+                    junctionInfo.push_back(LM::ConnectionInfo{ newRoadBeforeJunction, odr::RoadLink::ContactPoint_End });
                 }
                 if (newRoadPastJunction != nullptr)
                 {
-                    junctionInfo.push_back(RoadRunner::ConnectionInfo{ newRoadPastJunction, odr::RoadLink::ContactPoint_Start });
+                    junctionInfo.push_back(LM::ConnectionInfo{ newRoadPastJunction, odr::RoadLink::ContactPoint_Start });
                 }
                 if (road2BeforeJunction != nullptr)
                 {
-                    junctionInfo.push_back(RoadRunner::ConnectionInfo{ road2BeforeJunction, odr::RoadLink::ContactPoint_End });
+                    junctionInfo.push_back(LM::ConnectionInfo{ road2BeforeJunction, odr::RoadLink::ContactPoint_End });
                 }
                 if (road2PastJunction != nullptr)
                 {
-                    junctionInfo.push_back(RoadRunner::ConnectionInfo{ road2PastJunction, odr::RoadLink::ContactPoint_Start });
+                    junctionInfo.push_back(LM::ConnectionInfo{ road2PastJunction, odr::RoadLink::ContactPoint_Start });
                 }
                 if (junctionInfo.size() < 3)
                 {
@@ -207,13 +207,13 @@ namespace RoadRunner
                 {
                     auto connRoad = conn.road.lock();
                     auto connS = conn.contact == odr::RoadLink::ContactPoint_Start ? 0 : connRoad->Length();
-                    RoadRunner::CubicSplineGenerator::OverwriteSection(connRoad->RefLine().elevation_profile,
+                    LM::CubicSplineGenerator::OverwriteSection(connRoad->RefLine().elevation_profile,
                         connRoad->Length(), connS, connS, junctionElevation);
                     connRoad->GenerateOrUpdateSectionGraphicsBetween(0.0, connRoad->Length());
                 }
-                auto junction = std::make_shared<RoadRunner::Junction>();
+                auto junction = std::make_shared<LM::Junction>();
                 auto errorCode = junction->CreateFrom(junctionInfo);
-                if (errorCode != RoadRunner::Junction_NoError)
+                if (errorCode != LM::Junction_NoError)
                 {
                     spdlog::warn("Junction generation reports error code {}", errorCode);
                     return false;

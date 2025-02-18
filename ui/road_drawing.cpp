@@ -13,23 +13,23 @@
 
 extern SectionProfileConfigWidget* g_createRoadOption;
 
-std::shared_ptr<RoadRunner::Road> RoadDrawingSession::GetPointerRoad()
+std::shared_ptr<LM::Road> RoadDrawingSession::GetPointerRoad()
 {
-    if (RoadRunner::g_PointerRoadID.empty())
+    if (LM::g_PointerRoadID.empty())
     {
-        return std::shared_ptr<RoadRunner::Road>();
+        return std::shared_ptr<LM::Road>();
     }
-    auto g_road = IDGenerator::ForType(IDType::Road)->GetByID<RoadRunner::Road>(RoadRunner::g_PointerRoadID);
-    if (g_road == nullptr) return std::shared_ptr<RoadRunner::Road>();
+    auto g_road = IDGenerator::ForType(IDType::Road)->GetByID<LM::Road>(LM::g_PointerRoadID);
+    if (g_road == nullptr) return std::shared_ptr<LM::Road>();
     return g_road->shared_from_this();
 }
 
 odr::Vec2D RoadDrawingSession::CursorAtHeight(double zLevel)
 {
-    double cameraZ = RoadRunner::g_CameraPosition[2];
+    double cameraZ = LM::g_CameraPosition[2];
     double portion = (cameraZ - zLevel) / cameraZ;
-    odr::Vec2D cameraXY{ RoadRunner::g_CameraPosition[0], RoadRunner::g_CameraPosition[1] };
-    auto offsetAtGround = odr::sub(RoadRunner::g_PointerOnGround, cameraXY);
+    odr::Vec2D cameraXY{ LM::g_CameraPosition[0], LM::g_CameraPosition[1] };
+    auto offsetAtGround = odr::sub(LM::g_PointerOnGround, cameraXY);
     auto offsetAtLevel = odr::mut(portion, offsetAtGround);
     return odr::add(cameraXY, offsetAtLevel);
 }
@@ -45,7 +45,7 @@ RoadDrawingSession::~RoadDrawingSession()
     SetHighlightTo(nullptr);
 }
 
-bool RoadDrawingSession::Update(const RoadRunner::MouseAction& evt)
+bool RoadDrawingSession::Update(const LM::MouseAction& evt)
 {
     if (evt.button == Qt::RightButton)
     {
@@ -67,12 +67,12 @@ bool RoadDrawingSession::Update(const RoadRunner::MouseAction& evt)
     return true;
 }
 
-bool RoadDrawingSession::Update(const RoadRunner::KeyPressAction& evt)
+bool RoadDrawingSession::Update(const LM::KeyPressAction& evt)
 {
     return true;
 }
 
-void RoadDrawingSession::SetHighlightTo(std::shared_ptr<RoadRunner::Road> target)
+void RoadDrawingSession::SetHighlightTo(std::shared_ptr<LM::Road> target)
 {
     auto currHighlighted = highlighted.lock();
     if (target == currHighlighted) return;
@@ -91,32 +91,32 @@ void RoadDrawingSession::SetHighlightTo(std::shared_ptr<RoadRunner::Road> target
 
 float RoadDrawingSession::SnapDistFromScale() const
 {
-    return RoadRunner::SnapRadiusStd / std::min(1.0f, RoadRunner::g_mapViewGL->Zoom());
+    return LM::SnapRadiusStd / std::min(1.0f, LM::g_mapViewGL->Zoom());
 }
 
 double RoadDrawingSession::GetAdjustedS(bool* onSegmentBoundary) const
 {
     auto g_road = GetPointerRoad();
     const double snapThreshold = SnapDistFromScale();
-    if (RoadRunner::g_PointerRoadS < snapThreshold)
+    if (LM::g_PointerRoadS < snapThreshold)
     {
         if (onSegmentBoundary != nullptr) *onSegmentBoundary = true;
         return 0;
     }
-    else if (RoadRunner::g_PointerRoadS > g_road->Length() - snapThreshold)
+    else if (LM::g_PointerRoadS > g_road->Length() - snapThreshold)
     {
         if (onSegmentBoundary != nullptr) *onSegmentBoundary = true;
         return g_road->Length();
     }
-    return g_road->SnapToSegmentBoundary(RoadRunner::g_PointerRoadS, snapThreshold, onSegmentBoundary);
+    return g_road->SnapToSegmentBoundary(LM::g_PointerRoadS, snapThreshold, onSegmentBoundary);
 }
 
 void RoadDrawingSession::BeginPickingProfile()
 {
-    beginPickingS = RoadRunner::g_PointerRoadS;
+    beginPickingS = LM::g_PointerRoadS;
     beginPickingRoad = GetPointerRoad();
     QPixmap p = QPixmap(":/icons/eyedropper.svg");
-    RoadRunner::g_mapViewGL->setCursor(QCursor(p));
+    LM::g_mapViewGL->setCursor(QCursor(p));
 }
 
 void RoadDrawingSession::ContinuePickingProfile()
@@ -129,7 +129,7 @@ void RoadDrawingSession::ContinuePickingProfile()
     auto pickFromRoad = beginPickingRoad.lock();
     auto leftProfile = pickFromRoad->generated.rr_profile.ProfileAt(beginPickingS, 1);
     auto rightProfile = pickFromRoad->generated.rr_profile.ProfileAt(beginPickingS, -1);
-    if (RoadRunner::g_PointerRoadS < beginPickingS)
+    if (LM::g_PointerRoadS < beginPickingS)
     {
         std::swap(leftProfile, rightProfile);
         leftProfile.offsetx2 = -leftProfile.offsetx2;
@@ -137,17 +137,17 @@ void RoadDrawingSession::ContinuePickingProfile()
     }
     g_createRoadOption->SetOption(leftProfile, rightProfile);
 
-    auto elevation = pickFromRoad->generated.ref_line.elevation_profile.get(RoadRunner::g_PointerRoadS);
-    RoadRunner::g_createRoadElevationOption = std::round(elevation / RoadRunner::ElevationStep);
+    auto elevation = pickFromRoad->generated.ref_line.elevation_profile.get(LM::g_PointerRoadS);
+    LM::g_createRoadElevationOption = std::round(elevation / LM::ElevationStep);
 }
 
 void RoadDrawingSession::EndPickingProfile()
 {
     beginPickingRoad.reset();
-    RoadRunner::g_mapViewGL->setCursor(Qt::ArrowCursor);
+    LM::g_mapViewGL->setCursor(Qt::ArrowCursor);
 }
 
-bool RoadDrawingSession::IsProfileChangePoint(const std::shared_ptr<RoadRunner::Road>& road, double s)
+bool RoadDrawingSession::IsProfileChangePoint(const std::shared_ptr<LM::Road>& road, double s)
 {
     bool leftOffsetChange = false, rightOffsetChange = false;
     const auto& profile = road->generated.rr_profile;
@@ -241,10 +241,10 @@ void RoadDrawingSession::CustomCursorItem::DrawGroundGrids()
 
 void RoadDrawingSession::UpdateEndMarkings()
 {
-    std::set<std::pair< RoadRunner::Road*, odr::RoadLink::ContactPoint>> dueUpdate;
+    std::set<std::pair< LM::Road*, odr::RoadLink::ContactPoint>> dueUpdate;
     for (auto id_obj : IDGenerator::ForType(IDType::Junction)->PeekChanges())
     {
-        auto junction = static_cast<RoadRunner::AbstractJunction*>(id_obj.second);
+        auto junction = static_cast<LM::AbstractJunction*>(id_obj.second);
         if (junction != nullptr)
         {
             auto connected = junction->GetConnected();
@@ -253,7 +253,7 @@ void RoadDrawingSession::UpdateEndMarkings()
     }
     for (auto id_obj : IDGenerator::ForType(IDType::Road)->PeekChanges())
     {
-        auto road = static_cast<RoadRunner::Road*>(id_obj.second);
+        auto road = static_cast<LM::Road*>(id_obj.second);
         if (road != nullptr)
         {
             //road->EnableHighlight(false);
@@ -274,7 +274,7 @@ void RoadDrawingSession::UpdateEndMarkings()
             {
                 if (road->successorJunction != nullptr)
                 {
-                    bool isCommon = dynamic_cast<RoadRunner::Junction*>(road->successorJunction.get()) != nullptr;
+                    bool isCommon = dynamic_cast<LM::Junction*>(road->successorJunction.get()) != nullptr;
                     if (isCommon)
                     {
                         needStopLine = road->generated.rr_profile.HasSide(-1);
@@ -283,14 +283,14 @@ void RoadDrawingSession::UpdateEndMarkings()
                     for (auto lane : road->generated.s_to_lanesection.rbegin()->second.get_sorted_driving_lanes(-1))
                     {
                         auto turnSemantics = road->successorJunction->GetTurningSemanticsForIncoming(road->ID(), lane.id);
-                        laneToArrow.emplace(lane.id, isCommon ? turnSemantics : (turnSemantics == RoadRunner::DeadEnd ? RoadRunner::DeadEnd : 0));
+                        laneToArrow.emplace(lane.id, isCommon ? turnSemantics : (turnSemantics == LM::DeadEnd ? LM::DeadEnd : 0));
                     }
                 }
                 else
                 {
                     for (auto lane : road->generated.s_to_lanesection.rbegin()->second.get_sorted_driving_lanes(-1))
                     {
-                        laneToArrow.emplace(lane.id, RoadRunner::DeadEnd);
+                        laneToArrow.emplace(lane.id, LM::DeadEnd);
                     }
                 }
             }
@@ -298,7 +298,7 @@ void RoadDrawingSession::UpdateEndMarkings()
             {
                 if (road->predecessorJunction != nullptr)
                 {
-                    bool isCommon = dynamic_cast<RoadRunner::Junction*>(road->predecessorJunction.get()) != nullptr;
+                    bool isCommon = dynamic_cast<LM::Junction*>(road->predecessorJunction.get()) != nullptr;
                     if (isCommon)
                     {
                         needStopLine = road->generated.rr_profile.HasSide(1);
@@ -307,14 +307,14 @@ void RoadDrawingSession::UpdateEndMarkings()
                     for (auto lane : road->generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(1))
                     {
                         auto turnSemantics = road->predecessorJunction->GetTurningSemanticsForIncoming(road->ID(), lane.id);
-                        laneToArrow.emplace(lane.id, isCommon ? turnSemantics : (turnSemantics == RoadRunner::DeadEnd ? RoadRunner::DeadEnd : 0));
+                        laneToArrow.emplace(lane.id, isCommon ? turnSemantics : (turnSemantics == LM::DeadEnd ? LM::DeadEnd : 0));
                     }
                 }
                 else
                 {
                     for (auto lane : road->generated.s_to_lanesection.begin()->second.get_sorted_driving_lanes(1))
                     {
-                        laneToArrow.emplace(lane.id, RoadRunner::DeadEnd);
+                        laneToArrow.emplace(lane.id, LM::DeadEnd);
                     }
                 }
             }

@@ -10,7 +10,7 @@
 #include "constants.h"
 
 
-namespace RoadRunner
+namespace LM
 {
     AbstractGraphicsItem::~AbstractGraphicsItem()
     {
@@ -98,7 +98,7 @@ namespace RoadRunner
         AddPoly(boundary, color, height);
     }
 
-    SectionGraphics::SectionGraphics(std::shared_ptr<RoadRunner::Road> road,
+    SectionGraphics::SectionGraphics(std::shared_ptr<LM::Road> road,
         const odr::LaneSection& laneSection,
         double sBegin, double sEnd): PermanentGraphics(std::stoi(road->ID()))
     {
@@ -126,7 +126,10 @@ namespace RoadRunner
                 }
                 
                 // outline for highlight
-                AddQuads(innerBorder, outerBorder, lane.type == "median" ? Qt::yellow : Qt::darkGray);
+                auto sMid = (sMin + sMax) / 2;
+                double lane_width = std::abs(lane.outer_border.get(sMid) - lane.inner_border.get(sMid));
+                AddQuads(innerBorder, outerBorder, lane.type == "median" ? 
+                    (lane_width > LaneWidth + epsilon ? Qt::darkGreen : Qt::yellow) : Qt::darkGray);
 
                 // Draw magnetic snap area
                 const double MagneticSnapDist = 2;
@@ -425,7 +428,7 @@ namespace RoadRunner
 
     InstanceData InstanceData::GetRandom()
     {
-        auto variation = rand() % RoadRunner::NVehicleVariations;
+        auto variation = rand() % LM::NVehicleVariations;
         auto minColor = static_cast<int>(Qt::GlobalColor::white); // skip black
         auto maxColor = static_cast<int>(Qt::GlobalColor::transparent); // excluded
         auto randColor = static_cast<Qt::GlobalColor>(rand() % (maxColor - minColor) + minColor);
@@ -435,17 +438,17 @@ namespace RoadRunner
     InstancedGraphics::InstancedGraphics(unsigned int objID, InstanceData instanceData):
         objectID(objID), variation(instanceData.variation)
     {
-        RoadRunner::g_mapViewGL->AddInstance(objID, instanceData.color, instanceData.variation);
+        LM::g_mapViewGL->AddInstance(objID, instanceData.color, instanceData.variation);
     }
 
     InstancedGraphics::~InstancedGraphics()
     {
-        RoadRunner::g_mapViewGL->RemoveInstance(objectID, variation);
+        LM::g_mapViewGL->RemoveInstance(objectID, variation);
     }
 
     void InstancedGraphics::SetTransform(QMatrix4x4 trans)
     {
-        RoadRunner::g_mapViewGL->UpdateInstance(objectID, trans, variation);
+        LM::g_mapViewGL->UpdateInstance(objectID, trans, variation);
     }
 
     namespace

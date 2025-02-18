@@ -14,7 +14,7 @@ class QCheckBox;
 class QLabel;
 QT_END_NAMESPACE
 
-namespace RoadRunner
+namespace LM
 {
 	struct UserAction;
 }
@@ -49,7 +49,7 @@ protected:
 
 private:
 	/*Need to include version number here to avoid mismatch*/
-	std::vector<RoadRunner::UserAction> Load(std::string fpath);
+	std::vector<LM::UserAction> Load(std::string fpath);
 
 	void FillHistoryTable();
 
@@ -61,7 +61,7 @@ private:
 	QPushButton* playPauseButton;
 	QCheckBox* withDelay;
 	std::string xodrToLoad;
-	std::vector<RoadRunner::UserAction> fullHistory;
+	std::vector<LM::UserAction> fullHistory;
 	size_t nextToReplay;
 
 	const Qt::GlobalColor NextReplayFG = Qt::darkMagenta;

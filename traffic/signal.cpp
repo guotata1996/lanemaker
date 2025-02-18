@@ -4,7 +4,7 @@
 
 #include "id_generator.h"
 
-namespace RoadRunner
+namespace LM
 {
     extern std::string g_PointerRoadID;
 

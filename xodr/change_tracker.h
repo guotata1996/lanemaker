@@ -6,10 +6,10 @@
 #include <string>
 #include <stack>
 #include <vector>
-namespace RoadRunnerTest { class Validation; }
+namespace LTest { class Validation; }
 class VehicleManager;
 
-namespace RoadRunner
+namespace LM
 {
     class ChangeTracker
     {

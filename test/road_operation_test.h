@@ -4,42 +4,42 @@
 #include "validation.h"
 
 
-namespace RoadRunnerTest
+namespace LTest
 {
     TEST(RoadOperation, ReverseSplitJoin)
     {
         // Create 3 roads, C-(flipped C)
         auto refLine1 = std::make_unique<odr::Line>(0, -30, 0, 0, 60);
-        RoadRunner::LaneProfile config(2, 1, 2, -1);
-        std::shared_ptr<RoadRunner::Road> r1 = std::make_shared<RoadRunner::Road>(config, std::move(refLine1));
+        LM::LaneProfile config(2, 1, 2, -1);
+        std::shared_ptr<LM::Road> r1 = std::make_shared<LM::Road>(config, std::move(refLine1));
 
         const double R = 30;
         auto refLine2 = std::make_unique<odr::Arc>(0, 50, 20, M_PI_4, 0.75 * M_PI * 2 * R, -1 / R);
-        auto rRight = std::make_shared<RoadRunner::Road>(config, std::move(refLine2));
+        auto rRight = std::make_shared<LM::Road>(config, std::move(refLine2));
 
         auto refLine3 = std::make_unique<odr::Arc>(0, -50, 20, M_PI_4 * 3, 0.75 * M_PI * 2 * R, 1 / R);
-        auto rLeft = std::make_shared<RoadRunner::Road>(config, std::move(refLine3));
+        auto rLeft = std::make_shared<LM::Road>(config, std::move(refLine3));
         // Create right junction, but don't keep its ptr
-        auto j2 = std::make_shared<RoadRunner::Junction>();
+        auto j2 = std::make_shared<LM::Junction>();
         j2->CreateFrom({
-            RoadRunner::ConnectionInfo{r1, odr::RoadLink::ContactPoint_End},
-            RoadRunner::ConnectionInfo{rRight, odr::RoadLink::ContactPoint_Start},
-            RoadRunner::ConnectionInfo{rRight, odr::RoadLink::ContactPoint_End}
+            LM::ConnectionInfo{r1, odr::RoadLink::ContactPoint_End},
+            LM::ConnectionInfo{rRight, odr::RoadLink::ContactPoint_Start},
+            LM::ConnectionInfo{rRight, odr::RoadLink::ContactPoint_End}
         });
-        std::weak_ptr<RoadRunner::Junction> j2_weak(j2);
+        std::weak_ptr<LM::Junction> j2_weak(j2);
         j2.reset();
         // Create left junction, but don't keep its ptr
-        auto j1 = std::make_shared<RoadRunner::Junction>();
+        auto j1 = std::make_shared<LM::Junction>();
         j1->CreateFrom({
-            RoadRunner::ConnectionInfo{r1, odr::RoadLink::ContactPoint_Start},
-            RoadRunner::ConnectionInfo{rLeft, odr::RoadLink::ContactPoint_Start},
-            RoadRunner::ConnectionInfo{rLeft, odr::RoadLink::ContactPoint_End}
+            LM::ConnectionInfo{r1, odr::RoadLink::ContactPoint_Start},
+            LM::ConnectionInfo{rLeft, odr::RoadLink::ContactPoint_Start},
+            LM::ConnectionInfo{rLeft, odr::RoadLink::ContactPoint_End}
         });
-        std::weak_ptr<RoadRunner::Junction> j1_weak(j1);
+        std::weak_ptr<LM::Junction> j1_weak(j1);
         j1.reset();
 
         // Split r1
-        auto part2 = RoadRunner::Road::SplitRoad(r1, 40);
+        auto part2 = LM::Road::SplitRoad(r1, 40);
         EXPECT_EQ(r1->generated.predecessor.type, odr::RoadLink::Type_Junction);
         EXPECT_EQ(r1->generated.predecessor.id, j1_weak.lock()->ID());
         EXPECT_EQ(r1->generated.successor.type, odr::RoadLink::Type_None);
@@ -54,7 +54,7 @@ namespace RoadRunnerTest
         Validation::VerifyJunction(j2_weak.lock().get());
 
         // Join r1
-        RoadRunner::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, part2, odr::RoadLink::ContactPoint_Start);
+        LM::Road::JoinRoads(r1, odr::RoadLink::ContactPoint_End, part2, odr::RoadLink::ContactPoint_Start);
         part2.reset();
         EXPECT_EQ(r1->generated.predecessor.type, odr::RoadLink::Type_Junction);
         EXPECT_EQ(r1->generated.predecessor.id, j1_weak.lock()->ID());

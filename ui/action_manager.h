@@ -11,7 +11,7 @@
 
 class RoadDrawingSession;
 
-namespace RoadRunner
+namespace LM
 {
     class ActionManager
     {
@@ -25,7 +25,7 @@ namespace RoadRunner
         void Replay(const UserAction&);
 
         void Record(std::string loadedMap);
-        void Record(RoadRunner::EditMode);
+        void Record(LM::EditMode);
         void Record(Transform3D cameraTransform);
         void Record(MouseAction);
         void Record(KeyPressAction);
@@ -74,9 +74,9 @@ namespace RoadRunner
         bool cleanAutoSave = true;
 
         /*Buffered action during record*/
-        std::optional<RoadRunner::MouseAction> lastRecordedMouseMove;
-        std::optional<RoadRunner::MouseAction> lastUnrecordedMouseMove;
-        std::optional<RoadRunner::ChangeViewportAction> latestViewportChange;
+        std::optional<LM::MouseAction> lastRecordedMouseMove;
+        std::optional<LM::MouseAction> lastUnrecordedMouseMove;
+        std::optional<LM::ChangeViewportAction> latestViewportChange;
 
         QTime startTime;
 

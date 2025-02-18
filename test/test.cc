@@ -6,7 +6,7 @@
 #include "road_geometry_test.h"
 #include "road_operation_test.h"
 
-namespace RoadRunnerTest
+namespace LTest
 {
     int main(int argc, char** argv) {
         testing::InitGoogleTest(&argc, argv);

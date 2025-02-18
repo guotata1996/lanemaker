@@ -4,7 +4,7 @@
 
 #include <QOpenGLShaderProgram>
 
-namespace RoadRunner
+namespace LM
 {
     GLBufferManage::GLBufferManage(unsigned int capacity):
         m_vertexBufferData(capacity),

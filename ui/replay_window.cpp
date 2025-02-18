@@ -71,11 +71,11 @@ void ReplayWindow::closeEvent(QCloseEvent* e)
 	QDialog::closeEvent(e);
 }
 
-std::vector<RoadRunner::UserAction> ReplayWindow::Load(std::string fpath)
+std::vector<LM::UserAction> ReplayWindow::Load(std::string fpath)
 {
 	std::ifstream inFile(fpath, std::ios::binary);
 	cereal::BinaryInputArchive iarchive(inFile);
-	std::vector<RoadRunner::UserAction> rtn;
+	std::vector<LM::UserAction> rtn;
 	iarchive(xodrToLoad, rtn);
 	return rtn;
 }
@@ -91,7 +91,7 @@ void ReplayWindow::FillHistoryTable()
 
 		switch (action.type)
 		{
-		case RoadRunner::ActionType::Action_Mouse:
+		case LM::ActionType::Action_Mouse:
 			desc = "Mouse";
 			switch (action.detail.mouse.button)
 			{
@@ -144,41 +144,41 @@ void ReplayWindow::FillHistoryTable()
 				.arg(action.detail.mouse.screenX)
 				.arg(action.detail.mouse.screenY);
 			break;
-		case RoadRunner::ActionType::Action_KeyPress:
+		case LM::ActionType::Action_KeyPress:
 			desc = QString("KeyPress %1").arg(action.detail.keyPress.ToString());
 			icon = QIcon(QPixmap(":/icons/keyboard.png"));
 			break;
-		case RoadRunner::ActionType::Action_Viewport:
+		case LM::ActionType::Action_Viewport:
 			desc = QString("ViewChange zoom:%1 rot: %2")
 				.arg(action.detail.viewport.xSize)
 				.arg(action.detail.viewport.ySize);
 			icon = QIcon(QPixmap(":/icons/zoomin.png"));
 			break;
-		case RoadRunner::ActionType::Action_Undo:
+		case LM::ActionType::Action_Undo:
 			icon = QIcon(QPixmap(":/icons/undo.png"));
 			desc = "Undo";
 			break;
-		case RoadRunner::ActionType::Action_Redo:
+		case LM::ActionType::Action_Redo:
 			icon = QIcon(QPixmap(":/icons/redo.png"));
 			desc = "Redo";
 			break;
-		case RoadRunner::ActionType::Action_ChangeMode:
+		case LM::ActionType::Action_ChangeMode:
 			desc = "ChangeMode";
 			switch (action.detail.changeMode.mode)
 			{
-			case RoadRunner::Mode_Create:
+			case LM::Mode_Create:
 				desc += " road";
 				icon = QIcon(QPixmap(":/icons/road_mode.png"));
 				break;
-			case RoadRunner::Mode_CreateLanes:
+			case LM::Mode_CreateLanes:
 				desc += " lane";
 				icon = QIcon(QPixmap(":/icons/lane_mode.png"));
 				break;
-			case RoadRunner::Mode_Modify:
+			case LM::Mode_Modify:
 				desc += " modify";
 				icon = QIcon(QPixmap(":/icons/modify_mode.PNG"));
 				break;
-			case RoadRunner::Mode_Destroy:
+			case LM::Mode_Destroy:
 				desc += " destroy";
 				icon = QIcon(QPixmap(":/icons/destroy_mode.png"));
 				break;
@@ -188,7 +188,7 @@ void ReplayWindow::FillHistoryTable()
 				break;
 			}
 			break;
-		case RoadRunner::ActionType::Action_ChangeProfile:
+		case LM::ActionType::Action_ChangeProfile:
 			desc = QString("ChangeProfile Lane:%1 Offset:%2 | Lane:%3 Offset:%4")
 				.arg(action.detail.changeProfile.leftProfile.laneCount)
 				.arg(action.detail.changeProfile.leftProfile.offsetx2)
@@ -196,10 +196,10 @@ void ReplayWindow::FillHistoryTable()
 				.arg(action.detail.changeProfile.rightProfile.offsetx2);
 			icon = QIcon(QPixmap(":/icons/car_coming.png"));
 			break;
-		case RoadRunner::ActionType::Action_ChangeElevation:
+		case LM::ActionType::Action_ChangeElevation:
 			desc = QString("ChangeElevation: %1").arg(action.detail.changeElevation.plan);
 			break;
-		case RoadRunner::ActionType::Action_ResizeWindow:
+		case LM::ActionType::Action_ResizeWindow:
 			desc = QString("Resize windows from (%1,%2) to (%3,%4)")
 				.arg(action.detail.resizeWindow.oldWidth)
 				.arg(action.detail.resizeWindow.oldHeight)
@@ -256,7 +256,7 @@ void ReplayWindow::SingleStep()
 
 	if (nextToReplay == 0 && !xodrToLoad.empty())
 	{
-		RoadRunner::ActionManager::Instance()->Replay(xodrToLoad);
+		LM::ActionManager::Instance()->Replay(xodrToLoad);
 	}
 
 	if (!withDelay->isChecked())
@@ -265,14 +265,14 @@ void ReplayWindow::SingleStep()
 		while (nextToReplay < fullHistory.size() - 1)
 		{
 			bool consecutiveMouseMove = 
-				fullHistory[nextToReplay].type == RoadRunner::Action_Mouse
+				fullHistory[nextToReplay].type == LM::Action_Mouse
 				&& fullHistory[nextToReplay].detail.mouse.button != Qt::LeftButton     // Not a L-drag
 				&& fullHistory[nextToReplay].detail.mouse.type == QEvent::MouseMove
-				&& fullHistory[nextToReplay + 1].type == RoadRunner::Action_Mouse
+				&& fullHistory[nextToReplay + 1].type == LM::Action_Mouse
 				&& fullHistory[nextToReplay + 1].detail.mouse.type == QEvent::MouseMove;
 			bool consecutiveViewchange =
-				fullHistory[nextToReplay].type == RoadRunner::Action_Viewport
-				&& fullHistory[nextToReplay + 1].type == RoadRunner::Action_Viewport;
+				fullHistory[nextToReplay].type == LM::Action_Viewport
+				&& fullHistory[nextToReplay + 1].type == LM::Action_Viewport;
 			if ((consecutiveMouseMove || consecutiveViewchange)
 				&& !listWidget->item(nextToReplay)->data(BreakPointFlag).toBool())
 			{
@@ -303,13 +303,13 @@ void ReplayWindow::SingleStep()
 	if (withDelay->isChecked())
 	{
 		const auto& action = fullHistory[nextToReplay];
-		if (action.type == RoadRunner::Action_Mouse)
+		if (action.type == LM::Action_Mouse)
 		{
 			mouseStatus->setPixmap(replayingItem->icon().pixmap(replayingItem->icon().availableSizes().first()));
 		}
 
 		QImage kbImage(":/icons/keyboard.png");
-		if (action.type == RoadRunner::Action_KeyPress)
+		if (action.type == LM::Action_KeyPress)
 		{
 			QPainter* p = new QPainter(&kbImage);
 			p->setPen(Qt::black);
@@ -320,7 +320,7 @@ void ReplayWindow::SingleStep()
 		keyStatus->setPixmap(QPixmap::fromImage(kbImage));
 	}
 
-	RoadRunner::ActionManager::Instance()->Replay(fullHistory[nextToReplay++]);
+	LM::ActionManager::Instance()->Replay(fullHistory[nextToReplay++]);
 	if (nextToReplay < fullHistory.size())
 	{
 		listWidget->item(nextToReplay)->setForeground(NextReplayFG);

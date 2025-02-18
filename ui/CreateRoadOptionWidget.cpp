@@ -18,7 +18,7 @@ CreateRoadOptionWidget::CreateRoadOptionWidget():
 
 void CreateRoadOptionWidget::Reset()
 {
-    SetOption(RoadRunner::LanePlan{ 1, 1 }, RoadRunner::LanePlan{ -1, 1 });
+    SetOption(LM::LanePlan{ 1, 1 }, LM::LanePlan{ -1, 1 });
 }
 
 void CreateRoadOptionWidget::SetMode(bool roadMode)
@@ -37,7 +37,7 @@ void CreateRoadOptionWidget::showEvent(QShowEvent* event)
     QWidget::showEvent(event);
 }
 
-void CreateRoadOptionWidget::SetOption(const RoadRunner::LanePlan& l, const RoadRunner::LanePlan& r)
+void CreateRoadOptionWidget::SetOption(const LM::LanePlan& l, const LM::LanePlan& r)
 {
     const QSignalBlocker blocker(this);
     activeLeftSetting = l;
@@ -317,12 +317,12 @@ void SectionProfileConfigWidget::Reset()
     visual->Reset();
 }
 
-void SectionProfileConfigWidget::OnOptionChange(RoadRunner::LanePlan left, RoadRunner::LanePlan right)
+void SectionProfileConfigWidget::OnOptionChange(LM::LanePlan left, LM::LanePlan right)
 {
-    RoadRunner::ActionManager::Instance()->Record(left, right);
+    LM::ActionManager::Instance()->Record(left, right);
 }
 
-void SectionProfileConfigWidget::SetOption(const RoadRunner::LanePlan& l, const RoadRunner::LanePlan& r)
+void SectionProfileConfigWidget::SetOption(const LM::LanePlan& l, const LM::LanePlan& r)
 {
     if (LeftResult() == l && RightResult() == r)
     {

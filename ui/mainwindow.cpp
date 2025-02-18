@@ -111,7 +111,7 @@ MainWindow::MainWindow(QWidget* parent): QWidget(parent)
     connect(mainWidget.get(), &MainWidget::FPSChanged, this, &MainWindow::setFPS);
     connect(preferenceWindow.get(), &PreferenceWindow::ToggleAA, mainWidget.get(), &MainWidget::toggleAntialiasing);
 
-    connect(mainWidget->mapViewGL, &RoadRunner::MapViewGL::MousePerformedAction, this, &MainWindow::updateHint);
+    connect(mainWidget->mapViewGL, &LM::MapViewGL::MousePerformedAction, this, &MainWindow::updateHint);
 
     if (g_preference.showWelcome)
         preferenceWindow->open();
@@ -132,14 +132,14 @@ void MainWindow::resizeEvent(QResizeEvent* e)
 {
     QWidget::resizeEvent(e);
     if (recordResize)
-        RoadRunner::ActionManager::Instance()->Record(e->oldSize(), e->size());
+        LM::ActionManager::Instance()->Record(e->oldSize(), e->size());
 }
 
 void MainWindow::newMap()
 {
     auto oldsize = size();
     reset();
-    RoadRunner::ActionManager::Instance()->Record(oldsize, size());
+    LM::ActionManager::Instance()->Record(oldsize, size());
 }
 
 void MainWindow::reset()
@@ -150,13 +150,13 @@ void MainWindow::reset()
 
     stopSimulation();
     mainWidget->Reset();
-    RoadRunner::ChangeTracker::Instance()->Clear();
-    RoadRunner::ActionManager::Instance()->Reset();
-    RoadRunner::g_mapViewGL->ResetCamera();
-    RoadRunner::g_createRoadElevationOption = 0;
+    LM::ChangeTracker::Instance()->Clear();
+    LM::ActionManager::Instance()->Reset();
+    LM::g_mapViewGL->ResetCamera();
+    LM::g_createRoadElevationOption = 0;
     resizeDontRecord(PreferredSize().width(), PreferredSize().height());
     loadedFileName.clear();
-    RoadRunner::g_mapViewGL->renderNow();
+    LM::g_mapViewGL->renderNow();
     //spdlog::set_level(prevLevel);
 }
 
@@ -169,7 +169,7 @@ void MainWindow::resizeDontRecord(int w, int h)
 
 void MainWindow::saveToFile()
 {
-    auto saveLoc = loadedFileName.empty() ? RoadRunner::DefaultSaveFolder().string() : loadedFileName;
+    auto saveLoc = loadedFileName.empty() ? LM::DefaultSaveFolder().string() : loadedFileName;
     QString s = QFileDialog::getSaveFileName(
         this,
         "Choose save location",
@@ -182,7 +182,7 @@ void MainWindow::saveToFile()
     if (s.size() != 0)
     {
         auto loc = s.toStdString();
-        RoadRunner::ChangeTracker::Instance()->Save(loc);
+        LM::ChangeTracker::Instance()->Save(loc);
         if (loadedFileName.empty())
         {
             loadedFileName = loc;
@@ -195,7 +195,7 @@ void MainWindow::loadFromFile()
     QString s = QFileDialog::getOpenFileName(
         this, 
         "Choose File to Open",
-        RoadRunner::DefaultSaveFolder().string().c_str(),
+        LM::DefaultSaveFolder().string().c_str(),
         "OpenDrive (*.xodr)", nullptr
 #ifdef __linux__
         ,QFileDialog::DontUseNativeDialog
@@ -206,7 +206,7 @@ void MainWindow::loadFromFile()
         reset();
         loadedFileName = s.toStdString();
 
-        bool supported = RoadRunner::ChangeTracker::Instance()->Load(loadedFileName);
+        bool supported = LM::ChangeTracker::Instance()->Load(loadedFileName);
         if (!supported)
         {
             spdlog::error("xodr map needs to contain custom LaneProfile!");
@@ -214,41 +214,41 @@ void MainWindow::loadFromFile()
         std::ifstream ifs(loadedFileName);
         std::stringstream buffer;
         buffer << ifs.rdbuf();
-        RoadRunner::ActionManager::Instance()->Record(buffer.str());
+        LM::ActionManager::Instance()->Record(buffer.str());
 
-        RoadRunner::g_mapViewGL->renderNow();
+        LM::g_mapViewGL->renderNow();
     }
 }
 
 void MainWindow::undo()
 {
-    RoadRunner::ActionManager::Instance()->Record(RoadRunner::ActionType::Action_Undo);
-    if (!RoadRunner::ChangeTracker::Instance()->Undo())
+    LM::ActionManager::Instance()->Record(LM::ActionType::Action_Undo);
+    if (!LM::ChangeTracker::Instance()->Undo())
     {
         spdlog::warn("Cannot undo");
     }
     else
     {
-        RoadRunner::g_mapViewGL->renderNow();
+        LM::g_mapViewGL->renderNow();
     }
 }
 
 void MainWindow::redo()
 {
-    RoadRunner::ActionManager::Instance()->Record(RoadRunner::ActionType::Action_Redo);
-    if (!RoadRunner::ChangeTracker::Instance()->Redo())
+    LM::ActionManager::Instance()->Record(LM::ActionType::Action_Redo);
+    if (!LM::ChangeTracker::Instance()->Redo())
     {
         spdlog::warn("Cannot redo");
     }
     else
     {
-        RoadRunner::g_mapViewGL->renderNow();
+        LM::g_mapViewGL->renderNow();
     }
 }
 
 void MainWindow::verifyMap()
 {
-    RoadRunnerTest::Validation::ValidateMap();
+    LTest::Validation::ValidateMap();
     spdlog::info("Done map verification.");
 }
 
@@ -257,7 +257,7 @@ void MainWindow::saveActionHistory()
     QString s = QFileDialog::getSaveFileName(
         this,
         "Choose save location",
-        RoadRunner::DefaultSaveFolder().string().c_str(),
+        LM::DefaultSaveFolder().string().c_str(),
         "ActionHistory (*.dat)", nullptr
 #ifdef __linux__
         ,QFileDialog::DontUseNativeDialog
@@ -266,7 +266,7 @@ void MainWindow::saveActionHistory()
     if (s.size() != 0)
     {
         auto loc = s.toStdString();
-        RoadRunner::ActionManager::Instance()->Save(loc);
+        LM::ActionManager::Instance()->Save(loc);
     }
 }
 
@@ -285,7 +285,7 @@ void MainWindow::openReplayWindow(bool playImmediate)
     QString s = QFileDialog::getOpenFileName(
         this,
         "Choose File to Open",
-        RoadRunner::DefaultSaveFolder().string().c_str(),
+        LM::DefaultSaveFolder().string().c_str(),
         "ActionHistory (*.dat)", nullptr
 #ifdef __linux__
         ,QFileDialog::DontUseNativeDialog
@@ -337,19 +337,19 @@ void MainWindow::setFPS(QString msg)
 void MainWindow::updateHint()
 {
     auto groundInfo = QString("(%1, %2) ")
-        .arg(RoadRunner::g_PointerOnGround[0])
-        .arg(RoadRunner::g_PointerOnGround[1]);
-    auto roadInfo = RoadRunner::g_PointerRoadID.empty() ?
+        .arg(LM::g_PointerOnGround[0])
+        .arg(LM::g_PointerOnGround[1]);
+    auto roadInfo = LM::g_PointerRoadID.empty() ?
         QString("VBuffer: %1%")
         .arg(mainWidget->mapViewGL->VBufferUseage_pct()) :
         QString("Road %1 @%2 Lane %3")
-        .arg(RoadRunner::g_PointerRoadID.c_str())
-        .arg(RoadRunner::g_PointerRoadS, 6, 'f', 3)
-        .arg(RoadRunner::g_PointerLane);
+        .arg(LM::g_PointerRoadID.c_str())
+        .arg(LM::g_PointerRoadS, 6, 'f', 3)
+        .arg(LM::g_PointerLane);
     groundInfo.append(roadInfo);
-    if (RoadRunner::g_PointerVehicle != -1)
+    if (LM::g_PointerVehicle != -1)
     {
-        groundInfo.append(QString("  Vehicle: %1").arg(RoadRunner::g_PointerVehicle));
+        groundInfo.append(QString("  Vehicle: %1").arg(LM::g_PointerVehicle));
     }
 
     hintStatus->showMessage(groundInfo);
@@ -372,15 +372,15 @@ void MainWindow::keyPressEvent(QKeyEvent* e)
 
 void MainWindow::testReplay()
 {
-    auto recordPath = RoadRunner::ActionManager::Instance()->AutosavePath();
+    auto recordPath = LM::ActionManager::Instance()->AutosavePath();
     if (g_preference.alwaysVerify
         && std::filesystem::exists(recordPath))
     {
         g_preference.alwaysVerify = false; // No verification during replay
-        auto saveFolder = RoadRunner::DefaultSaveFolder();
-        auto originalPath = saveFolder / (std::string("compare_a_") + RoadRunner::RunTimestamp() + std::string(".xodr"));
+        auto saveFolder = LM::DefaultSaveFolder();
+        auto originalPath = saveFolder / (std::string("compare_a_") + LM::RunTimestamp() + std::string(".xodr"));
         auto originalPathStr = originalPath.string();
-        RoadRunner::ChangeTracker::Instance()->Save(originalPathStr);
+        LM::ChangeTracker::Instance()->Save(originalPathStr);
 
         reset();
 
@@ -391,13 +391,13 @@ void MainWindow::testReplay()
 
         if (quitReplayComplete)
         {
-            auto replayPath = saveFolder / (std::string("compare_b_") + RoadRunner::RunTimestamp() + std::string(".xodr"));
+            auto replayPath = saveFolder / (std::string("compare_b_") + LM::RunTimestamp() + std::string(".xodr"));
             auto replayPathStr = replayPath.string();
-            RoadRunner::ChangeTracker::Instance()->Save(replayPathStr);
+            LM::ChangeTracker::Instance()->Save(replayPathStr);
 
-            if (!RoadRunnerTest::Validation::CompareFiles(originalPathStr, replayPathStr))
+            if (!LTest::Validation::CompareFiles(originalPathStr, replayPathStr))
             {
-                RoadRunner::ActionManager::Instance()->MarkException();
+                LM::ActionManager::Instance()->MarkException();
                 spdlog::error("Replay result is different from original map! Check {} for details.", recordPath);
             }
             else
@@ -416,7 +416,7 @@ void MainWindow::testReplay()
         }
     }
     
-    if (RoadRunner::ActionManager::Instance()->CleanAutoSave())
+    if (LM::ActionManager::Instance()->CleanAutoSave())
     {
         std::remove(recordPath.c_str());
     }

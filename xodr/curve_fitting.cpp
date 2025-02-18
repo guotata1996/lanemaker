@@ -26,7 +26,7 @@ using namespace CGAL;
 
 typedef Cartesian<double>  Kernel;
 
-namespace RoadRunner
+namespace LM
 {
     std::unique_ptr<odr::RoadGeometry> ConnectRays(const odr::Vec2D& startPos, const odr::Vec2D& startHdg,
         const odr::Vec2D& endPos, const odr::Vec2D& endHdg)
@@ -518,7 +518,7 @@ namespace RoadRunner
                 int hdgAngle = (posAngle + hdg);
                 int complexity = 0;
                 auto t_start = high_resolution_clock::now();
-                auto fitGeo = RoadRunner::FitUnitSpiral(
+                auto fitGeo = LM::FitUnitSpiral(
                     posAngle * degToRad, hdgAngle * degToRad,
                     SpiralPosPrecision * 0.7 / MaximumLengthBoost, SpiralHdgPrecision * 0.7 / MaximumLengthBoost, complexity);
                 auto t_end = high_resolution_clock::now();

@@ -1,17 +1,17 @@
-![CMake Build](https://github.com/guotata1996/RoadRunner/actions/workflows/cmake-Ubuntu-2404.yml/badge.svg)
+![CMake Build](https://github.com/guotata1996/lanemaker/actions/workflows/cmake-Ubuntu-2404.yml/badge.svg)
 
 # About
-RoadRunner is a lightweight yet powerful desktop road network editor. Compared to commercial mapping software, it is intended for casual users and hobbyists, providing a free and easy experience without steep learning curve or $$ investment.
+LaneMaker is a lightweight yet powerful desktop road network editor. Compared to commercial mapping software, it is intended for casual users and hobbyists, providing a free and easy experience without steep learning curve or $$ investment.
 
-The Windows version is recommanded for better UI performance and stability, while RoadRunner remains a cross-platform project.
+The Windows version is recommanded for better UI performance and stability, while LaneMaker remains a cross-platform project.
 
-[Download RoadRunner v0.9](https://github.com/guotata1996/RoadRunner/releases/tag/v0.9)
+[Download LaneMaker v0.9](https://github.com/guotata1996/lanemaker/releases/tag/v0.9)
 
 [![Basic Tutorial](https://img.youtube.com/vi/tsDGT2ElVuM/0.jpg)](https://www.youtube.com/watch?v=tsDGT2ElVuM)
 
 ## OpenDRIVE Compatibility
-- Internally, RoadRunner heavily relies on [ASAM OpenDRIVE](https://www.asam.net/standards/detail/opendrive/) standard for geometric information bookkeeping.
-- The exported .xodr does not 100% comply with ASAM OpenDRIVE standard, nor can RoadRunner load an arbitrary .xodr.
+- Internally, LaneMaker heavily relies on [ASAM OpenDRIVE](https://www.asam.net/standards/detail/opendrive/) standard for geometric information bookkeeping.
+- The exported .xodr does not 100% comply with ASAM OpenDRIVE standard, nor can LaneMaker load an arbitrary .xodr.
 - Nonetheless, the exported map can be correctly loaded in [OpenDRIVE online viewer](https://odrviewer.io/).
 
 ## Known issues
@@ -33,17 +33,17 @@ Recommanded OS: Windows 10/11 | Ubuntu 24.04 LTS
 
 ## Clone
 ```
-git clone https://github.com/guotata1996/RoadRunner.git
+git clone https://github.com/guotata1996/lanemaker.git
 ```
 
 ### Windows
 - Follow [CGAL Configuring example](https://doc.cgal.org/5.6.1/Manual/windows.html) to configure CMake
 - Open the sln with Visual Studio
-- Set RoadRunner as Startup Project
+- Set LaneMaker as Startup Project
 
 ### Ubuntu
 ```
-cd RoadRunner
+cd lanemaker
 git submodule init && git submodule update
 mkdir build && cd build
 cmake [--DCMAKE_BUILD_TYPE=Release] ..
@@ -53,7 +53,7 @@ cpack -G DEB
 
 
 # Notice  
-Project Name: RoadRunner
+Project Name: LaneMaker
 
 Author: github.com/guotata1996
 

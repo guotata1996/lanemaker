@@ -5,7 +5,7 @@
 
 #include "road_profile.h"
 
-namespace RoadRunner
+namespace LM
 {
     enum EditMode
     {

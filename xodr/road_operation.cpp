@@ -7,7 +7,7 @@
 
 #include <math.h>
 
-namespace RoadRunner
+namespace LM
 {
     int Road::JoinRoads(std::shared_ptr<Road>& road1, odr::RoadLink::ContactPoint c1,
         std::shared_ptr<Road>& road2, odr::RoadLink::ContactPoint c2)
@@ -99,8 +99,8 @@ namespace RoadRunner
             ConnectionInfo currInfo(road2, odr::RoadLink::ContactPoint_End);
             successorJunction->FillConnectionInfo(currInfo);
             successorJunction->NotifyPotentialChange(ChangeInConnecting
-                { road2, RoadRunner::ChangeInConnecting::Type_DetachAtEnd_Temp });
-            successorJunction->Attach(RoadRunner::ConnectionInfo{ 
+                { road2, LM::ChangeInConnecting::Type_DetachAtEnd_Temp });
+            successorJunction->Attach(LM::ConnectionInfo{ 
                 road1, odr::RoadLink::ContactPoint_End, currInfo.skipProviderLanes });
         }
 
@@ -163,8 +163,8 @@ namespace RoadRunner
             auto successorJunction = roadAsPrev->successorJunction;
             successorJunction->FillConnectionInfo(succJunctionInfo);
             successorJunction->NotifyPotentialChange(ChangeInConnecting
-                { roadAsPrev, RoadRunner::ChangeInConnecting::Type_DetachAtEnd_Temp });
-            successorJunction->Attach(RoadRunner::ConnectionInfo{
+                { roadAsPrev, LM::ChangeInConnecting::Type_DetachAtEnd_Temp });
+            successorJunction->Attach(LM::ConnectionInfo{
                 part2, odr::RoadLink::ContactPoint_End, succJunctionInfo.skipProviderLanes });
         }
 

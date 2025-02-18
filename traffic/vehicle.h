@@ -90,8 +90,8 @@ private:
     double heading;
     static QVector3D DimensionLWH;
     
-    RoadRunner::TemporaryGraphics routeVisual;
+    LM::TemporaryGraphics routeVisual;
     odr::Line3D leaderLine;
 
-    std::optional<RoadRunner::InstancedGraphics> graphics;
+    std::optional<LM::InstancedGraphics> graphics;
 };
