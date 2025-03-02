@@ -2,7 +2,7 @@
 #include <QOpenGLShaderProgram>
 #include <QMouseEvent>
 #include <QKeyEvent>
-#include <spdlog/spdlog.h>
+#include <QCoreApplication>
 
 #include "main_widget.h"
 #include "id_generator.h"
@@ -42,8 +42,7 @@ namespace LM
 
     void MapViewGL::CleanupResources()
     {
-        m_context->makeCurrent(this);
-        
+        makeCurrent();
         permanentBuffer->CleanupResources();
         temporaryBuffer->CleanupResources();
         backgroundBuffer->CleanupResources();
@@ -51,8 +50,6 @@ namespace LM
         {
             buffer.CleanupResources();
         }
-
-        quitEventReceived = true;
     }
 
     void MapViewGL::ResetCamera()
@@ -233,6 +230,8 @@ namespace LM
 
     void MapViewGL::initializeGL()
     {
+        initializeOpenGLFunctions();
+
         // draw both sides of faces
         glDisable(GL_CULL_FACE);
 
@@ -260,10 +259,6 @@ namespace LM
 
     void MapViewGL::paintGL()
     {
-        if (quitEventReceived)
-        {
-            return;
-        }
         MainWidget::Instance()->Painted();
         // update cached world2view matrix
         m_worldToView = m_projection * m_camera.toMatrix() * m_transform.toMatrix();
@@ -371,7 +366,6 @@ namespace LM
             auto rotatedAngle = 2 * std::acos(rotated.scalar());
             if (i == MaxIter || rotatedAngle > 0.3)
             {
-                spdlog::trace("Precise camera iteration failed. Use backup plan.");
                 m_camera.setRotation(backupRotation);
                 auto dx = static_cast<float>(event->pos().x() - lastMousePos.x());
                 auto dy = static_cast<float>(event->pos().y() - lastMousePos.y());
@@ -406,7 +400,7 @@ namespace LM
             LM::ActionManager::Instance()->Record(event);
             emit(MousePerformedAction(event));
         }
-        renderLater();
+        update();
         lastMousePos = event->pos();
     }
 
@@ -442,7 +436,7 @@ namespace LM
             ActionManager::Instance()->Record(m_camera);
         }
 
-        renderLater();
+        update();
     }
 
     void MapViewGL::keyPressEvent(QKeyEvent* event)
@@ -493,7 +487,7 @@ namespace LM
             emit(KeyPerformedAction(event));
         }
         // update cached world2view matrix
-        renderLater();
+        update();
     }
 
     QVector3D MapViewGL::PointerDirection(QPoint cursor) const
@@ -542,7 +536,7 @@ namespace LM
         m_camera.setTranslation(t.translation());
         m_camera.setScale(t.scale());
         m_camera.setRotation(t.rotation());
-        renderLater();
+        update();
     }
 
     void MapViewGL::UpdateRayHit(QPoint screen, bool fromReplay)

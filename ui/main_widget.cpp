@@ -5,7 +5,7 @@
 
 #include "main_widget.h"
 #include "map_view_gl.h"
-#include "mainwindow.h"
+#include "main_window.h"
 #include "action_manager.h"
 #include "road_drawing.h"
 #include "change_tracker.h"
@@ -29,10 +29,9 @@ MainWidget::MainWidget(QWidget* parent)
 
     mapViewGL = new LM::MapViewGL;
     mapViewGL->setFormat(format);
-
-    QWidget* container = QWidget::createWindowContainer(mapViewGL, this);
-    container->setFocusPolicy(Qt::TabFocus);
-    container->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    mapViewGL->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    mapViewGL->setFocusPolicy(Qt::ClickFocus);
+    mapViewGL->setMouseTracking(true);
 
     int size = style()->pixelMetric(QStyle::PM_ToolBarIconSize);
     QSize iconSize(size, size);
@@ -93,10 +92,10 @@ MainWidget::MainWidget(QWidget* parent)
     labelLayout->addWidget(dragModeButton);
     labelLayout->addStretch();
 
-    QVBoxLayout* topLayout = new QVBoxLayout;
-    topLayout->addLayout(labelLayout);
-    topLayout->addWidget(container);
-    setLayout(topLayout);
+    QVBoxLayout* mainLayout = new QVBoxLayout;
+    mainLayout->addLayout(labelLayout);
+    mainLayout->addWidget(mapViewGL);
+    setLayout(mainLayout);
 
     connect(createModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateRoadMode);
     connect(createLaneModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoCreateLaneMode);
@@ -193,7 +192,7 @@ void MainWidget::OnKeyPress(LM::KeyPressAction evt)
                 quitEdit();
             }
             break;
-        case Qt::Key_Return:
+        case Qt::Key_Space:
             if (drawingSession != nullptr)
             {
                 confirmEdit();

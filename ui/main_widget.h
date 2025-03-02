@@ -72,7 +72,6 @@ private:
     QButtonGroup* pointerModeGroup;
     QToolButton* createModeButton, * createLaneModeButton, * destroyModeButton, * modifyModeButton, * dragModeButton;
 
-    //QToolButton* resetButton;
     SectionProfileConfigWidget* createRoadOption;
 
     unsigned int nRepaints = 0;

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "OpenGLWindow.h"
 #include "Math.hpp"
 #include "Camera.h"
 #include "gl_buffer_manage.h"
 #include "action_defs.h"
 
+#include <QOpenGLWidget>
 #include <qvector2d.h>
 #include <QMatrix4x4>
 #include <optional>
@@ -18,7 +18,7 @@ namespace LM
 	class PermanentGraphics;
 	class InstancedGraphics;
 
-	class MapViewGL : public OpenGLWindow
+	class MapViewGL : public QOpenGLWidget, QOpenGLExtraFunctions
 	{
 		friend class AbstractGraphicsItem;
 		friend class PermanentGraphics;

@@ -75,7 +75,7 @@ void VehicleManager::End()
         s.second->Terminate();
     }
     allSignals.clear();
-    LM::g_mapViewGL->renderLater();
+    LM::g_mapViewGL->update();
 }
 
 void VehicleManager::TogglePause()
@@ -243,5 +243,5 @@ void VehicleManager::step()
     }
 
     stepCount++;
-    LM::g_mapViewGL->renderLater();
+    LM::g_mapViewGL->update();
 }

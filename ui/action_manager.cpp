@@ -1,7 +1,7 @@
 #include "action_manager.h"
 #include "road_drawing.h"
 #include "main_widget.h"
-#include "mainwindow.h"
+#include "main_window.h"
 #include "CreateRoadOptionWidget.h"
 #include "change_tracker.h"
 #include "util.h"
@@ -155,7 +155,7 @@ namespace LM
     {
         LM::g_mapViewGL->UpdateRayHit(QPoint(action.screenX, action.screenY), true);
         MainWidget::Instance()->OnMouseAction(action);
-        LM::g_mapViewGL->renderLater();
+        LM::g_mapViewGL->update();
     }
 
     void ActionManager::Record(KeyPressAction serialized)
@@ -168,7 +168,7 @@ namespace LM
     void ActionManager::Replay(const KeyPressAction& action)
     {
         MainWidget::Instance()->OnKeyPress(action);
-        LM::g_mapViewGL->renderLater();
+        LM::g_mapViewGL->update();
     }
 
     void ActionManager::Record(const LanePlan& left, const LanePlan& right)

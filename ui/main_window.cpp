@@ -1,4 +1,3 @@
-#include "mainwindow.h"
 #include <QVBoxLayout>
 #include <QMenuBar>
 #include <QFileDialog>
@@ -10,6 +9,7 @@
 #include <fstream>
 #include <sstream>
 
+#include "main_window.h"
 #include "main_widget.h"
 #include "change_tracker.h"
 #include "action_manager.h"
@@ -156,7 +156,7 @@ void MainWindow::reset()
     LM::g_createRoadElevationOption = 0;
     resizeDontRecord(PreferredSize().width(), PreferredSize().height());
     loadedFileName.clear();
-    LM::g_mapViewGL->renderNow();
+    LM::g_mapViewGL->update();
     //spdlog::set_level(prevLevel);
 }
 
@@ -216,7 +216,7 @@ void MainWindow::loadFromFile()
         buffer << ifs.rdbuf();
         LM::ActionManager::Instance()->Record(buffer.str());
 
-        LM::g_mapViewGL->renderNow();
+        LM::g_mapViewGL->update();
     }
 }
 
@@ -229,7 +229,7 @@ void MainWindow::undo()
     }
     else
     {
-        LM::g_mapViewGL->renderNow();
+        LM::g_mapViewGL->update();
     }
 }
 
@@ -242,7 +242,7 @@ void MainWindow::redo()
     }
     else
     {
-        LM::g_mapViewGL->renderNow();
+        LM::g_mapViewGL->update();
     }
 }
 
