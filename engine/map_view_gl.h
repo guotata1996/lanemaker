@@ -9,6 +9,7 @@
 #include <qvector2d.h>
 #include <QMatrix4x4>
 #include <optional>
+#include <map>
 
 namespace LM
 {
@@ -36,14 +37,17 @@ namespace LM
 		uint8_t GetObjectFlag(unsigned int objectID);
 		void RemoveObject(unsigned int objectID);
 
+		void AddSceneLayover(uint32_t id, odr::Vec3D scenePos, QPixmap icon, QRect lwOffset, int syntax);
+		void RemoveSceneLayover(uint32_t id);
+
 		void SetViewFromReplay(Transform3D t);
 		void UpdateRayHit(QPoint screen, bool fromReplay=false);
 		int VBufferUseage_pct() const;
 		float Zoom() const;
 		
 	signals:
-		void MousePerformedAction(LM::MouseAction);
-		void KeyPerformedAction(LM::KeyPressAction);
+		void MousePerformedAction(LM::MouseAction); // excluding view adjustment / Scene button event
+        void KeyPerformedAction(LM::KeyPressAction);// excluding view adjustment, including Scene button event
 
 	protected:
 		void initializeGL() override;
@@ -99,8 +103,19 @@ namespace LM
 
 		/*! The projection matrix, updated whenever the viewport geometry changes (in resizeGL() ). */
 		QMatrix4x4					m_projection;
-		Transform3D					m_transform;	// world transformation matrix generator
 		Camera						m_camera;		// Camera position, orientation and lens data
+
+		struct SceneTiedLayover
+		{
+			uint32_t id;
+			odr::Vec3D pos;
+			QRect lwOffset;
+			QPixmap icon;
+			int syntax;
+
+			QRect renderedRect;
+		};
+		std::map<uint32_t, SceneTiedLayover> sceneTiedLayovers;
 	};
 
 	extern MapViewGL* g_mapViewGL;

@@ -223,6 +223,16 @@ namespace LM
         backgroundBuffer->RemoveItem(gid);
     }
 
+    void MapViewGL::AddSceneLayover(uint32_t id, odr::Vec3D scenePos, QPixmap icon, QRect ltwh, int syntax)
+    {
+		sceneTiedLayovers.emplace(id, SceneTiedLayover{ id, scenePos, ltwh, icon, syntax });
+    }
+
+    void MapViewGL::RemoveSceneLayover(uint32_t id)
+    {
+        sceneTiedLayovers.erase(id);
+    }
+
     int MapViewGL::VBufferUseage_pct() const
     {
         return permanentBuffer->Useage_pct();
@@ -261,7 +271,7 @@ namespace LM
     {
         MainWidget::Instance()->Painted();
         // update cached world2view matrix
-        m_worldToView = m_projection * m_camera.toMatrix() * m_transform.toMatrix();
+        m_worldToView = m_projection * m_camera.toMatrix();// *m_transform.toMatrix();
 
         const qreal retinaScale = devicePixelRatio(); // needed for Macs with retina display
         glViewport(0, 0, width() * retinaScale, height() * retinaScale);
@@ -278,6 +288,22 @@ namespace LM
         {
             buff.Draw(m_worldToView);
         }
+
+        QPainter painter(this);
+        
+        for (auto& id_btn : sceneTiedLayovers)
+        {
+            auto& btn = id_btn.second;
+            auto homo = m_worldToView * QVector4D(btn.pos[0], btn.pos[1], btn.pos[2], 1.0);
+            int screenX = (homo.x() / homo.w() + 1) / 2 * width();
+            int screenY = (1 - homo.y() / homo.w()) / 2 * height();
+            auto rect = btn.lwOffset;
+            QRect screenRect(screenX - rect.width() / 2 + rect.left(), 
+                screenY - rect.height() / 2 + rect.top(), rect.width(), rect.height());
+            painter.drawPixmap(screenRect, btn.icon);
+            btn.renderedRect = screenRect;
+        }
+        painter.end();
     }
 
     void MapViewGL::mousePressEvent(QMouseEvent* event)
@@ -295,8 +321,26 @@ namespace LM
         }
         else
         {
-            LM::ActionManager::Instance()->Record(event);
-            emit(MousePerformedAction(event));
+            int pressedButton = 0;
+            for (auto id_layover : sceneTiedLayovers)
+            {
+                if (id_layover.second.renderedRect.contains(event->pos()))
+                {
+                    pressedButton = id_layover.second.syntax;
+                    break;
+                }
+            }
+            if (pressedButton != 0)
+            {
+                LM::KeyPressAction action(pressedButton);
+                LM::ActionManager::Instance()->Record(action);
+                emit(KeyPerformedAction(action));
+            }
+            else
+            {
+                LM::ActionManager::Instance()->Record(event);
+                emit(MousePerformedAction(event));
+            }
         }
     }
 

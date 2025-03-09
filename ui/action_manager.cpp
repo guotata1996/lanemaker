@@ -62,6 +62,8 @@ namespace LM
         key = e->key();
     }
 
+    KeyPressAction::KeyPressAction(int keyID) : key(keyID) {}
+
     ActionManager* ActionManager::instance = nullptr;
 
     ActionManager* ActionManager::Instance()

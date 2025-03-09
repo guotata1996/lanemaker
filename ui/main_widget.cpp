@@ -180,6 +180,10 @@ void MainWidget::OnMouseAction(LM::MouseAction evt)
 
 void MainWidget::OnKeyPress(LM::KeyPressAction evt)
 {
+    if (drawingSession == nullptr)
+    {
+        return;
+    }
 #ifndef _DEBUG
     try
     {
@@ -187,18 +191,21 @@ void MainWidget::OnKeyPress(LM::KeyPressAction evt)
         switch (evt.key)
         {
         case Qt::Key_Escape:
-            if (drawingSession != nullptr && !drawingSession->Update(evt))
+            if (!drawingSession->Cancel())
             {
                 quitEdit();
             }
             break;
         case Qt::Key_Space:
-            if (drawingSession != nullptr)
             {
                 confirmEdit();
             }
             break;
+        default:
+            drawingSession->Update(evt);
+            break;
         }
+
 #ifndef _DEBUG
     }
     catch (CGAL::Failure_exception e)

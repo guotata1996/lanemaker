@@ -20,6 +20,8 @@ public:
 
     /*return false to abort change*/
     virtual bool Complete() = 0;
+    /*return false to quit session change*/
+    virtual bool Cancel() = 0;
 
     virtual ~RoadDrawingSession();
 
@@ -71,6 +73,8 @@ protected:
 
     std::unique_ptr<CustomCursorItem> cursorItem;
 
+    std::optional<LM::UILayover> confirmButton, cancelButton;
+
 private:
     std::weak_ptr<LM::Road> highlighted;
 
@@ -82,9 +86,9 @@ class RoadCreationSession : public RoadDrawingSession
 {
 public:
     virtual bool Update(const LM::MouseAction&) override;
-    virtual bool Update(const LM::KeyPressAction&) override;
 
     virtual bool Complete() override;
+    virtual bool Cancel() override;
 
 protected:
     // Record extend / join
@@ -148,7 +152,7 @@ private:
     void GenerateHintLines(const odr::RefLine& refLine,
         odr::Line3D&, odr::Line3D&, odr::Line3D&);
 
-    void UpdateStagedFromGeometries();
+    void UpdateStagedPreview();
 
     std::unique_ptr<odr::RoadGeometry> flexGeo;
     double flexEndElevation;
@@ -202,9 +206,10 @@ class RoadDestroySession : public RoadDrawingSession
 {
 public:
     virtual bool Update(const LM::MouseAction&) override;
-    virtual bool Update(const LM::KeyPressAction&) override;
+    //virtual bool Update(const LM::KeyPressAction&) override;
 
     virtual bool Complete() override;
+    virtual bool Cancel() override;
 
 protected:
     odr::Line3D hintPolygonLeft, hintPolygonRight;

@@ -47,6 +47,7 @@ namespace LM
     {
         KeyPressAction() = default;
         KeyPressAction(QKeyEvent* e);
+        KeyPressAction(int keyID);
 
         int key;
 
@@ -185,4 +186,10 @@ namespace LM
                 detail.viewport.rotX, detail.viewport.rotY, detail.viewport.rotZ, detail.viewport.rotW);
         }
     };
+
+    //enum ButtonSyntax
+    //{
+    //    Syntax_Confirm = 1,
+    //    Syntax_Cancel = 2
+    //};
 }

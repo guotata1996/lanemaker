@@ -62,27 +62,17 @@ bool RoadDestroySession::Update(const LM::MouseAction& evt)
     return true;
 }
 
-bool RoadDestroySession::Update(const LM::KeyPressAction& evt)
+bool RoadDestroySession::Cancel()
 {
-    if (evt.key == Qt::Key_Escape)
+    if (s1 != nullptr)
     {
-        if (s2 != nullptr)
-        {
-            s2.reset();
-            UpdateHint();
-        }
-        else if (s1 != nullptr)
-        {
-            s1.reset();
-            targetRoad.reset();
-            UpdateHint();
-        }
-        else
-        {
-            return false;
-        }
+        s2.reset();
+        s1.reset();
+        targetRoad.reset();
+        UpdateHint();
+        return true;
     }
-    return true;
+    return false;
 }
 
 bool RoadDestroySession::Complete()
@@ -154,6 +144,9 @@ void RoadDestroySession::UpdateHint()
     hintPolygonLeft.clear();
     hintPolygonRight.clear();
     auto target = targetRoad.lock();
+    confirmButton.reset();
+    cancelButton.reset();
+
     if (target != nullptr)
     {
         double fromS = -1;
@@ -185,6 +178,13 @@ void RoadDestroySession::UpdateHint()
             }
             hintPolygonLeft = borders.first;
             hintPolygonRight = borders.second;
+        }
+
+        if (s2 != nullptr)
+        {
+            auto btnPos = target->generated.get_xyz(*s2, 0, 10.0);
+            confirmButton.emplace(btnPos, QPixmap(":/icons/confirm.png"), QRect(-40, -60, 60, 60), Qt::Key_Space);
+            cancelButton.emplace(btnPos, QPixmap(":/icons/cancel.png"), QRect(40, -60, 60, 60), Qt::Key_Escape);
         }
     }
     hintItemLeft.emplace(hintPolygonLeft, 0.2, Qt::red);

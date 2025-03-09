@@ -13,7 +13,6 @@ namespace LM
         std::vector<QPolygonF> ArrowShape(int arrowType);
     }
 
-    // TODO: g_mapViewGL->AddXXX is Only accessable through AbstractGraphicsItem
     class AbstractGraphicsItem
     {
     public:
@@ -120,5 +119,16 @@ namespace LM
     private:
         unsigned int objectID;
         unsigned int variation;
+    };
+
+    class UILayover
+    {
+    public:
+        UILayover(odr::Vec3D scenePos, QPixmap icon, QRect ltwh, int equivalentKey);
+
+        ~UILayover();
+
+    private:
+        unsigned int id;
     };
 }

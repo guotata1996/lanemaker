@@ -534,5 +534,17 @@ namespace LM
             return rtn;
         }
     }
+
+    UILayover::UILayover(odr::Vec3D scenePos, QPixmap icon, QRect ltwh, int equivalentKey)
+    {
+        id = std::stoi(IDGenerator::ForType(IDType::UI_Layover)->GenerateID(this));
+        g_mapViewGL->AddSceneLayover(id, scenePos, icon, ltwh, equivalentKey);
+    }
+
+    UILayover::~UILayover()
+    {
+        g_mapViewGL->RemoveSceneLayover(id);
+        IDGenerator::ForType(IDType::UI_Layover)->FreeID(std::to_string(id));
+    }
 }
 

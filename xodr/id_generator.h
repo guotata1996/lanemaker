@@ -16,6 +16,7 @@ enum class IDType
     Vehicle,
     Graphics,
     Graphics_Temporary,
+    UI_Layover,
     Count
 };
 

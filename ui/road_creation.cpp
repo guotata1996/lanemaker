@@ -251,7 +251,7 @@ bool RoadCreationSession::Update(const LM::MouseAction& act)
 	LM::LanePlan currRightPlan{ PreviewRightOffsetX2(), g_createRoadOption->RightResult().laneCount };
 	if (currLeftPlan != stagedLeftPlan || currRightPlan != stagedRightPlan)
 	{
-		UpdateStagedFromGeometries();
+		UpdateStagedPreview();
 		stagedLeftPlan = currLeftPlan;
 		stagedRightPlan = currRightPlan;
 	}
@@ -271,7 +271,7 @@ bool RoadCreationSession::Update(const LM::MouseAction& act)
 
 			toRefit.geo = std::move(adjustedFit);
 
-			UpdateStagedFromGeometries();
+			UpdateStagedPreview();
 		}
 		flexBoundaryPreview.reset();
 		flexRefLinePreview.reset();
@@ -290,13 +290,13 @@ bool RoadCreationSession::Update(const LM::MouseAction& act)
 			{
 				auto newEnd = flexGeo->get_end_pos();
 				auto newHdg = flexGeo->get_end_hdg();
-				directionHandle = std::make_unique<DirectionHandle>(
-					odr::Vec3D{ newEnd[0], newEnd[1], flexEndElevation }, newHdg);
+				auto newEnd3 = odr::Vec3D{ newEnd[0], newEnd[1], flexEndElevation };
+				directionHandle = std::make_unique<DirectionHandle>(newEnd3, newHdg);
 				stagedGeometries.push_back(StagedGeometry
 					{
 						std::move(flexGeo), flexEndElevation
 					}); // Do stage
-				UpdateStagedFromGeometries();
+				UpdateStagedPreview();
 			}
 			if (!joinAtEnd.expired())
 			{
@@ -310,39 +310,36 @@ bool RoadCreationSession::Update(const LM::MouseAction& act)
 	return true;
 }
 
-bool RoadCreationSession::Update(const LM::KeyPressAction& act)
+bool RoadCreationSession::Cancel()
 {
-	if (act.key == Qt::Key_Escape)
+	if (!stagedGeometries.empty())
 	{
-		if (!stagedGeometries.empty())
+		// Unstage one
+		stagedGeometries.pop_back();
+		if (stagedGeometries.empty())
 		{
-			// Unstage one
-			stagedGeometries.pop_back();
-			if (stagedGeometries.empty())
-			{
-				directionHandle.reset();
-			}
-			else
-			{
-				auto newEnd = stagedGeometries.back().geo->get_end_pos();
-				auto newHdg = stagedGeometries.back().geo->get_end_hdg();
-				directionHandle = std::make_unique<DirectionHandle>(
-					odr::Vec3D{ newEnd[0], newEnd[1], stagedGeometries.back().endEleveation}, newHdg);
-			}
-			UpdateFlexGeometry();
-			UpdateStagedFromGeometries();
-		}
-		else if (startPos.has_value())
-		{
-			startPos.reset();
-			extendFromStart.reset();
-			UpdateFlexGeometry();
+			directionHandle.reset();
 		}
 		else
 		{
-			// quit session
-			return false;
+			auto newEnd = stagedGeometries.back().geo->get_end_pos();
+			auto newHdg = stagedGeometries.back().geo->get_end_hdg();
+			directionHandle = std::make_unique<DirectionHandle>(
+				odr::Vec3D{ newEnd[0], newEnd[1], stagedGeometries.back().endEleveation}, newHdg);
 		}
+		UpdateFlexGeometry();
+		UpdateStagedPreview();
+	}
+	else if (startPos.has_value())
+	{
+		startPos.reset();
+		extendFromStart.reset();
+		UpdateFlexGeometry();
+	}
+	else
+	{
+		// quit session
+		return false;
 	}
 	return true;
 }
@@ -628,7 +625,7 @@ void RoadCreationSession::UpdateFlexGeometry()
 	}
 }
 
-void RoadCreationSession::UpdateStagedFromGeometries()
+void RoadCreationSession::UpdateStagedPreview()
 {
 	odr::Line3D stagedRefLinePath, stagedBoundaryPathL, stagedBoundaryPathR;
 
@@ -638,10 +635,18 @@ void RoadCreationSession::UpdateStagedFromGeometries()
 		GenerateHintLines(resultRefLine, stagedRefLinePath, stagedBoundaryPathR, stagedBoundaryPathL);
 		stagedRefLinePreview.emplace(stagedRefLinePath, 0.25, Qt::darkGreen);
 		stagedBoundaryPreview.emplace(stagedBoundaryPathR, stagedBoundaryPathL, Qt::gray);
+
+        auto end = stagedGeometries.back().geo->get_end_pos();
+        odr::Vec3D btnPos{ end[0], end[1], stagedGeometries.back().endEleveation + 10.0 };
+    
+		confirmButton.emplace(btnPos, QPixmap(":/icons/confirm.png"), QRect(-40, -60, 60, 60), Qt::Key_Space);
+		cancelButton.emplace(btnPos, QPixmap(":/icons/cancel.png"), QRect(40, -60, 60, 60), Qt::Key_Escape);
 	}
 	else
 	{
 		stagedRefLinePreview.reset();
 		stagedBoundaryPreview.reset();
+		confirmButton.reset();
+		cancelButton.reset();
 	}
 }
