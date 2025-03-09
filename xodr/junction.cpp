@@ -14,7 +14,7 @@
 namespace LM
 {
     AbstractJunction::AbstractJunction() :
-        generated("", IDGenerator::ForType(IDType::Junction)->GenerateID(this), odr::JunctionType::Common)
+        generated("", std::to_string(IDGenerator::ForType(IDType::Junction)->GenerateID(this)), odr::JunctionType::Common)
     {
         generated.name = "Junction " + generated.id;
         if (std::stoi(ID()) >= MaxJunctionID)
@@ -26,7 +26,7 @@ namespace LM
     AbstractJunction::AbstractJunction(const odr::Junction& serialized) :
         generated(serialized)
     {
-        IDGenerator::ForType(IDType::Junction)->TakeID(ID(), this);
+        IDGenerator::ForType(IDType::Junction)->TakeID(std::stoi(ID()), this);
     }
 
     int AbstractJunction::Attach(ConnectionInfo conn)
@@ -132,7 +132,7 @@ namespace LM
             }
 
             clearLinkage(ID(), onlyRoad->ID());
-            IDGenerator::ForType(IDType::Road)->NotifyChange(onlyRoad->ID());
+            IDGenerator::ForType(IDType::Road)->NotifyChange(std::stoi(onlyRoad->ID()));
             formedFrom.clear();
             // Junction will then be destroyed
         }
@@ -268,7 +268,7 @@ namespace LM
 
         if (!ID().empty())
         {
-            IDGenerator::ForType(IDType::Junction)->FreeID(ID());
+            IDGenerator::ForType(IDType::Junction)->FreeID(std::stoi(ID()));
         }
     }
 
@@ -343,7 +343,7 @@ namespace LM
 #endif
         GenerateSignalPhase();
 
-        IDGenerator::ForType(IDType::Junction)->NotifyChange(ID());
+        IDGenerator::ForType(IDType::Junction)->NotifyChange(std::stoi(ID()));
 
         return generationError;
     }
@@ -653,7 +653,7 @@ namespace LM
                     throw std::logic_error("DirectJunction::CreateFrom Invalid contact point");
                 }
                 clearLinkage(ID(), connectedRoad->ID());
-                IDGenerator::ForType(IDType::Road)->NotifyChange(connectedRoad->ID());
+                IDGenerator::ForType(IDType::Road)->NotifyChange(std::stoi(connectedRoad->ID()));
             }
             formedFrom.clear();
             // Junction will then be destroyed
@@ -673,7 +673,7 @@ namespace LM
                 connectedRoad->successorJunction = shared_from_this();
                 connectedRoad->generated.successor = odr::RoadLink(ID(), odr::RoadLink::Type_Junction);
             }
-            IDGenerator::ForType(IDType::Road)->NotifyChange(connectedRoad->ID());
+            IDGenerator::ForType(IDType::Road)->NotifyChange(std::stoi(connectedRoad->ID()));
         }
 
         generated.id_to_connection.clear();
@@ -737,7 +737,7 @@ namespace LM
         }
 #endif
 
-        IDGenerator::ForType(IDType::Junction)->NotifyChange(ID());
+        IDGenerator::ForType(IDType::Junction)->NotifyChange(std::stoi(ID()));
 
         return JunctionError::Junction_NoError;
     }

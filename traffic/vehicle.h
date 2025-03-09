@@ -54,7 +54,7 @@ public:
 
     std::string Log();
 
-    const std::string ID;
+    const uint32_t ID;
 
 private:
     void updateNavigation(const odr::OpenDriveMap& map, const odr::RoutingGraph& routingGraph,

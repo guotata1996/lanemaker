@@ -31,10 +31,10 @@ public:
     static void Reset();
 
     size_t size() const;
-    std::string GenerateID(void* object); // Added to changeList
-    void NotifyChange(const std::string&);  // Added to changeList
-    bool FreeID(const std::string&);  // Added to changeList
-    void TakeID(std::string id, void* object); // Maintain ID from serialized
+    uint32_t GenerateID(void* object); // Added to changeList
+    void NotifyChange(uint32_t);  // Added to changeList
+    bool FreeID(uint32_t);  // Added to changeList
+    void TakeID(uint32_t, void* object); // Maintain ID from serialized
 
     template <class T>
     T* GetByID(std::string sid)

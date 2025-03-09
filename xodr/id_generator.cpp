@@ -30,7 +30,7 @@ size_t IDGenerator::size() const
     return assignTo.size();
 }
 
-std::string IDGenerator::GenerateID(void* object)
+uint32_t IDGenerator::GenerateID(void* object)
 {
     size_t newID = assigned.size();
     for (size_t i = 0; i != assigned.size(); ++i)
@@ -54,12 +54,11 @@ std::string IDGenerator::GenerateID(void* object)
 
     assignTo.emplace(newID, object);
     changeList[newID] = object;
-    return std::to_string(newID);
+    return newID;
 }
 
-void IDGenerator::NotifyChange(const std::string& sid)
+void IDGenerator::NotifyChange(uint32_t id)
 {
-    auto id = static_cast<size_t>(std::atoi(sid.c_str()));
     auto it = assignTo.find(id);
     if (it == assignTo.end())
     {
@@ -68,9 +67,8 @@ void IDGenerator::NotifyChange(const std::string& sid)
     changeList[id] = it->second;
 }
 
-bool IDGenerator::FreeID(const std::string& sid)
+bool IDGenerator::FreeID(uint32_t id)
 {
-    auto id = static_cast<size_t>(std::atoi(sid.c_str()));
     if (assigned.size() <= id || !assignTo.at(id))
     {
         // ID does not exist
@@ -89,9 +87,8 @@ std::map<size_t, void*> IDGenerator::ConsumeChanges()
     return copy;
 }
 
-void IDGenerator::TakeID(std::string sid, void* object)
+void IDGenerator::TakeID(uint32_t id, void* object)
 {
-    auto id = static_cast<size_t>(std::atoi(sid.c_str()));
     if (assigned.size() <= id)
     {
         assigned.resize(id + 1, false);

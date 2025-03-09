@@ -22,7 +22,7 @@ namespace LM
     bool Road::ClearingMap = false;
 
     Road::Road(const LaneProfile& p, std::unique_ptr<odr::RoadGeometry> l) :
-        generated(IDGenerator::ForType(IDType::Road)->GenerateID(this), 0, "-1")
+        generated(std::to_string(IDGenerator::ForType(IDType::Road)->GenerateID(this)), 0, "-1")
     {
         if (std::stoi(ID()) >= MaxRoadID)
         {
@@ -35,7 +35,7 @@ namespace LM
     }
 
     Road::Road(const LaneProfile& p, odr::RefLine& l) :
-        generated(IDGenerator::ForType(IDType::Road)->GenerateID(this), 0, "-1")
+        generated(std::to_string(IDGenerator::ForType(IDType::Road)->GenerateID(this)), 0, "-1")
     {
         if (std::stoi(ID()) >= MaxRoadID)
         {
@@ -49,7 +49,7 @@ namespace LM
     Road::Road(const odr::Road& serialized):
         generated(serialized)
     {
-        IDGenerator::ForType(IDType::Road)->TakeID(ID(), this);
+        IDGenerator::ForType(IDType::Road)->TakeID(std::stoi(ID()), this);
     }
 
     void Road::Generate(bool notifyJunctions)
@@ -60,7 +60,7 @@ namespace LM
         generated.PlaceMarkings();
         generated.DeriveLaneBorders();
 
-        IDGenerator::ForType(IDType::Road)->NotifyChange(ID());
+        IDGenerator::ForType(IDType::Road)->NotifyChange(std::stoi(ID()));
 
         if (notifyJunctions)
         {
@@ -134,7 +134,7 @@ namespace LM
         if (!ID().empty())
         {
             spdlog::trace("del road {}", ID());
-            IDGenerator::ForType(IDType::Road)->FreeID(ID());
+            IDGenerator::ForType(IDType::Road)->FreeID(std::stoi(ID()));
 #ifndef G_TEST
             s_to_section_graphics.clear();
             g_mapViewGL->RemoveObject(std::stoi(ID()));

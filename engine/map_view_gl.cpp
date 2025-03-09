@@ -61,8 +61,7 @@ namespace LM
     unsigned int MapViewGL::AddQuads(const odr::Line3D& lBorder, const odr::Line3D& rBorder, QColor color, unsigned int objID)
     {
         bool temporary = objID == -1;
-        unsigned int gid = std::stoi(IDGenerator::ForType(temporary ? IDType::Graphics_Temporary : IDType::Graphics)
-            ->GenerateID(this));
+        auto gid = IDGenerator::ForType(temporary ? IDType::Graphics_Temporary : IDType::Graphics)->GenerateID(this);
         bool success = true;
         if (temporary)
         {
@@ -122,8 +121,7 @@ namespace LM
     unsigned int MapViewGL::AddPoly(const odr::Line3D& boundary, QColor color, unsigned int objID)
     {
         bool temporary = objID == -1;
-        auto gid = std::stoi(IDGenerator::ForType(temporary ? IDType::Graphics_Temporary : IDType::Graphics)
-            ->GenerateID(this));
+        auto gid = IDGenerator::ForType(temporary ? IDType::Graphics_Temporary : IDType::Graphics)->GenerateID(this);
         bool success = true;
         if (temporary)
         {
@@ -143,8 +141,7 @@ namespace LM
     unsigned int MapViewGL::AddColumn(const odr::Line3D& boundary, double h, QColor color, unsigned int objID)
     {
         bool temporary = objID == -1;
-        auto gid = std::stoi(IDGenerator::ForType(temporary ? IDType::Graphics_Temporary : IDType::Graphics)
-            ->GenerateID(this));
+        auto gid = IDGenerator::ForType(temporary ? IDType::Graphics_Temporary : IDType::Graphics)->GenerateID(this);
         bool success = true;
         if (temporary)
         {
@@ -191,7 +188,7 @@ namespace LM
         {
             temporaryBuffer->RemoveItem(id);
         }
-        IDGenerator::ForType(temporary ? IDType::Graphics_Temporary : IDType::Graphics)->FreeID(std::to_string(id));
+        IDGenerator::ForType(temporary ? IDType::Graphics_Temporary : IDType::Graphics)->FreeID(id);
     }
 
     void MapViewGL::RemoveObject(unsigned int objectID)
@@ -213,7 +210,7 @@ namespace LM
     {
         odr::Line3D lBorder, rBorder;
         LineToQuads(line, width, lBorder, rBorder);
-        auto gid = std::stoi(IDGenerator::ForType(IDType::Graphics_Temporary)->GenerateID(this));
+        auto gid = IDGenerator::ForType(IDType::Graphics_Temporary)->GenerateID(this);
         backgroundBuffer->AddQuads(gid, 0, lBorder, rBorder, color);
         return gid;
     }
@@ -226,11 +223,13 @@ namespace LM
     void MapViewGL::AddSceneLayover(uint32_t id, odr::Vec3D scenePos, QPixmap icon, QRect ltwh, int syntax)
     {
 		sceneTiedLayovers.emplace(id, SceneTiedLayover{ id, scenePos, ltwh, icon, syntax });
+        update();
     }
 
     void MapViewGL::RemoveSceneLayover(uint32_t id)
     {
         sceneTiedLayovers.erase(id);
+        update();
     }
 
     int MapViewGL::VBufferUseage_pct() const

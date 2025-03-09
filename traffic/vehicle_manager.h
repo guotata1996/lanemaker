@@ -26,7 +26,7 @@ private slots:
 private:
     void Spawn();
 
-    std::map<std::string, std::shared_ptr<Vehicle>> allVehicles;
+    std::map<uint32_t, std::shared_ptr<Vehicle>> allVehicles;
 
     std::map<std::string, std::shared_ptr<LM::Signal>> allSignals;
 

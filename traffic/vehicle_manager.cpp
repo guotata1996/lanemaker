@@ -205,7 +205,7 @@ void VehicleManager::step()
         }
     }
 
-    std::set<std::string> inactives;
+    std::set<uint32_t> inactives;
     for (auto& id_v: allVehicles)
     {
         auto vehicle = id_v.second;
@@ -217,7 +217,7 @@ void VehicleManager::step()
         }
     }
 
-    std::vector<std::string> to_erase;
+    std::vector<uint32_t> to_erase;
     for (auto& id_v : allVehicles)
     {
         auto id = id_v.first;

@@ -18,12 +18,14 @@ namespace LM
 	class AbstractGraphicsItem;
 	class PermanentGraphics;
 	class InstancedGraphics;
+	class UILayover;
 
 	class MapViewGL : public QOpenGLWidget, QOpenGLExtraFunctions
 	{
 		friend class AbstractGraphicsItem;
 		friend class PermanentGraphics;
 		friend class InstancedGraphics;
+		friend class UILayover;
 
 		Q_OBJECT
 	public:
@@ -36,9 +38,6 @@ namespace LM
 		void UpdateObjectID(unsigned int graphicsID, unsigned int objectID);
 		uint8_t GetObjectFlag(unsigned int objectID);
 		void RemoveObject(unsigned int objectID);
-
-		void AddSceneLayover(uint32_t id, odr::Vec3D scenePos, QPixmap icon, QRect lwOffset, int syntax);
-		void RemoveSceneLayover(uint32_t id);
 
 		void SetViewFromReplay(Transform3D t);
 		void UpdateRayHit(QPoint screen, bool fromReplay=false);
@@ -69,6 +68,10 @@ namespace LM
 		// Background
 		unsigned int AddBackgroundLine(const odr::Line3D& line, double width, QColor color);
 		void RemoveBackground(unsigned int);
+
+		// Layover
+		void AddSceneLayover(uint32_t id, odr::Vec3D scenePos, QPixmap icon, QRect lwOffset, int syntax);
+		void RemoveSceneLayover(uint32_t id);
 
 		void mousePressEvent(QMouseEvent* event) override;
 		void mouseDoubleClickEvent(QMouseEvent* event) override;

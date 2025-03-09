@@ -444,7 +444,7 @@ bool RoadCreationSession::Complete()
 					auto errorCode = junction->CreateFrom(junctionInfo);
 					if (errorCode == LM::Junction_NoError)
 					{
-						IDGenerator::ForType(IDType::Road)->NotifyChange(toExtend->ID());
+						IDGenerator::ForType(IDType::Road)->NotifyChange(std::stoi(toExtend->ID()));
 						break;
 					}
 				}
@@ -491,7 +491,7 @@ bool RoadCreationSession::Complete()
 				auto errorCode = junction->CreateFrom(junctionInfo);
 				if (errorCode == LM::Junction_NoError)
 				{
-					IDGenerator::ForType(IDType::Road)->NotifyChange(toJoin->ID());
+					IDGenerator::ForType(IDType::Road)->NotifyChange(std::stoi(toJoin->ID()));
 					break;
 				}
 			}
