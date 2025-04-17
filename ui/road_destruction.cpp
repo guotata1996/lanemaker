@@ -38,7 +38,8 @@ bool RoadDestroySession::Update(const LM::MouseAction& evt)
         }
         else
         {
-            if (evt.type == QEvent::Type::MouseButtonPress)
+            if (evt.type == QEvent::Type::MouseButtonPress ||
+                LM::touchScreen && evt.type == QEvent::Type::MouseButtonRelease && s2 == nullptr)
             {
                 s2 = std::make_unique<double>(GetAdjustedS());
             }
@@ -77,7 +78,7 @@ bool RoadDestroySession::Cancel()
 
 bool RoadDestroySession::Complete()
 {
-    if (s2 == nullptr)
+    if (s2 == nullptr || *s2 == *s1)
     {
         return true;
     }

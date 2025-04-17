@@ -37,6 +37,8 @@ public:
 
     void GoToSimulationMode(bool enabled); // force into drag mode
 
+    LM::EditMode GetEditMode() const;
+
     LM::MapViewGL* mapViewGL;
 
 signals:

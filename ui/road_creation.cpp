@@ -24,18 +24,21 @@ bool RoadCreationSession::DirectionHandle::Update(const LM::MouseAction& act)
 	{
 		dragging = true;
 		deltaRotation = angle - std::atan2(hitPos[1], hitPos[0]);
+		return true;
 	}
 	else if (act.type == QEvent::Type::MouseButtonRelease && dragging)
 	{
 		dragging = false;
 		UpdateGraphics();
+		return true;
 	}
 	else if (dragging)
 	{
 		angle = std::atan2(hitPos[1], hitPos[0]) + deltaRotation;
 		UpdateGraphics();
+		return true;
 	}
-	return dragging || hit;
+	return hit;
 }
 
 double RoadCreationSession::DirectionHandle::Rotation() const
@@ -278,15 +281,25 @@ bool RoadCreationSession::Update(const LM::MouseAction& act)
 	}
 	else
 	{
-		if (act.type == QEvent::Type::MouseButtonPress &&
-			act.button == Qt::MouseButton::LeftButton)
+		bool pressTrigger = !LM::touchScreen &&
+			(act.type == QEvent::Type::MouseButtonPress &&
+				act.button == Qt::MouseButton::LeftButton);
+		bool releaseTrigger = LM::touchScreen &&
+			(act.type == QEvent::Type::MouseButtonRelease
+				&& act.button == Qt::MouseButton::LeftButton);
+		bool startFomBlank = !startPos.has_value();
+		if (startFomBlank)
 		{
-			if (!startPos.has_value())
+			if (act.type == QEvent::Type::MouseButtonPress
+				&& act.button == Qt::MouseButton::LeftButton)
 			{
 				startElevation = CursorElevation();
 				startPos.emplace(snappedPos);
 			}
-			else if (flexGeo != nullptr)
+		}
+		if (!startFomBlank && (pressTrigger || releaseTrigger))
+		{
+			if (flexGeo != nullptr && flexGeo->length > 1.0)
 			{
 				auto newEnd = flexGeo->get_end_pos();
 				auto newHdg = flexGeo->get_end_hdg();
@@ -312,7 +325,9 @@ bool RoadCreationSession::Update(const LM::MouseAction& act)
 
 bool RoadCreationSession::Cancel()
 {
-	if (!stagedGeometries.empty())
+	// in touch screen mode, if all's left is startPos, quit session
+	if (!LM::touchScreen && !stagedGeometries.empty() ||
+		LM::touchScreen && stagedGeometries.size() > 1)
 	{
 		// Unstage one
 		stagedGeometries.pop_back();
@@ -327,14 +342,24 @@ bool RoadCreationSession::Cancel()
 			directionHandle = std::make_unique<DirectionHandle>(
 				odr::Vec3D{ newEnd[0], newEnd[1], stagedGeometries.back().endEleveation}, newHdg);
 		}
-		UpdateFlexGeometry();
+		if (LM::touchScreen)
+		{
+			flexRefLinePreview.reset();
+			flexBoundaryPreview.reset();
+		}
+		else
+		{
+			UpdateFlexGeometry();
+		}
 		UpdateStagedPreview();
 	}
-	else if (startPos.has_value())
+	else if (!LM::touchScreen && startPos.has_value())
 	{
 		startPos.reset();
 		extendFromStart.reset();
 		UpdateFlexGeometry();
+		confirmButton.reset();
+        cancelButton.reset();
 	}
 	else
 	{
@@ -637,10 +662,10 @@ void RoadCreationSession::UpdateStagedPreview()
 		stagedBoundaryPreview.emplace(stagedBoundaryPathR, stagedBoundaryPathL, Qt::gray);
 
         auto end = stagedGeometries.back().geo->get_end_pos();
-        odr::Vec3D btnPos{ end[0], end[1], stagedGeometries.back().endEleveation + 10.0 };
+        odr::Vec3D buttonPos{ end[0], end[1], stagedGeometries.back().endEleveation + 10.0 };
     
-		confirmButton.emplace(btnPos, QPixmap(":/icons/confirm.png"), QRect(-40, -60, 60, 60), Qt::Key_Space);
-		cancelButton.emplace(btnPos, QPixmap(":/icons/cancel.png"), QRect(40, -60, 60, 60), Qt::Key_Escape);
+		confirmButton.emplace(buttonPos, QPixmap(":/icons/confirm.png"), QRect(-40, -60, 60, 60), Qt::Key_Space);
+		cancelButton.emplace(buttonPos, QPixmap(":/icons/cancel.png"), QRect(40, -60, 60, 60), Qt::Key_Escape);
 	}
 	else
 	{
@@ -648,5 +673,12 @@ void RoadCreationSession::UpdateStagedPreview()
 		stagedBoundaryPreview.reset();
 		confirmButton.reset();
 		cancelButton.reset();
+
+		if (startPos.has_value())
+		{
+            odr::Vec3D buttonPos{ startPos.value()[0], startPos.value()[1], startElevation + 10.0 };
+            confirmButton.emplace(buttonPos, QPixmap(":/icons/confirm.png"), QRect(-40, -60, 60, 60), Qt::Key_Space);
+            cancelButton.emplace(buttonPos, QPixmap(":/icons/cancel.png"), QRect(40, -60, 60, 60), Qt::Key_Escape);
+		}
 	}
 }

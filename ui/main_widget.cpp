@@ -333,6 +333,11 @@ void MainWidget::SetEditMode(LM::EditMode aMode)
     }
 }
 
+LM::EditMode MainWidget::GetEditMode() const
+{
+    return editMode;
+}
+
 void MainWidget::elegantlyHandleException(std::exception e)
 {
     LM::ActionManager::Instance()->MarkException();

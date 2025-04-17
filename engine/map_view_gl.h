@@ -4,6 +4,7 @@
 #include "Camera.h"
 #include "gl_buffer_manage.h"
 #include "action_defs.h"
+#include "touch_controller.h"
 
 #include <QOpenGLWidget>
 #include <qvector2d.h>
@@ -26,6 +27,7 @@ namespace LM
 		friend class PermanentGraphics;
 		friend class InstancedGraphics;
 		friend class UILayover;
+		friend class TouchController;
 
 		Q_OBJECT
 	public:
@@ -43,7 +45,7 @@ namespace LM
 		void UpdateRayHit(QPoint screen, bool fromReplay=false);
 		int VBufferUseage_pct() const;
 		float Zoom() const;
-		
+
 	signals:
 		void MousePerformedAction(LM::MouseAction); // excluding view adjustment / Scene button event
         void KeyPerformedAction(LM::KeyPressAction);// excluding view adjustment, including Scene button event
@@ -78,6 +80,8 @@ namespace LM
 		void mouseMoveEvent(QMouseEvent* event) override;
 		void mouseReleaseEvent(QMouseEvent* event) override;
 		void wheelEvent(QWheelEvent* event) override;
+
+		bool event(QEvent* event) override;
 		
 #ifdef __linux__
 		public:
@@ -90,6 +94,8 @@ namespace LM
 		QPoint lastMousePos;
 		std::optional<QVector3D> dragRotFixedRay;
 		bool dragPan = false;
+		std::optional<TouchController> touchController;
+		std::optional<int> touchSessionType;
 
 		QVector3D PointerDirection(QPoint cursor) const;
 
@@ -116,9 +122,11 @@ namespace LM
 			QPixmap icon;
 			int syntax;
 
-			QRect renderedRect;
+			QRect renderedRect(QMatrix4x4 worldToView) const;
 		};
 		std::map<uint32_t, SceneTiedLayover> sceneTiedLayovers;
+
+        bool ignoreNextMouseRelease; // for scene buttons
 	};
 
 	extern MapViewGL* g_mapViewGL;
@@ -129,4 +137,5 @@ namespace LM
 	extern odr::Vec3D g_CameraPosition;
 	extern int g_createRoadElevationOption;
 	extern unsigned int g_PointerVehicle;
+	extern bool touchScreen;
 }

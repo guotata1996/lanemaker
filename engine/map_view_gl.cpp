@@ -14,6 +14,8 @@
 #include "vehicle.h"
 #include "junction.h"
 
+#include <spdlog/spdlog.h>
+
 namespace LM
 {
     MapViewGL* g_mapViewGL;
@@ -24,6 +26,7 @@ namespace LM
     odr::Vec3D g_CameraPosition;
     int g_createRoadElevationOption;
     unsigned int g_PointerVehicle;
+    bool touchScreen;
 
     MapViewGL::MapViewGL() :
         permanentBuffer(std::make_unique<GLBufferManage>(MaxRoadVertices)), 
@@ -38,6 +41,8 @@ namespace LM
         g_mapViewGL = this;
         g_createRoadElevationOption = 0;
         ResetCamera();
+        touchScreen = false;
+        setAttribute(Qt::WA_AcceptTouchEvents);
     }
 
     void MapViewGL::CleanupResources()
@@ -293,14 +298,7 @@ namespace LM
         for (auto& id_btn : sceneTiedLayovers)
         {
             auto& btn = id_btn.second;
-            auto homo = m_worldToView * QVector4D(btn.pos[0], btn.pos[1], btn.pos[2], 1.0);
-            int screenX = (homo.x() / homo.w() + 1) / 2 * width();
-            int screenY = (1 - homo.y() / homo.w()) / 2 * height();
-            auto rect = btn.lwOffset;
-            QRect screenRect(screenX - rect.width() / 2 + rect.left(), 
-                screenY - rect.height() / 2 + rect.top(), rect.width(), rect.height());
-            painter.drawPixmap(screenRect, btn.icon);
-            btn.renderedRect = screenRect;
+            painter.drawPixmap(btn.renderedRect(m_worldToView), btn.icon);
         }
         painter.end();
     }
@@ -323,7 +321,7 @@ namespace LM
             int pressedButton = 0;
             for (auto id_layover : sceneTiedLayovers)
             {
-                if (id_layover.second.renderedRect.contains(event->pos()))
+                if (id_layover.second.renderedRect(m_worldToView).contains(event->pos()))
                 {
                     pressedButton = id_layover.second.syntax;
                     break;
@@ -340,6 +338,7 @@ namespace LM
                 LM::ActionManager::Instance()->Record(event);
                 emit(MousePerformedAction(event));
             }
+            ignoreNextMouseRelease = pressedButton != 0;
         }
     }
 
@@ -456,8 +455,11 @@ namespace LM
         }
         else
         {
-            LM::ActionManager::Instance()->Record(event);
-            emit(MousePerformedAction(event));
+            if (!ignoreNextMouseRelease)
+            {
+                LM::ActionManager::Instance()->Record(event);
+                emit(MousePerformedAction(event));
+            }
         }
     }
 
@@ -531,6 +533,71 @@ namespace LM
         }
         // update cached world2view matrix
         update();
+    }
+
+    bool MapViewGL::event(QEvent* event)
+    {
+        if (event->type() == QEvent::TouchBegin ||
+            event->type() == QEvent::TouchUpdate ||
+            event->type() == QEvent::TouchEnd) 
+        {
+            touchScreen = true;
+            QTouchEvent* touchEvent = static_cast<QTouchEvent*>(event);
+            const QList<QTouchEvent::TouchPoint>& points = touchEvent->touchPoints();
+
+
+            if (event->type() == QEvent::TouchEnd)
+            {
+                touchSessionType.reset();
+            }
+            else if (!touchSessionType.has_value())
+            {
+                touchSessionType.emplace(std::min(points.count(), 2));
+            }
+
+            // TODO: when a single-touch session becomes multi-touch, trigger a MouseRelease
+            if (touchSessionType > points.count())
+            {
+                // During a multi-touch session, only process multi-touch events
+                return true;
+            }
+
+            if (points.count() == 2 ||
+                points.count() == 1 && MainWidget::Instance()->GetEditMode() == LM::EditMode::Mode_None)
+            {
+                // check if it's a view adjustment event
+                if (event->type() == QEvent::TouchUpdate)
+                {
+                    if (!touchController.has_value())
+                    {
+                        touchController = TouchController();
+                    }
+                    touchController->Update(points, m_camera);
+                    update();
+                }
+                else
+                {
+                    touchController.reset();
+                }
+            }
+            else
+            {
+                touchController.reset();
+            }
+            return true;
+        }
+
+        if (touchController.has_value() &&
+            (event->type() == QEvent::MouseMove ||
+                event->type() == QEvent::MouseButtonPress ||
+                event->type() == QEvent::MouseButtonDblClick ||
+                event->type() == QEvent::MouseButtonRelease))
+        {
+            // During touch view adjument, disable editing
+            return true;
+        }
+
+        return QWidget::event(event);
     }
 
     QVector3D MapViewGL::PointerDirection(QPoint cursor) const
@@ -646,5 +713,16 @@ namespace LM
         };
 
         g_PointerVehicle = pointerVehicle;
+    }
+
+    QRect MapViewGL::SceneTiedLayover::renderedRect(QMatrix4x4 worldToView) const
+    {
+        auto homo = worldToView * QVector4D(pos[0], pos[1], pos[2], 1.0);
+        int screenX = (homo.x() / homo.w() + 1) / 2 * g_mapViewGL->width();
+        int screenY = (1 - homo.y() / homo.w()) / 2 * g_mapViewGL->height();
+        auto rect = lwOffset;
+        return QRect(screenX - rect.width() / 2 + rect.left(),
+            screenY - rect.height() / 2 + rect.top(),
+            rect.width(), rect.height());
     }
 }
