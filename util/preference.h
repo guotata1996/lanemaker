@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <QDialog>
+#include "AnimatedPopupDialog.h"
 
 struct UserPreference
 {
@@ -16,7 +16,7 @@ struct UserPreference
     }
 };
 
-class PreferenceWindow: public QDialog
+class PreferenceWindow: public AnimatedPopupDialog
 {
 Q_OBJECT
 public:

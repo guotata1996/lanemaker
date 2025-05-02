@@ -9,13 +9,14 @@
 #include <cereal/types/string.hpp>
 #include <cereal/archives/json.hpp>
 
+#include <spdlog/spdlog.h>
+
 UserPreference g_preference;
 
 PreferenceWindow::PreferenceWindow(QWidget* parent)
-    : QDialog(parent), contentPopulated(false)
+    : AnimatedPopupDialog(QSize(500, 400), parent), contentPopulated(false)
 {
     setWindowTitle("Preference");
-    setMinimumWidth(400);
 
     auto defaultSave = LM::DefaultSaveFolder() / "preference.json";
     if (std::filesystem::exists(defaultSave))
@@ -75,7 +76,7 @@ void PreferenceWindow::showEvent(QShowEvent* e)
                 emit ToggleAA(c); });
     }
 
-    QDialog::showEvent(e);
+    AnimatedPopupDialog::showEvent(e);
 }
 
 void PreferenceWindow::closeEvent(QCloseEvent* e)
@@ -85,5 +86,5 @@ void PreferenceWindow::closeEvent(QCloseEvent* e)
     cereal::JSONOutputArchive oarchive(outFile);
     oarchive(g_preference);
 
-    QDialog::closeEvent(e);
+    AnimatedPopupDialog::closeEvent(e);
 }
