@@ -27,6 +27,8 @@ namespace LM
 		friend class PermanentGraphics;
 		friend class InstancedGraphics;
 		friend class UILayover;
+
+		friend class FreeRotController;
 		friend class TouchController;
 
 		Q_OBJECT
@@ -92,9 +94,9 @@ namespace LM
 		static void LineToQuads(const odr::Line3D& border, double width, odr::Line3D& outLSide, odr::Line3D& outRSide);
 
 		QPoint lastMousePos;
-		std::optional<QVector3D> dragRotFixedRay;
 		bool dragPan = false;
-		std::optional<TouchController> touchController;
+		std::optional<FreeRotController> freeRotateSession;
+		std::optional<TouchController> touchSession;
 		std::optional<int> touchSessionType;
 
 		QVector3D PointerDirection(QPoint cursor) const;

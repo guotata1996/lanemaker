@@ -9,26 +9,27 @@ namespace LM
 {
     void TouchController::Update(QList<QTouchEvent::TouchPoint> points, Camera& camera)
     {
-        if (touchMode != 0 && touchMode != points.size())
+        if (touchMode != TouchMode::UnDetermined && static_cast<int>(touchMode) != points.size())
         {
-            touchMode = 0;
+            touchMode = TouchMode::UnDetermined;
         }
+
+        QVector2D p1, p2;
 
         if (points.size() >= 1)
             p1 = QVector2D(points[0].pos());
         if (points.size() >= 2)
             p2 = QVector2D(points[1].pos());
 
-        if (touchMode == 0)
+        if (touchMode == TouchMode::UnDetermined)
         {
             if (points.size() == 1)
             {
-                touchMode = 1;
-                dragRotFixedRay = g_mapViewGL->PointerDirection(p1.toPoint());
+                touchMode = TouchMode::SingleTouch;
             }
             else if (points.size() == 2)
             {
-                touchMode = 2;
+                touchMode = TouchMode::DualTouch;
 
                 initialRotation = camera.rotation();
                 initialHandleRotation = std::atan2(p2.y() - p1.y(), p2.x() - p1.x());
@@ -37,7 +38,11 @@ namespace LM
             }
         }
 
-        if (touchMode == 2)
+        if (touchMode == TouchMode::SingleTouch)
+        {
+            freeRotSession.Update(p1, camera);
+        }
+        else if (touchMode == TouchMode::DualTouch)
         {
             // Rotate
             auto handleRotation = std::atan2(p2.y() - p1.y(), p2.x() - p1.x());
@@ -58,75 +63,76 @@ namespace LM
             camera.translate(lastGroundPos - currGroundPos);
             lastHandlePos = pm;
         }
+    }
 
-        else if (touchMode == 1)
+    void FreeRotController::Update(QVector2D p, Camera& camera)
+    {
+        if (!initialized)
         {
-            if (p1.x() < 0 || p1.x() > g_mapViewGL->width() ||
-                p1.y() < 0 || p1.y() > g_mapViewGL->height())
+            dragRotFixedRay = g_mapViewGL->PointerDirection(p.toPoint());
+            initialized = true;
+            return;
+        }
+        
+        int i;
+        const int MaxIter = 250;
+        const auto backupRotation = camera.rotation();
+        for (i = 0; i != MaxIter; ++i)
+        {
+            double step = i < MaxIter / 2 ? 1 : 0.1;
+            int tol = i < MaxIter / 2 ? 1 : 3;
+            QPointF rayPixel = g_mapViewGL->PixelLocation(dragRotFixedRay);
+
+            auto xError = std::abs(p.x() - rayPixel.x());
+            auto yError = std::abs(p.y() - rayPixel.y());
+
+            if (xError <= tol && yError <= tol)
             {
-                return;
+                break;
             }
-
-            int i;
-            const int MaxIter = 250;
-            const auto backupRotation = camera.rotation();
-            for (i = 0; i != MaxIter; ++i)
+            if (xError > yError)
             {
-                double step = i < MaxIter / 2 ? 1 : 0.1;
-                int tol = i < MaxIter / 2 ? 1 : 3;
-                QPointF rayPixel = g_mapViewGL->PixelLocation(dragRotFixedRay);
-
-                auto xError = std::abs(p1.x() - rayPixel.x());
-                auto yError = std::abs(p1.y() - rayPixel.y());
-
-                if (xError <= tol && yError <= tol)
+                if (p.x() > rayPixel.x() + tol)
                 {
-                    break;
-                }
-                if (xError > yError)
-                {
-                    if (p1.x() > rayPixel.x() + tol)
-                    {
-                        camera.rotate(step, QVector3D(0, 0, 1));
-                    }
-                    else
-                    {
-                        camera.rotate(-step, QVector3D(0, 0, 1));
-                    }
+                    camera.rotate(step, QVector3D(0, 0, 1));
                 }
                 else
                 {
-                    if (p1.y() > rayPixel.y() + tol)
-                    {
-                        camera.rotate(step, camera.right());
-                    }
-                    else
-                    {
-                        camera.rotate(-step, camera.right());
-                    }
+                    camera.rotate(-step, QVector3D(0, 0, 1));
                 }
             }
-
-            auto rotated = backupRotation.conjugate() * camera.rotation();
-            auto rotatedAngle = 2 * std::acos(rotated.scalar());
-            if (i == MaxIter || rotatedAngle > 0.3)
+            else
             {
-                camera.setRotation(backupRotation);
-                auto dx = static_cast<float>(p1.x() - lastP.x());
-                auto dy = static_cast<float>(p1.y() - lastP.y());
-                dx = dx / g_mapViewGL->width() * 480;
-                dy = dy / g_mapViewGL->height() * 120;
-
-                camera.rotate(dx, QVector3D(0, 0, 1));
-                camera.rotate(dy, camera.right());
+                if (p.y() > rayPixel.y() + tol)
+                {
+                    camera.rotate(step, camera.right());
+                }
+                else
+                {
+                    camera.rotate(-step, camera.right());
+                }
             }
-
-            if (!camera.isRotationAllowed())
-            {
-                camera.setRotation(backupRotation);
-            }
-
-            lastP = p1;
         }
+
+        auto rotated = backupRotation.conjugate()* camera.rotation();
+        auto rotatedAngle = 2 * std::acos(rotated.scalar());
+        if (i == MaxIter || rotatedAngle > 0.3)
+        {
+            camera.setRotation(backupRotation);
+            auto dx = static_cast<float>(p.x() - lastP.x());
+            auto dy = static_cast<float>(p.y() - lastP.y());
+            dx = dx / g_mapViewGL->width() * 480;
+            dy = dy / g_mapViewGL->height() * 120;
+
+            camera.rotate(dx, QVector3D(0, 0, 1));
+            camera.rotate(dy, camera.right());
+        }
+
+        if (!camera.isRotationAllowed())
+        {
+            camera.setRotation(backupRotation);
+        }
+                
+        lastP = p;
     }
 }

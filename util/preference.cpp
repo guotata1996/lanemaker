@@ -9,12 +9,11 @@
 #include <cereal/types/string.hpp>
 #include <cereal/archives/json.hpp>
 
-#include <spdlog/spdlog.h>
-
 UserPreference g_preference;
 
-PreferenceWindow::PreferenceWindow(QWidget* parent)
-    : AnimatedPopupDialog(QSize(500, 400), parent), contentPopulated(false)
+PreferenceWindow::PreferenceWindow(QWidget* parent):
+    AnimatedPopupDialog(QSize(350, 400), true, parent), 
+    contentPopulated(false)
 {
     setWindowTitle("Preference");
 

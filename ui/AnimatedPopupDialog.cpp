@@ -4,14 +4,13 @@
 #include <QScreen>
 #include <QVBoxLayout>
 
-AnimatedPopupDialog::AnimatedPopupDialog(QSize _endSize, QWidget *parent)
-    : endSize(_endSize), QDialog(parent) {
+AnimatedPopupDialog::AnimatedPopupDialog(QSize _endSize, bool _dimming,
+    QWidget *parent)
+    : endSize(_endSize), useDimming(_dimming), QDialog(parent) 
+{
+    setWindowFlags(Qt::Popup);
     resize(endSize),
     setWindowOpacity(0.1);
-}
-
-void AnimatedPopupDialog::enableDimming(bool enabled) {
-    useDimming = enabled;
 }
 
 void AnimatedPopupDialog::createDimmingOverlay() {

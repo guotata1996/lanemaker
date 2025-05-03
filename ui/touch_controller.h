@@ -8,6 +8,18 @@
 
 namespace LM
 {
+    class FreeRotController
+    {
+    public:
+        void Update(QVector2D p, Camera& camera);
+
+    private:
+        QVector3D dragRotFixedRay;
+        QVector2D lastP;
+
+        bool initialized = false;
+    };
+
     class TouchController
     {
         // single-point touch(no p2): rotation mode (only available in View Mode)
@@ -16,18 +28,22 @@ namespace LM
         void Update(QList<QTouchEvent::TouchPoint> points, Camera& camera);
 
     private:
-        QVector2D p1, p2;
+        enum class TouchMode
+        {
+            UnDetermined = 0,
+            SingleTouch = 1,
+            DualTouch = 2
+        };
 
-        // touchMode == 1
-        QVector3D dragRotFixedRay;
-        QVector2D lastP;
+        TouchMode touchMode = TouchMode::UnDetermined;
 
-        // touchMode == 2
+        // SingleTouch
+        FreeRotController freeRotSession;
+
+        // DualTouch
         QQuaternion initialRotation;
         float initialHandleRotation;
         float lastHandleDist;
         QVector2D lastHandlePos;
-
-        int touchMode = 0;
     };
 }

@@ -309,7 +309,8 @@ namespace LM
         if (event->button() == Qt::RightButton && !ctrlPressed)
         {
             lastMousePos = event->pos();
-            dragRotFixedRay = PointerDirection(lastMousePos);
+            freeRotateSession = FreeRotController();
+            freeRotateSession->Update(QVector2D(lastMousePos), m_camera);
         }
         else if (event->button() == Qt::MiddleButton)
         {
@@ -356,72 +357,15 @@ namespace LM
         UpdateRayHit(event->pos());
         
         bool changeViewPoint = true;
-        if (dragRotFixedRay.has_value())
+        if (freeRotateSession.has_value())
         {
             if (event->x() < 0 || event->x() > width() ||
                 event->y() < 0 || event->y() > height())
             {
                 return;
             }
-            
-            int i;
-            const int MaxIter = 250;
-            const auto backupRotation = m_camera.rotation();
-            for (i = 0; i != MaxIter; ++i)
-            {
-                double step = i < MaxIter / 2 ? 1 : 0.1;
-                int tol = i < MaxIter / 2 ? 1 : 3;
-                QPointF rayPixel = PixelLocation(dragRotFixedRay.value());
 
-                auto xError = std::abs(event->x() - rayPixel.x());
-                auto yError = std::abs(event->y() - rayPixel.y());
-
-                if (xError <= tol && yError <= tol)
-                {
-                    break;
-                }
-                if (xError > yError)
-                {
-                    if (event->x() > rayPixel.x() + tol)
-                    {
-                        m_camera.rotate(step, QVector3D(0, 0, 1));
-                    }
-                    else
-                    {
-                        m_camera.rotate(-step, QVector3D(0, 0, 1));
-                    }
-                }
-                else
-                {
-                    if (event->y() > rayPixel.y() + tol)
-                    {
-                        m_camera.rotate(step, m_camera.right());
-                    }
-                    else
-                    {
-                        m_camera.rotate(-step, m_camera.right());
-                    }
-                }                
-            }
-
-            auto rotated = backupRotation.conjugate()* m_camera.rotation();
-            auto rotatedAngle = 2 * std::acos(rotated.scalar());
-            if (i == MaxIter || rotatedAngle > 0.3)
-            {
-                m_camera.setRotation(backupRotation);
-                auto dx = static_cast<float>(event->pos().x() - lastMousePos.x());
-                auto dy = static_cast<float>(event->pos().y() - lastMousePos.y());
-                dx = dx / width() * 480;
-                dy = dy / height() * 120;
-                
-                m_camera.rotate(dx, QVector3D(0, 0, 1));
-                m_camera.rotate(dy, m_camera.right());
-            }
-            
-            if (!m_camera.isRotationAllowed())
-            {
-                m_camera.setRotation(backupRotation);
-            }
+            freeRotateSession->Update(QVector2D(event->pos()), m_camera);
         }
         else if (dragPan)
         {
@@ -448,9 +392,12 @@ namespace LM
 
     void MapViewGL::mouseReleaseEvent(QMouseEvent* event)
     {
-        if (dragRotFixedRay.has_value() || dragPan)
+        if (freeRotateSession.has_value())
         {
-            dragRotFixedRay.reset();
+            freeRotateSession.reset();
+        }
+        else if (dragPan)
+        {
             dragPan = false;
         }
         else
@@ -568,26 +515,26 @@ namespace LM
                 // check if it's a view adjustment event
                 if (event->type() == QEvent::TouchUpdate)
                 {
-                    if (!touchController.has_value())
+                    if (!touchSession.has_value())
                     {
-                        touchController = TouchController();
+                        touchSession = TouchController();
                     }
-                    touchController->Update(points, m_camera);
+                    touchSession->Update(points, m_camera);
                     update();
                 }
                 else
                 {
-                    touchController.reset();
+                    touchSession.reset();
                 }
             }
             else
             {
-                touchController.reset();
+                touchSession.reset();
             }
             return true;
         }
 
-        if (touchController.has_value() &&
+        if (touchSession.has_value() &&
             (event->type() == QEvent::MouseMove ||
                 event->type() == QEvent::MouseButtonPress ||
                 event->type() == QEvent::MouseButtonDblClick ||
