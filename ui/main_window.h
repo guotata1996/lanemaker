@@ -99,3 +99,4 @@ private:
     void reset();
 };
 
+extern MainWindow* g_mainWindow;

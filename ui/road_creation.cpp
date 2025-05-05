@@ -1,14 +1,12 @@
 #include "road_drawing.h"
 #include "curve_fitting.h"
-#include "CreateRoadOptionWidget.h"
+#include "LaneConfigWidget.h"
 #include "map_view_gl.h"
 #include "junction.h"
 #include "constants.h"
 #include "road_overlaps.h"
 
 #include <math.h>
-
-extern SectionProfileConfigWidget* g_createRoadOption;
 
 RoadCreationSession::DirectionHandle::DirectionHandle(odr::Vec3D _center, double _angle) :
 	center(_center), angle(_angle)
@@ -250,8 +248,8 @@ bool RoadCreationSession::Update(const LM::MouseAction& act)
 	cursorItem->SetTranslation({ snappedPos[0], snappedPos[1], CursorElevation() });
 	cursorItem->EnableHighlight(snapLevel);
 
-	LM::LanePlan currLeftPlan{ PreviewLeftOffsetX2(), g_createRoadOption->LeftResult().laneCount };
-	LM::LanePlan currRightPlan{ PreviewRightOffsetX2(), g_createRoadOption->RightResult().laneCount };
+	LM::LanePlan currLeftPlan{ PreviewLeftOffsetX2(), g_laneConfig->LeftResult().laneCount };
+	LM::LanePlan currRightPlan{ PreviewRightOffsetX2(), g_laneConfig->RightResult().laneCount };
 	if (currLeftPlan != stagedLeftPlan || currRightPlan != stagedRightPlan)
 	{
 		UpdateStagedPreview();
@@ -393,17 +391,17 @@ odr::RefLine RoadCreationSession::ResultRefLine() const
 
 LM::type_t RoadCreationSession::PreviewRightOffsetX2() const
 {
-	return g_createRoadOption->RightResult().offsetx2;
+	return g_laneConfig->RightResult().offsetx2;
 }
 
 LM::type_t RoadCreationSession::PreviewLeftOffsetX2() const
 {
-	return g_createRoadOption->LeftResult().offsetx2;
+	return g_laneConfig->LeftResult().offsetx2;
 }
 
 bool RoadCreationSession::Complete()
 {
-	if (g_createRoadOption->LeftResult().laneCount + g_createRoadOption->RightResult().laneCount == 0)
+	if (g_laneConfig->LeftResult().laneCount + g_laneConfig->RightResult().laneCount == 0)
 	{
 		spdlog::warn("Cannot create empty road!");
 		return true;
@@ -429,8 +427,8 @@ bool RoadCreationSession::Complete()
 	}
 
 	LM::LaneProfile config(
-		g_createRoadOption->LeftResult().laneCount, g_createRoadOption->LeftResult().offsetx2,
-		g_createRoadOption->RightResult().laneCount, g_createRoadOption->RightResult().offsetx2);
+		g_laneConfig->LeftResult().laneCount, g_laneConfig->LeftResult().offsetx2,
+		g_laneConfig->RightResult().laneCount, g_laneConfig->RightResult().offsetx2);
 	
 	auto newRoad = std::make_shared<LM::Road>(config, refLine);
 	newRoad->GenerateAllSectionGraphics();
@@ -563,8 +561,8 @@ void RoadCreationSession::GenerateHintLines(const odr::RefLine& refLine,
 		}
 
 		// right boundary
-		LM::type_t offsetX2 = g_createRoadOption->RightResult().laneCount != 0 ? PreviewRightOffsetX2() : PreviewLeftOffsetX2();
-		double t = (offsetX2 - g_createRoadOption->RightResult().laneCount * 2) * LM::LaneWidth / 2;
+		LM::type_t offsetX2 = g_laneConfig->RightResult().laneCount != 0 ? PreviewRightOffsetX2() : PreviewLeftOffsetX2();
+		double t = (offsetX2 - g_laneConfig->RightResult().laneCount * 2) * LM::LaneWidth / 2;
 		for (int i = 0; i != Division; ++i)
 		{
 			auto s = flexLen / (Division - 1) * i;
@@ -573,8 +571,8 @@ void RoadCreationSession::GenerateHintLines(const odr::RefLine& refLine,
 		}
 
 		// left boundary
-		offsetX2 = g_createRoadOption->LeftResult().laneCount != 0 ? PreviewLeftOffsetX2() : PreviewRightOffsetX2();
-		t = (offsetX2 + g_createRoadOption->LeftResult().laneCount * 2) * LM::LaneWidth / 2;
+		offsetX2 = g_laneConfig->LeftResult().laneCount != 0 ? PreviewLeftOffsetX2() : PreviewRightOffsetX2();
+		t = (offsetX2 + g_laneConfig->LeftResult().laneCount * 2) * LM::LaneWidth / 2;
 		for (int i = 0; i != Division; ++i)
 		{
 			auto s = flexLen / (Division - 1) * i;

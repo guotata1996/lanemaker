@@ -3,14 +3,13 @@
 #include <qvector2d.h>
 #include <qevent.h>
 
-#include "CreateRoadOptionWidget.h"
+#include "LaneConfigWidget.h"
 #include "junction.h"
 #include "constants.h"
 #include "road_drawing.h"
 #include "road_overlaps.h"
 #include "map_view_gl.h"
 
-extern SectionProfileConfigWidget* g_createRoadOption;
 
 LanesCreationSession::LanesCreationSession() :
     lLanes(0), rLanes(0), rOffsetX2(0), lOffsetX2(0)
@@ -263,8 +262,8 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapFirstPointToExisting(od
     }
     auto g_road = GetPointerRoad();
     
-    rLanes = g_createRoadOption->RightResult().laneCount;
-    lLanes = g_createRoadOption->LeftResult().laneCount;
+    rLanes = g_laneConfig->RightResult().laneCount;
+    lLanes = g_laneConfig->LeftResult().laneCount;
 
     if (rLanes == 0)
     {
@@ -451,13 +450,13 @@ RoadDrawingSession::SnapResult LanesCreationSession::SnapLastPointToExisting(odr
 
     auto g_road = GetPointerRoad();
 
-    if (rLanes != g_createRoadOption->RightResult().laneCount ||
-        lLanes != g_createRoadOption->LeftResult().laneCount)
+    if (rLanes != g_laneConfig->RightResult().laneCount ||
+        lLanes != g_laneConfig->LeftResult().laneCount)
     {
         if (extendFromStart.expired())
         {
-            rLanes = g_createRoadOption->RightResult().laneCount;
-            lLanes = g_createRoadOption->LeftResult().laneCount;
+            rLanes = g_laneConfig->RightResult().laneCount;
+            lLanes = g_laneConfig->LeftResult().laneCount;
         }
         else
         {

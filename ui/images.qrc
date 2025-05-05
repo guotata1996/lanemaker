@@ -31,5 +31,6 @@
         <file>icons/add.png</file>
         <file>icons/confirm.png</file>
         <file>icons/cancel.png</file>
+        <file>icons/draw_option.png</file>
     </qresource>
 </RCC>
