@@ -1,5 +1,4 @@
 #include "map_view_gl.h"
-#include <QOpenGLShaderProgram>
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QCoreApplication>

@@ -2,6 +2,7 @@
 #include "action_manager.h"
 
 #include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <qevent.h>
 #include <qpainter.h>
 
@@ -14,6 +15,12 @@ CrossSectionVisual::CrossSectionVisual():
     setMinimumWidth(400);
     setMinimumHeight(50);
     Reset();
+}
+
+QSize CrossSectionVisual::sizeHint() const
+{
+    // Expand horizontally
+    return QSize(5000, 50);
 }
 
 void CrossSectionVisual::Reset()
@@ -236,17 +243,16 @@ void CrossSectionVisual::mouseReleaseEvent(QMouseEvent* evt)
     }
 }
 
-LaneConfigWidget::LaneConfigWidget():
+LaneConfigWidget::LaneConfigWidget(bool verticalLayout):
     visual(new CrossSectionVisual),
     leftMinus(new QToolButton), leftPlus(new QToolButton),
     rightMinus(new QToolButton), rightPlus(new QToolButton),
     incLogo(":/icons/add.png"), decLogo(":/icons/minus.png")
 {
     setMinimumWidth(550); 
-    setMaximumWidth(850);
-    QHBoxLayout* layout = new QHBoxLayout(this);
     
     int size = style()->pixelMetric(QStyle::PM_ToolBarIconSize);
+    if (verticalLayout) size *= 2;
     QSize iconSize(size, size);
     leftMinus->setIcon(decLogo);
     leftMinus->setIconSize(iconSize);
@@ -256,12 +262,33 @@ LaneConfigWidget::LaneConfigWidget():
     rightMinus->setIconSize(iconSize);
     rightPlus->setIcon(incLogo);
     rightPlus->setIconSize(iconSize);
-    layout->addWidget(leftMinus);
-    layout->addWidget(leftPlus);
-    layout->addWidget(visual);
-    visual->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-    layout->addWidget(rightMinus);
-    layout->addWidget(rightPlus);
+
+    visual->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
+
+    QBoxLayout* layout;
+    if (verticalLayout)
+    {
+        layout = new QVBoxLayout(this);
+        layout->addWidget(visual, 1, Qt::AlignHCenter);
+        QHBoxLayout* bottomLayout = new QHBoxLayout;
+        bottomLayout->addWidget(leftMinus);
+        bottomLayout->addWidget(leftPlus);
+        bottomLayout->addStretch(1);
+        bottomLayout->addWidget(rightMinus);
+        bottomLayout->addWidget(rightPlus);
+        layout->addLayout(bottomLayout);
+        visual->setMinimumHeight(100);
+    }
+    else
+    {
+        layout = new QHBoxLayout(this);
+        layout->addWidget(leftMinus);
+        layout->addWidget(leftPlus);
+        layout->addWidget(visual);
+        layout->addWidget(rightMinus);
+        layout->addWidget(rightPlus);
+    }
+    setLayout(layout);
 
     connect(visual, &CrossSectionVisual::OptionChangedByUser, this, &LaneConfigWidget::OnOptionChange);
     connect(leftMinus, &QAbstractButton::clicked, [this]()
@@ -309,8 +336,6 @@ LaneConfigWidget::LaneConfigWidget():
                 SetOption(LeftResult(), rPlan);
             }
         });
-    
-    setLayout(layout);
 }
 
 void LaneConfigWidget::Reset()

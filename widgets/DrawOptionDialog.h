@@ -1,6 +1,8 @@
 #include "AnimatedPopupDialog.h"
 
 #include <QSlider>
+#include <QDial>
+#include <QLabel>
 
 class LaneConfigWidget;
 
@@ -16,5 +18,6 @@ protected:
 
 private:
     LaneConfigWidget* laneConfig;
-    QSlider* heightConfig;
+    QDial* heightConfig;
+    QLabel* heightDisplay;
 };

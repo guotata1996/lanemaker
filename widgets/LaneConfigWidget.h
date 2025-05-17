@@ -41,6 +41,8 @@ protected:
 
     void mouseReleaseEvent(QMouseEvent* event) override;
 
+    virtual QSize sizeHint() const override;
+
     float TickInterval;
     int XCenter, YCenter, XLeft, XRight;
 
@@ -63,7 +65,7 @@ class LaneConfigWidget :
 {
     Q_OBJECT
 public:
-    LaneConfigWidget();
+    LaneConfigWidget(bool verticalLayout=false);
 
     void Reset();
 

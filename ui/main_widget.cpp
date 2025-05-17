@@ -92,6 +92,17 @@ MainWidget::MainWidget(QWidget* parent)
     labelLayout->addWidget(dragModeButton);
     labelLayout->addStretch();
 
+    auto loadButton = new QToolButton(this);
+    loadButton->setIcon(QPixmap(":/icons/open.png"));
+    loadButton->setIconSize(largeIconSize);
+    labelLayout->addWidget(loadButton);
+    auto saveButton = new QToolButton(this);
+    saveButton->setIcon(QPixmap(":/icons/save.png"));
+    saveButton->setIconSize(largeIconSize);
+    labelLayout->addWidget(saveButton);
+
+    labelLayout->addSpacing(size);
+
     auto undoButton = new QToolButton(this);
     undoButton->setIcon(QPixmap(":/icons/undo.png"));
     undoButton->setIconSize(largeIconSize);
@@ -122,6 +133,8 @@ MainWidget::MainWidget(QWidget* parent)
     connect(mapViewGL, &LM::MapViewGL::MousePerformedAction, this, &MainWidget::OnMouseAction);
     connect(mapViewGL, &LM::MapViewGL::KeyPerformedAction, this, &MainWidget::OnKeyPress);
 
+    connect(saveButton, &QAbstractButton::clicked, g_mainWindow, &MainWindow::saveToFile);
+    connect(loadButton, &QAbstractButton::clicked, g_mainWindow, &MainWindow::loadFromFile);
     connect(undoButton, &QAbstractButton::clicked, g_mainWindow, &MainWindow::undo);
     connect(redoButton, &QAbstractButton::clicked, g_mainWindow, &MainWindow::redo);
     connect(drawOptionButton, &QAbstractButton::clicked, drawOptionDialog, &QDialog::open);
