@@ -65,7 +65,26 @@ namespace LM
                 }
             }
 
-            bool joinExistingJunction = road2->generated.junction != "-1";
+            const bool joinExistingJunction = road2->generated.junction != "-1";
+            if (sBegin1 == 0 && joinExistingJunction) {
+                // Current overlap can be with any connecting road of this junction, but we need to:
+                //   Process at the last connecting road of originating junction
+                //   Process at the first connecting road of terminal junction
+                const double immediatelyPastOverlap = overlap->sEnd1 + 0.01;
+                auto nextOverlap = newRoad->FirstOverlap(immediatelyPastOverlap, newPartEnd);
+                if (nextOverlap.has_value() &&
+                    nextOverlap->road2.lock()->generated.junction == road2->generated.junction)
+                {
+                    auto newRoadPastJunction = LM::Road::SplitRoad(newRoad, immediatelyPastOverlap);
+                    World::Instance()->allRoads.insert(newRoadPastJunction);
+                    World::Instance()->allRoads.erase(newRoad);
+                    newRoad = newRoadPastJunction;
+                    newPartBegin = 0;
+                    newPartEnd -= immediatelyPastOverlap;
+
+                    continue;
+                }
+            }
 
             if (!joinExistingJunction)
             {
@@ -199,8 +218,7 @@ namespace LM
                 }
                 if (junctionInfo.size() < 3)
                 {
-                    // 2-road junction, should really be a Join
-                    canCreateJunction = false;
+                    spdlog::warn("Created 2-road junction, should really be a Join");
                 }
 
                 for (const auto& conn : junctionInfo)

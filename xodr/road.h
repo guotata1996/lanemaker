@@ -88,10 +88,8 @@ namespace LM
             double sBegin2, sEnd2;
         };
 
-        // Excluded: Overlap w/ Junction connectingRead and DirectJunction linkedRoad
         std::optional<RoadsOverlap> FirstOverlap(double sBegin, double sEnd) const;
 
-        // Everything included
         std::vector<RoadsOverlap> AllOverlaps(double sBegin, double sEnd, double zThreshold) const;
 
         void EnableHighlight(bool enabled);
