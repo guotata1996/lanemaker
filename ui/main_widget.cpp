@@ -9,14 +9,14 @@
 #include "action_manager.h"
 #include "road_drawing.h"
 #include "change_tracker.h"
-#include "CreateRoadOptionWidget.h"
-
-extern SectionProfileConfigWidget* g_createRoadOption;
+#include "LaneConfigWidget.h"
+#include "DrawOptionDialog.h"
 
 MainWidget* MainWidget::instance = nullptr;
 
 MainWidget::MainWidget(QWidget* parent)
-    : QFrame(parent), createRoadOption(new SectionProfileConfigWidget)
+    : QFrame(parent), laneConfig(new LaneConfigWidget), 
+    drawOptionDialog(new DrawOptionDialog(g_mainWindow))
 {
     instance = this;
     setFrameStyle(Sunken | StyledPanel);
@@ -78,19 +78,47 @@ MainWidget::MainWidget(QWidget* parent)
     pointerModeGroup->addButton(destroyModeButton);
     pointerModeGroup->addButton(dragModeButton);
 
-    labelLayout->addWidget(createRoadOption);
-    QSizePolicy sp_retain = createRoadOption->sizePolicy();
+    labelLayout->addWidget(laneConfig);
+    QSizePolicy sp_retain = laneConfig->sizePolicy();
     sp_retain.setRetainSizeWhenHidden(true);
-    createRoadOption->setSizePolicy(sp_retain);
-    createRoadOption->hide();
-    g_createRoadOption = createRoadOption;
-    labelLayout->addSpacing(100);
+    laneConfig->setSizePolicy(sp_retain);
+    laneConfig->hide();
+    g_laneConfig = laneConfig;
+    labelLayout->addSpacing(2 * size);
     labelLayout->addWidget(createModeButton);
     labelLayout->addWidget(createLaneModeButton);
     labelLayout->addWidget(modifyModeButton);
     labelLayout->addWidget(destroyModeButton);
     labelLayout->addWidget(dragModeButton);
     labelLayout->addStretch();
+
+    auto loadButton = new QToolButton(this);
+    loadButton->setIcon(QPixmap(":/icons/open.png"));
+    loadButton->setIconSize(largeIconSize);
+    labelLayout->addWidget(loadButton);
+    auto saveButton = new QToolButton(this);
+    saveButton->setIcon(QPixmap(":/icons/save.png"));
+    saveButton->setIconSize(largeIconSize);
+    labelLayout->addWidget(saveButton);
+
+    labelLayout->addSpacing(size);
+
+    auto undoButton = new QToolButton(this);
+    undoButton->setIcon(QPixmap(":/icons/undo.png"));
+    undoButton->setIconSize(largeIconSize);
+    labelLayout->addWidget(undoButton);
+
+    auto redoButton = new QToolButton(this);
+    redoButton->setIcon(QPixmap(":/icons/redo.png"));
+    redoButton->setIconSize(largeIconSize);
+    labelLayout->addWidget(redoButton);
+
+    labelLayout->addSpacing(size);
+
+    auto drawOptionButton = new QToolButton(this);
+    drawOptionButton->setIcon(QPixmap(":/icons/draw_option.png"));
+    drawOptionButton->setIconSize(largeIconSize);
+    labelLayout->addWidget(drawOptionButton);
 
     QVBoxLayout* mainLayout = new QVBoxLayout;
     mainLayout->addLayout(labelLayout);
@@ -104,6 +132,12 @@ MainWidget::MainWidget(QWidget* parent)
     connect(dragModeButton, &QAbstractButton::toggled, this, &MainWidget::gotoDragMode);
     connect(mapViewGL, &LM::MapViewGL::MousePerformedAction, this, &MainWidget::OnMouseAction);
     connect(mapViewGL, &LM::MapViewGL::KeyPerformedAction, this, &MainWidget::OnKeyPress);
+
+    connect(saveButton, &QAbstractButton::clicked, g_mainWindow, &MainWindow::saveToFile);
+    connect(loadButton, &QAbstractButton::clicked, g_mainWindow, &MainWindow::loadFromFile);
+    connect(undoButton, &QAbstractButton::clicked, g_mainWindow, &MainWindow::undo);
+    connect(redoButton, &QAbstractButton::clicked, g_mainWindow, &MainWindow::redo);
+    connect(drawOptionButton, &QAbstractButton::clicked, drawOptionDialog, &QDialog::open);
     Reset();
 }
 
@@ -117,7 +151,7 @@ void MainWidget::gotoCreateRoadMode(bool checked)
     if (!checked) return;
     SetEditMode(LM::Mode_Create);
     LM::ActionManager::Instance()->Record(LM::Mode_Create);
-    createRoadOption->GotoRoadMode();
+    laneConfig->GotoRoadMode();
 }
 
 void MainWidget::gotoCreateLaneMode(bool checked)
@@ -125,7 +159,7 @@ void MainWidget::gotoCreateLaneMode(bool checked)
     if (!checked) return;
     SetEditMode(LM::Mode_CreateLanes);
     LM::ActionManager::Instance()->Record(LM::Mode_CreateLanes);
-    createRoadOption->GotoLaneMode();
+    laneConfig->GotoLaneMode();
 }
 
 void MainWidget::gotoDestroyMode(bool checked)
@@ -133,7 +167,7 @@ void MainWidget::gotoDestroyMode(bool checked)
     if (!checked) return;
     SetEditMode(LM::Mode_Destroy);
     LM::ActionManager::Instance()->Record(LM::Mode_Destroy);
-    createRoadOption->hide();
+    laneConfig->hide();
 }
 
 void MainWidget::gotoModifyMode(bool checked)
@@ -141,7 +175,7 @@ void MainWidget::gotoModifyMode(bool checked)
     if (!checked) return;
     SetEditMode(LM::Mode_Modify);
     LM::ActionManager::Instance()->Record(LM::Mode_Modify);
-    createRoadOption->GotoRoadMode();
+    laneConfig->GotoRoadMode();
 }
 
 void MainWidget::gotoDragMode(bool checked)
@@ -149,7 +183,7 @@ void MainWidget::gotoDragMode(bool checked)
     if (!checked) return;
     SetEditMode(LM::Mode_None);
     LM::ActionManager::Instance()->Record(LM::Mode_None);
-    createRoadOption->hide();
+    laneConfig->hide();
 }
 
 void MainWidget::OnMouseAction(LM::MouseAction evt)
@@ -258,7 +292,7 @@ void MainWidget::Painted()
 
 void MainWidget::Reset()
 {
-    createRoadOption->Reset();
+    laneConfig->Reset();
     pointerModeGroup->setExclusive(false);
     for (auto btn : pointerModeGroup->buttons())
     {
@@ -267,7 +301,7 @@ void MainWidget::Reset()
     pointerModeGroup->setExclusive(true);
     // goto drag mode, but don't record
     SetEditMode(LM::Mode_None);
-    createRoadOption->hide();
+    laneConfig->hide();
 }
 
 void MainWidget::SetModeFromReplay(int mode)
@@ -331,6 +365,11 @@ void MainWidget::SetEditMode(LM::EditMode aMode)
     default:
         break;
     }
+}
+
+LM::EditMode MainWidget::GetEditMode() const
+{
+    return editMode;
 }
 
 void MainWidget::elegantlyHandleException(std::exception e)

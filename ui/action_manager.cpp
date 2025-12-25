@@ -2,7 +2,7 @@
 #include "road_drawing.h"
 #include "main_widget.h"
 #include "main_window.h"
-#include "CreateRoadOptionWidget.h"
+#include "LaneConfigWidget.h"
 #include "change_tracker.h"
 #include "util.h"
 #include "map_view_gl.h"
@@ -15,9 +15,6 @@
 #include <qscrollbar.h>
 #include <spdlog/spdlog.h>
 
-
-extern MainWindow* g_mainWindow;
-extern SectionProfileConfigWidget* g_createRoadOption;
 
 namespace LM
 {
@@ -182,7 +179,7 @@ namespace LM
 
     void ActionManager::Replay(const ChangeProfileAction& action)
     {
-        g_createRoadOption->SetOption(action.leftProfile, action.rightProfile);
+        g_laneConfig->SetOption(action.leftProfile, action.rightProfile);
     }
 
     void ActionManager::Record(int zSetting)

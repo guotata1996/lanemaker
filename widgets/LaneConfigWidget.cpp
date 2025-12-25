@@ -1,13 +1,14 @@
-#include "CreateRoadOptionWidget.h"
+#include "LaneConfigWidget.h"
 #include "action_manager.h"
 
 #include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <qevent.h>
 #include <qpainter.h>
 
-SectionProfileConfigWidget* g_createRoadOption;
+LaneConfigWidget* g_laneConfig;
 
-CreateRoadOptionWidget::CreateRoadOptionWidget():
+CrossSectionVisual::CrossSectionVisual():
     rightLogo(":/icons/car_leaving.png"),
     leftLogo(":/icons/car_coming.png")
 {
@@ -16,28 +17,35 @@ CreateRoadOptionWidget::CreateRoadOptionWidget():
     Reset();
 }
 
-void CreateRoadOptionWidget::Reset()
+QSize CrossSectionVisual::sizeHint() const
+{
+    // Expand horizontally
+    return QSize(5000, 50);
+}
+
+void CrossSectionVisual::Reset()
 {
     SetOption(LM::LanePlan{ 1, 1 }, LM::LanePlan{ -1, 1 });
 }
 
-void CreateRoadOptionWidget::SetMode(bool roadMode)
+void CrossSectionVisual::SetMode(bool roadMode)
 {
     if (!roadMode)
     {
         activeRightSetting.laneCount = std::max((int8_t)1, activeRightSetting.laneCount);
     }
+    this->roadMode = roadMode;
     changedExternally = true;
     update();
 }
 
-void CreateRoadOptionWidget::showEvent(QShowEvent* event)
+void CrossSectionVisual::showEvent(QShowEvent* event)
 {
     emit OptionChangedByUser(activeLeftSetting, activeRightSetting);
     QWidget::showEvent(event);
 }
 
-void CreateRoadOptionWidget::SetOption(const LM::LanePlan& l, const LM::LanePlan& r)
+void CrossSectionVisual::SetOption(const LM::LanePlan& l, const LM::LanePlan& r)
 {
     const QSignalBlocker blocker(this);
     activeLeftSetting = l;
@@ -54,13 +62,13 @@ void CreateRoadOptionWidget::SetOption(const LM::LanePlan& l, const LM::LanePlan
     repaint();
 }
 
-void CreateRoadOptionWidget::resizeEvent(QResizeEvent* event)
+void CrossSectionVisual::resizeEvent(QResizeEvent* event)
 {
     changedExternally = true;
     QWidget::resizeEvent(event);
 }
 
-void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
+void CrossSectionVisual::paintEvent(QPaintEvent* evt)
 {
     QWidget::paintEvent(evt);
 
@@ -155,7 +163,7 @@ void CreateRoadOptionWidget::paintEvent(QPaintEvent* evt)
     }
 }
 
-void CreateRoadOptionWidget::mousePressEvent(QMouseEvent* evt)
+void CrossSectionVisual::mousePressEvent(QMouseEvent* evt)
 {
     if (evt->button() == Qt::MouseButton::LeftButton)
     {
@@ -187,7 +195,7 @@ void CreateRoadOptionWidget::mousePressEvent(QMouseEvent* evt)
     }
 }
 
-void CreateRoadOptionWidget::mouseMoveEvent(QMouseEvent* evt)
+void CrossSectionVisual::mouseMoveEvent(QMouseEvent* evt)
 {
     if (dragIndex.empty()) return;
 
@@ -222,7 +230,7 @@ void CreateRoadOptionWidget::mouseMoveEvent(QMouseEvent* evt)
     update();
 }
 
-void CreateRoadOptionWidget::mouseReleaseEvent(QMouseEvent* evt)
+void CrossSectionVisual::mouseReleaseEvent(QMouseEvent* evt)
 {
     if (evt->button() == Qt::MouseButton::LeftButton)
     {
@@ -235,17 +243,16 @@ void CreateRoadOptionWidget::mouseReleaseEvent(QMouseEvent* evt)
     }
 }
 
-SectionProfileConfigWidget::SectionProfileConfigWidget():
-    visual(new CreateRoadOptionWidget),
+LaneConfigWidget::LaneConfigWidget(bool verticalLayout):
+    visual(new CrossSectionVisual),
     leftMinus(new QToolButton), leftPlus(new QToolButton),
     rightMinus(new QToolButton), rightPlus(new QToolButton),
     incLogo(":/icons/add.png"), decLogo(":/icons/minus.png")
 {
     setMinimumWidth(550); 
-    setMaximumWidth(850);
-    QHBoxLayout* layout = new QHBoxLayout(this);
     
     int size = style()->pixelMetric(QStyle::PM_ToolBarIconSize);
+    if (verticalLayout) size *= 2;
     QSize iconSize(size, size);
     leftMinus->setIcon(decLogo);
     leftMinus->setIconSize(iconSize);
@@ -255,14 +262,35 @@ SectionProfileConfigWidget::SectionProfileConfigWidget():
     rightMinus->setIconSize(iconSize);
     rightPlus->setIcon(incLogo);
     rightPlus->setIconSize(iconSize);
-    layout->addWidget(leftMinus);
-    layout->addWidget(leftPlus);
-    layout->addWidget(visual);
-    visual->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-    layout->addWidget(rightMinus);
-    layout->addWidget(rightPlus);
 
-    connect(visual, &CreateRoadOptionWidget::OptionChangedByUser, this, &SectionProfileConfigWidget::OnOptionChange);
+    visual->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
+
+    QBoxLayout* layout;
+    if (verticalLayout)
+    {
+        layout = new QVBoxLayout(this);
+        layout->addWidget(visual, 1, Qt::AlignHCenter);
+        QHBoxLayout* bottomLayout = new QHBoxLayout;
+        bottomLayout->addWidget(leftMinus);
+        bottomLayout->addWidget(leftPlus);
+        bottomLayout->addStretch(1);
+        bottomLayout->addWidget(rightMinus);
+        bottomLayout->addWidget(rightPlus);
+        layout->addLayout(bottomLayout);
+        visual->setMinimumHeight(100);
+    }
+    else
+    {
+        layout = new QHBoxLayout(this);
+        layout->addWidget(leftMinus);
+        layout->addWidget(leftPlus);
+        layout->addWidget(visual);
+        layout->addWidget(rightMinus);
+        layout->addWidget(rightPlus);
+    }
+    setLayout(layout);
+
+    connect(visual, &CrossSectionVisual::OptionChangedByUser, this, &LaneConfigWidget::OnOptionChange);
     connect(leftMinus, &QAbstractButton::clicked, [this]()
         {
             auto lPlan = LeftResult();
@@ -290,7 +318,7 @@ SectionProfileConfigWidget::SectionProfileConfigWidget():
         {
             auto rPlan = RightResult();
             const auto lPlan = LeftResult();
-            if (rPlan.laneCount > 1 || rPlan.laneCount == 1 && lPlan.laneCount != 0)
+            if (rPlan.laneCount > 1 || rPlan.laneCount == 1 && lPlan.laneCount != 0 && visual->IsRoadMode())
             {
                 rPlan.laneCount--;
                 SetOption(LeftResult(), rPlan);
@@ -308,21 +336,19 @@ SectionProfileConfigWidget::SectionProfileConfigWidget():
                 SetOption(LeftResult(), rPlan);
             }
         });
-    
-    setLayout(layout);
 }
 
-void SectionProfileConfigWidget::Reset()
+void LaneConfigWidget::Reset()
 {
     visual->Reset();
 }
 
-void SectionProfileConfigWidget::OnOptionChange(LM::LanePlan left, LM::LanePlan right)
+void LaneConfigWidget::OnOptionChange(LM::LanePlan left, LM::LanePlan right)
 {
     LM::ActionManager::Instance()->Record(left, right);
 }
 
-void SectionProfileConfigWidget::SetOption(const LM::LanePlan& l, const LM::LanePlan& r)
+void LaneConfigWidget::SetOption(const LM::LanePlan& l, const LM::LanePlan& r)
 {
     if (LeftResult() == l && RightResult() == r)
     {
@@ -332,18 +358,18 @@ void SectionProfileConfigWidget::SetOption(const LM::LanePlan& l, const LM::Lane
     OnOptionChange(l, r);
 }
 
-QSize SectionProfileConfigWidget::sizeHint() const
+QSize LaneConfigWidget::sizeHint() const
 {
     return QSize(500, 60);
 }
 
-void SectionProfileConfigWidget::GotoRoadMode()
+void LaneConfigWidget::GotoRoadMode()
 {
     show();
     visual->SetMode(true);
 }
 
-void SectionProfileConfigWidget::GotoLaneMode()
+void LaneConfigWidget::GotoLaneMode()
 {
     show();
     visual->SetMode(false);

@@ -67,15 +67,15 @@ public slots:
 
     void redo();
 
+    void saveToFile();
+
+    void loadFromFile();
+
 private slots:
     void updateHint();
     void setFPS(QString);
 
     void newMap();
-
-    void saveToFile();
-
-    void loadFromFile();
 
     void verifyMap();
 
@@ -99,3 +99,4 @@ private:
     void reset();
 };
 
+extern MainWindow* g_mainWindow;

@@ -2,9 +2,7 @@
 #include "junction.h"
 
 #include <qevent.h>
-#include "CreateRoadOptionWidget.h"
-
-extern SectionProfileConfigWidget* g_createRoadOption;
+#include "LaneConfigWidget.h"
 
 RoadModificationSession::RoadModificationSession()
 {}
@@ -39,8 +37,8 @@ bool RoadModificationSession::Complete()
     auto currEndRight = target->generated.rr_profile.ProfileAt(sEnd, -1);
 
     if (!(sBegin == 0 && sEnd == target->Length()) &&
-        (target->generated.rr_profile.HasSide(1) != (g_createRoadOption->LeftResult().laneCount > 0) ||
-        target->generated.rr_profile.HasSide(-1) != (g_createRoadOption->RightResult().laneCount > 0)))
+        (target->generated.rr_profile.HasSide(1) != (g_laneConfig->LeftResult().laneCount > 0) ||
+        target->generated.rr_profile.HasSide(-1) != (g_laneConfig->RightResult().laneCount > 0)))
     {
         if (sBegin != 0 && IsProfileChangePoint(target, sBegin)
             || sEnd != 0 && IsProfileChangePoint(target, sEnd))
@@ -65,14 +63,14 @@ bool RoadModificationSession::Complete()
             before = target;
         }
 
-        toModify->ModifyProfile(0, toModify->Length(), g_createRoadOption->LeftResult(), g_createRoadOption->RightResult());
+        toModify->ModifyProfile(0, toModify->Length(), g_laneConfig->LeftResult(), g_laneConfig->RightResult());
         if (before != nullptr)
         {
-            if (currBeginLeft.laneCount != 0 && g_createRoadOption->LeftResult().laneCount != 0
-                && currBeginLeft.offsetx2 != g_createRoadOption->LeftResult().offsetx2
+            if (currBeginLeft.laneCount != 0 && g_laneConfig->LeftResult().laneCount != 0
+                && currBeginLeft.offsetx2 != g_laneConfig->LeftResult().offsetx2
                 ||
-                currBeginRight.laneCount != 0 && g_createRoadOption->RightResult().laneCount != 0
-                && currBeginRight.offsetx2 != g_createRoadOption->RightResult().offsetx2)
+                currBeginRight.laneCount != 0 && g_laneConfig->RightResult().laneCount != 0
+                && currBeginRight.offsetx2 != g_laneConfig->RightResult().offsetx2)
             {
                 spdlog::warn("Offset must remain the same while creating direct junction.");
                 return false;
@@ -81,14 +79,14 @@ bool RoadModificationSession::Complete()
             auto toModifyInfo = LM::ConnectionInfo(toModify, odr::RoadLink::ContactPoint_Start);
             auto beforeInfo = LM::ConnectionInfo(before, odr::RoadLink::ContactPoint_End);
 
-            if (currBeginLeft.laneCount <= g_createRoadOption->LeftResult().laneCount
-                && currBeginRight.laneCount <= g_createRoadOption->RightResult().laneCount)
+            if (currBeginLeft.laneCount <= g_laneConfig->LeftResult().laneCount
+                && currBeginRight.laneCount <= g_laneConfig->RightResult().laneCount)
             {
                 auto junc = std::make_shared< LM::DirectJunction>(toModifyInfo);
                 junc->Attach(beforeInfo);
             }
-            else if (currBeginLeft.laneCount >= g_createRoadOption->LeftResult().laneCount
-                && currBeginRight.laneCount >= g_createRoadOption->RightResult().laneCount)
+            else if (currBeginLeft.laneCount >= g_laneConfig->LeftResult().laneCount
+                && currBeginRight.laneCount >= g_laneConfig->RightResult().laneCount)
             {
                 auto junc = std::make_shared< LM::DirectJunction>(beforeInfo);
                 junc->Attach(toModifyInfo);
@@ -101,11 +99,11 @@ bool RoadModificationSession::Complete()
         }
         if (after != nullptr)
         {
-            if (currEndLeft.laneCount != 0 && g_createRoadOption->LeftResult().laneCount != 0
-                && currEndLeft.offsetx2 != g_createRoadOption->LeftResult().offsetx2
+            if (currEndLeft.laneCount != 0 && g_laneConfig->LeftResult().laneCount != 0
+                && currEndLeft.offsetx2 != g_laneConfig->LeftResult().offsetx2
                 ||
-                currEndRight.laneCount != 0 && g_createRoadOption->RightResult().laneCount != 0
-                && currEndRight.offsetx2 != g_createRoadOption->RightResult().offsetx2)
+                currEndRight.laneCount != 0 && g_laneConfig->RightResult().laneCount != 0
+                && currEndRight.offsetx2 != g_laneConfig->RightResult().offsetx2)
             {
                 spdlog::warn("Offset must remain the same while creating direct junction!");
                 return false;
@@ -114,14 +112,14 @@ bool RoadModificationSession::Complete()
             auto toModifyInfo = LM::ConnectionInfo(toModify, odr::RoadLink::ContactPoint_End);
             auto afterInfo = LM::ConnectionInfo(after, odr::RoadLink::ContactPoint_Start);
 
-            if (currEndLeft.laneCount <= g_createRoadOption->LeftResult().laneCount
-                && currEndRight.laneCount <= g_createRoadOption->RightResult().laneCount)
+            if (currEndLeft.laneCount <= g_laneConfig->LeftResult().laneCount
+                && currEndRight.laneCount <= g_laneConfig->RightResult().laneCount)
             {
                 auto junc = std::make_shared< LM::DirectJunction>(toModifyInfo);
                 junc->Attach(afterInfo);
             }
-            else if (currEndLeft.laneCount >= g_createRoadOption->LeftResult().laneCount
-                && currEndRight.laneCount >= g_createRoadOption->RightResult().laneCount)
+            else if (currEndLeft.laneCount >= g_laneConfig->LeftResult().laneCount
+                && currEndRight.laneCount >= g_laneConfig->RightResult().laneCount)
             {
                 auto junc = std::make_shared< LM::DirectJunction>(afterInfo);
                 junc->Attach(toModifyInfo);
@@ -137,7 +135,7 @@ bool RoadModificationSession::Complete()
         return true;
     }
 
-    bool success = target->ModifyProfile(sBegin, sEnd, g_createRoadOption->LeftResult(), g_createRoadOption->RightResult());
+    bool success = target->ModifyProfile(sBegin, sEnd, g_laneConfig->LeftResult(), g_laneConfig->RightResult());
     if (success)
     {
         UpdateEndMarkings();

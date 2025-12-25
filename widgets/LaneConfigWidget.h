@@ -5,18 +5,19 @@
 #include <array>
 #include <vector>
 
-class CreateRoadOptionWidget :
+class CrossSectionVisual :
     public QWidget
 {
     Q_OBJECT
 public:
-    CreateRoadOptionWidget();
+    CrossSectionVisual();
 
     void Reset();
 
     void SetOption(const LM::LanePlan&, const LM::LanePlan&);
 
-    void SetMode(bool rodeMode);
+    void SetMode(bool roadMode);
+    bool IsRoadMode() const { return roadMode; }
 
     LM::LanePlan activeLeftSetting;
     LM::LanePlan activeRightSetting;
@@ -40,6 +41,8 @@ protected:
 
     void mouseReleaseEvent(QMouseEvent* event) override;
 
+    virtual QSize sizeHint() const override;
+
     float TickInterval;
     int XCenter, YCenter, XLeft, XRight;
 
@@ -51,17 +54,18 @@ protected:
     int dragOrigin;
     int dragLimit; // absolute value
 
+    bool roadMode;
     bool changedExternally = false;
 
     const QImage rightLogo, leftLogo;
 };
 
-class SectionProfileConfigWidget :
+class LaneConfigWidget :
     public QWidget
 {
     Q_OBJECT
 public:
-    SectionProfileConfigWidget();
+    LaneConfigWidget(bool verticalLayout=false);
 
     void Reset();
 
@@ -73,6 +77,7 @@ public:
 
     LM::LanePlan LeftResult() const { return visual->activeLeftSetting; }
     LM::LanePlan RightResult() const { return visual->activeRightSetting; }
+    bool RoadMode() const { return visual->IsRoadMode(); }
 
     virtual QSize sizeHint() const override;
 
@@ -80,8 +85,10 @@ private slots:
     void OnOptionChange(LM::LanePlan left, LM::LanePlan right);
 
 private:
-    CreateRoadOptionWidget* visual;
+    CrossSectionVisual* visual;
     QToolButton* leftMinus, * leftPlus, * rightMinus, * rightPlus;
 
     const QPixmap incLogo, decLogo;
 };
+
+extern LaneConfigWidget* g_laneConfig;

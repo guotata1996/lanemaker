@@ -11,11 +11,11 @@
 
 UserPreference g_preference;
 
-PreferenceWindow::PreferenceWindow(QWidget* parent)
-    : QDialog(parent), contentPopulated(false)
+PreferenceWindow::PreferenceWindow(QWidget* parent):
+    AnimatedPopupDialog(QSize(350, 400), true, parent), 
+    contentPopulated(false)
 {
     setWindowTitle("Preference");
-    setMinimumWidth(400);
 
     auto defaultSave = LM::DefaultSaveFolder() / "preference.json";
     if (std::filesystem::exists(defaultSave))
@@ -75,7 +75,7 @@ void PreferenceWindow::showEvent(QShowEvent* e)
                 emit ToggleAA(c); });
     }
 
-    QDialog::showEvent(e);
+    AnimatedPopupDialog::showEvent(e);
 }
 
 void PreferenceWindow::closeEvent(QCloseEvent* e)
@@ -85,5 +85,5 @@ void PreferenceWindow::closeEvent(QCloseEvent* e)
     cereal::JSONOutputArchive oarchive(outFile);
     oarchive(g_preference);
 
-    QDialog::closeEvent(e);
+    AnimatedPopupDialog::closeEvent(e);
 }

@@ -6,12 +6,10 @@
 #include "Geometries/ParamPoly3.h"
 #include "curve_fitting.h"
 #include "junction.h"
-#include "CreateRoadOptionWidget.h"
+#include "LaneConfigWidget.h"
 #include "stats.h"
 #include "constants.h"
 #include "map_view_gl.h"
-
-extern SectionProfileConfigWidget* g_createRoadOption;
 
 std::shared_ptr<LM::Road> RoadDrawingSession::GetPointerRoad()
 {
@@ -135,7 +133,7 @@ void RoadDrawingSession::ContinuePickingProfile()
         leftProfile.offsetx2 = -leftProfile.offsetx2;
         rightProfile.offsetx2 = -rightProfile.offsetx2;
     }
-    g_createRoadOption->SetOption(leftProfile, rightProfile);
+    g_laneConfig->SetOption(leftProfile, rightProfile);
 
     auto elevation = pickFromRoad->generated.ref_line.elevation_profile.get(LM::g_PointerRoadS);
     LM::g_createRoadElevationOption = std::round(elevation / LM::ElevationStep);

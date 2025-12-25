@@ -18,6 +18,8 @@
         <file>icons/MouseDblClick.png</file>
         <file>icons/MouseMove.png</file>
         <file>icons/RMB.png</file>
+        <file>icons/open.png</file>
+        <file>icons/save.png</file>
         <file>icons/redo.png</file>
         <file>icons/undo.png</file>
         <file>icons/Mouse.png</file>
@@ -31,5 +33,6 @@
         <file>icons/add.png</file>
         <file>icons/confirm.png</file>
         <file>icons/cancel.png</file>
+        <file>icons/draw_option.png</file>
     </qresource>
 </RCC>

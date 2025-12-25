@@ -19,7 +19,8 @@ namespace LM
     class MapViewGL;
 }
 
-class SectionProfileConfigWidget;
+class LaneConfigWidget;
+class DrawOptionDialog;
 
 class MainWidget : public QFrame
 {
@@ -36,6 +37,8 @@ public:
     void SetModeFromReplay(int mode);
 
     void GoToSimulationMode(bool enabled); // force into drag mode
+
+    LM::EditMode GetEditMode() const;
 
     LM::MapViewGL* mapViewGL;
 
@@ -72,7 +75,8 @@ private:
     QButtonGroup* pointerModeGroup;
     QToolButton* createModeButton, * createLaneModeButton, * destroyModeButton, * modifyModeButton, * dragModeButton;
 
-    SectionProfileConfigWidget* createRoadOption;
+    LaneConfigWidget* laneConfig;
+    DrawOptionDialog* drawOptionDialog;
 
     unsigned int nRepaints = 0;
     qint64 lastUpdateFPSMS = 0;
