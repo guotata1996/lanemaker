@@ -179,8 +179,11 @@ void MainWindow::saveToFile()
         ,QFileDialog::DontUseNativeDialog
 #endif
         );
-    if (s.size() != 0)
+    if (!s.isEmpty())
     {
+        if (!s.endsWith(".xodr")) {
+            s.append(".xodr");
+        }
         auto loc = s.toStdString();
         LM::ChangeTracker::Instance()->Save(loc);
         if (loadedFileName.empty())

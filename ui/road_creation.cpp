@@ -6,10 +6,9 @@
 #include "constants.h"
 #include "road_overlaps.h"
 
-#include <math.h>
 
-RoadCreationSession::DirectionHandle::DirectionHandle(odr::Vec3D _center, double _angle) :
-	center(_center), angle(_angle)
+RoadCreationSession::DirectionHandle::DirectionHandle(const odr::Vec3D& aCenter, double aAngle) :
+	center(aCenter), angle(aAngle)
 {
 	UpdateGraphics();
 }
@@ -24,13 +23,13 @@ bool RoadCreationSession::DirectionHandle::Update(const LM::MouseAction& act)
 		deltaRotation = angle - std::atan2(hitPos[1], hitPos[0]);
 		return true;
 	}
-	else if (act.type == QEvent::Type::MouseButtonRelease && dragging)
+	if (act.type == QEvent::Type::MouseButtonRelease && dragging)
 	{
 		dragging = false;
 		UpdateGraphics();
 		return true;
 	}
-	else if (dragging)
+	if (dragging)
 	{
 		angle = std::atan2(hitPos[1], hitPos[0]) + deltaRotation;
 		UpdateGraphics();
@@ -81,10 +80,9 @@ void RoadCreationSession::DirectionHandle::UpdateGraphics()
 RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point)
 {
 	double zLevel = 0;
-	auto g_road = GetPointerRoad();
-	if (g_road != nullptr)
+	if (auto pointerRoad = GetPointerRoad(); pointerRoad != nullptr)
 	{
-		zLevel = g_road->generated.ref_line.elevation_profile.get(GetAdjustedS());
+		zLevel = pointerRoad->generated.ref_line.elevation_profile.get(GetAdjustedS());
 	}
 	point = CursorAtHeight(zLevel);
 
@@ -93,7 +91,7 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point
 	{
 		extendFromStart.reset();
 		auto snapFirstResult = SnapFirstPointToExisting(point);
-		if (snapFirstResult != RoadDrawingSession::Snap_Nothing)
+		if (snapFirstResult != Snap_Nothing)
 		{
 			return snapFirstResult;
 		}
@@ -102,7 +100,7 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point
 	{
 		joinAtEnd.reset();
 		auto snapLastResult = SnapLastPointToExisting(point);
-		if (snapLastResult != RoadDrawingSession::Snap_Nothing)
+		if (snapLastResult != Snap_Nothing)
 		{
 			return snapLastResult;
 		}
@@ -136,7 +134,7 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapCursor(odr::Vec2D& point
 			point = projected;
 		}
 	}
-	return RoadDrawingSession::Snap_Nothing;
+	return Snap_Nothing;
 }
 
 odr::Vec2D RoadCreationSession::ExtendFromDir() const
@@ -166,40 +164,40 @@ double RoadCreationSession::CursorElevation() const
 
 RoadDrawingSession::SnapResult RoadCreationSession::SnapFirstPointToExisting(odr::Vec2D& point)
 {
-	auto g_pointerRoad = GetPointerRoad();
-	if (g_pointerRoad == nullptr) return RoadDrawingSession::Snap_Nothing;
+	auto pointerRoad = GetPointerRoad();
+	if (pointerRoad == nullptr || pointerRoad->IsConnectingRoad()) return Snap_Nothing;
 
 	const double snapThreshold = SnapDistFromScale();
 	double snapS = LM::g_PointerRoadS;
 	bool onExisting = false;
 	if (LM::g_PointerRoadS < snapThreshold &&
-		dynamic_cast<LM::DirectJunction*>(g_pointerRoad->predecessorJunction.get()) == nullptr)
+		pointerRoad->predecessorJunction == nullptr)
 	{
 		snapS = 0;
-		extendFromStart = g_pointerRoad;
+		extendFromStart = pointerRoad;
 		extendFromStartS = 0;
 	}
-	else if (LM::g_PointerRoadS > g_pointerRoad->Length() - snapThreshold &&
-		dynamic_cast<LM::DirectJunction*>(g_pointerRoad->successorJunction.get()) == nullptr)
+	else if (LM::g_PointerRoadS > pointerRoad->Length() - snapThreshold &&
+		pointerRoad->successorJunction == nullptr)
 	{
-		snapS = g_pointerRoad->Length();
-		extendFromStart = g_pointerRoad;
-		extendFromStartS = g_pointerRoad->Length();
+		snapS = pointerRoad->Length();
+		extendFromStart = pointerRoad;
+		extendFromStartS = pointerRoad->Length();
 	}
 
 	if (!extendFromStart.expired())
 	{
 		// only snap to ends
-		point = g_pointerRoad->generated.get_xy(snapS);
+		point = pointerRoad->generated.get_xy(snapS);
 		onExisting = true;
 	}
-	return onExisting ? RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Nothing;
+	return onExisting ? Snap_Point : Snap_Nothing;
 }
 
 RoadDrawingSession::SnapResult RoadCreationSession::SnapLastPointToExisting(odr::Vec2D& point)
 {
-	auto g_PointerRoad = GetPointerRoad();
-	if (g_PointerRoad == nullptr) return RoadDrawingSession::Snap_Nothing;
+	auto pointerRoad = GetPointerRoad();
+	if (pointerRoad == nullptr || pointerRoad->IsConnectingRoad()) return Snap_Nothing;
 
 	bool onExisting = false;
 
@@ -207,32 +205,31 @@ RoadDrawingSession::SnapResult RoadCreationSession::SnapLastPointToExisting(odr:
 	double snapS;
 	const double snapThreshold = SnapDistFromScale();
 	if (LM::g_PointerRoadS < snapThreshold &&
-		dynamic_cast<LM::DirectJunction*>(g_PointerRoad->predecessorJunction.get()) == nullptr)
+		pointerRoad->predecessorJunction.get() == nullptr)
 	{
 		snapS = 0;
-		joinAtEnd = g_PointerRoad;
+		joinAtEnd = pointerRoad;
 	}
-	else if (LM::g_PointerRoadS > g_PointerRoad->Length() - snapThreshold &&
-		dynamic_cast<LM::DirectJunction*>(g_PointerRoad->successorJunction.get()) == nullptr)
+	else if (LM::g_PointerRoadS > pointerRoad->Length() - snapThreshold &&
+		pointerRoad->successorJunction.get() == nullptr)
 	{
-		snapS = g_PointerRoad->Length();
-		joinAtEnd = g_PointerRoad;
+		snapS = pointerRoad->Length();
+		joinAtEnd = pointerRoad;
 	}
 	if (!joinAtEnd.expired())
 	{
-		point = g_PointerRoad->generated.get_xy(snapS);
+		point = pointerRoad->generated.get_xy(snapS);
 		onExisting = true;
 		joinAtEndS = snapS;
 	}
 	cursorItem->EnableHighlight(onExisting);
-	return onExisting ? RoadDrawingSession::Snap_Point : RoadDrawingSession::Snap_Nothing;
+	return onExisting ? Snap_Point : Snap_Nothing;
 }
 
 bool RoadCreationSession::Update(const LM::MouseAction& act)
 {
 	RoadDrawingSession::Update(act);
-	auto g_PointerRoad = GetPointerRoad();
-	SetHighlightTo(g_PointerRoad);
+	SetHighlightTo(GetPointerRoad());
 
 	bool dirHandleEvt = false;
 	double prevHandleDir, currHandleDir;

@@ -1,7 +1,6 @@
 #include "road_drawing.h"
 #include "junction.h"
 
-#include <qevent.h>
 #include "LaneConfigWidget.h"
 
 RoadModificationSession::RoadModificationSession()

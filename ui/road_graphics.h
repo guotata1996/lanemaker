@@ -1,7 +1,6 @@
 #pragma once
 #include <qgraphicsitem.h>
 #include <qbrush.h>
-#include <map>
 
 #include "road.h"
 #include "spatial_indexer.h"

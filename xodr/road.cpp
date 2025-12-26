@@ -338,7 +338,7 @@ namespace LM
 
                 auto collidingRoad = IDGenerator::ForType(IDType::Road)->GetByID<Road>(overlap.roadID)->shared_from_this();
 
-                if (collidingRoad->generated.junction != "-1")
+                if (collidingRoad->IsConnectingRoad())
                 {
                     auto junctionPtr = IDGenerator::ForType(IDType::Junction)->GetByID<LM::Junction>(collidingRoad->generated.junction);
                     auto junction = junctionPtr->shared_from_this();

@@ -65,7 +65,7 @@ namespace LM
                 }
             }
 
-            const bool joinExistingJunction = road2->generated.junction != "-1";
+            const bool joinExistingJunction = road2->IsConnectingRoad();
             if (sBegin1 == 0 && joinExistingJunction) {
                 // Current overlap can be with any connecting road of this junction, but we need to:
                 //   Process at the last connecting road of originating junction

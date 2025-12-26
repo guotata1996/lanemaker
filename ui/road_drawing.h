@@ -4,9 +4,7 @@
 #include "action_defs.h"
 #include "road_graphics.h"
 
-#include "Transform3D.h"
 #include <vector>
-#include <map>
 #include <spdlog/spdlog.h>
 
 class RoadDrawingSession
@@ -113,8 +111,7 @@ private:
     class DirectionHandle
     {
     public:
-        DirectionHandle(odr::Vec3D center, double angle);
-        //~DirectionHandle();
+        DirectionHandle(const odr::Vec3D& aCenter, double aAngle);
 
         bool Update(const LM::MouseAction& act);
         double Rotation() const;
@@ -126,8 +123,8 @@ private:
         const odr::Vec3D center;
         double angle;
 
-        double dragging = false;
-        double deltaRotation;
+        bool dragging = false;
+        double deltaRotation = 0;
 
         std::optional<LM::HintPolyGraphics> graphicsItem;
         const double InnerRadius = 4;

@@ -4,7 +4,6 @@
 
 #include "Geometries/Line.h"
 #include "Geometries/ParamPoly3.h"
-#include "curve_fitting.h"
 #include "junction.h"
 #include "LaneConfigWidget.h"
 #include "stats.h"
@@ -265,7 +264,7 @@ void RoadDrawingSession::UpdateEndMarkings()
         auto road = road_contact.first;
         bool needStopLine = false;
         std::map<int, uint8_t> laneToArrow;
-        if (road->generated.junction == "-1")
+        if (!road->IsConnectingRoad())
         {
             // Nothing is needed for connecting road
             if (road_contact.second == odr::RoadLink::ContactPoint_End)

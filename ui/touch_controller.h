@@ -2,7 +2,6 @@
 
 #include <QTouchEvent>
 #include <QList>
-#include <optional>
 
 #include "Camera.h"
 

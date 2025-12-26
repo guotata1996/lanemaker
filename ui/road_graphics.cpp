@@ -1,7 +1,6 @@
 #include "road_graphics.h"
 
 #include <qvector2d.h>
-#include <math.h>
 
 #include "spdlog/spdlog.h"
 #include "stats.h"

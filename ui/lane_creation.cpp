@@ -240,7 +240,7 @@ bool LanesCreationSession::ValidateSnap() const
         return false;
     }
     double g_roadS = GetAdjustedS();
-    if (g_road->generated.junction != "-1")
+    if (g_road->IsConnectingRoad())
     {
         return false;
     }

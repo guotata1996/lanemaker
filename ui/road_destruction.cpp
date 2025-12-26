@@ -28,7 +28,7 @@ bool RoadDestroySession::Update(const LM::MouseAction& evt)
     auto target = targetRoad.lock();
     // Change target, s1, s2
     if (evt.button == Qt::LeftButton 
-        && g_road != nullptr && g_road->generated.junction == "-1")
+        && g_road != nullptr && !g_road->IsConnectingRoad())
     {
         if (g_road != target)
         {

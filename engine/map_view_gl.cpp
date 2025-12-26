@@ -1,6 +1,6 @@
 #include "map_view_gl.h"
 #include <QMouseEvent>
-#include <QKeyEvent>
+#include <QPainter>
 #include <QCoreApplication>
 
 #include "main_widget.h"
@@ -620,7 +620,7 @@ namespace LM
             if (prevHL != nullptr)
             {
                 prevHL->EnableHighlight(false);
-                if (prevHL->generated.junction != "-1")
+                if (prevHL->IsConnectingRoad())
                 {
                     (IDGenerator::ForType(IDType::Junction)->GetByID<Junction>(prevHL->generated.junction))->Hide(false);
                 }
@@ -635,7 +635,7 @@ namespace LM
             g_PointerLane = hitInfo.lane;
             auto hitRoad = IDGenerator::ForType(IDType::Road)->GetByID<Road>(g_PointerRoadID);
             hitRoad->EnableHighlight(true);
-            if (hitRoad->generated.junction != "-1")
+            if (hitRoad->IsConnectingRoad())
             {
                 IDGenerator::ForType(IDType::Junction)->GetByID<Junction>(hitRoad->generated.junction)->Hide(true);
             }

@@ -1,6 +1,5 @@
 #pragma once
 #include <QFrame>
-#include <QGraphicsView>
 
 #include "action_defs.h"
 

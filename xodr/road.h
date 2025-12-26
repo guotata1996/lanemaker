@@ -51,6 +51,7 @@ namespace LM
 
         std::string ID() const { return generated.id; }
         odr::RefLine& RefLine() { return generated.ref_line; }
+        bool IsConnectingRoad() const {return generated.junction != "-1";}
         
         // Static functions
         static int JoinRoads(std::shared_ptr<Road>& road1AsDst, const odr::RoadLink::ContactPoint c1,
