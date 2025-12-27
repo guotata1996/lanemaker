@@ -1,37 +1,32 @@
 #pragma once
 
+#include <QMatrix4x4>
+#include <unordered_set>
+
 #include "Road.h"
 #include "id_generator.h"
 
-#include <QMatrix4x4>
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh.h>
-
-#include <CGAL/AABB_tree.h>
-#include <CGAL/AABB_traits.h>
-#include <CGAL/AABB_face_graph_triangle_primitive.h>
-#include <CGAL/Polygon_mesh_processing/compute_normal.h>
-#include <CGAL/Polygon_mesh_processing/orientation.h>
-
-namespace
+namespace LM
 {
-    typedef CGAL::Simple_cartesian<double> K;
-    typedef K::FT FT;
-    typedef K::Point_3 Point;
-    typedef K::Vector_3 Vector;
-    typedef K::Ray_3 Ray;
-    typedef K::Triangle_3 Triangle;
+    typedef uint64_t FaceIndex_t;
 
-    typedef CGAL::Surface_mesh<Point> Mesh;
-    typedef boost::graph_traits<Mesh>::face_descriptor face_descriptor;
-    typedef boost::graph_traits<Mesh>::halfedge_descriptor halfedge_descriptor;
+    struct RayCastQuery
+    {
+        odr::Vec3D origin;
+        odr::Vec3D direction;
+        std::unordered_set<FaceIndex_t> skip;
+    };
 
-    typedef std::list<Triangle>::iterator Iterator;
-    typedef CGAL::AABB_face_graph_triangle_primitive<Mesh> Primitive;
-    typedef CGAL::AABB_traits<K, Primitive> Traits;
-    typedef CGAL::AABB_tree<Traits> Tree;
-    typedef boost::optional<Tree::Intersection_and_primitive_id<Ray>::Type> Ray_intersection;
+    struct RayCastResult
+    {
+        bool hit = false;
+        odr::Vec3D hitPos;
+        std::string roadID;
+        int lane;
+        double s;
+    };
 
+    // Short segment of lane, stored in spatial indexer tree
     struct Quad
     {
         std::string roadID;
@@ -40,57 +35,13 @@ namespace
         odr::Vec2D pointOnSBegin, pointOnSEnd; // must be parallel to long side
         bool magneticArea;
 
-        int GetLaneID()
+        int LaneID() const
         {
             return sBegin < sEnd ? laneIDNormal : laneIDReversed;
         }
     };
-}
 
-namespace LM
-{
-    typedef uint64_t FaceIndex_t;
-
-    struct RayCastSkip
-    {
-        std::set<face_descriptor> fd;
-
-        RayCastSkip() = default;
-
-        RayCastSkip(std::set<FaceIndex_t> indice)
-        {
-            for (auto index : indice)
-            {
-                uint32_t face1ID = index >> 32;
-                uint32_t face2ID = index & 0xffffffff;
-                fd.emplace(face1ID);
-                fd.emplace(face2ID);
-            }
-        }
-
-        bool operator()(const face_descriptor& t) const
-        {
-            return fd.find(t) != fd.end();
-        }
-
-    };
-
-    struct RayCastQuery
-    {
-        odr::Vec3D origin;
-        odr::Vec3D direction;
-        RayCastSkip skip;
-    };
-
-    struct RayCastResult
-    {
-        bool hit = false;
-        odr::Vec3D hitPos;
-        //bool isJunction;
-        std::string roadID;
-        int lane;
-        double s;
-    };
+    class SpatialIndexer_impl;
 
     class SpatialIndexer
     {
@@ -107,19 +58,21 @@ namespace LM
 
         void RebuildTree();
 
-        std::map<uint32_t, Quad> faceInfo;
-
-        static uint32_t InvalidFace;
+        Quad& FaceInfo(FaceIndex_t);
 
         void Clear();
 
+        static uint32_t InvalidFace;
+
     private:
+        SpatialIndexer();
+
         static SpatialIndexer* _instance;
 
-        Mesh mesh;
-
-        Tree tree;
+        SpatialIndexer_impl* _impl;
     };
+
+    class SpatialIndexerDynamic_impl;
 
     class SpatialIndexerDynamic
     {
@@ -136,8 +89,8 @@ namespace LM
     private:
         static SpatialIndexerDynamic* _instance;
 
-        std::map<unsigned int, std::vector<Triangle>> idToFaces;
+        SpatialIndexerDynamic();
 
-        static Point ToPoint_3(QVector3D v);
+        SpatialIndexerDynamic_impl* _impl;
     };
 }

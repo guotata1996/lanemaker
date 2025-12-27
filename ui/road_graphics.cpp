@@ -317,7 +317,7 @@ namespace LM
             for (auto faceID : { face1ID , face2ID })
             {
                 if (faceID == SpatialIndexer::InvalidFace) continue;
-                Quad& face = SpatialIndexer::Instance()->faceInfo.at(faceID);
+                Quad& face = SpatialIndexer::Instance()->FaceInfo(faceID);
                 face.roadID = newRoadID;
                 face.sBegin = face.sBegin * mult + shift;
                 face.sEnd = face.sEnd * mult + shift;

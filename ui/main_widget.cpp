@@ -3,6 +3,8 @@
 
 #include <QtWidgets>
 
+#include <CGAL/exceptions.h>
+
 #include "main_widget.h"
 #include "map_view_gl.h"
 #include "main_window.h"

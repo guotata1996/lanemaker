@@ -122,7 +122,7 @@ MainWindow::~MainWindow() = default;
 
 QSize MainWindow::PreferredSize() const
 {
-    auto available = QApplication::desktop()->screenGeometry();
+    auto available = QApplication::primaryScreen()->geometry();
     int preferredHeight = available.height() * 0.6;
     int preferredWidth = available.width() * 0.5;
     return QSize(std::max(preferredWidth, MinWidth), std::max(preferredHeight, MinHeight));

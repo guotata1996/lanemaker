@@ -1,7 +1,37 @@
 #include "spatial_indexer.h"
 
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
+
+#include <CGAL/AABB_tree.h>
+#include <CGAL/Polygon_mesh_processing/compute_normal.h>
+#include <CGAL/Polygon_mesh_processing/orientation.h>
+
+typedef CGAL::Simple_cartesian<double> K;
+typedef K::FT FT;
+typedef K::Point_3 Point;
+typedef K::Vector_3 Vector;
+typedef K::Ray_3 Ray;
+typedef K::Triangle_3 Triangle;
+
 namespace LM
 {
+    class SpatialIndexerDynamic_impl {
+    public:
+        // New or update
+        void Index(unsigned int id, QMatrix4x4 transform, QVector3D lwh);
+
+        // returns -1 if no intersection
+        unsigned int RayCast(odr::Vec3D origin, odr::Vec3D direction);
+
+        void UnIndex(unsigned int id);
+
+    private:
+        std::map<unsigned int, std::vector<Triangle>> idToFaces;
+
+        static Point ToPoint_3(QVector3D v);
+    };
+
     SpatialIndexerDynamic* SpatialIndexerDynamic::_instance = nullptr;
 
     SpatialIndexerDynamic* SpatialIndexerDynamic::Instance()
@@ -13,12 +43,26 @@ namespace LM
         return _instance;
     }
 
-    Point SpatialIndexerDynamic::ToPoint_3(QVector3D v)
+    SpatialIndexerDynamic::SpatialIndexerDynamic(): _impl(new SpatialIndexerDynamic_impl) {}
+
+    void SpatialIndexerDynamic::Index(unsigned int id, QMatrix4x4 transform, QVector3D lwh) {
+        _impl->Index(id, transform, lwh);
+    }
+
+    unsigned int SpatialIndexerDynamic::RayCast(odr::Vec3D origin, odr::Vec3D direction) {
+        return _impl->RayCast(origin, direction);
+    }
+
+    void SpatialIndexerDynamic::UnIndex(unsigned int id) {
+        _impl->UnIndex(id);
+    }
+
+    Point SpatialIndexerDynamic_impl::ToPoint_3(QVector3D v)
     {
         return Point(v.x(), v.y(), v.z());
     }
 
-    void SpatialIndexerDynamic::Index(unsigned int id, QMatrix4x4 transform, QVector3D lwh)
+    void SpatialIndexerDynamic_impl::Index(unsigned int id, QMatrix4x4 transform, QVector3D lwh)
     {
         QVector3D whl(lwh.y(), lwh.z(), lwh.x());
         auto topLeftFront = transform.map(whl * QVector3D(0.5, 0.5, 0.5));
@@ -55,12 +99,12 @@ namespace LM
         idToFaces[id] = faces;
     }
 
-    void SpatialIndexerDynamic::UnIndex(unsigned int id)
+    void SpatialIndexerDynamic_impl::UnIndex(unsigned int id)
     {
         idToFaces.erase(id);
     }
 
-    unsigned int SpatialIndexerDynamic::RayCast(odr::Vec3D origin, odr::Vec3D direction)
+    unsigned int SpatialIndexerDynamic_impl::RayCast(odr::Vec3D origin, odr::Vec3D direction)
     {
         auto originP = Point(origin[0], origin[1], origin[2]);
         Ray ray_query(originP, Vector(direction[0], direction[1], direction[2]));
