@@ -310,17 +310,14 @@ namespace LM
 
     void SectionGraphics::updateIndexingInfo(std::string newRoadID, int mult, double shift)
     {
+        assert(std::abs(mult) == 1);
         for (auto index : allSpatialIndice)
         {
-            uint32_t face1ID = index >> 32;
-            uint32_t face2ID = index & 0xffffffff;
-            for (auto faceID : { face1ID , face2ID })
-            {
-                if (faceID == SpatialIndexer::InvalidFace) continue;
-                Quad& face = SpatialIndexer::Instance()->FaceInfo(faceID);
-                face.roadID = newRoadID;
-                face.sBegin = face.sBegin * mult + shift;
-                face.sEnd = face.sEnd * mult + shift;
+            std::shared_ptr<Quad> face = SpatialIndexer::Instance()->FaceInfo(index);
+            if (face != nullptr) {
+                face->roadID = newRoadID;
+                face->sBegin = face->sBegin * mult + shift;
+                face->sEnd = face->sEnd * mult + shift;
             }
         }
 

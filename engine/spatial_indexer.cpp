@@ -65,12 +65,14 @@ namespace LM
 
         void Clear();
 
-        std::unordered_map<uint32_t, Quad> faceInfo;
+        std::unordered_map<uint32_t, std::shared_ptr<Quad>> faceInfo;
 
     private:
         Mesh mesh;
 
         Tree tree;
+
+        // TODO: vector of 2D Box
     };
 
 
@@ -109,8 +111,16 @@ namespace LM
         _impl->RebuildTree();
     }
 
-    Quad& SpatialIndexer::FaceInfo(FaceIndex_t index) {
-        return _impl->faceInfo.at(index);
+    std::shared_ptr<Quad> SpatialIndexer::FaceInfo(FaceIndex_t index) {
+        uint32_t face1ID = index >> 32;
+        uint32_t face2ID = index & 0xffffffff;
+        if (face1ID != InvalidFace) {
+            return _impl->faceInfo.at(face1ID);
+        }
+        if (face2ID != InvalidFace) {
+            return _impl->faceInfo.at(face2ID);
+        }
+        return nullptr;
     }
 
     void SpatialIndexer::Clear() {
@@ -119,7 +129,7 @@ namespace LM
 
     FaceIndex_t SpatialIndexer_impl::Index(odr::Road road, odr::Lane lane, double sBegin, double sEnd)
     {
-        bool magnetic = sBegin < 0 || sEnd > road.length;
+        bool magneticArea = sBegin < 0 || sEnd > road.length;
         double t1 = lane.inner_border.get(sBegin);
         double t2 = lane.outer_border.get(sBegin);
         auto p1_3 = road.get_xyz(sBegin, t1, 0);
@@ -172,7 +182,9 @@ namespace LM
             }
         }
 
-        Quad face{ road.id, lane.id, laneIDWhenReversed, sBegin, sEnd, p1, p3, magnetic };
+        auto face = std::make_shared<Quad>(
+            Quad{road.id, lane.id, laneIDWhenReversed, sBegin, sEnd,
+            p1, p3, p2, p4, magneticArea});
 
         if (face1ID != SpatialIndexer::InvalidFace)
         {
@@ -208,11 +220,11 @@ namespace LM
                 const Point* p = boost::get<Point>(&(intersection->first));
                 odr::Vec2D p2d{ p->x(), p->y() };
                 odr::Vec3D p3d{ p->x(), p->y(), p->z() };
-                auto dir = odr::normalize(odr::sub(info.pointOnSEnd, info.pointOnSBegin));
-                auto projLength = odr::dot(dir, odr::sub(p2d, info.pointOnSBegin));
-                auto quadLength = odr::euclDistance(info.pointOnSBegin, info.pointOnSEnd);
-                auto hitS = (projLength * info.sEnd + (quadLength - projLength) * info.sBegin) / quadLength;
-                return RayCastResult{ true, p3d, info.roadID, info.LaneID(), hitS };
+                auto dir = odr::normalize(odr::sub(info->pointS2T1, info->pointS1T1));
+                auto projLength = odr::dot(dir, odr::sub(p2d, info->pointS1T1));
+                auto quadLength = odr::euclDistance(info->pointS1T1, info->pointS2T1);
+                auto hitS = (projLength * info->sEnd + (quadLength - projLength) * info->sBegin) / quadLength;
+                return RayCastResult{ true, p3d, info->roadID, info->LaneID(), hitS };
             }
         }
 
@@ -246,18 +258,18 @@ namespace LM
 
                 auto faceID = intersection->second.id();
                 auto info = faceInfo.at(faceID);
-                if (info.magneticArea)
+                if (info->magneticArea)
                 {
                     continue;
                 }
                 odr::Vec2D p2d{ p->x(), p->y() };
-                auto dir = odr::normalize(odr::sub(info.pointOnSEnd, info.pointOnSBegin));
-                auto projLength = odr::dot(dir, odr::sub(p2d, info.pointOnSBegin));
-                auto quadLength = odr::euclDistance(info.pointOnSBegin, info.pointOnSEnd);
-                auto hitS = (projLength * info.sEnd + (quadLength - projLength) * info.sBegin) / quadLength;
-                hitS = std::max(std::min(info.sBegin, info.sEnd), hitS);
-                hitS = std::min(std::max(info.sBegin, info.sEnd), hitS);
-                RayCastResult result{ true, p3d, info.roadID, info.LaneID(), hitS };
+                auto dir = odr::normalize(odr::sub(info->pointS2T1, info->pointS1T1));
+                auto projLength = odr::dot(dir, odr::sub(p2d, info->pointS1T1));
+                auto quadLength = odr::euclDistance(info->pointS1T1, info->pointS2T1);
+                auto hitS = (projLength * info->sEnd + (quadLength - projLength) * info->sBegin) / quadLength;
+                hitS = std::max(std::min(info->sBegin, info->sEnd), hitS);
+                hitS = std::min(std::max(info->sBegin, info->sEnd), hitS);
+                RayCastResult result{ true, p3d, info->roadID, info->LaneID(), hitS };
                 rtn.emplace_back(result);
             }
         }

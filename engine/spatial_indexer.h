@@ -32,13 +32,16 @@ namespace LM
         std::string roadID;
         const int laneIDNormal, laneIDReversed;
         double sBegin, sEnd;
-        odr::Vec2D pointOnSBegin, pointOnSEnd; // must be parallel to long side
-        bool magneticArea;
+        odr::Vec2D pointS1T1, pointS2T1; // don't necessary correspond to sBegin
+        odr::Vec2D pointS1T2, pointS2T2; // don't necessary correspond to sEnd
+        bool magneticArea; // Quad is for mouse ray-cast query only, ignored in overlap query
 
         int LaneID() const
         {
             return sBegin < sEnd ? laneIDNormal : laneIDReversed;
         }
+
+        // TODO: toAABox()
     };
 
     class SpatialIndexer_impl;
@@ -52,13 +55,14 @@ namespace LM
 
         RayCastResult RayCast(RayCastQuery ray);
 
+        // TODO: box_intersection_d
         std::vector<RayCastResult> AllOverlaps(odr::Vec3D origin, double zRange = 0.01);
 
         void UnIndex(FaceIndex_t index);
 
         void RebuildTree();
 
-        Quad& FaceInfo(FaceIndex_t);
+        std::shared_ptr<Quad> FaceInfo(FaceIndex_t);
 
         void Clear();
 
