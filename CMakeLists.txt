@@ -26,7 +26,7 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp ${APP_ICON_RESOURCE_WINDOWS}
     widgets/LaneConfigWidget.cpp widgets/DrawOptionDialog.cpp
     engine/map_view_gl.cpp engine/ShaderProgram.cpp 
     engine/Transform3D.cpp engine/gl_buffer_manage.cpp engine/gl_buffer_manage_instanced.cpp
-    engine/spatial_indexer.cpp engine/spatial_indexer_dynamic.cpp
+    engine/spatial_indexer.cpp engine/spatial_indexer_dynamic.cpp engine/quads_overlap.cpp
     traffic/vehicle.cpp traffic/vehicle_manager.cpp traffic/signal.cpp
     util/stats.cpp util/multi_segment.cpp util/label_with_link.cpp util/preference.cpp
     util/triangulation.cpp
@@ -75,6 +75,7 @@ add_executable(
   LaneMakerTest
   test/test.cc test/randomization_utils.cpp 
   test/validation.cpp test/junction_validation.cpp test/road_validation.cpp
+  test/spatial_query_test.h
   xodr/road.cpp xodr/road_operation.cpp xodr/curve_fitting.cpp xodr/polyline.cpp
   xodr/junction.cpp xodr/junction_generation.cpp
   xodr/id_generator.cpp xodr/world.cpp

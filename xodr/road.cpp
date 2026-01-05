@@ -314,64 +314,60 @@ namespace LM
         std::map<std::shared_ptr<Road>, MultiSegment> rangeOnOther;
         std::map<std::shared_ptr<Road>, MultiSegment> rangeOnSelf;
         std::map<std::shared_ptr<Road>, std::vector<std::pair<double, double>>> linkPoints;
-        const double RangeExtension = 0.5; // expands from single point to range
 
-        for (auto st: generated.sample_st(sBegin, sEnd, 1.0))
+        for (auto overlap : SpatialIndexer::Instance()->AllOverlaps(
+            generated.rr_profile, generated.ref_line, sBegin, sEnd, zThreshold))
         {
-            auto pt = generated.get_xyz(st.first, st.second, 0);
-
-            for (auto overlap : SpatialIndexer::Instance()->AllOverlaps(pt, zThreshold))
+            if (overlap.roadID2 == ID())
             {
-                if (overlap.roadID == ID())
+                if (std::abs(overlap.sBegin1 - overlap.sEnd2) < GraphicsDivision ||
+                    std::abs(overlap.sBegin2 - overlap.sEnd1) < GraphicsDivision)
                 {
-                    if (std::abs(overlap.s - st.first) < 2.0)
-                    {
-                        // Ignore self-overlaps adjacent to query zone
-                        continue;
-                    }
-                    if (overlap.s < st.first)
-                    {
-                        // Only record pairs where s1 > s2
-                        continue;
-                    }
+                    // Ignore self-overlaps adjacent to query zone
+                    continue;
                 }
-
-                auto collidingRoad = IDGenerator::ForType(IDType::Road)->GetByID<Road>(overlap.roadID)->shared_from_this();
-
-                if (collidingRoad->IsConnectingRoad())
+                if (overlap.sBegin1 < overlap.sBegin2)
                 {
-                    auto junctionPtr = IDGenerator::ForType(IDType::Junction)->GetByID<LM::Junction>(collidingRoad->generated.junction);
-                    auto junction = junctionPtr->shared_from_this();
-                    if (predecessorJunction == junction && st.first == 0)
-                    {
-                        // Already joined this junction
-                        continue;
-                    }
-                    if (successorJunction == junction && st.first > Length() - 1e-2)
-                    {
-                        // Already joined this junction
-                        continue;
-                    }
+                    // Only record pairs where s1 > s2
+                    continue;
                 }
-                   
-                if (rangeOnOther.find(collidingRoad) == rangeOnOther.end())
-                {
-                    rangeOnOther.emplace(collidingRoad, MultiSegment(1));
-                }
-                rangeOnOther.at(collidingRoad).Insert(
-                    std::max(0.0, overlap.s - RangeExtension), 
-                    std::min(overlap.s + RangeExtension, collidingRoad->Length()));
-                
-                if (rangeOnSelf.find(collidingRoad) == rangeOnSelf.end())
-                {
-                    rangeOnSelf.emplace(collidingRoad, MultiSegment(1));
-                }
-                rangeOnSelf.at(collidingRoad).Insert(
-                    std::max(0.0, st.first - RangeExtension), 
-                    std::min(st.first + RangeExtension, Length()));
-
-                linkPoints[collidingRoad].push_back(std::make_pair(st.first, overlap.s));
             }
+
+            auto collidingRoad = IDGenerator::ForType(IDType::Road)->GetByID<Road>(overlap.roadID2)->shared_from_this();
+
+            if (collidingRoad->IsConnectingRoad())
+            {
+                auto junctionPtr = IDGenerator::ForType(IDType::Junction)->GetByID<LM::Junction>(collidingRoad->generated.junction);
+                auto junction = junctionPtr->shared_from_this();
+                if (predecessorJunction == junction && overlap.sBegin1 == 0)
+                {
+                    // Already joined this junction
+                    continue;
+                }
+                if (successorJunction == junction && overlap.sEnd1 > Length() - 1e-2)
+                {
+                    // Already joined this junction
+                    continue;
+                }
+            }
+
+            if (rangeOnOther.find(collidingRoad) == rangeOnOther.end())
+            {
+                rangeOnOther.emplace(collidingRoad, MultiSegment(1));
+            }
+            rangeOnOther.at(collidingRoad).Insert(
+                overlap.sBegin2,
+                std::min(overlap.sEnd2, collidingRoad->Length()));
+
+            if (rangeOnSelf.find(collidingRoad) == rangeOnSelf.end())
+            {
+                rangeOnSelf.emplace(collidingRoad, MultiSegment(1));
+            }
+            rangeOnSelf.at(collidingRoad).Insert(
+                overlap.sBegin1,
+                std::min(overlap.sEnd1, Length()));
+
+            linkPoints[collidingRoad].push_back(std::make_pair(overlap.sBegin1, overlap.sBegin2));
         }
         
         for (auto other : rangeOnOther)

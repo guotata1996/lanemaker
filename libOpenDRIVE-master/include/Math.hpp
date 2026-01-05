@@ -299,4 +299,8 @@ std::vector<T> xrange(T begin, T end, T interval)
     return rtn;
 }
 
+inline Vec2D to_2d(const Vec3D& v) {
+    return Vec2D{v[0], v[1]};
+}
+
 } // namespace odr

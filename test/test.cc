@@ -5,6 +5,7 @@
 #include "junction_test.h"
 #include "road_geometry_test.h"
 #include "road_operation_test.h"
+#include "spatial_query_test.h"
 
 namespace LTest
 {

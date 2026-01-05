@@ -26,14 +26,23 @@ namespace LM
         double s;
     };
 
+    struct OverlapResult
+    {
+        // roadID1 is trivial as road1 is temporary
+        std::string roadID2;
+        int lane1, lane2;
+        double sBegin1, sEnd1;
+        double sBegin2, sEnd2;
+    };
+
     // Short segment of lane, stored in spatial indexer tree
     struct Quad
     {
         std::string roadID;
         const int laneIDNormal, laneIDReversed;
         double sBegin, sEnd;
-        odr::Vec2D pointS1T1, pointS2T1; // don't necessary correspond to sBegin
-        odr::Vec2D pointS1T2, pointS2T2; // don't necessary correspond to sEnd
+        odr::Vec3D pointS1T1, pointS2T1; // don't necessary correspond to sBegin
+        odr::Vec3D pointS1T2, pointS2T2; // don't necessary correspond to sEnd
         bool magneticArea; // Quad is for mouse ray-cast query only, ignored in overlap query
 
         int LaneID() const
@@ -41,8 +50,10 @@ namespace LM
             return sBegin < sEnd ? laneIDNormal : laneIDReversed;
         }
 
-        // TODO: toAABox()
     };
+
+    bool Overlap2D(const Quad& q1, const Quad& q2);
+    bool Overlap3D(const Quad& q1, const Quad& q2, double zThreshold);
 
     class SpatialIndexer_impl;
 
@@ -55,8 +66,9 @@ namespace LM
 
         RayCastResult RayCast(RayCastQuery ray);
 
-        // TODO: box_intersection_d
-        std::vector<RayCastResult> AllOverlaps(odr::Vec3D origin, double zRange = 0.01);
+        std::vector<OverlapResult> AllOverlaps(
+            const LaneProfile& p, const odr::RefLine& l,
+            double sBegin, double sEnd, double zRange = 0.01);
 
         void UnIndex(FaceIndex_t index);
 

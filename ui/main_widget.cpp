@@ -14,6 +14,12 @@
 #include "LaneConfigWidget.h"
 #include "DrawOptionDialog.h"
 
+// Unix: _DEBUG, Win32: !NDEBUG
+#if defined(NDEBUG) && !defined(_DEBUG)
+#else
+#define DEBUG
+#endif
+
 MainWidget* MainWidget::instance = nullptr;
 
 MainWidget::MainWidget(QWidget* parent)
@@ -190,7 +196,7 @@ void MainWidget::gotoDragMode(bool checked)
 
 void MainWidget::OnMouseAction(LM::MouseAction evt)
 {
-#ifndef _DEBUG
+#ifndef DEBUG
     try
     {
 #endif
@@ -201,7 +207,7 @@ void MainWidget::OnMouseAction(LM::MouseAction evt)
                 confirmEdit();
             }
         }
-#ifndef _DEBUG
+#ifndef DEBUG
     }
     catch (CGAL::Failure_exception e)
     {
@@ -220,7 +226,7 @@ void MainWidget::OnKeyPress(LM::KeyPressAction evt)
     {
         return;
     }
-#ifndef _DEBUG
+#ifndef DEBUG
     try
     {
 #endif
@@ -242,7 +248,7 @@ void MainWidget::OnKeyPress(LM::KeyPressAction evt)
             break;
         }
 
-#ifndef _DEBUG
+#ifndef DEBUG
     }
     catch (CGAL::Failure_exception e)
     {
